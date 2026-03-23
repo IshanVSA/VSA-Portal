@@ -113,7 +113,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { role } = useUserRole();
   const { user, signOut } = useAuth();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("sidebar-collapsed") === "true");
   const [clientClinics, setClientClinics] = useState<{
