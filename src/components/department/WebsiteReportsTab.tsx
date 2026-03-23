@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { format, subDays, subMonths, startOfMonth, endOfMonth, differenceInMilliseconds } from "date-fns";
+import { format, differenceInMilliseconds } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,16 @@ import {
   PDF_COLORS, renderPDFHeader, renderSectionHeader, renderKPICards,
   getTableStyles, colorChangeCell, finalizePDF, ensureSpace,
 } from "@/lib/pdf-theme";
-import { buildDateKeys, computeWebsiteMetrics, DEFAULT_CLINIC_TIMEZONE, getBufferedRange, getSafeTimeZone, WebsiteMetrics } from "@/lib/website-analytics";
+import {
+  buildDateKeys,
+  computeWebsiteMetrics,
+  DEFAULT_CLINIC_TIMEZONE,
+  getBufferedRange,
+  getMonthDateRangeForTimeZone,
+  getSafeTimeZone,
+  getTrailingDateRangeForTimeZone,
+  WebsiteMetrics,
+} from "@/lib/website-analytics";
 
 interface Props {
   clinicId: string;
@@ -28,17 +37,18 @@ const periodLabels: Record<ReportPeriod, string> = {
   last_month: "Last Month",
 };
 
-function getDateRange(period: ReportPeriod): { from: Date; to: Date } {
-  const now = new Date();
+function getDateRange(period: ReportPeriod, timeZone: string): { from: Date; to: Date } {
   switch (period) {
-    case "last7": return { from: subDays(now, 7), to: now };
-    case "last30": return { from: subDays(now, 30), to: now };
-    case "last90": return { from: subDays(now, 90), to: now };
-    case "this_month": return { from: startOfMonth(now), to: now };
-    case "last_month": {
-      const prev = subMonths(now, 1);
-      return { from: startOfMonth(prev), to: endOfMonth(prev) };
-    }
+    case "last7":
+      return getTrailingDateRangeForTimeZone(timeZone, 7);
+    case "last30":
+      return getTrailingDateRangeForTimeZone(timeZone, 30);
+    case "last90":
+      return getTrailingDateRangeForTimeZone(timeZone, 90);
+    case "this_month":
+      return getMonthDateRangeForTimeZone(timeZone);
+    case "last_month":
+      return getMonthDateRangeForTimeZone(timeZone, -1);
   }
 }
 
@@ -73,32 +83,57 @@ export function WebsiteReportsTab({ clinicId }: Props) {
   const [loading, setLoading] = useState(true);
   const [clinicName, setClinicName] = useState("");
   const [timeZone, setTimeZone] = useState(DEFAULT_CLINIC_TIMEZONE);
+  const [timezoneReady, setTimezoneReady] = useState(false);
   const [generating, setGenerating] = useState(false);
 
-  const range = useMemo(() => getDateRange(period), [period]);
+  const range = useMemo(() => getDateRange(period, timeZone), [period, timeZone]);
   const prevRange = useMemo(() => getPrevRange(range), [range]);
   const rangeDateKeys = useMemo(() => buildDateKeys(range.from, range.to), [range]);
   const prevRangeDateKeys = useMemo(() => buildDateKeys(prevRange.from, prevRange.to), [prevRange]);
 
   useEffect(() => {
-    if (!clinicId) { setLoading(false); return; }
+    if (!clinicId) {
+      setLoading(false);
+      setTimezoneReady(false);
+      return;
+    }
+
+    const fetchClinicMeta = async () => {
+      setLoading(true);
+      setTimezoneReady(false);
+
+      const { data: clinicData } = await supabase
+        .from("clinics")
+        .select("clinic_name, timezone")
+        .eq("id", clinicId)
+        .single();
+
+      setClinicName(clinicData?.clinic_name || "Unknown Clinic");
+      setTimeZone(getSafeTimeZone(clinicData?.timezone));
+      setTimezoneReady(true);
+    };
+
+    fetchClinicMeta();
+  }, [clinicId]);
+
+  useEffect(() => {
+    if (!clinicId || !timezoneReady) return;
+
     const fetchAll = async () => {
       setLoading(true);
       const currentBufferedRange = getBufferedRange(range.from, range.to);
       const previousBufferedRange = getBufferedRange(prevRange.from, prevRange.to);
-      const [{ data: pvData }, { data: prevData }, { data: clinicData }] = await Promise.all([
+      const [{ data: pvData }, { data: prevData }] = await Promise.all([
         supabase.from("website_pageviews").select("session_id, path, referrer, created_at").eq("clinic_id", clinicId).gte("created_at", currentBufferedRange.from.toISOString()).lte("created_at", currentBufferedRange.to.toISOString()).order("created_at", { ascending: true }),
         supabase.from("website_pageviews").select("session_id, path, referrer, created_at").eq("clinic_id", clinicId).gte("created_at", previousBufferedRange.from.toISOString()).lte("created_at", previousBufferedRange.to.toISOString()),
-        supabase.from("clinics").select("clinic_name, timezone").eq("id", clinicId).single(),
       ]);
       setPageviews((pvData as any[] | null) || []);
       setPrevPageviews((prevData as any[] | null) || []);
-      setClinicName(clinicData?.clinic_name || "Unknown Clinic");
-      setTimeZone(getSafeTimeZone(clinicData?.timezone));
       setLoading(false);
     };
+
     fetchAll();
-  }, [clinicId, range, prevRange]);
+  }, [clinicId, prevRange, range, timezoneReady]);
 
   const metrics = useMemo<WebsiteMetrics | null>(() => (pageviews.length > 0 ? computeWebsiteMetrics(pageviews, rangeDateKeys, timeZone) : null), [pageviews, rangeDateKeys, timeZone]);
   const prevMetrics = useMemo<WebsiteMetrics | null>(() => (prevPageviews.length > 0 ? computeWebsiteMetrics(prevPageviews, prevRangeDateKeys, timeZone) : null), [prevPageviews, prevRangeDateKeys, timeZone]);

@@ -112,6 +112,31 @@ export function getTodayDateForTimeZone(timeZone: string): Date {
   return getDateFromDateKey(getZonedDateKey(new Date(), timeZone));
 }
 
+export function getTrailingDateRangeForTimeZone(timeZone: string, days: number): { from: Date; to: Date } {
+  const to = getTodayDateForTimeZone(timeZone);
+  return {
+    from: addDays(to, -(Math.max(days, 1) - 1)),
+    to,
+  };
+}
+
+export function getMonthDateRangeForTimeZone(timeZone: string, monthOffset = 0): { from: Date; to: Date } {
+  const todayDateKey = getZonedDateKey(new Date(), timeZone);
+  const today = getDateFromDateKey(todayDateKey);
+  const [year, month] = todayDateKey.split("-").map(Number);
+  const baseMonth = new Date(year, month - 1 + monthOffset, 1);
+  const from = new Date(baseMonth.getFullYear(), baseMonth.getMonth(), 1);
+
+  if (monthOffset === 0) {
+    return { from, to: today };
+  }
+
+  return {
+    from,
+    to: new Date(baseMonth.getFullYear(), baseMonth.getMonth() + 1, 0),
+  };
+}
+
 export function getZonedHour(input: Date | string, timeZone: string): number {
   const parts = getFormatter(timeZone, {
     hour: "2-digit",
