@@ -1,35 +1,65 @@
 
-Assessment
+Plan
 
-Short answer: mostly yes, but not 100% in every edge case.
+1. Extend clinic access settings in the database
+- Add clinic-level boolean flags on `clinics` for:
+  - `website_enabled`
+  - `seo_enabled`
+  - `google_ads_enabled`
+  - `social_media_enabled`
+- Keep using the existing `ai_seo_enabled` field for AI SEO.
+- Default the new fields to `true` so existing clinics keep access unless an admin turns a service off.
 
-What is accurate now
-- The hourly buckets themselves are using the clinic’s timezone, not the viewer’s country/browser timezone.
-- I verified the analytics tab is calling `computeWebsiteMetrics(..., timeZone)`.
-- Inside that logic, each pageview hour is derived with `getZonedHour(view.created_at, timeZone)`, which uses the clinic’s configured IANA timezone.
-- So if a clinic is set to `America/New_York`, a pageview at `18:00 UTC` will be counted in the correct New York local hour.
+2. Add access controls to the Add Clinic dialog
+- In `src/pages/Clinics.tsx`, add a new “Service Access” section to the add-clinic modal.
+- Show 5 toggle/button options:
+  - Website
+  - SEO
+  - Google Ads
+  - AI SEO
+  - Social Media
+- Preselect them by default so admins can disable any service while creating the clinic.
+- Save those access choices together with the clinic record.
 
-Why it is not fully perfect yet
-- The chart’s included date range is still built from browser/local `Date` objects:
-  - `dateRange` defaults from `subDays(new Date(), 30)` to `new Date()`
-  - `selectedDateKeys` comes from `buildDateKeys(dateRange.from, dateRange.to)`
-- That means the hour buckets are clinic-timezone-correct, but the boundaries of which days are included can still be slightly off around midnight when the viewer timezone and clinic timezone differ.
-- Example: if it is already “tomorrow” in the clinic timezone but not yet in the viewer timezone, the selected range may exclude/include the wrong clinic-local day at the edges.
+3. Reuse the same access settings in clinic management
+- Update the clinic detail settings area so admins can later edit the same service-access toggles, not just AI SEO.
+- Keep “Connections” for integrations, but move service availability into one consistent clinic-level access section.
 
-Conclusion
-- Traffic by Hour is accurate for hour-of-day grouping.
-- It is not fully accurate for clinic-local date boundaries in all cases.
-- So I’d call it: accurate enough for most usage, but not fully clinic-timezone-pure yet.
+4. Add a shared clinic-access hook/helper
+- Create a shared access utility/hook that reads the selected clinic’s enabled flags.
+- Behavior:
+  - Admins bypass locks and can still open disabled departments.
+  - Non-admin users see the clinic as selectable, but the department content is gated if that clinic’s service is disabled.
+- This keeps the logic centralized instead of duplicating checks in each page.
 
-What I would change to make it fully accurate
-1. Make the selected range derive clinic-local date keys instead of browser-local date keys.
-2. Base “today”, presets, and previous/current period splits on the clinic timezone.
-3. Keep the current `getZonedHour` logic for the hourly buckets.
-4. Ensure the date filter UI and analytics calculations use the same clinic-local source of truth.
+5. Add locked states to each department page
+- Apply the gating to:
+  - `src/pages/WebsiteDepartment.tsx`
+  - `src/pages/SeoDepartment.tsx`
+  - `src/pages/GoogleAdsDepartment.tsx`
+  - `src/pages/AiSeoDepartment.tsx`
+  - `src/pages/SocialMedia.tsx`
+- When disabled for the selected clinic:
+  - keep the page shell and clinic selector visible
+  - replace the main content with a locked card/message
+  - use messaging like: “You do not have access to this service. Contact your admin to enable access.”
+- For AI SEO, merge this cleanly with the existing access logic so it still respects clinic-level enablement and the admin bypass rule.
 
-Related note
-- The console warning you shared is separate from accuracy:
-  - `Function components cannot be given refs` in `WebsiteAnalyticsTab`
-- That looks like a chart wrapper/ref issue, not a data-calculation issue.
+6. Keep department behavior consistent
+- Do not hide the clinic from selectors.
+- Do not remove routes/tabs globally.
+- Only gate the selected clinic’s department content, so users understand the service exists but is unavailable for that clinic.
+- Preserve current role-specific behavior where it already exists, then layer clinic access on top.
 
-If you want, the next implementation should be to make the Website analytics date-range logic fully clinic-timezone-based so the hourly chart is accurate both in bucket assignment and in date boundaries.
+7. QA and edge cases
+- Ensure new clinics default correctly.
+- Ensure existing clinics remain accessible after migration.
+- Verify admin bypass works.
+- Verify clients/team members see the locked state for disabled clinics.
+- Verify tickets/analytics/reports inside a disabled department are not reachable through the tab content.
+
+Technical notes
+- This requires a database migration because only `ai_seo_enabled` exists today.
+- Best structure is to store service availability on `clinics`, since access is clinic-level and already partially modeled there.
+- `useClinicSelector` likely needs to select the new fields or a companion access hook will need to fetch them for the selected clinic.
+- Current AI SEO already shows a locked state, so that page can become the pattern for the other departments.
