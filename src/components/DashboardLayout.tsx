@@ -418,6 +418,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             </div>
           )}
 
+          {role !== "client" && (
+            <ClinicSelector
+              clinics={navClinics}
+              selectedClinicId={navSelectedClinicId}
+              onSelect={navSetSelectedClinicId}
+              loading={navClinicsLoading}
+            />
+          )}
+
           <div className="flex-1" />
 
           <Button variant="outline" size="sm" className="h-8 gap-1.5 text-[11px] font-medium" onClick={() => setDeptPickerOpen(true)}>
