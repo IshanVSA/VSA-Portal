@@ -460,12 +460,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
           <div className="flex-1" />
 
-          {showClinicSelector && role !== "client" && (
+          {showClinicSelector && (
             <ClinicSelector
-              clinics={navClinics}
-              selectedClinicId={navSelectedClinicId}
-              onSelect={navSetSelectedClinicId}
-              loading={navClinicsLoading}
+              clinics={clinicSelectorClinics}
+              selectedClinicId={clinicSelectorSelectedId}
+              onSelect={role === "client" ? () => {} : navSetSelectedClinicId}
+              loading={role === "client" ? !clientClinic : navClinicsLoading}
             />
           )}
 
