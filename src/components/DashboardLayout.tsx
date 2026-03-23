@@ -117,6 +117,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("sidebar-collapsed") === "true");
   const [clientClinicId, setClientClinicId] = useState<string | null>(null);
+  const [clientClinic, setClientClinic] = useState<{
+    id: string;
+    clinic_name: string;
+    website_enabled: boolean;
+    seo_enabled: boolean;
+    google_ads_enabled: boolean;
+    ai_seo_enabled: boolean;
+    social_media_enabled: boolean;
+  } | null>(null);
   const [clinicAccess, setClinicAccess] = useState<ClinicAccessState | null>(null);
   const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
   const { pendingRequests, pendingReview } = usePendingCounts();
@@ -139,8 +148,25 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (role === "client" && user) {
-      supabase.from("clinics").select("id").eq("owner_user_id", user.id).limit(1).maybeSingle()
-        .then(({ data }) => { if (data) setClientClinicId(data.id); });
+      supabase
+        .from("clinics")
+        .select("id, clinic_name, website_enabled, seo_enabled, google_ads_enabled, ai_seo_enabled, social_media_enabled")
+        .eq("owner_user_id", user.id)
+        .limit(1)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) {
+            setClientClinicId(data.id);
+            setClientClinic(data);
+            setClinicAccess({
+              website_enabled: data.website_enabled,
+              seo_enabled: data.seo_enabled,
+              google_ads_enabled: data.google_ads_enabled,
+              ai_seo_enabled: data.ai_seo_enabled,
+              social_media_enabled: data.social_media_enabled,
+            });
+          }
+        });
     }
   }, [role, user]);
 
@@ -220,7 +246,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   const clinicSelectorPages = ["/website", "/seo", "/ai-seo", "/google-ads", "/social", "/reports"];
   const showClinicSelector = clinicSelectorPages.some(p => location.pathname === p || location.pathname.startsWith(p + "/"));
-  const selectedClinicName = navClinics.find(c => c.id === navSelectedClinicId)?.clinic_name || "";
+  const selectedClinicName = role === "client"
+    ? clientClinic?.clinic_name || ""
+    : navClinics.find(c => c.id === navSelectedClinicId)?.clinic_name || "";
+  const clinicSelectorClinics = role === "client" ? (clientClinic ? [clientClinic] : []) : navClinics;
+  const clinicSelectorSelectedId = role === "client" ? clientClinic?.id || "" : navSelectedClinicId;
 
   const isDepartmentLocked = (path: string) => {
     if (role === "admin" || !clinicAccess) return false;
@@ -308,7 +338,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                       onClick={() => setSidebarOpen(false)}
                       title={collapsed ? item.label : undefined}
                       className={cn(
-                        "flex items-center rounded-lg font-medium transition-all duration-200 group relative",
+                        "flex items-center rounded-lg font-medium transition-colors duration-200 group relative",
                         collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5 text-[13px]",
                         active
                           ? "bg-[hsl(var(--sidebar-primary))]/12 text-[hsl(var(--sidebar-primary))]"
@@ -349,17 +379,17 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                         <>
                           {dotColor && <div className={cn("h-1.5 w-1.5 rounded-full shrink-0 transition-transform duration-200 group-hover:scale-125", dotColor)} />}
                           <span className="flex-1">{item.label}</span>
-                          <div className="ml-auto flex items-center gap-2">
-                            <span
-                              className={cn(
-                                "inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-none",
-                                locked ? "opacity-100" : "opacity-0 pointer-events-none"
-                              )}
-                              aria-hidden={!locked}
-                            >
-                                <Lock className="h-3 w-3" />
-                                Locked
-                            </span>
+                           <div className="ml-auto flex min-w-[72px] items-center justify-end gap-2">
+                             <span
+                               className={cn(
+                                 "inline-flex h-5 w-[62px] items-center justify-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-none",
+                                 locked ? "opacity-100" : "opacity-0 pointer-events-none"
+                               )}
+                               aria-hidden={!locked}
+                             >
+                                 <Lock className="h-3 w-3 shrink-0" />
+                                 Locked
+                             </span>
                             {(item.badge ?? 0) > 0 && (
                               <span className="bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center">
                                 {item.badge}
@@ -430,12 +460,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
           <div className="flex-1" />
 
-          {showClinicSelector && role !== "client" && (
+          {showClinicSelector && (
             <ClinicSelector
-              clinics={navClinics}
-              selectedClinicId={navSelectedClinicId}
-              onSelect={navSetSelectedClinicId}
-              loading={navClinicsLoading}
+              clinics={clinicSelectorClinics}
+              selectedClinicId={clinicSelectorSelectedId}
+              onSelect={role === "client" ? () => {} : navSetSelectedClinicId}
+              loading={role === "client" ? !clientClinic : navClinicsLoading}
             />
           )}
 
