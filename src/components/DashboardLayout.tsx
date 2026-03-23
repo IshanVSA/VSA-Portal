@@ -160,6 +160,37 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       });
   }, [activeClinicId]);
 
+  useEffect(() => {
+    if (!activeClinicId) return;
+
+    const channel = supabase
+      .channel(`clinic-access-${activeClinicId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "clinics",
+          filter: `id=eq.${activeClinicId}`,
+        },
+        (payload) => {
+          const next = payload.new as ClinicAccessState;
+          setClinicAccess({
+            website_enabled: next.website_enabled,
+            seo_enabled: next.seo_enabled,
+            google_ads_enabled: next.google_ads_enabled,
+            ai_seo_enabled: next.ai_seo_enabled,
+            social_media_enabled: next.social_media_enabled,
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeClinicId]);
+
   const clientSections: NavSection[] = [
     { items: [{ label: "Dashboard", icon: LayoutDashboard, path: "/" }] },
     { title: "DEPARTMENTS", items: [
@@ -290,8 +321,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                           "h-[18px] w-[18px] transition-colors duration-200",
                           active ? "text-[hsl(var(--sidebar-primary))]" : "group-hover:text-[hsl(var(--sidebar-foreground))]"
                         )} />
-                        {collapsed && locked && (
-                          <span className="absolute -bottom-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-muted text-muted-foreground ring-2 ring-[hsl(var(--sidebar-background))]">
+                        {collapsed && (
+                          <span
+                            className={cn(
+                              "absolute -bottom-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-muted text-muted-foreground ring-2 ring-[hsl(var(--sidebar-background))] transition-none",
+                              locked ? "opacity-100" : "opacity-0"
+                            )}
+                            aria-hidden={!locked}
+                          >
                             <Lock className="h-2.5 w-2.5" />
                           </span>
                         )}
@@ -305,18 +342,24 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                         <>
                           {dotColor && <div className={cn("h-1.5 w-1.5 rounded-full shrink-0 transition-transform duration-200 group-hover:scale-125", dotColor)} />}
                           <span className="flex-1">{item.label}</span>
-                            {locked && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                          <div className="ml-auto flex items-center gap-2">
+                            <span
+                              className={cn(
+                                "inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-none",
+                                locked ? "opacity-100" : "opacity-0 pointer-events-none"
+                              )}
+                              aria-hidden={!locked}
+                            >
                                 <Lock className="h-3 w-3" />
                                 Locked
+                            </span>
+                            {(item.badge ?? 0) > 0 && (
+                              <span className="bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center">
+                                {item.badge}
                               </span>
                             )}
+                          </div>
                         </>
-                      )}
-                      {!collapsed && (item.badge ?? 0) > 0 && (
-                        <span className="ml-auto bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center">
-                          {item.badge}
-                        </span>
                       )}
                     </Link>
                   );
