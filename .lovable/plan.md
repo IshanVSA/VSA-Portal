@@ -1,57 +1,60 @@
 
-Website Analytics updates will need both UI changes and one small database change because the app currently has no clinic timezone field.
+Plan
 
-1. Add clinic timezone support
-- Add a timezone column on `clinics` (IANA timezone like `America/New_York`).
-- Add a timezone selector on the clinic detail/settings page so each clinic can have its own fixed timezone.
-- Use the clinic timezone as the source of truth for all website analytics date/hour grouping.
+1. Add website-based autofill to the Add Clinic dialog
+- Extend `src/pages/Clinics.tsx` with a new website URL field in the add-clinic modal.
+- Add a manual action button like `Extract from Website` beside or below that field, matching your preferred flow.
+- Keep all extracted values editable before saving the clinic.
 
-2. Fix website analytics calculations to use clinic timezone
-- Update `WebsiteAnalyticsTab` to fetch the clinic timezone along with pageviews.
-- Replace all current browser/local-time grouping logic (`new Date(...).getHours()`, ISO date slicing) with clinic-timezone-aware helpers.
-- Apply that timezone to:
-  - Traffic by hour
-  - Daily traffic chart
-  - Current vs previous period split
-  - Any “today” / date-boundary logic that website analytics uses
-- Show the timezone in the chart title, e.g. `Traffic by Hour (America/New_York)`.
+2. Add an AI extraction backend for clinic details
+- Create a dedicated edge function for clinic website extraction instead of reusing chat logic.
+- Input: website URL only.
+- Output structured fields for:
+  - clinic name
+  - phone
+  - email if available
+  - address
+  - website
+  - timezone inferred from address
+  - optional confidence / source notes for fallback handling
+- Use the project’s existing AI secret setup. Since both OpenAI and Anthropic secrets already exist, I’ll follow the existing backend pattern and keep the extraction server-side.
 
-3. Replace engagement percentage with numeric engagement
-Current behavior:
-- “Engagement Rate” is calculated as `100 - bounce rate` and shown as a percent.
+3. Use flexible website coverage for better accuracy
+- Fetch the homepage first, then inspect relevant pages such as contact, about, location, and footer-linked pages when needed.
+- Limit crawl depth/page count so extraction stays fast and predictable.
+- Prefer on-site content first rather than guessing.
 
-Planned change:
-- Replace that KPI with a numeric metric such as `Engaged Sessions`.
-- Define engaged sessions as sessions with more than 1 pageview.
-- Update the card value and comparison text to show counts, not percentages.
-- Keep the calculation consistent anywhere website analytics/report preview reuses this metric.
+4. Autofill the Add Clinic form from extracted results
+- Populate `clinic_name`, `phone`, `address`, website, and timezone automatically after extraction.
+- If some fields are missing, leave them blank for manual completion.
+- If multiple candidate values are found, prefer the most likely primary clinic/location and show a clear toast/message when results are partial.
 
-4. Replace “Top Referrers” with “Pages / Session Mix”
-Based on your selection, replace that section with session-depth buckets, for example:
-- 1 page
-- 2–3 pages
-- 4+ pages
-Each row/card will show:
-- session count
-- share of total sessions
-This gives a more useful quality signal than referrers for the current data model.
+5. Preserve manual review before save
+- Do not auto-create the clinic after extraction.
+- Users review and adjust extracted values, then click the normal `Add Clinic` button.
+- This follows the same “review then autofill” pattern already used elsewhere in the app.
 
-5. Show readable page names instead of raw slugs
-- Auto-format paths into human-friendly labels:
-  - `/` → `Home`
-  - `/about-us` → `About Us`
-  - `/services/dental-care` → `Services / Dental Care`
-- Keep the raw path available as secondary muted text or tooltip if needed.
-- Apply the same formatting in Website Analytics and Website Reports so the UI and PDFs stay consistent.
+6. Update the add-clinic save path
+- Include the website field in the insert payload.
+- Include timezone in the insert payload so the clinic is immediately ready for timezone-based analytics.
+- Reuse the current HTTPS validation pattern for website URLs.
 
-6. Keep reports aligned with analytics
-Because `WebsiteReportsTab` reuses the same website metrics patterns, I’ll update it too so it matches the analytics tab:
-- numeric engaged sessions instead of engagement %
-- formatted page names
-- replace top referrers with pages/session mix
-- clinic-timezone-aware day grouping where relevant
+7. Error handling and safeguards
+- Validate and normalize the input URL before extraction.
+- Show clear states: idle, extracting, success, partial success, failure.
+- Handle blocked websites, empty extraction, AI/provider errors, and rate-limit/credits errors with user-friendly toasts.
+- Keep extraction admin-only within the existing clinic creation flow.
 
 Technical notes
-- No existing timezone field was found in the current schema, so this requires a migration.
-- The current analytics tab groups hours using the viewer/browser timezone, which is why the hour chart is not clinic-specific today.
-- I’ll centralize the page-name formatter and timezone bucketing logic so the analytics tab, overview hooks, and reports don’t drift apart.
+- Main UI file: `src/pages/Clinics.tsx`
+- New backend piece: a dedicated edge function for website extraction
+- No schema change is required because `clinics` already has `website`, `address`, `phone`, `email`, and `timezone`.
+- Since no Firecrawl connector is linked, the most practical implementation is:
+  - fetch website content from the edge function
+  - collect a few relevant pages
+  - send the combined content to the AI model for structured extraction
+- Timezone should be derived from the extracted address, then validated against IANA timezone values before populating the form.
+
+Expected result
+- When adding a new clinic, you paste the clinic website URL, click `Extract from Website`, and the form auto-fills the clinic’s core details.
+- You can then review/edit everything and save normally.
