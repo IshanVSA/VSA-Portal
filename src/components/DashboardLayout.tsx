@@ -460,8 +460,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <ClinicSelector
               clinics={clinicSelectorClinics}
               selectedClinicId={clinicSelectorSelectedId}
-              onSelect={role === "client" ? () => {} : navSetSelectedClinicId}
-              loading={role === "client" ? !clientClinic : navClinicsLoading}
+              onSelect={role === "client" ? (id: string) => setClientSelectedId(id) : navSetSelectedClinicId}
+              loading={role === "client" ? clientClinics.length === 0 : navClinicsLoading}
             />
           )}
 
