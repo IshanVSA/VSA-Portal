@@ -167,7 +167,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const clientClinic = clientClinics.find(c => c.id === clientSelectedId) || clientClinics[0] || null;
 
   const selectedClinicId = searchParams.get("clinic") || "";
-  const activeClinicId = role === "client" ? clientClinicId : selectedClinicId || null;
+  const activeClinicId = role === "client" ? clientSelectedId : selectedClinicId || null;
 
   useEffect(() => {
     if (!activeClinicId) {
