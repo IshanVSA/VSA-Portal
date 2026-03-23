@@ -42,6 +42,7 @@ type PageData = {
   url: string;
   title: string;
   description: string;
+  html: string;
   text: string;
 };
 
@@ -182,7 +183,7 @@ async function fetchPage(url: string): Promise<PageData | null> {
 
     if (!text) return null;
 
-    return { url: response.url, title, description, text };
+    return { url: response.url, title, description, html, text };
   } catch {
     return null;
   } finally {
@@ -358,7 +359,7 @@ Deno.serve(async (req) => {
       return createJsonResponse({ error: "Unable to read that website. Please verify the URL and try again." }, 422);
     }
 
-    const candidateUrls = extractCandidateLinks(homepage.text, homepage.url);
+    const candidateUrls = extractCandidateLinks(homepage.html, homepage.url);
     const extraPages = (await Promise.all(candidateUrls.map((url) => fetchPage(url))))
       .filter((page): page is PageData => Boolean(page));
 
