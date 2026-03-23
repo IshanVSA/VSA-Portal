@@ -12,11 +12,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
 import { COMMON_TIMEZONES, getSafeTimeZone } from "@/lib/website-analytics";
 import { isHttpsClinicWebsiteUrl, normalizeClinicWebsiteUrl } from "@/lib/clinic-website";
-import { Plus, Search, Eye, Trash2, ChevronDown, Pencil, Building2, Users, X, Loader2, Sparkles } from "lucide-react";
+import { Plus, Search, Eye, Trash2, Pencil, Building2, Users, X, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 interface Clinic {
@@ -70,13 +69,6 @@ export default function Clinics() {
   const [newTimezone, setNewTimezone] = useState("");
   const [newOwnerId, setNewOwnerId] = useState("");
   const [extractingWebsite, setExtractingWebsite] = useState(false);
-  const [credentialsOpen, setCredentialsOpen] = useState(false);
-  const [metaPageAccessToken, setMetaPageAccessToken] = useState("");
-  const [metaPageId, setMetaPageId] = useState("");
-  const [metaInstagramBusinessId, setMetaInstagramBusinessId] = useState("");
-  const [googleRefreshToken, setGoogleRefreshToken] = useState("");
-  const [googleCustomerId, setGoogleCustomerId] = useState("");
-  const [googleLoginCustomerId, setGoogleLoginCustomerId] = useState("");
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editClinic, setEditClinic] = useState<Clinic | null>(null);
@@ -130,9 +122,6 @@ export default function Clinics() {
   const resetAddForm = () => {
     setNewName(""); setNewPhone(""); setNewEmail(""); setNewAddress(""); setNewWebsite(""); setNewTimezone(""); setNewOwnerId("");
     setExtractingWebsite(false);
-    setCredentialsOpen(false);
-    setMetaPageAccessToken(""); setMetaPageId(""); setMetaInstagramBusinessId("");
-    setGoogleRefreshToken(""); setGoogleCustomerId(""); setGoogleLoginCustomerId("");
   };
 
   const extractClinicFromWebsite = async () => {
@@ -221,19 +210,6 @@ export default function Clinics() {
     }).select("id").single();
     if (error) { toast.error(error.message); return; }
 
-    const hasMetaCreds = metaPageAccessToken || metaPageId || metaInstagramBusinessId;
-    const hasGoogleCreds = googleRefreshToken || googleCustomerId || googleLoginCustomerId;
-    if (hasMetaCreds || hasGoogleCreds) {
-      await supabase.from("clinic_api_credentials").insert({
-        clinic_id: clinicData.id,
-        meta_page_access_token: metaPageAccessToken || null,
-        meta_page_id: metaPageId || null,
-        meta_instagram_business_id: metaInstagramBusinessId || null,
-        google_ads_refresh_token: googleRefreshToken || null,
-        google_ads_customer_id: googleCustomerId || null,
-        google_ads_login_customer_id: googleLoginCustomerId || null,
-      });
-    }
     toast.success("Clinic added!");
     setDialogOpen(false);
     resetAddForm();
@@ -401,28 +377,6 @@ export default function Clinics() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Collapsible open={credentialsOpen} onOpenChange={setCredentialsOpen}>
-                      <CollapsibleTrigger asChild>
-                        <Button variant="ghost" className="w-full justify-between px-0 hover:bg-transparent">
-                          <span className="text-sm font-medium text-muted-foreground">API Credentials (Optional)</span>
-                          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${credentialsOpen ? "rotate-180" : ""}`} />
-                        </Button>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="space-y-4 pt-2">
-                        <div className="space-y-3">
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Meta / Instagram</p>
-                          <div className="space-y-2"><Label className="text-xs">Page Access Token</Label><Input value={metaPageAccessToken} onChange={e => setMetaPageAccessToken(e.target.value)} placeholder="EAAGm..." type="password" className="input-glow" /></div>
-                          <div className="space-y-2"><Label className="text-xs">Page ID</Label><Input value={metaPageId} onChange={e => setMetaPageId(e.target.value)} placeholder="123456789" className="input-glow" /></div>
-                          <div className="space-y-2"><Label className="text-xs">Instagram Business ID</Label><Input value={metaInstagramBusinessId} onChange={e => setMetaInstagramBusinessId(e.target.value)} placeholder="17841..." className="input-glow" /></div>
-                        </div>
-                        <div className="space-y-3">
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Google Ads</p>
-                          <div className="space-y-2"><Label className="text-xs">Refresh Token</Label><Input value={googleRefreshToken} onChange={e => setGoogleRefreshToken(e.target.value)} placeholder="1//0..." type="password" className="input-glow" /></div>
-                          <div className="space-y-2"><Label className="text-xs">Customer ID</Label><Input value={googleCustomerId} onChange={e => setGoogleCustomerId(e.target.value)} placeholder="123-456-7890" className="input-glow" /></div>
-                          <div className="space-y-2"><Label className="text-xs">Login Customer ID (MCC)</Label><Input value={googleLoginCustomerId} onChange={e => setGoogleLoginCustomerId(e.target.value)} placeholder="123-456-7890" className="input-glow" /></div>
-                        </div>
-                      </CollapsibleContent>
-                    </Collapsible>
                     <Button onClick={addClinic} className="w-full">Add Clinic</Button>
                   </div>
                 </DialogContent>
