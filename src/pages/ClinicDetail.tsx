@@ -12,6 +12,7 @@ import { ArrowLeft, RefreshCw, Loader2, Users, Sparkles, Globe, Check } from "lu
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -21,8 +22,9 @@ import { FacebookInsightCard } from "@/components/clinic-detail/FacebookInsightC
 import { GoogleAdsConnectionCard } from "@/components/clinic-detail/GoogleAdsConnectionCard";
 import { GoogleAccountSelectionDialog } from "@/components/clinic-detail/GoogleAccountSelectionDialog";
 import { TrackingSetupCard } from "@/components/clinic-detail/TrackingSetupCard";
+import { COMMON_TIMEZONES, DEFAULT_CLINIC_TIMEZONE, getSafeTimeZone } from "@/lib/website-analytics";
 
-interface ClinicData { clinic_name: string; website: string | null; }
+interface ClinicData { clinic_name: string; website: string | null; timezone: string | null; }
 interface ClinicCredentials {
   meta_page_access_token: string | null;
   meta_page_id: string | null;
@@ -34,6 +36,49 @@ interface ClinicCredentials {
   google_ads_account_name: string | null;
   last_meta_sync_at: string | null;
   last_google_sync_at: string | null;
+}
+
+function TimezoneField({ clinicId, currentTimezone, onSaved }: { clinicId: string; currentTimezone: string | null; onSaved: (timezone: string) => void }) {
+  const normalizedCurrent = getSafeTimeZone(currentTimezone);
+  const [timezone, setTimezone] = useState(normalizedCurrent);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { setTimezone(normalizedCurrent); }, [normalizedCurrent]);
+
+  const timezoneOptions = normalizedCurrent && !COMMON_TIMEZONES.includes(normalizedCurrent)
+    ? [normalizedCurrent, ...COMMON_TIMEZONES]
+    : COMMON_TIMEZONES;
+
+  const save = async () => {
+    setSaving(true);
+    const { error } = await supabase.from("clinics").update({ timezone }).eq("id", clinicId);
+    setSaving(false);
+    if (error) { toast.error("Failed to save clinic timezone"); return; }
+    onSaved(timezone);
+    toast.success("Clinic timezone saved");
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Select value={timezone} onValueChange={setTimezone}>
+          <SelectTrigger className="flex-1">
+            <SelectValue placeholder="Select timezone" />
+          </SelectTrigger>
+          <SelectContent>
+            {timezoneOptions.map((option) => (
+              <SelectItem key={option} value={option}>{option}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button size="sm" onClick={save} disabled={saving || timezone === normalizedCurrent}>
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+          Save
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">Website analytics and reports will use this clinic timezone for daily and hourly metrics.</p>
+    </div>
+  );
 }
 
 function WebsiteUrlField({ clinicId, currentUrl, onSaved }: { clinicId: string; currentUrl: string; onSaved: (url: string) => void }) {
@@ -97,7 +142,7 @@ export default function ClinicDetail() {
 
   useEffect(() => {
     if (!id) return;
-    supabase.from("clinics").select("clinic_name, ai_seo_enabled, website").eq("id", id).maybeSingle().then(({ data }) => {
+    supabase.from("clinics").select("clinic_name, ai_seo_enabled, website, timezone").eq("id", id).maybeSingle().then(({ data }) => {
       setClinic(data);
       setAiSeoEnabled((data as any)?.ai_seo_enabled ?? false);
     });
@@ -600,6 +645,22 @@ export default function ClinicDetail() {
                     clinicId={id!}
                     currentUrl={clinic?.website || ""}
                     onSaved={(url) => setClinic((prev) => prev ? { ...prev, website: url } : prev)}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-primary" />
+                    Clinic Timezone
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TimezoneField
+                    clinicId={id!}
+                    currentTimezone={clinic?.timezone ?? DEFAULT_CLINIC_TIMEZONE}
+                    onSaved={(timezone) => setClinic((prev) => prev ? { ...prev, timezone } : prev)}
                   />
                 </CardContent>
               </Card>

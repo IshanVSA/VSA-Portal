@@ -12,13 +12,7 @@ import {
   PDF_COLORS, renderPDFHeader, renderSectionHeader, renderKPICards,
   getTableStyles, colorChangeCell, finalizePDF, ensureSpace,
 } from "@/lib/pdf-theme";
-
-interface Pageview {
-  session_id: string;
-  path: string;
-  referrer: string | null;
-  created_at: string;
-}
+import { buildDateKeys, computeWebsiteMetrics, DEFAULT_CLINIC_TIMEZONE, getBufferedRange, getSafeTimeZone, WebsiteMetrics } from "@/lib/website-analytics";
 
 interface Props {
   clinicId: string;
@@ -62,71 +56,6 @@ function formatDuration(s: number): string {
   return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
 }
 
-interface Metrics {
-  totalViews: number;
-  totalSessions: number;
-  engagementRate: number;
-  avgDuration: number;
-  pagesPerSession: number;
-  topPages: { path: string; views: number; visitors: number }[];
-  topReferrers: { source: string; count: number }[];
-  dailyTraffic: { date: string; count: number }[];
-}
-
-function calcMetrics(views: Pageview[]): Metrics {
-  const sessions: Record<string, Pageview[]> = {};
-  views.forEach(p => {
-    if (!sessions[p.session_id]) sessions[p.session_id] = [];
-    sessions[p.session_id].push(p);
-  });
-  const sessionList = Object.values(sessions);
-  const totalSessions = sessionList.length;
-  const totalViews = views.length;
-  const bounces = sessionList.filter(s => s.length === 1).length;
-  const bounceRate = totalSessions > 0 ? Math.round((bounces / totalSessions) * 1000) / 10 : 0;
-  const engagementRate = Math.round((100 - bounceRate) * 10) / 10;
-  const pagesPerSession = totalSessions > 0 ? Math.round((totalViews / totalSessions) * 10) / 10 : 0;
-  const durations = sessionList
-    .filter(s => s.length > 1)
-    .map(s => {
-      const times = s.map(p => new Date(p.created_at).getTime());
-      return (Math.max(...times) - Math.min(...times)) / 1000;
-    });
-  const avgDuration = durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : 0;
-
-  const pageCounts: Record<string, { views: number; visitors: Set<string> }> = {};
-  views.forEach(p => {
-    if (!pageCounts[p.path]) pageCounts[p.path] = { views: 0, visitors: new Set() };
-    pageCounts[p.path].views++;
-    pageCounts[p.path].visitors.add(p.session_id);
-  });
-  const topPages = Object.entries(pageCounts)
-    .map(([path, d]) => ({ path, views: d.views, visitors: d.visitors.size }))
-    .sort((a, b) => b.views - a.views)
-    .slice(0, 10);
-
-  const refCounts: Record<string, number> = {};
-  views.forEach(p => {
-    const ref = p.referrer || "Direct";
-    refCounts[ref] = (refCounts[ref] || 0) + 1;
-  });
-  const topReferrers = Object.entries(refCounts)
-    .map(([source, count]) => ({ source, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10);
-
-  const dailyMap: Record<string, number> = {};
-  views.forEach(p => {
-    const key = p.created_at.slice(0, 10);
-    dailyMap[key] = (dailyMap[key] || 0) + 1;
-  });
-  const dailyTraffic = Object.entries(dailyMap)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, count]) => ({ date, count }));
-
-  return { totalViews, totalSessions, engagementRate, avgDuration, pagesPerSession, topPages, topReferrers, dailyTraffic };
-}
-
 function pctChange(cur: number, prev: number, invertBetter = false): { pct: number; text: string; type: "positive" | "negative" | "neutral" } {
   if (prev === 0 && cur === 0) return { pct: 0, text: "No change", type: "neutral" };
   if (prev === 0) return { pct: 100, text: `+${cur} (new)`, type: invertBetter ? "negative" : "positive" };
@@ -139,42 +68,48 @@ function pctChange(cur: number, prev: number, invertBetter = false): { pct: numb
 
 export function WebsiteReportsTab({ clinicId }: Props) {
   const [period, setPeriod] = useState<ReportPeriod>("last30");
-  const [pageviews, setPageviews] = useState<Pageview[]>([]);
-  const [prevPageviews, setPrevPageviews] = useState<Pageview[]>([]);
+  const [pageviews, setPageviews] = useState<any[]>([]);
+  const [prevPageviews, setPrevPageviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [clinicName, setClinicName] = useState("");
+  const [timeZone, setTimeZone] = useState(DEFAULT_CLINIC_TIMEZONE);
   const [generating, setGenerating] = useState(false);
 
   const range = useMemo(() => getDateRange(period), [period]);
   const prevRange = useMemo(() => getPrevRange(range), [range]);
+  const rangeDateKeys = useMemo(() => buildDateKeys(range.from, range.to), [range]);
+  const prevRangeDateKeys = useMemo(() => buildDateKeys(prevRange.from, prevRange.to), [prevRange]);
 
   useEffect(() => {
     if (!clinicId) { setLoading(false); return; }
     const fetchAll = async () => {
       setLoading(true);
+      const currentBufferedRange = getBufferedRange(range.from, range.to);
+      const previousBufferedRange = getBufferedRange(prevRange.from, prevRange.to);
       const [{ data: pvData }, { data: prevData }, { data: clinicData }] = await Promise.all([
-        supabase.from("website_pageviews").select("session_id, path, referrer, created_at").eq("clinic_id", clinicId).gte("created_at", range.from.toISOString()).lte("created_at", range.to.toISOString()).order("created_at", { ascending: true }),
-        supabase.from("website_pageviews").select("session_id, path, referrer, created_at").eq("clinic_id", clinicId).gte("created_at", prevRange.from.toISOString()).lte("created_at", prevRange.to.toISOString()),
-        supabase.from("clinics").select("clinic_name").eq("id", clinicId).single(),
+        supabase.from("website_pageviews").select("session_id, path, referrer, created_at").eq("clinic_id", clinicId).gte("created_at", currentBufferedRange.from.toISOString()).lte("created_at", currentBufferedRange.to.toISOString()).order("created_at", { ascending: true }),
+        supabase.from("website_pageviews").select("session_id, path, referrer, created_at").eq("clinic_id", clinicId).gte("created_at", previousBufferedRange.from.toISOString()).lte("created_at", previousBufferedRange.to.toISOString()),
+        supabase.from("clinics").select("clinic_name, timezone").eq("id", clinicId).single(),
       ]);
-      setPageviews((pvData as Pageview[] | null) || []);
-      setPrevPageviews((prevData as Pageview[] | null) || []);
+      setPageviews((pvData as any[] | null) || []);
+      setPrevPageviews((prevData as any[] | null) || []);
       setClinicName(clinicData?.clinic_name || "Unknown Clinic");
+      setTimeZone(getSafeTimeZone(clinicData?.timezone));
       setLoading(false);
     };
     fetchAll();
   }, [clinicId, range, prevRange]);
 
-  const metrics = useMemo(() => (pageviews.length > 0 ? calcMetrics(pageviews) : null), [pageviews]);
-  const prevMetrics = useMemo(() => (prevPageviews.length > 0 ? calcMetrics(prevPageviews) : null), [prevPageviews]);
+  const metrics = useMemo<WebsiteMetrics | null>(() => (pageviews.length > 0 ? computeWebsiteMetrics(pageviews, rangeDateKeys, timeZone) : null), [pageviews, rangeDateKeys, timeZone]);
+  const prevMetrics = useMemo<WebsiteMetrics | null>(() => (prevPageviews.length > 0 ? computeWebsiteMetrics(prevPageviews, prevRangeDateKeys, timeZone) : null), [prevPageviews, prevRangeDateKeys, timeZone]);
 
   const changes = useMemo(() => {
     if (!metrics) return null;
-    const pm = prevMetrics || { totalViews: 0, totalSessions: 0, engagementRate: 0, avgDuration: 0, pagesPerSession: 0 };
+    const pm = prevMetrics || { totalViews: 0, totalSessions: 0, engagedSessions: 0, avgDuration: 0, pagesPerSession: 0 };
     return {
       views: pctChange(metrics.totalViews, pm.totalViews),
       visitors: pctChange(metrics.totalSessions, pm.totalSessions),
-      engagement: pctChange(metrics.engagementRate, pm.engagementRate),
+      engagement: pctChange(metrics.engagedSessions, pm.engagedSessions),
       duration: pctChange(metrics.avgDuration, pm.avgDuration),
       pages: pctChange(metrics.pagesPerSession, pm.pagesPerSession),
     };
@@ -193,11 +128,11 @@ export function WebsiteReportsTab({ clinicId }: Props) {
       let y = renderPDFHeader(doc, "Website Performance Report", clinicName, dateStr, PDF_COLORS.website);
 
       // ── KPI Cards ──
-      const pm = prevMetrics || { totalViews: 0, totalSessions: 0, engagementRate: 0, avgDuration: 0, pagesPerSession: 0 };
+      const pm = prevMetrics || { totalViews: 0, totalSessions: 0, engagedSessions: 0, avgDuration: 0, pagesPerSession: 0 };
       y = renderKPICards(doc, y, [
         { label: "Page Views", value: metrics.totalViews.toLocaleString(), change: changes.views.text },
         { label: "Visitors", value: metrics.totalSessions.toLocaleString(), change: changes.visitors.text },
-        { label: "Engagement Rate", value: `${metrics.engagementRate}%`, change: changes.engagement.text },
+        { label: "Engaged Sessions", value: metrics.engagedSessions.toLocaleString(), change: changes.engagement.text },
         { label: "Avg. Session", value: formatDuration(metrics.avgDuration), change: changes.duration.text },
       ], PDF_COLORS.website);
 
@@ -210,7 +145,7 @@ export function WebsiteReportsTab({ clinicId }: Props) {
         body: [
           ["Page Views", metrics.totalViews.toLocaleString(), pm.totalViews.toLocaleString(), changes.views.text],
           ["Unique Visitors", metrics.totalSessions.toLocaleString(), pm.totalSessions.toLocaleString(), changes.visitors.text],
-          ["Engagement Rate", `${metrics.engagementRate}%`, `${pm.engagementRate}%`, changes.engagement.text],
+          ["Engaged Sessions", metrics.engagedSessions.toLocaleString(), pm.engagedSessions.toLocaleString(), changes.engagement.text],
           ["Avg. Session Duration", formatDuration(metrics.avgDuration), formatDuration(pm.avgDuration), changes.duration.text],
           ["Pages per Session", metrics.pagesPerSession.toString(), pm.pagesPerSession.toString(), changes.pages.text],
         ],
@@ -226,7 +161,7 @@ export function WebsiteReportsTab({ clinicId }: Props) {
       autoTable(doc, {
         startY: y,
         head: [["Date", "Page Views"]],
-        body: metrics.dailyTraffic.map(d => [d.date, d.count.toString()]),
+        body: metrics.dailyTraffic.map(d => [d.label, d.count.toString()]),
         ...getTableStyles(PDF_COLORS.website),
       });
       y = (doc as any).lastAutoTable?.finalY || y + 50;
@@ -237,23 +172,23 @@ export function WebsiteReportsTab({ clinicId }: Props) {
 
       autoTable(doc, {
         startY: y,
-        head: [["Path", "Views", "Visitors"]],
-        body: metrics.topPages.map(p => [p.path, p.views.toString(), p.visitors.toString()]),
+        head: [["Page", "Views", "Visitors"]],
+        body: metrics.topPages.map(p => [p.pageName, p.views.toString(), p.visitors.toString()]),
         ...getTableStyles(PDF_COLORS.website),
         columnStyles: { 0: { cellWidth: 100 } },
       });
       y = (doc as any).lastAutoTable?.finalY || y + 50;
 
-      // ── Top Referrers ──
+      // ── Pages / Session Mix ──
       y = ensureSpace(doc, y + 8, 60);
-      y = renderSectionHeader(doc, "Top Referrers", y, PDF_COLORS.website);
+      y = renderSectionHeader(doc, "Pages / Session Mix", y, PDF_COLORS.website);
 
       autoTable(doc, {
         startY: y,
-        head: [["Source", "Visits"]],
-        body: metrics.topReferrers.map(r => [r.source, r.count.toString()]),
+        head: [["Bucket", "Sessions", "Share"]],
+        body: metrics.sessionDepthMix.map(bucket => [bucket.label, bucket.sessions.toString(), `${bucket.share}%`]),
         ...getTableStyles(PDF_COLORS.website),
-        columnStyles: { 0: { cellWidth: 120 } },
+        columnStyles: { 0: { cellWidth: 100 } },
       });
 
       await finalizePDF(doc);
@@ -306,7 +241,7 @@ export function WebsiteReportsTab({ clinicId }: Props) {
                 <BarChart3 className="h-4 w-4" /> Report Preview — {periodLabels[period]}
               </CardTitle>
               <span className="text-[10px] text-muted-foreground">
-                vs {format(prevRange.from, "MMM d")} – {format(prevRange.to, "MMM d")}
+                {timeZone} · vs {format(prevRange.from, "MMM d")} – {format(prevRange.to, "MMM d")}
               </span>
             </div>
           </CardHeader>
@@ -314,7 +249,7 @@ export function WebsiteReportsTab({ clinicId }: Props) {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
               <PreviewStat icon={Eye} label="Page Views" value={metrics.totalViews.toLocaleString()} change={changes.views} />
               <PreviewStat icon={Users} label="Visitors" value={metrics.totalSessions.toLocaleString()} change={changes.visitors} />
-              <PreviewStat icon={TrendingUp} label="Engagement Rate" value={`${metrics.engagementRate}%`} change={changes.engagement} />
+              <PreviewStat icon={TrendingUp} label="Engaged Sessions" value={metrics.engagedSessions.toLocaleString()} change={changes.engagement} />
               <PreviewStat icon={Clock} label="Avg. Session" value={formatDuration(metrics.avgDuration)} change={changes.duration} />
               <PreviewStat icon={Globe} label="Pages/Session" value={metrics.pagesPerSession.toString()} change={changes.pages} />
             </div>
@@ -324,19 +259,22 @@ export function WebsiteReportsTab({ clinicId }: Props) {
                 <div className="space-y-1">
                   {metrics.topPages.slice(0, 5).map(p => (
                     <div key={p.path} className="flex justify-between text-xs py-1 border-b border-border/50">
-                      <span className="font-mono truncate max-w-[200px]">{p.path}</span>
+                      <div className="max-w-[200px] min-w-0">
+                        <div className="truncate font-medium">{p.pageName}</div>
+                        <div className="truncate text-[10px] text-muted-foreground">{p.path}</div>
+                      </div>
                       <span className="tabular-nums text-muted-foreground">{p.views} views</span>
                     </div>
                   ))}
                 </div>
               </div>
               <div>
-                <h4 className="text-xs font-semibold text-muted-foreground mb-2">Top Referrers</h4>
+                <h4 className="text-xs font-semibold text-muted-foreground mb-2">Pages / Session Mix</h4>
                 <div className="space-y-1">
-                  {metrics.topReferrers.slice(0, 5).map(r => (
-                    <div key={r.source} className="flex justify-between text-xs py-1 border-b border-border/50">
-                      <span className="truncate max-w-[200px]">{r.source}</span>
-                      <span className="tabular-nums text-muted-foreground">{r.count} visits</span>
+                  {metrics.sessionDepthMix.map(bucket => (
+                    <div key={bucket.label} className="flex justify-between text-xs py-1 border-b border-border/50">
+                      <span>{bucket.label}</span>
+                      <span className="tabular-nums text-muted-foreground">{bucket.sessions} sessions · {bucket.share}%</span>
                     </div>
                   ))}
                 </div>
