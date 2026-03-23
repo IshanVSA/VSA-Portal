@@ -148,8 +148,25 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (role === "client" && user) {
-      supabase.from("clinics").select("id").eq("owner_user_id", user.id).limit(1).maybeSingle()
-        .then(({ data }) => { if (data) setClientClinicId(data.id); });
+      supabase
+        .from("clinics")
+        .select("id, clinic_name, website_enabled, seo_enabled, google_ads_enabled, ai_seo_enabled, social_media_enabled")
+        .eq("owner_user_id", user.id)
+        .limit(1)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) {
+            setClientClinicId(data.id);
+            setClientClinic(data);
+            setClinicAccess({
+              website_enabled: data.website_enabled,
+              seo_enabled: data.seo_enabled,
+              google_ads_enabled: data.google_ads_enabled,
+              ai_seo_enabled: data.ai_seo_enabled,
+              social_media_enabled: data.social_media_enabled,
+            });
+          }
+        });
     }
   }, [role, user]);
 
