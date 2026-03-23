@@ -338,7 +338,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                       onClick={() => setSidebarOpen(false)}
                       title={collapsed ? item.label : undefined}
                       className={cn(
-                        "flex items-center rounded-lg font-medium transition-all duration-200 group relative",
+                        "flex items-center rounded-lg font-medium transition-colors duration-200 group relative",
                         collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5 text-[13px]",
                         active
                           ? "bg-[hsl(var(--sidebar-primary))]/12 text-[hsl(var(--sidebar-primary))]"
