@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { subDays } from "date-fns";
+import { differenceInDays, subDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -8,7 +8,15 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar } from "rec
 import { Eye, Users, TrendingUp, FileText, Globe, Clock, Layers3 } from "lucide-react";
 import { StatsCard } from "@/components/StatsCard";
 import { DateRangeFilter } from "@/components/department/DateRangeFilter";
-import { buildDateKeys, computeWebsiteMetrics, DEFAULT_CLINIC_TIMEZONE, getBufferedRange, getSafeTimeZone } from "@/lib/website-analytics";
+import {
+  buildDateKeys,
+  computeWebsiteMetrics,
+  DEFAULT_CLINIC_TIMEZONE,
+  getBufferedRange,
+  getSafeTimeZone,
+  getTodayDateForTimeZone,
+  getZonedDateKey,
+} from "@/lib/website-analytics";
 
 interface Props {
   clinicId: string;
@@ -18,12 +26,34 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
   const [pageviews, setPageviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeZone, setTimeZone] = useState(DEFAULT_CLINIC_TIMEZONE);
+  const [timezoneReady, setTimezoneReady] = useState(false);
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
     from: subDays(new Date(), 30),
     to: new Date(),
   });
 
+  const clinicToday = useMemo(() => getTodayDateForTimeZone(timeZone), [timeZone]);
+
   const selectedDateKeys = useMemo(() => buildDateKeys(dateRange.from, dateRange.to), [dateRange]);
+
+  useEffect(() => {
+    setTimezoneReady(false);
+  }, [clinicId]);
+
+  useEffect(() => {
+    if (!timezoneReady) return;
+
+    const previousToKey = getZonedDateKey(dateRange.to, timeZone);
+    const nextToKey = getZonedDateKey(clinicToday, timeZone);
+
+    if (previousToKey !== nextToKey) return;
+
+    const days = Math.max(differenceInDays(dateRange.to, dateRange.from) + 1, 1);
+    setDateRange({
+      from: subDays(clinicToday, days - 1),
+      to: clinicToday,
+    });
+  }, [clinicToday, timeZone, timezoneReady]);
 
   useEffect(() => {
     if (!clinicId) { setLoading(false); return; }
@@ -41,12 +71,24 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
           .lte("created_at", bufferedRange.to.toISOString())
           .order("created_at", { ascending: true }),
       ]);
-      setTimeZone(getSafeTimeZone(clinic?.timezone));
+      const resolvedTimeZone = getSafeTimeZone(clinic?.timezone);
+      setTimeZone(resolvedTimeZone);
+      if (!timezoneReady) {
+        const clinicTodayDate = getTodayDateForTimeZone(resolvedTimeZone);
+        setDateRange((current) => {
+          const days = Math.max(differenceInDays(current.to, current.from) + 1, 1);
+          return {
+            from: subDays(clinicTodayDate, days - 1),
+            to: clinicTodayDate,
+          };
+        });
+        setTimezoneReady(true);
+      }
       setPageviews((data as any[] | null) || []);
       setLoading(false);
     };
     fetchData();
-  }, [clinicId, dateRange]);
+  }, [clinicId, dateRange, timezoneReady]);
 
   const analytics = useMemo(() => {
     const splitIndex = selectedDateKeys.length > 1 ? Math.floor(selectedDateKeys.length / 2) : 0;
@@ -83,7 +125,7 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
   if (!analytics || (analytics.current.totalViews === 0 && analytics.prev.totalViews === 0)) {
     return (
       <div className="space-y-6">
-        <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
+        <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} referenceDate={clinicToday} />
         <div className="text-center py-16 space-y-2">
           <Globe className="h-10 w-10 mx-auto text-muted-foreground/50" />
           <p className="text-muted-foreground text-sm">No pageview data for this date range.</p>
@@ -118,7 +160,7 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
 
   return (
     <div className="space-y-6">
-      <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
+      <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} referenceDate={clinicToday} />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
