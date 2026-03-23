@@ -24,7 +24,16 @@ import { GoogleAccountSelectionDialog } from "@/components/clinic-detail/GoogleA
 import { TrackingSetupCard } from "@/components/clinic-detail/TrackingSetupCard";
 import { COMMON_TIMEZONES, DEFAULT_CLINIC_TIMEZONE, getSafeTimeZone } from "@/lib/website-analytics";
 
-interface ClinicData { clinic_name: string; website: string | null; timezone: string | null; }
+interface ClinicData {
+  clinic_name: string;
+  website: string | null;
+  timezone: string | null;
+  website_enabled?: boolean;
+  seo_enabled?: boolean;
+  google_ads_enabled?: boolean;
+  ai_seo_enabled?: boolean;
+  social_media_enabled?: boolean;
+}
 interface ClinicCredentials {
   meta_page_access_token: string | null;
   meta_page_id: string | null;
@@ -37,6 +46,16 @@ interface ClinicCredentials {
   last_meta_sync_at: string | null;
   last_google_sync_at: string | null;
 }
+
+type ClinicAccessKey = "website_enabled" | "seo_enabled" | "google_ads_enabled" | "ai_seo_enabled" | "social_media_enabled";
+
+const clinicAccessRows: Array<{ key: ClinicAccessKey; label: string; description: string }> = [
+  { key: "website_enabled", label: "Website", description: "Enable the Website workspace for this clinic" },
+  { key: "seo_enabled", label: "SEO", description: "Enable SEO dashboards, reports, and tickets" },
+  { key: "google_ads_enabled", label: "Google Ads", description: "Enable Google Ads dashboards, analytics, and tickets" },
+  { key: "ai_seo_enabled", label: "AI SEO", description: "Enable AI SEO workspace access" },
+  { key: "social_media_enabled", label: "Social Media", description: "Enable content, requests, calendar, and uploads" },
+];
 
 function TimezoneField({ clinicId, currentTimezone, onSaved }: { clinicId: string; currentTimezone: string | null; onSaved: (timezone: string) => void }) {
   const normalizedCurrent = getSafeTimeZone(currentTimezone);
@@ -122,7 +141,6 @@ export default function ClinicDetail() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { role } = useUserRole();
   const [clinic, setClinic] = useState<ClinicData | null>(null);
-  const [aiSeoEnabled, setAiSeoEnabled] = useState(false);
   const [creds, setCreds] = useState<ClinicCredentials>({
     meta_page_access_token: null, meta_page_id: null, meta_instagram_business_id: null, meta_page_name: null,
     google_ads_refresh_token: null, google_ads_customer_id: null, google_ads_login_customer_id: null, google_ads_account_name: null,
@@ -142,9 +160,8 @@ export default function ClinicDetail() {
 
   useEffect(() => {
     if (!id) return;
-    supabase.from("clinics").select("clinic_name, ai_seo_enabled, website, timezone").eq("id", id).maybeSingle().then(({ data }) => {
+    (supabase.from("clinics" as any).select("clinic_name, website, timezone, website_enabled, seo_enabled, google_ads_enabled, ai_seo_enabled, social_media_enabled").eq("id", id).maybeSingle() as any).then(({ data }: { data: ClinicData | null }) => {
       setClinic(data);
-      setAiSeoEnabled((data as any)?.ai_seo_enabled ?? false);
     });
     fetchCredentials();
     fetchAnalytics();
@@ -208,6 +225,27 @@ export default function ClinicDetail() {
       .select("meta_page_access_token, meta_page_id, meta_instagram_business_id, meta_page_name, google_ads_refresh_token, google_ads_customer_id, google_ads_login_customer_id, google_ads_account_name, last_meta_sync_at, last_google_sync_at")
       .eq("clinic_id", id).maybeSingle();
     if (data) setCreds(data);
+  };
+
+  const updateClinicAccess = async (key: ClinicAccessKey, checked: boolean) => {
+    if (!id || !clinic) return;
+
+    const previousValue = clinic[key] ?? (key === "ai_seo_enabled" ? false : true);
+    setClinic((prev) => (prev ? { ...prev, [key]: checked } : prev));
+
+    const { error } = await (supabase
+      .from("clinics" as any)
+      .update({ [key]: checked } as any)
+      .eq("id", id) as any);
+
+    if (error) {
+      setClinic((prev) => (prev ? { ...prev, [key]: previousValue } : prev));
+      toast.error("Failed to update clinic service access");
+      return;
+    }
+
+    const label = clinicAccessRows.find((row) => row.key === key)?.label || "Service";
+    toast.success(`${label} ${checked ? "enabled" : "disabled"} for this clinic`);
   };
 
   const fetchAnalytics = async () => {
@@ -669,34 +707,23 @@ export default function ClinicDetail() {
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-primary" />
-                    AI SEO Plan
+                    Service Access
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label className="text-sm font-medium">Enable AI SEO Access</Label>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Toggle to grant this clinic access to AI SEO tools
-                      </p>
-                    </div>
-                    <Switch
-                      checked={aiSeoEnabled}
-                      onCheckedChange={async (checked) => {
-                        setAiSeoEnabled(checked);
-                        const { error } = await supabase
-                          .from("clinics")
-                          .update({ ai_seo_enabled: checked } as any)
-                          .eq("id", id!);
-                        if (error) {
-                          setAiSeoEnabled(!checked);
-                          toast.error("Failed to update AI SEO access");
-                        } else {
-                          toast.success(`AI SEO ${checked ? "enabled" : "disabled"} for this clinic`);
-                        }
-                      }}
-                    />
-                  </div>
+                <CardContent className="space-y-4">
+                  {clinicAccessRows.map((service) => {
+                    const checked = clinic ? (clinic[service.key] ?? (service.key === "ai_seo_enabled" ? false : true)) : false;
+
+                    return (
+                      <div key={service.key} className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
+                        <div>
+                          <Label className="text-sm font-medium">{service.label}</Label>
+                          <p className="text-xs text-muted-foreground mt-0.5">{service.description}</p>
+                        </div>
+                        <Switch checked={checked} onCheckedChange={(nextChecked) => updateClinicAccess(service.key, nextChecked)} />
+                      </div>
+                    );
+                  })}
                 </CardContent>
               </Card>
             </TabsContent>

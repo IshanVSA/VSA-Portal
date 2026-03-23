@@ -5,6 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 export interface ClinicOption {
   id: string;
   clinic_name: string;
+  website_enabled?: boolean;
+  seo_enabled?: boolean;
+  google_ads_enabled?: boolean;
+  ai_seo_enabled?: boolean;
+  social_media_enabled?: boolean;
 }
 
 export function useClinicSelector() {
@@ -13,12 +18,13 @@ export function useClinicSelector() {
   const [loading, setLoading] = useState(true);
 
   const selectedClinicId = searchParams.get("clinic") || "";
+  const selectedClinic = clinics.find((clinic) => clinic.id === selectedClinicId);
 
   useEffect(() => {
     const fetch = async () => {
-      const { data, error } = await supabase
-        .from("clinics")
-        .select("id, clinic_name")
+      const { data, error } = await (supabase
+        .from("clinics" as any)
+        .select("id, clinic_name, website_enabled, seo_enabled, google_ads_enabled, ai_seo_enabled, social_media_enabled") as any)
         .eq("status", "active")
         .order("clinic_name");
       if (!error && data) {
@@ -45,5 +51,5 @@ export function useClinicSelector() {
     }, { replace: true });
   };
 
-  return { clinics, selectedClinicId, setSelectedClinicId, loading };
+  return { clinics, selectedClinic, selectedClinicId, setSelectedClinicId, loading };
 }

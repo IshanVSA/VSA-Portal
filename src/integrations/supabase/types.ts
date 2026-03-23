@@ -204,13 +204,17 @@ export type Database = {
           clinic_name: string
           created_at: string
           email: string | null
+          google_ads_enabled: boolean
           id: string
           logo_url: string | null
           owner_user_id: string | null
           phone: string | null
+          seo_enabled: boolean
+          social_media_enabled: boolean
           status: string
           timezone: string | null
           website: string | null
+          website_enabled: boolean
         }
         Insert: {
           address?: string | null
@@ -219,13 +223,17 @@ export type Database = {
           clinic_name: string
           created_at?: string
           email?: string | null
+          google_ads_enabled?: boolean
           id?: string
           logo_url?: string | null
           owner_user_id?: string | null
           phone?: string | null
+          seo_enabled?: boolean
+          social_media_enabled?: boolean
           status?: string
           timezone?: string | null
           website?: string | null
+          website_enabled?: boolean
         }
         Update: {
           address?: string | null
@@ -234,13 +242,17 @@ export type Database = {
           clinic_name?: string
           created_at?: string
           email?: string | null
+          google_ads_enabled?: boolean
           id?: string
           logo_url?: string | null
           owner_user_id?: string | null
           phone?: string | null
+          seo_enabled?: boolean
+          social_media_enabled?: boolean
           status?: string
           timezone?: string | null
           website?: string | null
+          website_enabled?: boolean
         }
         Relationships: []
       }

@@ -21,6 +21,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import type { SeoKeyword } from "@/hooks/useSeoAnalytics";
+import { useClinicServiceAccess } from "@/hooks/useClinicServiceAccess";
+import { DepartmentAccessLocked } from "@/components/department/DepartmentAccessLocked";
 
 const tabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
@@ -108,15 +110,16 @@ const fallbackKpis = [
 export default function SeoDepartment() {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get("tab") || "overview";
-  const { clinics, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
+  const { clinics, selectedClinic, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
   const { team } = useDepartmentTeam("seo", selectedClinicId);
   const { latest, trafficData, topKeywords, isLoading, upsertSeoAnalytics, isUpserting } = useSeoAnalytics(selectedClinicId);
   const canEditSeo = useCanEditSeo();
   const { role } = useUserRole();
+  const { isLocked } = useClinicServiceAccess(selectedClinic, "seo");
   const isClient = role === "client";
   const [seoDialogOpen, setSeoDialogOpen] = useState(false);
 
-  const selectedClinicName = clinics.find(c => c.id === selectedClinicId)?.clinic_name;
+  const selectedClinicName = selectedClinic?.clinic_name;
 
   const kpis = latest
     ? [
@@ -146,7 +149,7 @@ export default function SeoDepartment() {
           </div>
 
           <div className="flex items-center gap-2">
-            {canEditSeo && selectedClinicId && (
+            {canEditSeo && selectedClinicId && !isLocked && (
               <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => setSeoDialogOpen(true)}>
                 <Upload className="h-3 w-3" /> Upload SEO Report
               </Button>
@@ -155,24 +158,28 @@ export default function SeoDepartment() {
           </div>
         </div>
 
-        <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto">
-            {tabs.map(tab => (
-              <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm">
-                <tab.icon className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{tab.label}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
+        {isLocked ? (
+          <DepartmentAccessLocked clinicName={selectedClinicName} departmentName="SEO" />
+        ) : (
+          <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
+            <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto">
+              {tabs.map(tab => (
+                <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm">
+                  <tab.icon className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
 
-          <TabsContent value="overview" className="mt-4">
-            <DepartmentOverview kpis={kpis} services={services} trafficData={trafficData.length > 0 ? trafficData : [{ label: "No data", value: 0 }]} trafficLabel="Organic Traffic Trend" team={team} department="seo" accentColor="hsl(var(--dept-seo))" extraSection={<TopKeywordsCard keywords={topKeywords} />} clinicId={selectedClinicId} hideQuickActions={isClient} />
-          </TabsContent>
-          <TabsContent value="tickets" className="mt-4"><TicketsTab department="seo" services={services} clinicId={selectedClinicId} /></TabsContent>
-          <TabsContent value="analytics" className="mt-4"><SeoAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
-          <TabsContent value="reports" className="mt-4"><SeoReportsTab clinicId={selectedClinicId} /></TabsContent>
-          <TabsContent value="uploads" className="mt-4"><UploadsTab department="seo" clinicId={selectedClinicId} /></TabsContent>
-        </Tabs>
+            <TabsContent value="overview" className="mt-4">
+              <DepartmentOverview kpis={kpis} services={services} trafficData={trafficData.length > 0 ? trafficData : [{ label: "No data", value: 0 }]} trafficLabel="Organic Traffic Trend" team={team} department="seo" accentColor="hsl(var(--dept-seo))" extraSection={<TopKeywordsCard keywords={topKeywords} />} clinicId={selectedClinicId} hideQuickActions={isClient} />
+            </TabsContent>
+            <TabsContent value="tickets" className="mt-4"><TicketsTab department="seo" services={services} clinicId={selectedClinicId} /></TabsContent>
+            <TabsContent value="analytics" className="mt-4"><SeoAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
+            <TabsContent value="reports" className="mt-4"><SeoReportsTab clinicId={selectedClinicId} /></TabsContent>
+            <TabsContent value="uploads" className="mt-4"><UploadsTab department="seo" clinicId={selectedClinicId} /></TabsContent>
+          </Tabs>
+        )}
       </div>
 
       {selectedClinicId && (

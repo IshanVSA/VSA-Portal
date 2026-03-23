@@ -13,6 +13,8 @@ import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { useWebsiteKPIs } from "@/hooks/useWebsiteKPIs";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useClinicServiceAccess } from "@/hooks/useClinicServiceAccess";
+import { DepartmentAccessLocked } from "@/components/department/DepartmentAccessLocked";
 
 const baseTabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
@@ -48,14 +50,15 @@ function formatChange(current: number, previous: number, suffix = ""): { text: s
 export default function WebsiteDepartment() {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get("tab") || "overview";
-  const { clinics, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
+  const { clinics, selectedClinic, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
   const { team } = useDepartmentTeam("website", selectedClinicId);
   const kpiData = useWebsiteKPIs(selectedClinicId);
   const { role } = useUserRole();
   const canViewHealth = role === "admin" || role === "concierge";
+  const { isLocked } = useClinicServiceAccess(selectedClinic, "website");
   const tabs = canViewHealth ? [...baseTabs, healthTab] : baseTabs;
 
-  const selectedClinicName = clinics.find(c => c.id === selectedClinicId)?.clinic_name;
+  const selectedClinicName = selectedClinic?.clinic_name;
 
   const visitorsChange = formatChange(kpiData.visitorsToday, kpiData.visitorsLastWeek);
   const engagementChange = formatChange(kpiData.engagedSessions, kpiData.engagedSessionsPrev);
@@ -91,25 +94,29 @@ export default function WebsiteDepartment() {
           <ClinicSelector clinics={clinics} selectedClinicId={selectedClinicId} onSelect={setSelectedClinicId} loading={clinicsLoading} />
         </div>
 
-        <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto">
-            {tabs.map(tab => (
-              <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm">
-                <tab.icon className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{tab.label}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
+        {isLocked ? (
+          <DepartmentAccessLocked clinicName={selectedClinicName} departmentName="Website" />
+        ) : (
+          <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
+            <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto">
+              {tabs.map(tab => (
+                <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm">
+                  <tab.icon className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
 
-          <TabsContent value="overview" className="mt-4">
-            <DepartmentOverview kpis={kpis} services={services} trafficData={trafficData} trafficLabel="Weekly Traffic" team={team} department="website" accentColor="hsl(var(--dept-website))" clinicId={selectedClinicId} />
-          </TabsContent>
-          <TabsContent value="tickets" className="mt-4"><TicketsTab department="website" services={services} clinicId={selectedClinicId} /></TabsContent>
-          <TabsContent value="analytics" className="mt-4"><WebsiteAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
-          <TabsContent value="reports" className="mt-4"><WebsiteReportsTab clinicId={selectedClinicId} /></TabsContent>
-          <TabsContent value="uploads" className="mt-4"><UploadsTab department="website" clinicId={selectedClinicId} /></TabsContent>
-          {canViewHealth && <TabsContent value="health" className="mt-4"><WebsiteHealthTab clinicId={selectedClinicId} /></TabsContent>}
-        </Tabs>
+            <TabsContent value="overview" className="mt-4">
+              <DepartmentOverview kpis={kpis} services={services} trafficData={trafficData} trafficLabel="Weekly Traffic" team={team} department="website" accentColor="hsl(var(--dept-website))" clinicId={selectedClinicId} />
+            </TabsContent>
+            <TabsContent value="tickets" className="mt-4"><TicketsTab department="website" services={services} clinicId={selectedClinicId} /></TabsContent>
+            <TabsContent value="analytics" className="mt-4"><WebsiteAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
+            <TabsContent value="reports" className="mt-4"><WebsiteReportsTab clinicId={selectedClinicId} /></TabsContent>
+            <TabsContent value="uploads" className="mt-4"><UploadsTab department="website" clinicId={selectedClinicId} /></TabsContent>
+            {canViewHealth && <TabsContent value="health" className="mt-4"><WebsiteHealthTab clinicId={selectedClinicId} /></TabsContent>}
+          </Tabs>
+        )}
       </div>
     </DashboardLayout>
   );

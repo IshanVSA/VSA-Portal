@@ -12,10 +12,10 @@ export function useAiSeoAccess(clinicId?: string) {
     queryFn: async () => {
       if (!user) return false;
 
-      // Admins & concierges always have access
-      if (role === "admin" || role === "concierge") return true;
+      // Admins can always access disabled clinics for setup/debugging
+      if (role === "admin") return true;
 
-      // For clients, check their clinic's ai_seo_enabled flag
+      // For everyone else, check the clinic-level AI SEO flag
       let targetClinicId = clinicId;
       if (!targetClinicId) {
         const { data: clinic } = await supabase
