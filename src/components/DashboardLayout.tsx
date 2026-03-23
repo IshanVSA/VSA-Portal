@@ -117,6 +117,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("sidebar-collapsed") === "true");
   const [clientClinicId, setClientClinicId] = useState<string | null>(null);
+  const [clientClinic, setClientClinic] = useState<{
+    id: string;
+    clinic_name: string;
+    website_enabled: boolean;
+    seo_enabled: boolean;
+    google_ads_enabled: boolean;
+    ai_seo_enabled: boolean;
+    social_media_enabled: boolean;
+  } | null>(null);
   const [clinicAccess, setClinicAccess] = useState<ClinicAccessState | null>(null);
   const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
   const { pendingRequests, pendingReview } = usePendingCounts();
