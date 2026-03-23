@@ -172,11 +172,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const selectedClinicId = searchParams.get("clinic") || "";
   const activeClinicId = role === "client" ? clientSelectedId : selectedClinicId || null;
 
+  const [clinicAccessId, setClinicAccessId] = useState<string | null>(null);
+
   useEffect(() => {
-    if (!activeClinicId) {
-      setClinicAccess(null);
-      return;
-    }
+    if (!activeClinicId) return;
+    if (activeClinicId === clinicAccessId && clinicAccess) return;
 
     (supabase
       .from("clinics" as any)
@@ -185,6 +185,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       .maybeSingle() as any)
       .then(({ data }: { data: ClinicAccessState | null }) => {
         setClinicAccess(data);
+        setClinicAccessId(activeClinicId);
       });
   }, [activeClinicId]);
 
