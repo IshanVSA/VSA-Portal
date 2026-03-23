@@ -57,6 +57,16 @@ const clinicAccessOptions: Array<{ key: keyof ClinicAccessSettings; label: strin
   { key: "social_media_enabled", label: "Social Media", description: "Content, requests, and calendar tools" },
 ];
 
+function getClinicServiceAccess(clinic: Clinic): ClinicAccessSettings {
+  return {
+    website_enabled: clinic.website_enabled ?? true,
+    seo_enabled: clinic.seo_enabled ?? true,
+    google_ads_enabled: clinic.google_ads_enabled ?? true,
+    ai_seo_enabled: clinic.ai_seo_enabled ?? false,
+    social_media_enabled: clinic.social_media_enabled ?? true,
+  };
+}
+
 function ServiceAccessSelector({
   title,
   description,
@@ -514,6 +524,7 @@ export default function Clinics() {
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead>Clinic Name</TableHead>
+                  {role === "admin" && <TableHead className="hidden xl:table-cell">Service Access</TableHead>}
                   {role === "admin" && <TableHead>Team Members</TableHead>}
                   {role === "admin" && <TableHead className="hidden lg:table-cell">Client Owner</TableHead>}
                   <TableHead>Status</TableHead>
@@ -524,9 +535,30 @@ export default function Clinics() {
               <TableBody>
                 {filtered.map((clinic) => {
                   const clinicTeam = getClinicTeam(clinic.id);
+                  const serviceAccess = getClinicServiceAccess(clinic);
                   return (
                     <TableRow key={clinic.id}>
                       <TableCell className="font-medium">{clinic.clinic_name}</TableCell>
+                      {role === "admin" && (
+                        <TableCell className="hidden xl:table-cell">
+                          <div className="flex flex-wrap gap-1.5">
+                            {clinicAccessOptions.map((option) => {
+                              const enabled = serviceAccess[option.key];
+
+                              return (
+                                <Badge
+                                  key={option.key}
+                                  variant="secondary"
+                                  className={`rounded-full gap-1 text-[11px] ${enabled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
+                                >
+                                  {enabled ? <ShieldCheck className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+                                  {option.label}
+                                </Badge>
+                              );
+                            })}
+                          </div>
+                        </TableCell>
+                      )}
                       {role === "admin" && (
                         <TableCell>
                           <div className="flex flex-wrap items-center gap-1.5">
