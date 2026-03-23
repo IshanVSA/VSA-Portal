@@ -109,6 +109,7 @@ const pageTitles: Record<string, string> = {
 };
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { clinics: navClinics, selectedClinicId: navSelectedClinicId, setSelectedClinicId: navSetSelectedClinicId, loading: navClinicsLoading } = useClinicSelector();
   const { role } = useUserRole();
   const { user, signOut } = useAuth();
   const location = useLocation();
