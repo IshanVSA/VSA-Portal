@@ -113,11 +113,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { role } = useUserRole();
   const { user, signOut } = useAuth();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("sidebar-collapsed") === "true");
-  const [clientClinicId, setClientClinicId] = useState<string | null>(null);
-  const [clientClinic, setClientClinic] = useState<{
+  const [clientClinics, setClientClinics] = useState<{
     id: string;
     clinic_name: string;
     website_enabled: boolean;
@@ -125,7 +124,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     google_ads_enabled: boolean;
     ai_seo_enabled: boolean;
     social_media_enabled: boolean;
-  } | null>(null);
+  }[]>([]);
+  const [clientSelectedId, setClientSelectedId] = useState<string | null>(null);
   const [clinicAccess, setClinicAccess] = useState<ClinicAccessState | null>(null);
   const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
   const { pendingRequests, pendingReview } = usePendingCounts();
@@ -152,26 +152,25 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         .from("clinics")
         .select("id, clinic_name, website_enabled, seo_enabled, google_ads_enabled, ai_seo_enabled, social_media_enabled")
         .eq("owner_user_id", user.id)
-        .limit(1)
-        .maybeSingle()
+        .order("clinic_name")
         .then(({ data }) => {
-          if (data) {
-            setClientClinicId(data.id);
-            setClientClinic(data);
-            setClinicAccess({
-              website_enabled: data.website_enabled,
-              seo_enabled: data.seo_enabled,
-              google_ads_enabled: data.google_ads_enabled,
-              ai_seo_enabled: data.ai_seo_enabled,
-              social_media_enabled: data.social_media_enabled,
-            });
+          if (data && data.length > 0) {
+            setClientClinics(data);
+            const urlClinic = searchParams.get("clinic");
+            const initialId = urlClinic && data.some(c => c.id === urlClinic) ? urlClinic : data[0].id;
+            setClientSelectedId(initialId);
+            if (!urlClinic) {
+              setSearchParams(prev => { const next = new URLSearchParams(prev); next.set("clinic", initialId); return next; }, { replace: true });
+            }
           }
         });
     }
   }, [role, user]);
 
+  const clientClinic = clientClinics.find(c => c.id === clientSelectedId) || clientClinics[0] || null;
+
   const selectedClinicId = searchParams.get("clinic") || "";
-  const activeClinicId = role === "client" ? clientClinicId : selectedClinicId || null;
+  const activeClinicId = role === "client" ? clientSelectedId : selectedClinicId || null;
 
   useEffect(() => {
     if (!activeClinicId) {
@@ -249,8 +248,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const selectedClinicName = role === "client"
     ? clientClinic?.clinic_name || ""
     : navClinics.find(c => c.id === navSelectedClinicId)?.clinic_name || "";
-  const clinicSelectorClinics = role === "client" ? (clientClinic ? [clientClinic] : []) : navClinics;
-  const clinicSelectorSelectedId = role === "client" ? clientClinic?.id || "" : navSelectedClinicId;
+  const clinicSelectorClinics = role === "client" ? clientClinics : navClinics;
+  const clinicSelectorSelectedId = role === "client" ? clientSelectedId || "" : navSelectedClinicId;
 
   const isDepartmentLocked = (path: string) => {
     if (role === "admin" || !clinicAccess) return false;
@@ -464,8 +463,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <ClinicSelector
               clinics={clinicSelectorClinics}
               selectedClinicId={clinicSelectorSelectedId}
-              onSelect={role === "client" ? () => {} : navSetSelectedClinicId}
-              loading={role === "client" ? !clientClinic : navClinicsLoading}
+              onSelect={role === "client" ? (id: string) => {
+                setClientSelectedId(id);
+                setSearchParams(prev => { const next = new URLSearchParams(prev); next.set("clinic", id); return next; }, { replace: true });
+              } : navSetSelectedClinicId}
+              loading={role === "client" ? clientClinics.length === 0 : navClinicsLoading}
             />
           )}
 
