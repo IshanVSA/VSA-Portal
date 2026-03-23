@@ -333,7 +333,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                   return (
                     <Link
                       key={item.path}
-                      to={item.path}
+                      to={activeClinicId && clinicSelectorPages.includes(item.path) ? `${item.path}?clinic=${activeClinicId}` : item.path}
                       onClick={() => setSidebarOpen(false)}
                       title={collapsed ? item.label : undefined}
                       className={cn(
