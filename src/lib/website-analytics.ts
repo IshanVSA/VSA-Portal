@@ -69,6 +69,11 @@ export function getLocalDateKey(date: Date): string {
   return format(date, "yyyy-MM-dd");
 }
 
+export function getDateFromDateKey(dateKey: string): Date {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
 export function shiftDateKey(dateKey: string, offsetDays: number): string {
   const [year, month, day] = dateKey.split("-").map(Number);
   const date = new Date(year, month - 1, day);
@@ -101,6 +106,10 @@ export function getZonedDateKey(input: Date | string, timeZone: string): string 
   }).formatToParts(new Date(input));
 
   return `${getPart(parts, "year")}-${getPart(parts, "month")}-${getPart(parts, "day")}`;
+}
+
+export function getTodayDateForTimeZone(timeZone: string): Date {
+  return getDateFromDateKey(getZonedDateKey(new Date(), timeZone));
 }
 
 export function getZonedHour(input: Date | string, timeZone: string): number {

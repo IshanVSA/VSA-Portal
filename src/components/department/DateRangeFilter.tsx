@@ -16,6 +16,7 @@ interface DateRangeFilterProps {
   onDateRangeChange: (range: DateRange) => void;
   presets?: { label: string; days: number }[];
   className?: string;
+  referenceDate?: Date;
 }
 
 const DEFAULT_PRESETS = [
@@ -30,10 +31,11 @@ export function DateRangeFilter({
   onDateRangeChange,
   presets = DEFAULT_PRESETS,
   className,
+  referenceDate = new Date(),
 }: DateRangeFilterProps) {
   const [open, setOpen] = useState(false);
   const totalDays = differenceInDays(dateRange.to, dateRange.from) + 1;
-  const isToday = format(dateRange.to, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
+  const isToday = format(dateRange.to, "yyyy-MM-dd") === format(referenceDate, "yyyy-MM-dd");
   const activePreset = presets.find((p) => p.days === totalDays && isToday);
 
   return (
@@ -45,8 +47,8 @@ export function DateRangeFilter({
             key={preset.days}
             onClick={() =>
               onDateRangeChange({
-                from: subDays(new Date(), preset.days - 1),
-                to: new Date(),
+                from: subDays(referenceDate, preset.days - 1),
+                to: referenceDate,
               })
             }
             className={cn(
@@ -96,7 +98,7 @@ export function DateRangeFilter({
                 onDateRangeChange({ from: range.from, to: range.from });
               }
             }}
-            disabled={(date) => date > new Date()}
+            disabled={(date) => date > referenceDate}
             numberOfMonths={2}
             className={cn("p-3 pointer-events-auto")}
           />
@@ -110,8 +112,8 @@ export function DateRangeFilter({
               className="h-7 text-xs"
               onClick={() => {
                 onDateRangeChange({
-                  from: subDays(new Date(), 29),
-                  to: new Date(),
+                  from: subDays(referenceDate, 29),
+                  to: referenceDate,
                 });
                 setOpen(false);
               }}
