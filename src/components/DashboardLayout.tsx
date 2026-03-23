@@ -379,17 +379,17 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                         <>
                           {dotColor && <div className={cn("h-1.5 w-1.5 rounded-full shrink-0 transition-transform duration-200 group-hover:scale-125", dotColor)} />}
                           <span className="flex-1">{item.label}</span>
-                          <div className="ml-auto flex items-center gap-2">
-                            <span
-                              className={cn(
-                                "inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-none",
-                                locked ? "opacity-100" : "opacity-0 pointer-events-none"
-                              )}
-                              aria-hidden={!locked}
-                            >
-                                <Lock className="h-3 w-3" />
-                                Locked
-                            </span>
+                           <div className="ml-auto flex min-w-[72px] items-center justify-end gap-2">
+                             <span
+                               className={cn(
+                                 "inline-flex h-5 w-[62px] items-center justify-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-none",
+                                 locked ? "opacity-100" : "opacity-0 pointer-events-none"
+                               )}
+                               aria-hidden={!locked}
+                             >
+                                 <Lock className="h-3 w-3 shrink-0" />
+                                 Locked
+                             </span>
                             {(item.badge ?? 0) > 0 && (
                               <span className="bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center">
                                 {item.badge}
