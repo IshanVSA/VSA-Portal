@@ -105,7 +105,7 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
   };
 
   const viewsChange = pctChange(current.totalViews, prev.totalViews);
-  const visitorsChange = pctChange(current.uniqueVisitors, prev.uniqueVisitors);
+  const visitorsChange = pctChange(current.totalSessions, prev.totalSessions);
   const engagementChange = pctChange(current.engagedSessions, prev.engagedSessions);
   const durationChange = pctChange(current.avgDuration, prev.avgDuration);
 
@@ -123,7 +123,7 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard title="Page Views" value={current.totalViews.toLocaleString()} icon={Eye} change={viewsChange.text} changeType={viewsChange.type} index={0} />
-        <StatsCard title="Unique Visitors" value={current.uniqueVisitors.toLocaleString()} icon={Users} change={visitorsChange.text} changeType={visitorsChange.type} index={1} />
+        <StatsCard title="Unique Visitors" value={current.totalSessions.toLocaleString()} icon={Users} change={visitorsChange.text} changeType={visitorsChange.type} index={1} />
         <StatsCard title="Engaged Sessions" value={current.engagedSessions.toLocaleString()} icon={TrendingUp} change={engagementChange.text} changeType={engagementChange.type} index={2} />
         <StatsCard title="Avg. Session" value={formatDuration(current.avgDuration)} icon={Clock} change={durationChange.text} changeType={durationChange.type} index={3} />
       </div>
