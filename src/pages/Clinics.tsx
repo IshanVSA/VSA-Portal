@@ -14,7 +14,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Search, Eye, Trash2, ChevronDown, Pencil, Building2, Users, X } from "lucide-react";
+import { COMMON_TIMEZONES, getSafeTimeZone } from "@/lib/website-analytics";
+import { isHttpsClinicWebsiteUrl, normalizeClinicWebsiteUrl } from "@/lib/clinic-website";
+import { Plus, Search, Eye, Trash2, ChevronDown, Pencil, Building2, Users, X, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 interface Clinic {
@@ -38,9 +40,19 @@ interface TeamAssignment {
   user_id: string;
 }
 
+interface ExtractedClinicDetails {
+  clinic_name?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  website?: string | null;
+  timezone?: string | null;
+  source_urls?: string[];
+}
+
 export default function Clinics() {
   const { role } = useUserRole();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [concierges, setConcierges] = useState<{ user_id: string; full_name: string }[]>([]);
   const [allStaff, setAllStaff] = useState<{ user_id: string; full_name: string; team_role: string | null }[]>([]);
@@ -52,8 +64,12 @@ export default function Clinics() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
+  const [newEmail, setNewEmail] = useState("");
   const [newAddress, setNewAddress] = useState("");
+  const [newWebsite, setNewWebsite] = useState("");
+  const [newTimezone, setNewTimezone] = useState("");
   const [newOwnerId, setNewOwnerId] = useState("");
+  const [extractingWebsite, setExtractingWebsite] = useState(false);
   const [credentialsOpen, setCredentialsOpen] = useState(false);
   const [metaPageAccessToken, setMetaPageAccessToken] = useState("");
   const [metaPageId, setMetaPageId] = useState("");
@@ -112,18 +128,95 @@ export default function Clinics() {
   }, [role, user]);
 
   const resetAddForm = () => {
-    setNewName(""); setNewPhone(""); setNewAddress(""); setNewOwnerId("");
+    setNewName(""); setNewPhone(""); setNewEmail(""); setNewAddress(""); setNewWebsite(""); setNewTimezone(""); setNewOwnerId("");
+    setExtractingWebsite(false);
     setCredentialsOpen(false);
     setMetaPageAccessToken(""); setMetaPageId(""); setMetaInstagramBusinessId("");
     setGoogleRefreshToken(""); setGoogleCustomerId(""); setGoogleLoginCustomerId("");
   };
 
+  const extractClinicFromWebsite = async () => {
+    if (!newWebsite.trim()) {
+      toast.error("Enter a clinic website first");
+      return;
+    }
+
+    let normalizedWebsite = "";
+    try {
+      normalizedWebsite = normalizeClinicWebsiteUrl(newWebsite);
+    } catch {
+      toast.error("Please enter a valid website URL");
+      return;
+    }
+
+    setNewWebsite(normalizedWebsite);
+    setExtractingWebsite(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("extract-clinic-website", {
+        body: { website: normalizedWebsite },
+        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
+      });
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      const extracted = (data?.fields ?? null) as ExtractedClinicDetails | null;
+      if (!extracted) {
+        toast.error("No clinic details could be extracted from that website");
+        return;
+      }
+
+      const nextTimezone = extracted.timezone && getSafeTimeZone(extracted.timezone) === extracted.timezone
+        ? extracted.timezone
+        : "";
+
+      if (extracted.clinic_name) setNewName(extracted.clinic_name);
+      if (extracted.phone) setNewPhone(extracted.phone);
+      if (extracted.email) setNewEmail(extracted.email);
+      if (extracted.address) setNewAddress(extracted.address);
+      if (extracted.website) setNewWebsite(extracted.website);
+      if (nextTimezone) setNewTimezone(nextTimezone);
+
+      const extractedFieldCount = [
+        extracted.clinic_name,
+        extracted.phone,
+        extracted.email,
+        extracted.address,
+        extracted.website,
+        nextTimezone,
+      ].filter(Boolean).length;
+
+      if (extractedFieldCount >= 4) {
+        toast.success(`Clinic details extracted${extracted.source_urls?.length ? ` from ${extracted.source_urls.length} pages` : ""}`);
+      } else {
+        toast("Partial details extracted — please review before saving");
+      }
+    } catch (invokeError) {
+      toast.error(invokeError instanceof Error ? invokeError.message : "Failed to extract clinic details");
+    } finally {
+      setExtractingWebsite(false);
+    }
+  };
+
   const addClinic = async () => {
     if (!newName.trim()) return;
+
+    const trimmedWebsite = newWebsite.trim();
+    if (trimmedWebsite && !isHttpsClinicWebsiteUrl(trimmedWebsite)) {
+      toast.error("Website URL must start with https://");
+      return;
+    }
+
     const { data: clinicData, error } = await supabase.from("clinics").insert({
       clinic_name: newName.trim(),
       phone: newPhone || null,
+      email: newEmail || null,
       address: newAddress || null,
+      website: trimmedWebsite || null,
+      timezone: newTimezone || null,
       owner_user_id: newOwnerId && newOwnerId !== "none" ? newOwnerId : null,
     }).select("id").single();
     if (error) { toast.error(error.message); return; }
@@ -236,6 +329,10 @@ export default function Clinics() {
     );
   };
 
+  const timezoneOptions = newTimezone && !COMMON_TIMEZONES.includes(newTimezone)
+    ? [newTimezone, ...COMMON_TIMEZONES]
+    : COMMON_TIMEZONES;
+
   return (
     <DashboardLayout>
       <div className="space-y-4 sm:space-y-6">
@@ -258,9 +355,42 @@ export default function Clinics() {
                 <DialogContent className="max-h-[85vh] overflow-y-auto max-w-[95vw] sm:max-w-lg">
                   <DialogHeader><DialogTitle>Add New Clinic</DialogTitle></DialogHeader>
                   <div className="space-y-4 pt-2">
+                    <div className="space-y-2">
+                      <Label>Website URL</Label>
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <Input
+                          value={newWebsite}
+                          onChange={e => setNewWebsite(e.target.value)}
+                          placeholder="https://examplevet.com"
+                          className="input-glow"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={extractClinicFromWebsite}
+                          disabled={extractingWebsite || !newWebsite.trim()}
+                          className="sm:w-auto"
+                        >
+                          {extractingWebsite ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                          Extract from Website
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Paste the clinic website, then extract name, phone, address, email, and timezone before saving.</p>
+                    </div>
                     <div className="space-y-2"><Label>Clinic Name</Label><Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Happy Paws Vet" className="input-glow" /></div>
                     <div className="space-y-2"><Label>Phone</Label><Input value={newPhone} onChange={e => setNewPhone(e.target.value)} placeholder="(555) 123-4567" className="input-glow" /></div>
+                    <div className="space-y-2"><Label>Email</Label><Input value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="hello@clinic.com" className="input-glow" /></div>
                     <div className="space-y-2"><Label>Address</Label><Input value={newAddress} onChange={e => setNewAddress(e.target.value)} placeholder="123 Main St" className="input-glow" /></div>
+                    <div className="space-y-2">
+                      <Label>Timezone</Label>
+                      <Select value={newTimezone || "none"} onValueChange={(value) => setNewTimezone(value === "none" ? "" : value)}>
+                        <SelectTrigger><SelectValue placeholder="Select timezone..." /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No timezone selected</SelectItem>
+                          {timezoneOptions.map((option) => (<SelectItem key={option} value={option}>{option}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <div className="space-y-2">
                       <Label>Client Owner (Optional)</Label>
                       <Select value={newOwnerId} onValueChange={setNewOwnerId}>
