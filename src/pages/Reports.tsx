@@ -25,12 +25,6 @@ export default function Reports() {
                 </p>
               </div>
             </div>
-            <ClinicSelector
-              clinics={clinics}
-              selectedClinicId={selectedClinicId}
-              onSelect={setSelectedClinicId}
-              loading={clinicsLoading}
-            />
           </div>
         </div>
 

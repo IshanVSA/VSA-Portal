@@ -24,7 +24,6 @@ export default function AiSeoDepartment() {
               {selectedClinic?.clinic_name && <p className="text-xs text-muted-foreground -mt-0.5">{selectedClinic.clinic_name}</p>}
             </div>
           </div>
-          <ClinicSelector clinics={clinics} selectedClinicId={selectedClinicId} onSelect={setSelectedClinicId} loading={clinicsLoading} />
         </div>
 
         {isLoading || clinicsLoading ? (

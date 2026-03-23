@@ -8,7 +8,7 @@ import { WebsiteAnalyticsTab } from "@/components/department/WebsiteAnalyticsTab
 import { WebsiteReportsTab } from "@/components/department/WebsiteReportsTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
 import { WebsiteHealthTab } from "@/components/department/WebsiteHealthTab";
-import { ClinicSelector } from "@/components/department/ClinicSelector";
+import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { useWebsiteKPIs } from "@/hooks/useWebsiteKPIs";

@@ -65,7 +65,6 @@ export default function SocialMedia() {
               {selectedClinicName && <p className="text-xs text-muted-foreground -mt-0.5">{selectedClinicName}</p>}
             </div>
           </div>
-          <ClinicSelector clinics={clinics} selectedClinicId={selectedClinicId} onSelect={setSelectedClinicId} loading={clinicsLoading} />
         </div>
 
         {isLocked ? (

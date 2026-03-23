@@ -154,7 +154,6 @@ export default function SeoDepartment() {
                 <Upload className="h-3 w-3" /> Upload SEO Report
               </Button>
             )}
-            <ClinicSelector clinics={clinics} selectedClinicId={selectedClinicId} onSelect={setSelectedClinicId} loading={clinicsLoading} />
           </div>
         </div>
 
