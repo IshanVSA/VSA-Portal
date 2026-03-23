@@ -13,7 +13,6 @@ import {
   computeWebsiteMetrics,
   DEFAULT_CLINIC_TIMEZONE,
   getBufferedRange,
-  getDateFromDateKey,
   getSafeTimeZone,
   getTodayDateForTimeZone,
   getZonedDateKey,
