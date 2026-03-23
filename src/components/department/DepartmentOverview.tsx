@@ -6,6 +6,7 @@ import { BarChart3, CheckCircle2, Clock, AlertTriangle, Inbox, LucideIcon } from
 import { ReactNode, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
+import { getTicketTypeLabel } from "@/lib/ticket-display-labels";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -47,21 +48,6 @@ interface DepartmentOverviewProps {
   extraSection?: ReactNode;
   clinicId?: string;
   hideQuickActions?: boolean;
-}
-
-const WEBSITE_SERVICE_LABELS: Record<string, string> = {
-  "Time Changes": "Time Change",
-  "Pop-up Offers": "Pop-up Offer",
-  "Third Party Integrations": "Third Party Integration",
-  "Payment Options": "Payment Option",
-  "Add/Remove Team Members": "Add/Remove Team Member",
-  "New Forms": "New Form",
-  "Price List Updates": "Price List Update",
-};
-
-function getServiceLabel(department: string, service: string) {
-  if (department !== "website") return service;
-  return WEBSITE_SERVICE_LABELS[service] ?? service;
 }
 
 function useTicketCounts(department: string, clinicId?: string): TicketSummary {
@@ -156,7 +142,7 @@ export function DepartmentOverview({
                     className="text-xs font-medium px-3 py-1.5 cursor-pointer hover:bg-primary/8 hover:text-primary transition-all duration-200 hover:shadow-sm"
                     onClick={() => { setPrefilledService(s); setTicketDialogOpen(true); }}
                   >
-                    {getServiceLabel(department, s)}
+                    {getTicketTypeLabel(s)}
                   </Badge>
                 ))}
               </div>
