@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole, type AppRole } from "@/hooks/useUserRole";
 import { usePendingCounts } from "@/hooks/usePendingCounts";
@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Building2, Users, BarChart3, Settings, LogOut, Menu, X, ChevronRight,
   ShieldCheck, LayoutDashboard, UserCheck,
-  Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone, Globe, Sparkles, Plus, FileText, SearchCode,
+  Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone, Globe, Sparkles, Plus, FileText, SearchCode, Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,22 @@ interface NavSection {
   title?: string;
   items: NavItem[];
 }
+
+interface ClinicAccessState {
+  website_enabled?: boolean;
+  seo_enabled?: boolean;
+  google_ads_enabled?: boolean;
+  ai_seo_enabled?: boolean;
+  social_media_enabled?: boolean;
+}
+
+const departmentPathToAccessKey: Record<string, keyof ClinicAccessState> = {
+  "/website": "website_enabled",
+  "/seo": "seo_enabled",
+  "/ai-seo": "ai_seo_enabled",
+  "/google-ads": "google_ads_enabled",
+  "/social": "social_media_enabled",
+};
 
 const adminSections: NavSection[] = [
   { items: [{ label: "Dashboard", icon: LayoutDashboard, path: "/" }] },
@@ -94,9 +110,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { role } = useUserRole();
   const { user, signOut } = useAuth();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("sidebar-collapsed") === "true");
   const [clientClinicId, setClientClinicId] = useState<string | null>(null);
+  const [clinicAccess, setClinicAccess] = useState<ClinicAccessState | null>(null);
   const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
   const { pendingRequests, pendingReview } = usePendingCounts();
 
@@ -123,6 +141,25 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     }
   }, [role, user]);
 
+  const selectedClinicId = searchParams.get("clinic") || "";
+  const activeClinicId = role === "client" ? clientClinicId : selectedClinicId || null;
+
+  useEffect(() => {
+    if (!activeClinicId) {
+      setClinicAccess(null);
+      return;
+    }
+
+    (supabase
+      .from("clinics" as any)
+      .select("website_enabled, seo_enabled, google_ads_enabled, ai_seo_enabled, social_media_enabled")
+      .eq("id", activeClinicId)
+      .maybeSingle() as any)
+      .then(({ data }: { data: ClinicAccessState | null }) => {
+        setClinicAccess(data);
+      });
+  }, [activeClinicId]);
+
   const clientSections: NavSection[] = [
     { items: [{ label: "Dashboard", icon: LayoutDashboard, path: "/" }] },
     { title: "DEPARTMENTS", items: [
@@ -146,6 +183,16 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   const sections = injectBadges(role === "admin" ? adminSections : role === "concierge" ? conciergeSections : clientSections);
   const currentPageTitle = pageTitles[location.pathname] || "";
+
+  const isDepartmentLocked = (path: string) => {
+    if (role === "admin" || !clinicAccess) return false;
+
+    const accessKey = departmentPathToAccessKey[path];
+    if (!accessKey) return false;
+
+    const enabled = clinicAccess[accessKey];
+    return accessKey === "ai_seo_enabled" ? enabled === false : enabled === false;
+  };
 
   const toggleCollapse = () => {
     const next = !collapsed;
@@ -215,6 +262,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 {section.items.map((item) => {
                   const active = item.path === "/" ? location.pathname === "/" : location.pathname === item.path || location.pathname.startsWith(item.path + "/") || (item.path === "/social" && location.pathname === "/social");
                   const dotColor = deptDotColors[item.path];
+                  const locked = isDepartmentLocked(item.path);
                   return (
                     <Link
                       key={item.path}
@@ -242,6 +290,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                           "h-[18px] w-[18px] transition-colors duration-200",
                           active ? "text-[hsl(var(--sidebar-primary))]" : "group-hover:text-[hsl(var(--sidebar-foreground))]"
                         )} />
+                        {collapsed && locked && (
+                          <span className="absolute -bottom-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-muted text-muted-foreground ring-2 ring-[hsl(var(--sidebar-background))]">
+                            <Lock className="h-2.5 w-2.5" />
+                          </span>
+                        )}
                         {collapsed && (item.badge ?? 0) > 0 && (
                           <span className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground text-[8px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center">
                             {item.badge}
@@ -252,6 +305,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                         <>
                           {dotColor && <div className={cn("h-1.5 w-1.5 rounded-full shrink-0 transition-transform duration-200 group-hover:scale-125", dotColor)} />}
                           <span className="flex-1">{item.label}</span>
+                            {locked && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                <Lock className="h-3 w-3" />
+                                Locked
+                              </span>
+                            )}
                         </>
                       )}
                       {!collapsed && (item.badge ?? 0) > 0 && (
