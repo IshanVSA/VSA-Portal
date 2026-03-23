@@ -156,8 +156,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         .then(({ data }) => {
           if (data && data.length > 0) {
             setClientClinics(data);
-            if (!clientSelectedId) {
-              setClientSelectedId(data[0].id);
+            const urlClinic = searchParams.get("clinic");
+            const initialId = urlClinic && data.some(c => c.id === urlClinic) ? urlClinic : data[0].id;
+            setClientSelectedId(initialId);
+            if (!urlClinic) {
+              setSearchParams(prev => { const next = new URLSearchParams(prev); next.set("clinic", initialId); return next; }, { replace: true });
             }
           }
         });
