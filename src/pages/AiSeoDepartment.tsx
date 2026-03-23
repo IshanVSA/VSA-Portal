@@ -4,7 +4,6 @@ import { Sparkles } from "lucide-react";
 import { useAiSeoAccess } from "@/hooks/useAiSeoAccess";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
-import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { DepartmentAccessLocked } from "@/components/department/DepartmentAccessLocked";
 
 export default function AiSeoDepartment() {

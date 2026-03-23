@@ -8,7 +8,6 @@ import { GoogleAdsAnalyticsTab } from "@/components/department/GoogleAdsAnalytic
 import { GoogleAdsReportsTab } from "@/components/department/GoogleAdsReportsTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
 import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
-import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { useGoogleAdsKPIs } from "@/hooks/useGoogleAdsKPIs";
 import { Card, CardContent } from "@/components/ui/card";
