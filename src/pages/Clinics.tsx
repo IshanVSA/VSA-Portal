@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { COMMON_TIMEZONES, getSafeTimeZone } from "@/lib/website-analytics";
 import { isHttpsClinicWebsiteUrl, normalizeClinicWebsiteUrl } from "@/lib/clinic-website";
-import { Plus, Search, Eye, Trash2, Pencil, Building2, Users, X, Loader2, Sparkles } from "lucide-react";
+import { Plus, Search, Eye, Trash2, Pencil, Building2, Users, X, Loader2, Sparkles, Lock, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 interface Clinic {
@@ -26,6 +26,81 @@ interface Clinic {
   owner_user_id: string | null;
   phone: string | null;
   address: string | null;
+  website_enabled?: boolean;
+  seo_enabled?: boolean;
+  google_ads_enabled?: boolean;
+  ai_seo_enabled?: boolean;
+  social_media_enabled?: boolean;
+}
+
+type ClinicAccessSettings = {
+  website_enabled: boolean;
+  seo_enabled: boolean;
+  google_ads_enabled: boolean;
+  ai_seo_enabled: boolean;
+  social_media_enabled: boolean;
+};
+
+const defaultClinicAccessSettings: ClinicAccessSettings = {
+  website_enabled: true,
+  seo_enabled: true,
+  google_ads_enabled: true,
+  ai_seo_enabled: true,
+  social_media_enabled: true,
+};
+
+const clinicAccessOptions: Array<{ key: keyof ClinicAccessSettings; label: string; description: string }> = [
+  { key: "website_enabled", label: "Website", description: "Website tools, reports, and tickets" },
+  { key: "seo_enabled", label: "SEO", description: "SEO analytics, rankings, and reports" },
+  { key: "google_ads_enabled", label: "Google Ads", description: "Ads dashboards, analytics, and tickets" },
+  { key: "ai_seo_enabled", label: "AI SEO", description: "AI SEO workspace access" },
+  { key: "social_media_enabled", label: "Social Media", description: "Content, requests, and calendar tools" },
+];
+
+function ServiceAccessSelector({
+  title,
+  description,
+  value,
+  onToggle,
+}: {
+  title: string;
+  description: string;
+  value: ClinicAccessSettings;
+  onToggle: (key: keyof ClinicAccessSettings) => void;
+}) {
+  return (
+    <div className="space-y-3 rounded-xl border border-border/60 bg-muted/20 p-4">
+      <div>
+        <Label className="text-sm font-medium">{title}</Label>
+        <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {clinicAccessOptions.map((option) => {
+          const enabled = value[option.key];
+
+          return (
+            <button
+              key={option.key}
+              type="button"
+              onClick={() => onToggle(option.key)}
+              className={`rounded-xl border p-3 text-left transition-all ${enabled ? "border-primary/40 bg-primary/10" : "border-border bg-background hover:bg-muted/50"}`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-foreground">{option.label}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{option.description}</p>
+                </div>
+                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium ${enabled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                  {enabled ? <ShieldCheck className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+                  {enabled ? "Enabled" : "Locked"}
+                </span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 interface UserProfile {
@@ -68,6 +143,7 @@ export default function Clinics() {
   const [newWebsite, setNewWebsite] = useState("");
   const [newTimezone, setNewTimezone] = useState("");
   const [newOwnerId, setNewOwnerId] = useState("");
+  const [newAccess, setNewAccess] = useState<ClinicAccessSettings>(defaultClinicAccessSettings);
   const [extractingWebsite, setExtractingWebsite] = useState(false);
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -76,6 +152,7 @@ export default function Clinics() {
   const [editPhone, setEditPhone] = useState("");
   const [editAddress, setEditAddress] = useState("");
   const [editOwnerId, setEditOwnerId] = useState("");
+  const [editAccess, setEditAccess] = useState<ClinicAccessSettings>(defaultClinicAccessSettings);
 
   // Team assignment dialog
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
@@ -121,7 +198,16 @@ export default function Clinics() {
 
   const resetAddForm = () => {
     setNewName(""); setNewPhone(""); setNewEmail(""); setNewAddress(""); setNewWebsite(""); setNewTimezone(""); setNewOwnerId("");
+    setNewAccess(defaultClinicAccessSettings);
     setExtractingWebsite(false);
+  };
+
+  const toggleAddAccess = (key: keyof ClinicAccessSettings) => {
+    setNewAccess((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const toggleEditAccess = (key: keyof ClinicAccessSettings) => {
+    setEditAccess((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   const extractClinicFromWebsite = async () => {
@@ -199,7 +285,7 @@ export default function Clinics() {
       return;
     }
 
-    const { data: clinicData, error } = await supabase.from("clinics").insert({
+    const { data: clinicData, error } = await (supabase.from("clinics" as any).insert({
       clinic_name: newName.trim(),
       phone: newPhone || null,
       email: newEmail || null,
@@ -207,7 +293,8 @@ export default function Clinics() {
       website: trimmedWebsite || null,
       timezone: newTimezone || null,
       owner_user_id: newOwnerId && newOwnerId !== "none" ? newOwnerId : null,
-    }).select("id").single();
+      ...newAccess,
+    } as any).select("id").single() as any);
     if (error) { toast.error(error.message); return; }
 
     toast.success("Clinic added!");
@@ -222,17 +309,25 @@ export default function Clinics() {
     setEditPhone(clinic.phone || "");
     setEditAddress(clinic.address || "");
     setEditOwnerId(clinic.owner_user_id || "none");
+    setEditAccess({
+      website_enabled: clinic.website_enabled ?? true,
+      seo_enabled: clinic.seo_enabled ?? true,
+      google_ads_enabled: clinic.google_ads_enabled ?? true,
+      ai_seo_enabled: clinic.ai_seo_enabled ?? false,
+      social_media_enabled: clinic.social_media_enabled ?? true,
+    });
     setEditDialogOpen(true);
   };
 
   const saveEdit = async () => {
     if (!editClinic || !editName.trim()) return;
-    const { error } = await supabase.from("clinics").update({
+    const { error } = await (supabase.from("clinics" as any).update({
       clinic_name: editName.trim(),
       phone: editPhone || null,
       address: editAddress || null,
       owner_user_id: editOwnerId && editOwnerId !== "none" ? editOwnerId : null,
-    }).eq("id", editClinic.id);
+      ...editAccess,
+    } as any).eq("id", editClinic.id) as any);
     if (error) { toast.error(error.message); return; }
     toast.success("Clinic updated!");
     setEditDialogOpen(false);
@@ -377,6 +472,12 @@ export default function Clinics() {
                         </SelectContent>
                       </Select>
                     </div>
+                    <ServiceAccessSelector
+                      title="Service Access"
+                      description="Choose which department workspaces this clinic can open. Disabled services will show a locked access state for non-admin users."
+                      value={newAccess}
+                      onToggle={toggleAddAccess}
+                    />
                     <Button onClick={addClinic} className="w-full">Add Clinic</Button>
                   </div>
                 </DialogContent>
@@ -509,6 +610,12 @@ export default function Clinics() {
                   </SelectContent>
                 </Select>
               </div>
+              <ServiceAccessSelector
+                title="Service Access"
+                description="Update which department workspaces this clinic can access without changing stored ticket types or history."
+                value={editAccess}
+                onToggle={toggleEditAccess}
+              />
               <Button onClick={saveEdit} className="w-full">Save Changes</Button>
             </div>
           </DialogContent>

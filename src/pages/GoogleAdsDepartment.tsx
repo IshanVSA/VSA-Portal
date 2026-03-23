@@ -13,6 +13,8 @@ import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { useGoogleAdsKPIs } from "@/hooks/useGoogleAdsKPIs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useClinicServiceAccess } from "@/hooks/useClinicServiceAccess";
+import { DepartmentAccessLocked } from "@/components/department/DepartmentAccessLocked";
 
 const tabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
@@ -28,11 +30,12 @@ const quickActions = ["Call Volume Issues", "Wrong Call Tracking", "Others"];
 export default function GoogleAdsDepartment() {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get("tab") || "overview";
-  const { clinics, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
+  const { clinics, selectedClinic, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
   const { team } = useDepartmentTeam("google_ads", selectedClinicId);
   const adsData = useGoogleAdsKPIs(selectedClinicId);
+  const { isLocked } = useClinicServiceAccess(selectedClinic, "google_ads");
 
-  const selectedClinicName = clinics.find(c => c.id === selectedClinicId)?.clinic_name;
+  const selectedClinicName = selectedClinic?.clinic_name;
 
   const kpis = [
     { label: "Ad Spend", value: adsData.loading ? "—" : `$${adsData.cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, change: "Last 30 days", changeType: "neutral" as const, icon: DollarSign, gradient: "blue" as const },
@@ -94,24 +97,28 @@ export default function GoogleAdsDepartment() {
           <ClinicSelector clinics={clinics} selectedClinicId={selectedClinicId} onSelect={setSelectedClinicId} loading={clinicsLoading} />
         </div>
 
-        <Tabs value={currentTab} onValueChange={(v) => setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", v); return next; }, { replace: true })} className="w-full">
-          <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto">
-            {tabs.map(tab => (
-              <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm">
-                <tab.icon className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{tab.label}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
+        {isLocked ? (
+          <DepartmentAccessLocked clinicName={selectedClinicName} departmentName="Google Ads" />
+        ) : (
+          <Tabs value={currentTab} onValueChange={(v) => setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", v); return next; }, { replace: true })} className="w-full">
+            <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto">
+              {tabs.map(tab => (
+                <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm">
+                  <tab.icon className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
 
-          <TabsContent value="overview" className="mt-4">
-            <DepartmentOverview kpis={kpis} services={quickActions} trafficData={trafficData} trafficLabel="Weekly Click Trend" team={team} department="google_ads" accentColor="hsl(var(--dept-ads))" extraSection={campaignsCard} clinicId={selectedClinicId} />
-          </TabsContent>
-          <TabsContent value="tickets" className="mt-4"><TicketsTab department="google_ads" services={services} clinicId={selectedClinicId} /></TabsContent>
-          <TabsContent value="analytics" className="mt-4"><GoogleAdsAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
-          <TabsContent value="reports" className="mt-4"><GoogleAdsReportsTab clinicId={selectedClinicId} /></TabsContent>
-          <TabsContent value="uploads" className="mt-4"><UploadsTab department="google_ads" clinicId={selectedClinicId} /></TabsContent>
-        </Tabs>
+            <TabsContent value="overview" className="mt-4">
+              <DepartmentOverview kpis={kpis} services={quickActions} trafficData={trafficData} trafficLabel="Weekly Click Trend" team={team} department="google_ads" accentColor="hsl(var(--dept-ads))" extraSection={campaignsCard} clinicId={selectedClinicId} />
+            </TabsContent>
+            <TabsContent value="tickets" className="mt-4"><TicketsTab department="google_ads" services={services} clinicId={selectedClinicId} /></TabsContent>
+            <TabsContent value="analytics" className="mt-4"><GoogleAdsAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
+            <TabsContent value="reports" className="mt-4"><GoogleAdsReportsTab clinicId={selectedClinicId} /></TabsContent>
+            <TabsContent value="uploads" className="mt-4"><UploadsTab department="google_ads" clinicId={selectedClinicId} /></TabsContent>
+          </Tabs>
+        )}
       </div>
     </DashboardLayout>
   );
