@@ -1,135 +1,70 @@
 import { useState, useEffect, useMemo } from "react";
-import { format, subDays, differenceInDays } from "date-fns";
+import { subDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar } from "recharts";
-import { Eye, Users, TrendingUp, FileText, Globe, Clock } from "lucide-react";
+import { Eye, Users, TrendingUp, FileText, Globe, Clock, Layers3 } from "lucide-react";
 import { StatsCard } from "@/components/StatsCard";
 import { DateRangeFilter } from "@/components/department/DateRangeFilter";
-
-interface Pageview {
-  session_id: string;
-  path: string;
-  referrer: string | null;
-  created_at: string;
-}
+import { buildDateKeys, computeWebsiteMetrics, DEFAULT_CLINIC_TIMEZONE, getBufferedRange, getSafeTimeZone } from "@/lib/website-analytics";
 
 interface Props {
   clinicId: string;
 }
 
 export function WebsiteAnalyticsTab({ clinicId }: Props) {
-  const [pageviews, setPageviews] = useState<Pageview[]>([]);
+  const [pageviews, setPageviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [timeZone, setTimeZone] = useState(DEFAULT_CLINIC_TIMEZONE);
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
     from: subDays(new Date(), 30),
     to: new Date(),
   });
 
-  const totalDays = differenceInDays(dateRange.to, dateRange.from) + 1;
+  const selectedDateKeys = useMemo(() => buildDateKeys(dateRange.from, dateRange.to), [dateRange]);
 
   useEffect(() => {
     if (!clinicId) { setLoading(false); return; }
 
     const fetchData = async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from("website_pageviews")
-        .select("session_id, path, referrer, created_at")
-        .eq("clinic_id", clinicId)
-        .gte("created_at", dateRange.from.toISOString())
-        .lte("created_at", dateRange.to.toISOString())
-        .order("created_at", { ascending: true });
-      setPageviews((data as Pageview[] | null) || []);
+      const bufferedRange = getBufferedRange(dateRange.from, dateRange.to);
+      const [{ data: clinic }, { data }] = await Promise.all([
+        supabase.from("clinics").select("timezone").eq("id", clinicId).maybeSingle(),
+        supabase
+          .from("website_pageviews")
+          .select("session_id, path, referrer, created_at")
+          .eq("clinic_id", clinicId)
+          .gte("created_at", bufferedRange.from.toISOString())
+          .lte("created_at", bufferedRange.to.toISOString())
+          .order("created_at", { ascending: true }),
+      ]);
+      setTimeZone(getSafeTimeZone(clinic?.timezone));
+      setPageviews((data as any[] | null) || []);
       setLoading(false);
     };
     fetchData();
   }, [clinicId, dateRange]);
 
   const analytics = useMemo(() => {
-    if (!pageviews.length) return null;
+    const splitIndex = selectedDateKeys.length > 1 ? Math.floor(selectedDateKeys.length / 2) : 0;
+    const previousDateKeys = selectedDateKeys.slice(0, splitIndex);
+    const currentDateKeys = selectedDateKeys.slice(splitIndex || 0);
+    const current = computeWebsiteMetrics(pageviews, currentDateKeys.length > 0 ? currentDateKeys : selectedDateKeys, timeZone);
+    const prev = computeWebsiteMetrics(pageviews, previousDateKeys, timeZone);
+    const fullPeriod = computeWebsiteMetrics(pageviews, selectedDateKeys, timeZone);
 
-    const midpoint = new Date((dateRange.from.getTime() + dateRange.to.getTime()) / 2).getTime();
-
-    const currentPeriod = pageviews.filter(p => new Date(p.created_at).getTime() >= midpoint);
-    const prevPeriod = pageviews.filter(p => new Date(p.created_at).getTime() < midpoint);
-
-
-    const calcKPIs = (views: Pageview[]) => {
-      const sessions: Record<string, Pageview[]> = {};
-      views.forEach(p => {
-        if (!sessions[p.session_id]) sessions[p.session_id] = [];
-        sessions[p.session_id].push(p);
-      });
-      const sessionList = Object.values(sessions);
-      const totalSessions = sessionList.length;
-      const totalViews = views.length;
-      const bounces = sessionList.filter(s => s.length === 1).length;
-      const bounceRate = totalSessions > 0 ? Math.round((bounces / totalSessions) * 1000) / 10 : 0;
-      const durations = sessionList
-        .filter(s => s.length > 1)
-        .map(s => {
-          const times = s.map(p => new Date(p.created_at).getTime());
-          return (Math.max(...times) - Math.min(...times)) / 1000;
-        });
-      const avgDuration = durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : 0;
-      const engagementRate = Math.round((100 - bounceRate) * 10) / 10;
-      return { totalViews, uniqueVisitors: totalSessions, engagementRate, avgDuration };
+    return {
+      current,
+      prev,
+      dailyTraffic: fullPeriod.dailyTraffic,
+      topPages: fullPeriod.topPages,
+      sessionDepthMix: fullPeriod.sessionDepthMix,
+      hourly: fullPeriod.hourly,
     };
-
-    const current = calcKPIs(currentPeriod);
-    const prev = calcKPIs(prevPeriod);
-
-    // Daily traffic
-    const dailyMap: Record<string, number> = {};
-    for (let i = totalDays - 1; i >= 0; i--) {
-      const d = subDays(dateRange.to, i);
-      const key = format(d, "yyyy-MM-dd");
-      dailyMap[key] = 0;
-    }
-    pageviews.forEach(p => {
-      const key = p.created_at.slice(0, 10);
-      if (key in dailyMap) dailyMap[key]++;
-    });
-    const dailyTraffic = Object.entries(dailyMap).map(([date, views]) => ({
-      date: new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      views,
-    }));
-
-    // Top pages
-    const pageCounts: Record<string, { views: number; visitors: Set<string> }> = {};
-    pageviews.forEach(p => {
-      if (!pageCounts[p.path]) pageCounts[p.path] = { views: 0, visitors: new Set() };
-      pageCounts[p.path].views++;
-      pageCounts[p.path].visitors.add(p.session_id);
-    });
-    const topPages = Object.entries(pageCounts)
-      .map(([path, d]) => ({ path, views: d.views, visitors: d.visitors.size }))
-      .sort((a, b) => b.views - a.views)
-      .slice(0, 10);
-
-    // Top referrers
-    const refCounts: Record<string, number> = {};
-    pageviews.forEach(p => {
-      const ref = p.referrer || "Direct";
-      refCounts[ref] = (refCounts[ref] || 0) + 1;
-    });
-    const topReferrers = Object.entries(refCounts)
-      .map(([source, count]) => ({ source, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-
-    // Hourly breakdown
-    const hourly = Array.from({ length: 24 }, (_, i) => ({ hour: i, label: `${i.toString().padStart(2, "0")}:00`, views: 0 }));
-    pageviews.forEach(p => {
-      const h = new Date(p.created_at).getHours();
-      hourly[h].views++;
-    });
-
-    return { current, prev, dailyTraffic, topPages, topReferrers, hourly };
-  }, [pageviews, dateRange, totalDays]);
+  }, [pageviews, selectedDateKeys, timeZone]);
 
   if (loading) {
     return (
@@ -157,7 +92,7 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
     );
   }
 
-  const { current, prev, dailyTraffic, topPages, topReferrers, hourly } = analytics;
+  const { current, prev, dailyTraffic, topPages, sessionDepthMix, hourly } = analytics;
 
   const pctChange = (cur: number, prv: number, invertBetter = false) => {
     if (prv === 0 && cur === 0) return { text: "No change", type: "neutral" as const };
@@ -171,7 +106,7 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
 
   const viewsChange = pctChange(current.totalViews, prev.totalViews);
   const visitorsChange = pctChange(current.uniqueVisitors, prev.uniqueVisitors);
-  const engagementChange = pctChange(current.engagementRate, prev.engagementRate);
+  const engagementChange = pctChange(current.engagedSessions, prev.engagedSessions);
   const durationChange = pctChange(current.avgDuration, prev.avgDuration);
 
   const formatDuration = (s: number) => {
@@ -189,29 +124,29 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard title="Page Views" value={current.totalViews.toLocaleString()} icon={Eye} change={viewsChange.text} changeType={viewsChange.type} index={0} />
         <StatsCard title="Unique Visitors" value={current.uniqueVisitors.toLocaleString()} icon={Users} change={visitorsChange.text} changeType={visitorsChange.type} index={1} />
-        <StatsCard title="Engagement Rate" value={`${current.engagementRate}%`} icon={TrendingUp} change={engagementChange.text} changeType={engagementChange.type} index={2} />
+        <StatsCard title="Engaged Sessions" value={current.engagedSessions.toLocaleString()} icon={TrendingUp} change={engagementChange.text} changeType={engagementChange.type} index={2} />
         <StatsCard title="Avg. Session" value={formatDuration(current.avgDuration)} icon={Clock} change={durationChange.text} changeType={durationChange.type} index={3} />
       </div>
 
       {/* Daily Traffic Chart */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Daily Traffic ({totalDays} Days)</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">Daily Traffic ({selectedDateKeys.length} Days)</CardTitle>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={{ views: { label: "Page Views", color: "hsl(25, 95%, 53%)" } }} className="h-[260px] w-full">
-            <AreaChart data={dailyTraffic}>
+          <ChartContainer config={{ views: { label: "Page Views", color: "hsl(var(--primary))" } }} className="h-[260px] w-full">
+            <AreaChart data={dailyTraffic.map((item) => ({ date: item.label, views: item.count }))}>
               <defs>
                 <linearGradient id="fillViews" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(25, 95%, 53%)" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="hsl(25, 95%, 53%)" stopOpacity={0} />
+                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
               <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" className="text-muted-foreground" />
               <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" />
               <ChartTooltip content={<ChartTooltipContent />} />
-              <Area type="monotone" dataKey="views" stroke="hsl(25, 95%, 53%)" fill="url(#fillViews)" strokeWidth={2} />
+              <Area type="monotone" dataKey="views" stroke="hsl(var(--primary))" fill="url(#fillViews)" strokeWidth={2} />
             </AreaChart>
           </ChartContainer>
         </CardContent>
@@ -229,7 +164,7 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-xs">Path</TableHead>
+                  <TableHead className="text-xs">Page</TableHead>
                   <TableHead className="text-xs text-right">Views</TableHead>
                   <TableHead className="text-xs text-right">Visitors</TableHead>
                 </TableRow>
@@ -237,7 +172,10 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
               <TableBody>
                 {topPages.map(p => (
                   <TableRow key={p.path}>
-                    <TableCell className="text-xs font-mono truncate max-w-[200px]">{p.path}</TableCell>
+                    <TableCell className="max-w-[260px]">
+                      <div className="truncate text-xs font-medium">{p.pageName}</div>
+                      <div className="truncate text-[10px] text-muted-foreground">{p.path}</div>
+                    </TableCell>
                     <TableCell className="text-xs text-right tabular-nums">{p.views}</TableCell>
                     <TableCell className="text-xs text-right tabular-nums">{p.visitors}</TableCell>
                   </TableRow>
@@ -247,26 +185,28 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
           </CardContent>
         </Card>
 
-        {/* Top Referrers */}
+        {/* Pages / Session Mix */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Globe className="h-4 w-4" /> Top Referrers
+              <Layers3 className="h-4 w-4" /> Pages / Session Mix
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-xs">Source</TableHead>
-                  <TableHead className="text-xs text-right">Visits</TableHead>
+                  <TableHead className="text-xs">Bucket</TableHead>
+                  <TableHead className="text-xs text-right">Sessions</TableHead>
+                  <TableHead className="text-xs text-right">Share</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {topReferrers.map(r => (
-                  <TableRow key={r.source}>
-                    <TableCell className="text-xs truncate max-w-[240px]">{r.source}</TableCell>
-                    <TableCell className="text-xs text-right tabular-nums">{r.count}</TableCell>
+                {sessionDepthMix.map((bucket) => (
+                  <TableRow key={bucket.label}>
+                    <TableCell className="text-xs">{bucket.label}</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums">{bucket.sessions}</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums">{bucket.share}%</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -278,16 +218,16 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
       {/* Hourly Breakdown */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Traffic by Hour of Day</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">Traffic by Hour ({timeZone})</CardTitle>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={{ views: { label: "Page Views", color: "hsl(25, 95%, 53%)" } }} className="h-[200px] w-full">
+          <ChartContainer config={{ views: { label: "Page Views", color: "hsl(var(--primary))" } }} className="h-[200px] w-full">
             <BarChart data={hourly}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
               <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={2} className="text-muted-foreground" />
               <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" />
               <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="views" fill="hsl(25, 95%, 53%)" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="views" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ChartContainer>
         </CardContent>

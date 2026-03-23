@@ -58,13 +58,13 @@ export default function WebsiteDepartment() {
   const selectedClinicName = clinics.find(c => c.id === selectedClinicId)?.clinic_name;
 
   const visitorsChange = formatChange(kpiData.visitorsToday, kpiData.visitorsLastWeek);
-  const engagementChange = formatChange(kpiData.engagementRate, kpiData.engagementRatePrev, "%");
+  const engagementChange = formatChange(kpiData.engagedSessions, kpiData.engagedSessionsPrev);
   const durationChange = formatChange(kpiData.avgSessionDuration, kpiData.avgSessionDurationPrev);
   const pagesChange = formatChange(kpiData.pagesPerSession, kpiData.pagesPerSessionPrev);
 
   const kpis = [
     { label: "Visitors Today", value: kpiData.loading ? "—" : kpiData.visitorsToday.toLocaleString(), change: kpiData.loading ? "" : visitorsChange.text, changeType: visitorsChange.type, icon: Eye, gradient: "blue" as const },
-    { label: "Engagement Rate", value: kpiData.loading ? "—" : `${kpiData.engagementRate}%`, change: kpiData.loading ? "" : engagementChange.text, changeType: engagementChange.type, icon: TrendingUp, gradient: "green" as const },
+    { label: "Engaged Sessions", value: kpiData.loading ? "—" : kpiData.engagedSessions.toLocaleString(), change: kpiData.loading ? "" : engagementChange.text, changeType: engagementChange.type, icon: TrendingUp, gradient: "green" as const },
     { label: "Avg. Session", value: kpiData.loading ? "—" : formatDuration(kpiData.avgSessionDuration), change: kpiData.loading ? "" : durationChange.text, changeType: durationChange.type, icon: Clock, gradient: "amber" as const },
     { label: "Pages/Session", value: kpiData.loading ? "—" : kpiData.pagesPerSession.toString(), change: kpiData.loading ? "" : pagesChange.text, changeType: pagesChange.type, icon: Layers, gradient: "purple" as const },
   ];
