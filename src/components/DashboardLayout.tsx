@@ -218,6 +218,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const sections = injectBadges(role === "admin" ? adminSections : role === "concierge" ? conciergeSections : clientSections);
   const currentPageTitle = pageTitles[location.pathname] || "";
 
+  const clinicSelectorPages = ["/website", "/seo", "/ai-seo", "/google-ads", "/social", "/reports"];
+  const showClinicSelector = clinicSelectorPages.some(p => location.pathname === p || location.pathname.startsWith(p + "/"));
+  const selectedClinicName = navClinics.find(c => c.id === navSelectedClinicId)?.clinic_name || "";
+
   const isDepartmentLocked = (path: string) => {
     if (role === "admin" || !clinicAccess) return false;
 
