@@ -7,7 +7,7 @@ import { TicketsTab } from "@/components/department/TicketsTab";
 import { GoogleAdsAnalyticsTab } from "@/components/department/GoogleAdsAnalyticsTab";
 import { GoogleAdsReportsTab } from "@/components/department/GoogleAdsReportsTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
-import { ClinicSelector } from "@/components/department/ClinicSelector";
+import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { useGoogleAdsKPIs } from "@/hooks/useGoogleAdsKPIs";
