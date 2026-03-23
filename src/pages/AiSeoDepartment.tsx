@@ -3,7 +3,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Sparkles } from "lucide-react";
 import { useAiSeoAccess } from "@/hooks/useAiSeoAccess";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ClinicSelector } from "@/components/department/ClinicSelector";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { DepartmentAccessLocked } from "@/components/department/DepartmentAccessLocked";
 
@@ -24,7 +23,6 @@ export default function AiSeoDepartment() {
               {selectedClinic?.clinic_name && <p className="text-xs text-muted-foreground -mt-0.5">{selectedClinic.clinic_name}</p>}
             </div>
           </div>
-          <ClinicSelector clinics={clinics} selectedClinicId={selectedClinicId} onSelect={setSelectedClinicId} loading={clinicsLoading} />
         </div>
 
         {isLoading || clinicsLoading ? (

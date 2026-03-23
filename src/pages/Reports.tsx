@@ -1,5 +1,4 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { ClinicSelector } from "@/components/department/ClinicSelector";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { UnifiedReportTab } from "@/components/department/UnifiedReportTab";
 import { FileText } from "lucide-react";
@@ -25,12 +24,6 @@ export default function Reports() {
                 </p>
               </div>
             </div>
-            <ClinicSelector
-              clinics={clinics}
-              selectedClinicId={selectedClinicId}
-              onSelect={setSelectedClinicId}
-              loading={clinicsLoading}
-            />
           </div>
         </div>
 

@@ -7,7 +7,6 @@ import { TicketsTab } from "@/components/department/TicketsTab";
 import { GoogleAdsAnalyticsTab } from "@/components/department/GoogleAdsAnalyticsTab";
 import { GoogleAdsReportsTab } from "@/components/department/GoogleAdsReportsTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
-import { ClinicSelector } from "@/components/department/ClinicSelector";
 import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { useGoogleAdsKPIs } from "@/hooks/useGoogleAdsKPIs";
@@ -94,7 +93,6 @@ export default function GoogleAdsDepartment() {
               {selectedClinicName && <p className="text-xs text-muted-foreground -mt-0.5">{selectedClinicName}</p>}
             </div>
           </div>
-          <ClinicSelector clinics={clinics} selectedClinicId={selectedClinicId} onSelect={setSelectedClinicId} loading={clinicsLoading} />
         </div>
 
         {isLocked ? (

@@ -16,6 +16,8 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { PageTransition } from "@/components/PageTransition";
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { ChatAssistant } from "@/components/chat/ChatAssistant";
+import { ClinicSelector } from "@/components/department/ClinicSelector";
+import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -107,6 +109,7 @@ const pageTitles: Record<string, string> = {
 };
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { clinics: navClinics, selectedClinicId: navSelectedClinicId, setSelectedClinicId: navSetSelectedClinicId, loading: navClinicsLoading } = useClinicSelector();
   const { role } = useUserRole();
   const { user, signOut } = useAuth();
   const location = useLocation();
@@ -413,6 +416,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <ChevronRight className="h-3 w-3 text-muted-foreground/30" />
               <span className="font-semibold text-foreground text-xs">{currentPageTitle}</span>
             </div>
+          )}
+
+          {role !== "client" && (
+            <ClinicSelector
+              clinics={navClinics}
+              selectedClinicId={navSelectedClinicId}
+              onSelect={navSetSelectedClinicId}
+              loading={navClinicsLoading}
+            />
           )}
 
           <div className="flex-1" />

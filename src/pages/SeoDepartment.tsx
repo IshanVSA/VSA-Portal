@@ -8,7 +8,6 @@ import { TicketsTab } from "@/components/department/TicketsTab";
 import { SeoAnalyticsTab } from "@/components/department/SeoAnalyticsTab";
 import { SeoReportsTab } from "@/components/department/SeoReportsTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
-import { ClinicSelector } from "@/components/department/ClinicSelector";
 import { UpdateSeoAnalyticsDialog } from "@/components/department/UpdateSeoAnalyticsDialog";
 import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
@@ -154,7 +153,6 @@ export default function SeoDepartment() {
                 <Upload className="h-3 w-3" /> Upload SEO Report
               </Button>
             )}
-            <ClinicSelector clinics={clinics} selectedClinicId={selectedClinicId} onSelect={setSelectedClinicId} loading={clinicsLoading} />
           </div>
         </div>
 
