@@ -246,7 +246,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   const clinicSelectorPages = ["/website", "/seo", "/ai-seo", "/google-ads", "/social", "/reports"];
   const showClinicSelector = clinicSelectorPages.some(p => location.pathname === p || location.pathname.startsWith(p + "/"));
-  const selectedClinicName = navClinics.find(c => c.id === navSelectedClinicId)?.clinic_name || "";
+  const selectedClinicName = role === "client"
+    ? clientClinic?.clinic_name || ""
+    : navClinics.find(c => c.id === navSelectedClinicId)?.clinic_name || "";
+  const clinicSelectorClinics = role === "client" ? (clientClinic ? [clientClinic] : []) : navClinics;
+  const clinicSelectorSelectedId = role === "client" ? clientClinic?.id || "" : navSelectedClinicId;
 
   const isDepartmentLocked = (path: string) => {
     if (role === "admin" || !clinicAccess) return false;
