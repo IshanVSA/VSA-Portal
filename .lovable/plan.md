@@ -1,65 +1,39 @@
 
-Plan
 
-1. Extend clinic access settings in the database
-- Add clinic-level boolean flags on `clinics` for:
-  - `website_enabled`
-  - `seo_enabled`
-  - `google_ads_enabled`
-  - `social_media_enabled`
-- Keep using the existing `ai_seo_enabled` field for AI SEO.
-- Default the new fields to `true` so existing clinics keep access unless an admin turns a service off.
+## Move Clinic Selector to the Navbar
 
-2. Add access controls to the Add Clinic dialog
-- In `src/pages/Clinics.tsx`, add a new “Service Access” section to the add-clinic modal.
-- Show 5 toggle/button options:
-  - Website
-  - SEO
-  - Google Ads
-  - AI SEO
-  - Social Media
-- Preselect them by default so admins can disable any service while creating the clinic.
-- Save those access choices together with the clinic record.
+Currently every department page (Website, SEO, AI SEO, Google Ads, Social Media, Reports) has its own `<ClinicSelector>` in the page header. The goal is to have one global clinic selector in the top navbar that all pages share.
 
-3. Reuse the same access settings in clinic management
-- Update the clinic detail settings area so admins can later edit the same service-access toggles, not just AI SEO.
-- Keep “Connections” for integrations, but move service availability into one consistent clinic-level access section.
+### Approach
 
-4. Add a shared clinic-access hook/helper
-- Create a shared access utility/hook that reads the selected clinic’s enabled flags.
-- Behavior:
-  - Admins bypass locks and can still open disabled departments.
-  - Non-admin users see the clinic as selectable, but the department content is gated if that clinic’s service is disabled.
-- This keeps the logic centralized instead of duplicating checks in each page.
+**1. Lift `useClinicSelector` state to `DashboardLayout`**
+- The `useClinicSelector` hook already uses URL search params (`?clinic=...`), so it's inherently global. We just need to call it once in `DashboardLayout` and render the `<ClinicSelector>` in the top header bar.
+- Place it in the navbar between the breadcrumb and the action buttons, visible on department/report pages (or always visible for simplicity).
 
-5. Add locked states to each department page
-- Apply the gating to:
-  - `src/pages/WebsiteDepartment.tsx`
-  - `src/pages/SeoDepartment.tsx`
-  - `src/pages/GoogleAdsDepartment.tsx`
-  - `src/pages/AiSeoDepartment.tsx`
-  - `src/pages/SocialMedia.tsx`
-- When disabled for the selected clinic:
-  - keep the page shell and clinic selector visible
-  - replace the main content with a locked card/message
-  - use messaging like: “You do not have access to this service. Contact your admin to enable access.”
-- For AI SEO, merge this cleanly with the existing access logic so it still respects clinic-level enablement and the admin bypass rule.
+**2. Add `<ClinicSelector>` to the navbar header**
+- In `DashboardLayout.tsx`, import and render the `ClinicSelector` component in the `<header>` element (line ~405).
+- Show it for admin/concierge roles always; for client role, hide it (clients have a single clinic auto-selected).
+- The existing `activeClinicId` logic in DashboardLayout already reads `searchParams.get("clinic")`, so the sidebar lock indicators will continue working seamlessly.
 
-6. Keep department behavior consistent
-- Do not hide the clinic from selectors.
-- Do not remove routes/tabs globally.
-- Only gate the selected clinic’s department content, so users understand the service exists but is unavailable for that clinic.
-- Preserve current role-specific behavior where it already exists, then layer clinic access on top.
+**3. Remove `<ClinicSelector>` from each department page**
+- Remove the `ClinicSelector` import and rendering from:
+  - `WebsiteDepartment.tsx`
+  - `SeoDepartment.tsx`
+  - `GoogleAdsDepartment.tsx`
+  - `AiSeoDepartment.tsx`
+  - `SocialMedia.tsx`
+  - `Reports.tsx`
+- Each page still calls `useClinicSelector()` to get `selectedClinicId` and `selectedClinic` for data fetching — that stays. Only the UI selector moves out.
 
-7. QA and edge cases
-- Ensure new clinics default correctly.
-- Ensure existing clinics remain accessible after migration.
-- Verify admin bypass works.
-- Verify clients/team members see the locked state for disabled clinics.
-- Verify tickets/analytics/reports inside a disabled department are not reachable through the tab content.
+**4. Keep the clinic name subtitle in department headers**
+- The department page headers currently show the selected clinic name as a subtitle (e.g., "Website / Alma Animal Hospital"). This stays — it reads from `selectedClinic?.clinic_name` which still comes from `useClinicSelector()`.
 
-Technical notes
-- This requires a database migration because only `ai_seo_enabled` exists today.
-- Best structure is to store service availability on `clinics`, since access is clinic-level and already partially modeled there.
-- `useClinicSelector` likely needs to select the new fields or a companion access hook will need to fetch them for the selected clinic.
-- Current AI SEO already shows a locked state, so that page can become the pattern for the other departments.
+### Files Changed
+- `src/components/DashboardLayout.tsx` — add ClinicSelector to header, import hook + component
+- `src/pages/WebsiteDepartment.tsx` — remove ClinicSelector from page header
+- `src/pages/SeoDepartment.tsx` — remove ClinicSelector from page header
+- `src/pages/GoogleAdsDepartment.tsx` — remove ClinicSelector from page header
+- `src/pages/AiSeoDepartment.tsx` — remove ClinicSelector from page header
+- `src/pages/SocialMedia.tsx` — remove ClinicSelector from page header
+- `src/pages/Reports.tsx` — remove ClinicSelector from page header
+
