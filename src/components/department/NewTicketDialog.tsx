@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Loader2, CheckCircle2, Clock } from "lucide-react";
 import { FileUploader, type AttachedFile } from "./ticket-forms/FileUploader";
+import { getServiceOptions, getTicketTypeLabel, normalizeTicketType } from "@/lib/ticket-display-labels";
 import { getVisibleDepartmentLabels } from "@/lib/ticket-department-map";
 import { TimeChangesForm } from "./ticket-forms/TimeChangesForm";
 import { PopupOffersForm } from "./ticket-forms/PopupOffersForm";
@@ -45,28 +46,6 @@ const CUSTOM_FORM_TYPES = [
   "Call Volume Issues", "Wrong Call Tracking", "Campaign Adjustments",
 ];
 
-const DISPLAY_TO_TICKET_TYPE: Record<string, string> = {
-  "Time Change": "Time Changes",
-  "Pop-up Offer": "Pop-up Offers",
-  "Third Party Integration": "Third Party Integrations",
-  "Payment Option": "Payment Options",
-  "Add/Remove Team Member": "Add/Remove Team Members",
-  "New Form": "New Forms",
-  "Price List Update": "Price List Updates",
-};
-
-const TICKET_TYPE_TO_DISPLAY: Record<string, string> = Object.fromEntries(
-  Object.entries(DISPLAY_TO_TICKET_TYPE).map(([display, value]) => [value, display])
-);
-
-function normalizeTicketType(type: string) {
-  return DISPLAY_TO_TICKET_TYPE[type] ?? type;
-}
-
-function getTicketTypeLabel(type: string) {
-  return TICKET_TYPE_TO_DISPLAY[type] ?? type;
-}
-
 const AUTO_TITLES: Record<string, string> = {
   "Time Changes": "Time Changes Request",
   "Pop-up Offers": "Pop-up Offer Request",
@@ -99,13 +78,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
   const [popupConsented, setPopupConsented] = useState(false);
   const [promoteSocial, setPromoteSocial] = useState(false);
 
-  const serviceOptions = services.map((service) => {
-    const value = normalizeTicketType(service);
-    return {
-      value,
-      label: department === "website" ? getTicketTypeLabel(value) : service,
-    };
-  });
+  const serviceOptions = getServiceOptions(services);
 
   const isCustomForm = CUSTOM_FORM_TYPES.includes(ticketType);
   const isAddTeamMember = ticketType === "Add/Remove Team Members" && customDescription.includes("Action: Add");
