@@ -218,6 +218,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const sections = injectBadges(role === "admin" ? adminSections : role === "concierge" ? conciergeSections : clientSections);
   const currentPageTitle = pageTitles[location.pathname] || "";
 
+  const clinicSelectorPages = ["/website", "/seo", "/ai-seo", "/google-ads", "/social", "/reports"];
+  const showClinicSelector = clinicSelectorPages.some(p => location.pathname === p || location.pathname.startsWith(p + "/"));
+  const selectedClinicName = navClinics.find(c => c.id === navSelectedClinicId)?.clinic_name || "";
+
   const isDepartmentLocked = (path: string) => {
     if (role === "admin" || !clinicAccess) return false;
 
@@ -415,10 +419,16 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <span className="text-muted-foreground text-xs font-medium">VSA</span>
               <ChevronRight className="h-3 w-3 text-muted-foreground/30" />
               <span className="font-semibold text-foreground text-xs">{currentPageTitle}</span>
+              {showClinicSelector && selectedClinicName && (
+                <>
+                  <ChevronRight className="h-3 w-3 text-muted-foreground/30" />
+                  <span className="text-xs font-medium text-primary truncate max-w-[200px]">{selectedClinicName}</span>
+                </>
+              )}
             </div>
           )}
 
-          {role !== "client" && (
+          {showClinicSelector && role !== "client" && (
             <ClinicSelector
               clinics={navClinics}
               selectedClinicId={navSelectedClinicId}
