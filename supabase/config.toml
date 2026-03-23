@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.pagespeed-cron]
 verify_jwt = false
+
+[functions.extract-clinic-website]
+verify_jwt = false
