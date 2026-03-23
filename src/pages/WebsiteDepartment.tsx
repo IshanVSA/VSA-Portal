@@ -1,19 +1,7 @@
 import { useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import {
-  Globe,
-  LayoutDashboard,
-  Ticket,
-  BarChart3,
-  FileText,
-  Upload,
-  Eye,
-  TrendingUp,
-  Clock,
-  Layers,
-  HeartPulse,
-} from "lucide-react";
+import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Eye, TrendingUp, Clock, Layers, HeartPulse } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { WebsiteAnalyticsTab } from "@/components/department/WebsiteAnalyticsTab";
@@ -37,15 +25,8 @@ const baseTabs = [
 const healthTab = { value: "health", label: "Health", icon: HeartPulse };
 
 const services = [
-  "Time Change",
-  "Pop-up Offer",
-  "Third Party Integration",
-  "Payment Option",
-  "Add/Remove Team Member",
-  "New Form",
-  "Price List Update",
-  "Emergency",
-  "Others",
+  "Time Changes", "Pop-up Offers", "Third Party Integrations", "Payment Options",
+  "Add/Remove Team Members", "New Forms", "Price List Updates", "Emergency", "Others",
 ];
 
 function formatDuration(seconds: number): string {
@@ -55,11 +36,7 @@ function formatDuration(seconds: number): string {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
-function formatChange(
-  current: number,
-  previous: number,
-  suffix = "",
-): { text: string; type: "positive" | "negative" | "neutral" } {
+function formatChange(current: number, previous: number, suffix = ""): { text: string; type: "positive" | "negative" | "neutral" } {
   if (previous === 0 && current === 0) return { text: "No data", type: "neutral" };
   if (previous === 0) return { text: `+${current}${suffix} (new)`, type: "positive" };
   const diff = current - previous;
@@ -78,7 +55,7 @@ export default function WebsiteDepartment() {
   const canViewHealth = role === "admin" || role === "concierge";
   const tabs = canViewHealth ? [...baseTabs, healthTab] : baseTabs;
 
-  const selectedClinicName = clinics.find((c) => c.id === selectedClinicId)?.clinic_name;
+  const selectedClinicName = clinics.find(c => c.id === selectedClinicId)?.clinic_name;
 
   const visitorsChange = formatChange(kpiData.visitorsToday, kpiData.visitorsLastWeek);
   const engagementChange = formatChange(kpiData.engagedSessions, kpiData.engagedSessionsPrev);
@@ -86,51 +63,16 @@ export default function WebsiteDepartment() {
   const pagesChange = formatChange(kpiData.pagesPerSession, kpiData.pagesPerSessionPrev);
 
   const kpis = [
-    {
-      label: "Visitors Today",
-      value: kpiData.loading ? "—" : kpiData.visitorsToday.toLocaleString(),
-      change: kpiData.loading ? "" : visitorsChange.text,
-      changeType: visitorsChange.type,
-      icon: Eye,
-      gradient: "blue" as const,
-    },
-    {
-      label: "Engaged Sessions",
-      value: kpiData.loading ? "—" : kpiData.engagedSessions.toLocaleString(),
-      change: kpiData.loading ? "" : engagementChange.text,
-      changeType: engagementChange.type,
-      icon: TrendingUp,
-      gradient: "green" as const,
-    },
-    {
-      label: "Avg. Session",
-      value: kpiData.loading ? "—" : formatDuration(kpiData.avgSessionDuration),
-      change: kpiData.loading ? "" : durationChange.text,
-      changeType: durationChange.type,
-      icon: Clock,
-      gradient: "amber" as const,
-    },
-    {
-      label: "Pages/Session",
-      value: kpiData.loading ? "—" : kpiData.pagesPerSession.toString(),
-      change: kpiData.loading ? "" : pagesChange.text,
-      changeType: pagesChange.type,
-      icon: Layers,
-      gradient: "purple" as const,
-    },
+    { label: "Visitors Today", value: kpiData.loading ? "—" : kpiData.visitorsToday.toLocaleString(), change: kpiData.loading ? "" : visitorsChange.text, changeType: visitorsChange.type, icon: Eye, gradient: "blue" as const },
+    { label: "Engaged Sessions", value: kpiData.loading ? "—" : kpiData.engagedSessions.toLocaleString(), change: kpiData.loading ? "" : engagementChange.text, changeType: engagementChange.type, icon: TrendingUp, gradient: "green" as const },
+    { label: "Avg. Session", value: kpiData.loading ? "—" : formatDuration(kpiData.avgSessionDuration), change: kpiData.loading ? "" : durationChange.text, changeType: durationChange.type, icon: Clock, gradient: "amber" as const },
+    { label: "Pages/Session", value: kpiData.loading ? "—" : kpiData.pagesPerSession.toString(), change: kpiData.loading ? "" : pagesChange.text, changeType: pagesChange.type, icon: Layers, gradient: "purple" as const },
   ];
 
   const trafficData = kpiData.dailyTraffic.length > 0 ? kpiData.dailyTraffic : [{ label: "—", value: 0 }];
 
   const handleTabChange = (v: string) => {
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        next.set("tab", v);
-        return next;
-      },
-      { replace: true },
-    );
+    setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", v); return next; }, { replace: true });
   };
 
   return (
@@ -146,17 +88,12 @@ export default function WebsiteDepartment() {
               {selectedClinicName && <p className="text-xs text-muted-foreground -mt-0.5">{selectedClinicName}</p>}
             </div>
           </div>
-          <ClinicSelector
-            clinics={clinics}
-            selectedClinicId={selectedClinicId}
-            onSelect={setSelectedClinicId}
-            loading={clinicsLoading}
-          />
+          <ClinicSelector clinics={clinics} selectedClinicId={selectedClinicId} onSelect={setSelectedClinicId} loading={clinicsLoading} />
         </div>
 
         <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto">
-            {tabs.map((tab) => (
+            {tabs.map(tab => (
               <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm">
                 <tab.icon className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">{tab.label}</span>
@@ -165,34 +102,13 @@ export default function WebsiteDepartment() {
           </TabsList>
 
           <TabsContent value="overview" className="mt-4">
-            <DepartmentOverview
-              kpis={kpis}
-              services={services}
-              trafficData={trafficData}
-              trafficLabel="Weekly Traffic"
-              team={team}
-              department="website"
-              accentColor="hsl(var(--dept-website))"
-              clinicId={selectedClinicId}
-            />
+            <DepartmentOverview kpis={kpis} services={services} trafficData={trafficData} trafficLabel="Weekly Traffic" team={team} department="website" accentColor="hsl(var(--dept-website))" clinicId={selectedClinicId} />
           </TabsContent>
-          <TabsContent value="tickets" className="mt-4">
-            <TicketsTab department="website" services={services} clinicId={selectedClinicId} />
-          </TabsContent>
-          <TabsContent value="analytics" className="mt-4">
-            <WebsiteAnalyticsTab clinicId={selectedClinicId} />
-          </TabsContent>
-          <TabsContent value="reports" className="mt-4">
-            <WebsiteReportsTab clinicId={selectedClinicId} />
-          </TabsContent>
-          <TabsContent value="uploads" className="mt-4">
-            <UploadsTab department="website" clinicId={selectedClinicId} />
-          </TabsContent>
-          {canViewHealth && (
-            <TabsContent value="health" className="mt-4">
-              <WebsiteHealthTab clinicId={selectedClinicId} />
-            </TabsContent>
-          )}
+          <TabsContent value="tickets" className="mt-4"><TicketsTab department="website" services={services} clinicId={selectedClinicId} /></TabsContent>
+          <TabsContent value="analytics" className="mt-4"><WebsiteAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
+          <TabsContent value="reports" className="mt-4"><WebsiteReportsTab clinicId={selectedClinicId} /></TabsContent>
+          <TabsContent value="uploads" className="mt-4"><UploadsTab department="website" clinicId={selectedClinicId} /></TabsContent>
+          {canViewHealth && <TabsContent value="health" className="mt-4"><WebsiteHealthTab clinicId={selectedClinicId} /></TabsContent>}
         </Tabs>
       </div>
     </DashboardLayout>
