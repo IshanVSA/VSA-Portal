@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { format, subDays, subMonths, startOfMonth, endOfMonth, differenceInMilliseconds } from "date-fns";
+import { format, differenceInMilliseconds } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,16 @@ import {
   PDF_COLORS, renderPDFHeader, renderSectionHeader, renderKPICards,
   getTableStyles, colorChangeCell, finalizePDF, ensureSpace,
 } from "@/lib/pdf-theme";
+import {
+  buildDateKeys,
+  computeWebsiteMetrics,
+  DEFAULT_CLINIC_TIMEZONE,
+  getBufferedRange,
+  getMonthDateRangeForTimeZone,
+  getSafeTimeZone,
+  getTrailingDateRangeForTimeZone,
+  type WebsiteMetrics,
+} from "@/lib/website-analytics";
 
 interface Props {
   clinicId: string;
@@ -29,15 +39,14 @@ const periodLabels: Record<ReportPeriod, string> = {
   last_month: "Last Month",
 };
 
-function getDateRange(period: ReportPeriod): { from: Date; to: Date } {
-  const now = new Date();
+function getDateRange(period: ReportPeriod, timeZone: string): { from: Date; to: Date } {
   switch (period) {
-    case "last30": return { from: subDays(now, 30), to: now };
-    case "this_month": return { from: startOfMonth(now), to: now };
-    case "last_month": {
-      const prev = subMonths(now, 1);
-      return { from: startOfMonth(prev), to: endOfMonth(prev) };
-    }
+    case "last30":
+      return getTrailingDateRangeForTimeZone(timeZone, 30);
+    case "this_month":
+      return getMonthDateRangeForTimeZone(timeZone);
+    case "last_month":
+      return getMonthDateRangeForTimeZone(timeZone, -1);
   }
 }
 
@@ -74,24 +83,19 @@ interface WebMetrics {
   pagesPerSession: number;
 }
 
-function calcWebMetrics(views: { session_id: string; path: string; created_at: string }[]): WebMetrics {
-  const sessions: Record<string, typeof views> = {};
-  views.forEach(p => {
-    if (!sessions[p.session_id]) sessions[p.session_id] = [];
-    sessions[p.session_id].push(p);
-  });
-  const sessionList = Object.values(sessions);
-  const totalSessions = sessionList.length;
-  const totalViews = views.length;
-  const bounces = sessionList.filter(s => s.length === 1).length;
-  const bounceRate = totalSessions > 0 ? Math.round((bounces / totalSessions) * 1000) / 10 : 0;
-  const pagesPerSession = totalSessions > 0 ? Math.round((totalViews / totalSessions) * 10) / 10 : 0;
-  const durations = sessionList.filter(s => s.length > 1).map(s => {
-    const times = s.map(p => new Date(p.created_at).getTime());
-    return (Math.max(...times) - Math.min(...times)) / 1000;
-  });
-  const avgDuration = durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : 0;
-  return { totalViews, totalSessions, bounceRate, avgDuration, pagesPerSession };
+function calcWebMetrics(metrics: WebsiteMetrics): WebMetrics {
+  const singlePageSessions = metrics.sessionDepthMix.find((bucket) => bucket.label === "1 page")?.sessions ?? 0;
+  const bounceRate = metrics.totalSessions > 0
+    ? Math.round((singlePageSessions / metrics.totalSessions) * 1000) / 10
+    : 0;
+
+  return {
+    totalViews: metrics.totalViews,
+    totalSessions: metrics.totalSessions,
+    bounceRate,
+    avgDuration: metrics.avgDuration,
+    pagesPerSession: metrics.pagesPerSession,
+  };
 }
 
 export function UnifiedReportTab({ clinicId }: Props) {
@@ -99,6 +103,8 @@ export function UnifiedReportTab({ clinicId }: Props) {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [clinicName, setClinicName] = useState("");
+  const [timeZone, setTimeZone] = useState(DEFAULT_CLINIC_TIMEZONE);
+  const [timezoneReady, setTimezoneReady] = useState(false);
 
   const [webMetrics, setWebMetrics] = useState<WebMetrics | null>(null);
   const [prevWebMetrics, setPrevWebMetrics] = useState<WebMetrics | null>(null);
@@ -110,31 +116,66 @@ export function UnifiedReportTab({ clinicId }: Props) {
   const [adsData, setAdsData] = useState<any>(null);
   const [socialData, setSocialData] = useState<any[]>([]);
 
-  const range = useMemo(() => getDateRange(period), [period]);
+  const range = useMemo(() => getDateRange(period, timeZone), [period, timeZone]);
   const prevRange = useMemo(() => getPrevRange(range), [range]);
 
   useEffect(() => {
-    if (!clinicId) { setLoading(false); return; }
+    if (!clinicId) {
+      setLoading(false);
+      setTimezoneReady(false);
+      return;
+    }
+
+    const fetchClinicMeta = async () => {
+      setLoading(true);
+      setTimezoneReady(false);
+
+      const { data: clinicData } = await supabase
+        .from("clinics")
+        .select("clinic_name, timezone")
+        .eq("id", clinicId)
+        .single();
+
+      setClinicName(clinicData?.clinic_name || "Unknown Clinic");
+      setTimeZone(getSafeTimeZone(clinicData?.timezone));
+      setTimezoneReady(true);
+    };
+
+    fetchClinicMeta();
+  }, [clinicId]);
+
+  useEffect(() => {
+    if (!clinicId || !timezoneReady) return;
+
     const fetchAll = async () => {
       setLoading(true);
-      const [{ data: pvData }, { data: prevPvData }, { data: clinicData }, { data: adsRow }, { data: socialRows }] = await Promise.all([
-        supabase.from("website_pageviews").select("session_id, path, created_at").eq("clinic_id", clinicId).gte("created_at", range.from.toISOString()).lte("created_at", range.to.toISOString()),
-        supabase.from("website_pageviews").select("session_id, path, created_at").eq("clinic_id", clinicId).gte("created_at", prevRange.from.toISOString()).lte("created_at", prevRange.to.toISOString()),
-        supabase.from("clinics").select("clinic_name").eq("id", clinicId).single(),
+      const bufferedRange = getBufferedRange(range.from, range.to);
+      const prevBufferedRange = getBufferedRange(prevRange.from, prevRange.to);
+      const [{ data: pvData }, { data: prevPvData }, { data: adsRow }, { data: socialRows }] = await Promise.all([
+        supabase.from("website_pageviews").select("session_id, path, created_at").eq("clinic_id", clinicId).gte("created_at", bufferedRange.from.toISOString()).lte("created_at", bufferedRange.to.toISOString()),
+        supabase.from("website_pageviews").select("session_id, path, created_at").eq("clinic_id", clinicId).gte("created_at", prevBufferedRange.from.toISOString()).lte("created_at", prevBufferedRange.to.toISOString()),
         supabase.from("analytics").select("metrics_json").eq("clinic_id", clinicId).eq("platform", "google_ads").eq("metric_type", "monthly_summary").order("recorded_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("analytics").select("platform, metric_type, value, date").eq("clinic_id", clinicId).in("platform", ["facebook", "instagram"]).order("recorded_at", { ascending: false }).limit(20),
       ]);
-      const pv = (pvData || []) as { session_id: string; path: string; created_at: string }[];
-      const prevPv = (prevPvData || []) as { session_id: string; path: string; created_at: string }[];
-      setWebMetrics(pv.length > 0 ? calcWebMetrics(pv) : null);
-      setPrevWebMetrics(prevPv.length > 0 ? calcWebMetrics(prevPv) : null);
-      setClinicName(clinicData?.clinic_name || "Unknown Clinic");
+      const currentMetrics = computeWebsiteMetrics(
+        ((pvData || []) as { session_id: string; path: string; created_at: string }[]),
+        buildDateKeys(range.from, range.to),
+        timeZone,
+      );
+      const previousMetrics = computeWebsiteMetrics(
+        ((prevPvData || []) as { session_id: string; path: string; created_at: string }[]),
+        buildDateKeys(prevRange.from, prevRange.to),
+        timeZone,
+      );
+
+      setWebMetrics(currentMetrics.totalViews > 0 ? calcWebMetrics(currentMetrics) : null);
+      setPrevWebMetrics(previousMetrics.totalViews > 0 ? calcWebMetrics(previousMetrics) : null);
       setAdsData(adsRow?.metrics_json || null);
       setSocialData(socialRows || []);
       setLoading(false);
     };
     fetchAll();
-  }, [clinicId, range, prevRange]);
+  }, [clinicId, prevRange, range, timeZone, timezoneReady]);
 
   const hasAnyData = webMetrics || latestSeo || adsData || socialData.length > 0;
 
