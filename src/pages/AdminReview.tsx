@@ -297,7 +297,7 @@ export default function AdminReview() {
           )}
         </div>
       </div>
-    </DashboardLayout>
+    </>
   );
 }
 

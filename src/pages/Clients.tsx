@@ -166,6 +166,6 @@ export default function ClientsPage() {
           </Card>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

@@ -304,7 +304,7 @@ export default function ClinicDetail() {
   const latestFb = fbData.length > 0 ? fbData[fbData.length - 1] : null;
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         <div className="flex items-center gap-4">
           <Link to="/clinics"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button></Link>

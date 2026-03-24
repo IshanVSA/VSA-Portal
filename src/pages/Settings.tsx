@@ -342,7 +342,7 @@ export default function Settings() {
           )}
         </Tabs>
       </div>
-    </DashboardLayout>
+    </>
   );
 }
 

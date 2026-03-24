@@ -156,7 +156,7 @@ export default function Employees() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         {/* Hero */}
         <div className="hero-section">
