@@ -23,17 +23,19 @@ const getServiceEnabled = (clinic: ClinicOption | undefined, service: ClinicServ
   }
 };
 
-export function useClinicServiceAccess(clinic: ClinicOption | undefined, service: ClinicServiceKey) {
+export function useClinicServiceAccess(clinic: ClinicOption | undefined, service: ClinicServiceKey, clinicsLoading?: boolean) {
   const { role } = useUserRole();
 
   return useMemo(() => {
     const enabled = getServiceEnabled(clinic, service);
     const canBypass = role === "admin";
+    const loading = clinicsLoading === true && !clinic;
 
     return {
       enabled,
       canAccess: canBypass || enabled,
       isLocked: !canBypass && !!clinic && !enabled,
+      loading,
     };
-  }, [clinic, role, service]);
+  }, [clinic, role, service, clinicsLoading]);
 }
