@@ -16,6 +16,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useClinicServiceAccess } from "@/hooks/useClinicServiceAccess";
 import { DepartmentAccessLocked } from "@/components/department/DepartmentAccessLocked";
+import { useUserRole } from "@/hooks/useUserRole";
+import { DepartmentChat } from "@/components/department/DepartmentChat";
 
 const tabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
