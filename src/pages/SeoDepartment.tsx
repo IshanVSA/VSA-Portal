@@ -2,7 +2,7 @@ import { useState } from "react";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
-import { DashboardLayout } from "@/components/DashboardLayout";
+
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SearchCode, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Globe, Link2, Hash, TrendingUp } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
