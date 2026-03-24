@@ -100,8 +100,8 @@ export default function SocialMedia() {
                 <TabsContent value="intake" className="mt-4"><Suspense fallback={<TabFallback />}><IntakeFormsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="analytics" className="mt-4"><Suspense fallback={<TabFallback />}><AnalyticsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="social_media" clinicId={selectedClinicId} /></TabsContent>
+                {isStaff && <TabsContent value="chat" className="mt-4"><DepartmentChat department="social_media" clinicId={selectedClinicId} /></TabsContent>}
               </Tabs>
-              {(role === "admin" || role === "concierge") && <DepartmentChat department="social_media" clinicId={selectedClinicId} />}
             </motion.div>
           )}
         </AnimatePresence>
