@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageSquare, Send, Paperclip, X, FileText, Image as ImageIcon, Download, Search } from "lucide-react";
+import { EmojiPicker } from "./EmojiPicker";
+import { MessageReactions } from "./MessageReactions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { toast } from "sonner";
@@ -35,6 +37,7 @@ interface ChatMessage {
   user_id: string;
   sender_name?: string;
   attachments?: FileAttachment[];
+  reactions?: Record<string, string[]>;
 }
 
 function getDateLabel(date: Date): string {
@@ -93,7 +96,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
       if (!clinicId) return [];
       const { data, error } = await supabase
         .from("department_chats")
-        .select("id, message, created_at, user_id, attachments")
+        .select("id, message, created_at, user_id, attachments, reactions")
         .eq("department", department)
         .eq("clinic_id", clinicId)
         .order("created_at", { ascending: true })
@@ -116,6 +119,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
         ...m,
         sender_name: profileMap[m.user_id] || "Unknown",
         attachments: (m.attachments as unknown as FileAttachment[] | null) || [],
+        reactions: (m.reactions as unknown as Record<string, string[]> | null) || {},
       })) as ChatMessage[];
     },
     enabled: !!clinicId,
@@ -287,6 +291,25 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     else toast.error("Failed to get download link");
   };
 
+  const handleToggleReaction = async (messageId: string, emoji: string) => {
+    if (!user) return;
+    const msg = messages.find((m) => m.id === messageId);
+    if (!msg) return;
+    const reactions = { ...(msg.reactions || {}) };
+    const users = reactions[emoji] ? [...reactions[emoji]] : [];
+    const idx = users.indexOf(user.id);
+    if (idx >= 0) users.splice(idx, 1);
+    else users.push(user.id);
+    if (users.length === 0) delete reactions[emoji];
+    else reactions[emoji] = users;
+    await supabase.from("department_chats").update({ reactions: reactions as any }).eq("id", messageId);
+    queryClient.invalidateQueries({ queryKey });
+  };
+
+  const handleEmojiInsert = (emoji: string) => {
+    setNewMessage((prev) => prev + emoji);
+  };
+
   if (!clinicId) return null;
 
   const getInitials = (name: string) => name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
@@ -406,7 +429,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
                         <div className="flex-1 h-px bg-border/50" />
                       </div>
                     )}
-                    <div className={`flex gap-2 ${isOwn ? "flex-row-reverse" : ""}`}>
+                    <div className={`flex gap-2 group/msg ${isOwn ? "flex-row-reverse" : ""}`}>
                       <Avatar className="h-7 w-7 shrink-0">
                         <AvatarFallback className="text-[10px] bg-muted">
                           {getInitials(msg.sender_name || "?")}
@@ -441,6 +464,12 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
                             ))}
                           </div>
                         )}
+                        <MessageReactions
+                          reactions={msg.reactions || {}}
+                          currentUserId={user?.id || ""}
+                          onToggleReaction={(emoji) => handleToggleReaction(msg.id, emoji)}
+                          isOwn={isOwn}
+                        />
                       </div>
                     </div>
                   </div>
@@ -489,6 +518,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
           <Button type="button" variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} disabled={sending} className="h-9 w-9 p-0 shrink-0">
             <Paperclip className="h-4 w-4 text-muted-foreground" />
           </Button>
+          <EmojiPicker onSelect={handleEmojiInsert} side="top" align="start" />
           <Input placeholder="Type a message..." value={newMessage} onChange={handleInputChange} onKeyDown={handleKeyDown} disabled={sending} className="text-sm h-9" />
           <Button size="sm" onClick={handleSend} disabled={(!newMessage.trim() && pendingFiles.length === 0) || sending} className="h-9 px-3">
             <Send className="h-3.5 w-3.5" />
