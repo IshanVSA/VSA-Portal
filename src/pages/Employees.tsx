@@ -407,10 +407,13 @@ export default function Employees() {
                               }));
                             }}
                           />
-                          <span className="text-sm">
+                          <span className="text-sm flex items-center gap-1.5">
                             {c.clinic_name}
                             {existingMembers && existingMembers.length > 0 && (
-                              <span className="text-muted-foreground text-xs ml-1">({existingMembers.join(", ")})</span>
+                              <>
+                                <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                                <span className="text-amber-600 dark:text-amber-400 text-xs">({existingMembers.join(", ")})</span>
+                              </>
                             )}
                           </span>
                         </label>
