@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -114,7 +115,7 @@ export default function SeoDepartment() {
   const { latest, trafficData, topKeywords, isLoading, upsertSeoAnalytics, isUpserting } = useSeoAnalytics(selectedClinicId);
   const canEditSeo = useCanEditSeo();
   const { role } = useUserRole();
-  const { isLocked } = useClinicServiceAccess(selectedClinic, "seo");
+  const { isLocked, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "seo", clinicsLoading);
   const isClient = role === "client";
   const [seoDialogOpen, setSeoDialogOpen] = useState(false);
 
@@ -156,7 +157,9 @@ export default function SeoDepartment() {
           </div>
         </div>
 
-        {isLocked ? (
+        {accessLoading ? (
+          <DashboardSkeleton />
+        ) : isLocked ? (
           <DepartmentAccessLocked clinicName={selectedClinicName} departmentName="SEO" />
         ) : (
           <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">

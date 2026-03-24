@@ -6,6 +6,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Share2, LayoutDashboard, FileCheck, CalendarDays, ClipboardList, BarChart3, Ticket, Upload } from "lucide-react";
 import { SocialOverview } from "@/components/social/SocialOverview";
 import { lazy, Suspense } from "react";
+import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
@@ -40,7 +41,7 @@ export default function SocialMedia() {
   const { role } = useUserRole();
   const { clinics, selectedClinic, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
   const currentTab = searchParams.get("tab") || "overview";
-  const { isLocked } = useClinicServiceAccess(selectedClinic, "social_media");
+  const { isLocked, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "social_media", clinicsLoading);
 
   const visibleTabs = role === "client" ? allTabs.filter(t => ["overview", "requests", "tickets"].includes(t.value)) : allTabs;
 
@@ -66,7 +67,9 @@ export default function SocialMedia() {
           </div>
         </div>
 
-        {isLocked ? (
+        {accessLoading ? (
+          <DashboardSkeleton />
+        ) : isLocked ? (
           <DepartmentAccessLocked clinicName={selectedClinicName} departmentName="Social Media" />
         ) : (
           <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">

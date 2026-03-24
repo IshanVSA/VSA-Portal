@@ -1,4 +1,5 @@
 import { useSearchParams } from "react-router-dom";
+import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Megaphone, LayoutDashboard, Ticket, BarChart3, FileText, Upload, DollarSign, MousePointerClick, Percent, Eye } from "lucide-react";
@@ -32,7 +33,7 @@ export default function GoogleAdsDepartment() {
   const { clinics, selectedClinic, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
   const { team } = useDepartmentTeam("google_ads", selectedClinicId);
   const adsData = useGoogleAdsKPIs(selectedClinicId);
-  const { isLocked } = useClinicServiceAccess(selectedClinic, "google_ads");
+  const { isLocked, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "google_ads", clinicsLoading);
 
   const selectedClinicName = selectedClinic?.clinic_name;
 
@@ -95,7 +96,9 @@ export default function GoogleAdsDepartment() {
           </div>
         </div>
 
-        {isLocked ? (
+        {accessLoading ? (
+          <DashboardSkeleton />
+        ) : isLocked ? (
           <DepartmentAccessLocked clinicName={selectedClinicName} departmentName="Google Ads" />
         ) : (
           <Tabs value={currentTab} onValueChange={(v) => setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", v); return next; }, { replace: true })} className="w-full">

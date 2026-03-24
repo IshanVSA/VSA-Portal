@@ -1,4 +1,5 @@
 import { useSearchParams } from "react-router-dom";
+import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Eye, TrendingUp, Clock, Layers, HeartPulse } from "lucide-react";
@@ -54,7 +55,7 @@ export default function WebsiteDepartment() {
   const kpiData = useWebsiteKPIs(selectedClinicId);
   const { role } = useUserRole();
   const canViewHealth = role === "admin" || role === "concierge";
-  const { isLocked } = useClinicServiceAccess(selectedClinic, "website");
+  const { isLocked, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "website", clinicsLoading);
   const tabs = canViewHealth ? [...baseTabs, healthTab] : baseTabs;
 
   const selectedClinicName = selectedClinic?.clinic_name;
@@ -92,7 +93,9 @@ export default function WebsiteDepartment() {
           </div>
         </div>
 
-        {isLocked ? (
+        {accessLoading ? (
+          <DashboardSkeleton />
+        ) : isLocked ? (
           <DepartmentAccessLocked clinicName={selectedClinicName} departmentName="Website" />
         ) : (
           <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">

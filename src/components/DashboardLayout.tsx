@@ -127,6 +127,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   }[]>([]);
   const [clientSelectedId, setClientSelectedId] = useState<string | null>(null);
   const [clinicAccess, setClinicAccess] = useState<ClinicAccessState | null>(null);
+  const [clinicAccessLoading, setClinicAccessLoading] = useState(true);
   const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
   const { pendingRequests, pendingReview } = usePendingCounts();
 
@@ -175,9 +176,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [clinicAccessId, setClinicAccessId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!activeClinicId) return;
+    if (!activeClinicId) { setClinicAccessLoading(false); return; }
     if (activeClinicId === clinicAccessId && clinicAccess) return;
 
+    setClinicAccessLoading(true);
     (supabase
       .from("clinics" as any)
       .select("website_enabled, seo_enabled, google_ads_enabled, ai_seo_enabled, social_media_enabled")
@@ -186,6 +188,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       .then(({ data }: { data: ClinicAccessState | null }) => {
         setClinicAccess(data);
         setClinicAccessId(activeClinicId);
+        setClinicAccessLoading(false);
       });
   }, [activeClinicId]);
 
@@ -253,7 +256,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const clinicSelectorSelectedId = role === "client" ? clientSelectedId || "" : navSelectedClinicId;
 
   const isDepartmentLocked = (path: string) => {
-    if (role === "admin" || !clinicAccess) return false;
+    if (role === "admin") return false;
+    if (clinicAccessLoading || !clinicAccess) return false;
 
     const accessKey = departmentPathToAccessKey[path];
     if (!accessKey) return false;
