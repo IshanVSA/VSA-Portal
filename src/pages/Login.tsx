@@ -45,15 +45,15 @@ export default function Login() {
 
       {/* Right panel */}
       <div className="flex-1 flex items-center justify-center p-6 bg-white">
-        <div className="w-full max-w-sm space-y-6">
+        <div className="w-full max-w-sm space-y-6 text-gray-900">
           <div className="lg:hidden flex items-center gap-3 mb-4">
             <img src={vsaLogo} alt="VSA Vet Media" className="h-8 w-8 rounded-lg object-cover" />
-            <span className="font-semibold text-foreground text-sm">VSA Vet Media</span>
+            <span className="font-semibold text-gray-900 text-sm">VSA Vet Media</span>
           </div>
 
           <div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">Welcome back</h1>
-            <p className="text-muted-foreground mt-1 text-sm">Sign in to your dashboard</p>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Welcome back</h1>
+            <p className="text-gray-500 mt-1 text-sm">Sign in to your dashboard</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
