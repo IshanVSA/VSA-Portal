@@ -148,7 +148,21 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
       .then(({ data }) => { if (data) setProfile(data); });
   }, [user]);
 
+  // Fetch department assignments for concierge users
   useEffect(() => {
+    if (!user || role !== "concierge") return;
+    supabase
+      .from("department_members")
+      .select("department")
+      .eq("user_id", user.id)
+      .then(({ data }) => {
+        if (data) {
+          setUserDepartments(data.map(d => d.department));
+        }
+      });
+  }, [user, role]);
+
+
     if (role === "client" && user) {
       supabase
         .from("clinics")
