@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import type { SeoKeyword } from "@/hooks/useSeoAnalytics";
 import { useClinicServiceAccess } from "@/hooks/useClinicServiceAccess";
 import { DepartmentAccessLocked } from "@/components/department/DepartmentAccessLocked";
+import { DepartmentChat } from "@/components/department/DepartmentChat";
 
 const tabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
