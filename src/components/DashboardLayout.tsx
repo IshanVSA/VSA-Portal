@@ -127,6 +127,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   }[]>([]);
   const [clientSelectedId, setClientSelectedId] = useState<string | null>(null);
   const [clinicAccess, setClinicAccess] = useState<ClinicAccessState | null>(null);
+  const [clinicAccessLoading, setClinicAccessLoading] = useState(true);
   const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
   const { pendingRequests, pendingReview } = usePendingCounts();
 
