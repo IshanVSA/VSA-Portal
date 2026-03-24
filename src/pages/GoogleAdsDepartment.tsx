@@ -18,6 +18,7 @@ import { useClinicServiceAccess } from "@/hooks/useClinicServiceAccess";
 import { DepartmentAccessLocked } from "@/components/department/DepartmentAccessLocked";
 import { useUserRole } from "@/hooks/useUserRole";
 import { DepartmentChat } from "@/components/department/DepartmentChat";
+import { useDepartmentChatUnread } from "@/hooks/useDepartmentChatUnread";
 
 const baseTabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
