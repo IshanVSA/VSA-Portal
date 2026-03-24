@@ -404,6 +404,6 @@ export default function Employees() {
           </DialogContent>
         </Dialog>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

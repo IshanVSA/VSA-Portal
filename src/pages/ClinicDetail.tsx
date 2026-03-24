@@ -768,6 +768,6 @@ export default function ClinicDetail() {
           />
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }
