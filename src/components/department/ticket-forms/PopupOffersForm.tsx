@@ -61,8 +61,7 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
   const [offerText, setOfferText] = useState("");
   const [termsAndConditions, setTermsAndConditions] = useState("");
   const [additionalNotes, setAdditionalNotes] = useState("");
-  const [startDate, setStartDate] = useState<Date | undefined>();
-  const [endDate, setEndDate] = useState<Date | undefined>();
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({ from: undefined, to: undefined });
 
   const [clinicAddress, setClinicAddress] = useState("");
   const [complianceBody, setComplianceBody] = useState("");
@@ -95,13 +94,13 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
       `Offer Description: ${offerText || "N/A"}`,
       `Terms & Conditions: ${termsAndConditions || "None"}`,
       `Additional Notes: ${additionalNotes || "None"}`,
-      `Start Date: ${startDate ? format(startDate, "PPP") : "N/A"}`,
-      `End Date: ${endDate ? format(endDate, "PPP") : "N/A"}`,
+      `Start Date: ${dateRange.from ? format(dateRange.from, "PPP") : "N/A"}`,
+      `End Date: ${dateRange.to ? format(dateRange.to, "PPP") : "N/A"}`,
       `Compliance Body: ${complianceBody || "N/A"}`,
       `Verified: ${verified ? "Yes" : "No"}`,
     ];
     onChange("Pop-up Offer Details:\n" + parts.join("\n"));
-  }, [offerTitle, offerText, termsAndConditions, additionalNotes, startDate, endDate, complianceBody, verified, onChange]);
+  }, [offerTitle, offerText, termsAndConditions, additionalNotes, dateRange, complianceBody, verified, onChange]);
 
   const handleFieldChange = useCallback(() => {
     if (verified) {
@@ -117,11 +116,13 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
     if (fields.offerText) { setOfferText(fields.offerText); handleFieldChange(); }
     if (fields.termsAndConditions) { setTermsAndConditions(fields.termsAndConditions); handleFieldChange(); }
     if (fields.additionalNotes) { setAdditionalNotes(fields.additionalNotes); handleFieldChange(); }
-    if (fields.startDate) {
-      try { setStartDate(parse(fields.startDate, "yyyy-MM-dd", new Date())); handleFieldChange(); } catch {}
-    }
-    if (fields.endDate) {
-      try { setEndDate(parse(fields.endDate, "yyyy-MM-dd", new Date())); handleFieldChange(); } catch {}
+    if (fields.startDate || fields.endDate) {
+      try {
+        const from = fields.startDate ? parse(fields.startDate, "yyyy-MM-dd", new Date()) : dateRange.from;
+        const to = fields.endDate ? parse(fields.endDate, "yyyy-MM-dd", new Date()) : dateRange.to;
+        setDateRange({ from, to });
+        handleFieldChange();
+      } catch {}
     }
   }, [handleFieldChange]);
 
@@ -133,8 +134,8 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
       const { data, error } = await supabase.functions.invoke("verify-popup-offer", {
         body: {
           offerTitle, offerText, termsAndConditions,
-          startDate: startDate ? format(startDate, "yyyy-MM-dd") : "",
-          endDate: endDate ? format(endDate, "yyyy-MM-dd") : "",
+          startDate: dateRange.from ? format(dateRange.from, "yyyy-MM-dd") : "",
+          endDate: dateRange.to ? format(dateRange.to, "yyyy-MM-dd") : "",
           complianceBody,
         },
       });
@@ -158,7 +159,7 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
     onConsentChange(checked);
   };
 
-  const canVerify = offerTitle.trim() && startDate && endDate;
+  const canVerify = offerTitle.trim() && dateRange.from && dateRange.to;
   const locked = consented;
 
   return (
@@ -212,35 +213,38 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label>Start Date *</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" disabled={locked} className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground")}>
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar mode="single" selected={startDate} onSelect={(date) => { setStartDate(date); handleFieldChange(); }} disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))} initialFocus className={cn("p-3 pointer-events-auto")} />
-            </PopoverContent>
-          </Popover>
-        </div>
-        <div className="space-y-1.5">
-          <Label>End Date *</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" disabled={locked} className={cn("w-full justify-start text-left font-normal", !endDate && "text-muted-foreground")}>
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar mode="single" selected={endDate} onSelect={(date) => { setEndDate(date); handleFieldChange(); }} disabled={(date) => { const today = new Date(new Date().setHours(0, 0, 0, 0)); return date < (startDate || today); }} initialFocus className={cn("p-3 pointer-events-auto")} />
-            </PopoverContent>
-          </Popover>
-        </div>
+      <div className="space-y-1.5">
+        <Label>Offer Period *</Label>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" disabled={locked} className={cn("w-full justify-start text-left font-normal", !dateRange.from && "text-muted-foreground")}>
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {dateRange.from ? (
+                dateRange.to ? (
+                  <span>{format(dateRange.from, "MMM d, yyyy")} – {format(dateRange.to, "MMM d, yyyy")}</span>
+                ) : (
+                  <span>{format(dateRange.from, "MMM d, yyyy")} – pick end date</span>
+                )
+              ) : (
+                <span>Pick date range</span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="range"
+              selected={dateRange.from ? { from: dateRange.from, to: dateRange.to } : undefined}
+              onSelect={(range) => {
+                setDateRange({ from: range?.from, to: range?.to });
+                handleFieldChange();
+              }}
+              disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+              numberOfMonths={2}
+              initialFocus
+              className={cn("p-3 pointer-events-auto")}
+            />
+          </PopoverContent>
+        </Popover>
       </div>
 
       {complianceBody && (
