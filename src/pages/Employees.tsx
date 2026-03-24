@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Trash2, Users, Search, X, Pencil } from "lucide-react";
+import { Plus, Trash2, Users, Search, X, Pencil, AlertTriangle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 
 const TEAM_ROLES = [
@@ -407,10 +407,13 @@ export default function Employees() {
                               }));
                             }}
                           />
-                          <span className="text-sm">
+                          <span className="text-sm flex items-center gap-1.5">
                             {c.clinic_name}
                             {existingMembers && existingMembers.length > 0 && (
-                              <span className="text-muted-foreground text-xs ml-1">({existingMembers.join(", ")})</span>
+                              <>
+                                <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                                <span className="text-amber-600 dark:text-amber-400 text-xs">({existingMembers.join(", ")})</span>
+                              </>
                             )}
                           </span>
                         </label>
