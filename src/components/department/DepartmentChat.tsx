@@ -518,6 +518,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
           <Button type="button" variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} disabled={sending} className="h-9 w-9 p-0 shrink-0">
             <Paperclip className="h-4 w-4 text-muted-foreground" />
           </Button>
+          <EmojiPicker onSelect={handleEmojiInsert} side="top" align="start" />
           <Input placeholder="Type a message..." value={newMessage} onChange={handleInputChange} onKeyDown={handleKeyDown} disabled={sending} className="text-sm h-9" />
           <Button size="sm" onClick={handleSend} disabled={(!newMessage.trim() && pendingFiles.length === 0) || sending} className="h-9 px-3">
             <Send className="h-3.5 w-3.5" />
