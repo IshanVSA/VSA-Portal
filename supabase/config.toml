@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.extract-clinic-website]
 verify_jwt = false
+
+[functions.retrieve-oauth-data]
+verify_jwt = false
