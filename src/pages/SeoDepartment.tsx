@@ -156,7 +156,9 @@ export default function SeoDepartment() {
           </div>
         </div>
 
-        {isLocked ? (
+        {accessLoading ? (
+          <DashboardSkeleton />
+        ) : isLocked ? (
           <DepartmentAccessLocked clinicName={selectedClinicName} departmentName="SEO" />
         ) : (
           <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">

@@ -92,7 +92,9 @@ export default function WebsiteDepartment() {
           </div>
         </div>
 
-        {isLocked ? (
+        {accessLoading ? (
+          <DashboardSkeleton />
+        ) : isLocked ? (
           <DepartmentAccessLocked clinicName={selectedClinicName} departmentName="Website" />
         ) : (
           <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">

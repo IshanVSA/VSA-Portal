@@ -66,7 +66,9 @@ export default function SocialMedia() {
           </div>
         </div>
 
-        {isLocked ? (
+        {accessLoading ? (
+          <DashboardSkeleton />
+        ) : isLocked ? (
           <DepartmentAccessLocked clinicName={selectedClinicName} departmentName="Social Media" />
         ) : (
           <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">

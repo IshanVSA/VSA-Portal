@@ -95,7 +95,9 @@ export default function GoogleAdsDepartment() {
           </div>
         </div>
 
-        {isLocked ? (
+        {accessLoading ? (
+          <DashboardSkeleton />
+        ) : isLocked ? (
           <DepartmentAccessLocked clinicName={selectedClinicName} departmentName="Google Ads" />
         ) : (
           <Tabs value={currentTab} onValueChange={(v) => setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", v); return next; }, { replace: true })} className="w-full">
