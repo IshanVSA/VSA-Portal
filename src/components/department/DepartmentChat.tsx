@@ -312,7 +312,7 @@ export function DepartmentChat({ department, clinicId }: Props) {
       : null;
 
   return (
-    <Card className="border-border/60 mt-4">
+    <Card className="border-border/60">
       <div className="px-4 py-3 border-b border-border/40 flex items-center gap-2">
         <MessageSquare className="h-4 w-4 text-muted-foreground" />
         <h3 className="text-sm font-bold text-foreground">Team Chat</h3>
