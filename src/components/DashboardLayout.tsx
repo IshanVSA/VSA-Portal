@@ -503,7 +503,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
         
         <div className="flex-1 p-4 lg:p-8">
           <PageTransition>
-            {children}
+            {children || <Outlet />}
           </PageTransition>
         </div>
       </main>
