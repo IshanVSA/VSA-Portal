@@ -418,7 +418,11 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     : typingNames.length > 2 ? `${typingNames[0]} and ${typingNames.length - 1} others are typing…`
     : null;
 
+  const pinnedMessages = messages.filter((m) => m.pinned);
   const displayMessages = searchQuery.trim() ? filteredMessages : messages;
+
+  // Build profile map for read receipt names
+  const profilesMap = new Map(messages.map((m) => [m.user_id, m.sender_name || "Unknown"]));
 
   return (
     <Card
