@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageSquare, Send, Paperclip, X, FileText, Image as ImageIcon, Download, Search } from "lucide-react";
+import { EmojiPicker } from "./EmojiPicker";
+import { MessageReactions } from "./MessageReactions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { toast } from "sonner";
