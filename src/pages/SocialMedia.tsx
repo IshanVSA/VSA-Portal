@@ -28,7 +28,7 @@ const TabFallback = () => (
 
 const socialServices = ["Content Creation", "Post Scheduling", "Engagement Management", "Analytics Review", "Campaign Strategy", "Others"];
 
-const allTabs = [
+const baseTabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
   { value: "requests", label: "Content Requests", icon: FileCheck },
   { value: "tickets", label: "Tickets", icon: Ticket },
@@ -37,6 +37,7 @@ const allTabs = [
   { value: "analytics", label: "Analytics", icon: BarChart3 },
   { value: "uploads", label: "Uploads", icon: Upload },
 ];
+const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
 
 export default function SocialMedia() {
   const [searchParams, setSearchParams] = useSearchParams();
