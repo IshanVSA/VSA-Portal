@@ -7,6 +7,7 @@ import { Share2, LayoutDashboard, FileCheck, CalendarDays, ClipboardList, BarCha
 import { SocialOverview } from "@/components/social/SocialOverview";
 import { lazy, Suspense } from "react";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
+import { AnimatePresence, motion } from "framer-motion";
 
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
