@@ -585,25 +585,8 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
   );
 }
 
-// Highlight matching text in search results
-function highlightText(text: string, query: string) {
-  if (!query.trim()) return text;
-  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
-  const parts = text.split(regex);
-  return (
-    <>
-      {parts.map((part, i) =>
-        regex.test(part) ? (
-          <mark key={i} className="bg-yellow-300/60 dark:bg-yellow-500/30 text-inherit rounded-sm px-0.5">
-            {part}
-          </mark>
-        ) : (
-          part
-        )
-      )}
-    </>
-  );
-}
+
+
 
 // Attachment preview sub-component
 function AttachmentPreview({ attachment, onDownload }: { attachment: FileAttachment; onDownload: (att: FileAttachment) => void }) {
