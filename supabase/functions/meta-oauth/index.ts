@@ -231,18 +231,37 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Multiple pages: encode pages data and redirect to frontend for selection
+      // Multiple pages: store tokens server-side, pass only a UUID reference
       const pagesForSelection = allPages.map((p: any) => ({
         id: p.id,
         name: p.name,
         access_token: p.access_token,
         category: p.category || "",
       }));
-      const encodedPages = btoa(JSON.stringify(pagesForSelection));
+
+      const supabaseStore = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      const { data: tempToken, error: storeError } = await supabaseStore
+        .from("oauth_temp_tokens")
+        .insert({
+          clinic_id: clinic_id,
+          provider: "meta",
+          payload: { pages: pagesForSelection },
+        })
+        .select("id")
+        .single();
+
+      if (storeError || !tempToken) {
+        console.error("Failed to store OAuth temp token:", storeError);
+        return new Response(null, {
+          status: 302,
+          headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=token_store` },
+        });
+      }
+
       console.log(`Multiple pages found (${allPages.length}), redirecting for selection`);
       return new Response(null, {
         status: 302,
-        headers: { Location: `${redirectBase}/clinics/${clinic_id}?meta_pages=${encodeURIComponent(encodedPages)}` },
+        headers: { Location: `${redirectBase}/clinics/${clinic_id}?meta_token_ref=${tempToken.id}` },
       });
     }
 

@@ -155,8 +155,26 @@ export default function ClinicDetail() {
   const [teamMembers, setTeamMembers] = useState<{ full_name: string | null; team_role: string | null }[]>([]);
 
   // Determine initial tab based on OAuth URL params
-  const hasOAuthParams = searchParams.has("google") || searchParams.has("google_accounts") || searchParams.has("meta_pages");
+  const hasOAuthParams = searchParams.has("google") || searchParams.has("google_token_ref") || searchParams.has("meta_token_ref");
   const [activeTab, setActiveTab] = useState(hasOAuthParams ? "connections" : "instagram");
+
+  const fetchOAuthData = async (tokenRef: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("retrieve-oauth-data", {
+        body: { token_id: tokenRef },
+      });
+      if (error || !data) {
+        console.error("Failed to retrieve OAuth data:", error);
+        toast.error("Failed to retrieve OAuth data. The link may have expired.");
+        return null;
+      }
+      return data;
+    } catch (e) {
+      console.error("OAuth data fetch error:", e);
+      toast.error("Failed to retrieve OAuth data.");
+      return null;
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -187,6 +205,7 @@ export default function ClinicDetail() {
         no_refresh_token: "Google did not provide a refresh token. Please revoke access at myaccount.google.com/permissions and try again.",
         list_customers: "Could not retrieve your Google Ads accounts. Ensure your account has active Google Ads access.",
         no_accounts: "No Google Ads accounts found for this Google account.",
+        token_store: "Failed to store OAuth data. Please try again.",
       };
       toast.error(errorMessages[googleError] || `Google Ads connection failed: ${googleError}`);
       const newParams = new URLSearchParams(searchParams);
@@ -194,28 +213,32 @@ export default function ClinicDetail() {
       setSearchParams(newParams, { replace: true });
     }
 
-    // Check for meta_pages URL parameter (page selection after OAuth)
-    const metaPagesParam = searchParams.get("meta_pages");
-    if (metaPagesParam) {
+    // Check for meta_token_ref URL parameter (secure token reference after OAuth)
+    const metaTokenRef = searchParams.get("meta_token_ref");
+    if (metaTokenRef) {
       setActiveTab("connections");
-      try {
-        const decoded = JSON.parse(atob(decodeURIComponent(metaPagesParam)));
-        setMetaPages(decoded);
-      } catch (e) {
-        console.error("Failed to decode meta_pages param:", e);
-      }
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("meta_token_ref");
+      setSearchParams(newParams, { replace: true });
+      fetchOAuthData(metaTokenRef).then((result) => {
+        if (result?.payload?.pages) {
+          setMetaPages(result.payload.pages);
+        }
+      });
     }
 
-    // Check for google_accounts URL parameter (account selection after OAuth)
-    const googleAccountsParam = searchParams.get("google_accounts");
-    if (googleAccountsParam) {
+    // Check for google_token_ref URL parameter (secure token reference after OAuth)
+    const googleTokenRef = searchParams.get("google_token_ref");
+    if (googleTokenRef) {
       setActiveTab("connections");
-      try {
-        const decoded = JSON.parse(atob(decodeURIComponent(googleAccountsParam)));
-        setGoogleAccounts(decoded);
-      } catch (e) {
-        console.error("Failed to decode google_accounts param:", e);
-      }
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("google_token_ref");
+      setSearchParams(newParams, { replace: true });
+      fetchOAuthData(googleTokenRef).then((result) => {
+        if (result?.payload) {
+          setGoogleAccounts(result.payload);
+        }
+      });
     }
   }, [id]);
 
