@@ -98,7 +98,7 @@ export function DepartmentChat({ department, clinicId }: Props) {
       return (data || []).map((m) => ({
         ...m,
         sender_name: profileMap[m.user_id] || "Unknown",
-        attachments: (m.attachments as FileAttachment[] | null) || [],
+        attachments: (m.attachments as unknown as FileAttachment[] | null) || [],
       })) as ChatMessage[];
     },
     enabled: !!clinicId,
