@@ -705,6 +705,6 @@ export default function Clinics() {
           </DialogContent>
         </Dialog>
       </div>
-    </DashboardLayout>
+    </>
   );
 }
