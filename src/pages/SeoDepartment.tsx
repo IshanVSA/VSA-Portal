@@ -26,13 +26,14 @@ import { useClinicServiceAccess } from "@/hooks/useClinicServiceAccess";
 import { DepartmentAccessLocked } from "@/components/department/DepartmentAccessLocked";
 import { DepartmentChat } from "@/components/department/DepartmentChat";
 
-const tabs = [
+const baseTabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
   { value: "tickets", label: "Tickets", icon: Ticket },
   { value: "analytics", label: "Analytics", icon: BarChart3 },
   { value: "reports", label: "Reports", icon: FileText },
   { value: "uploads", label: "Uploads", icon: Upload },
 ];
+const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
 
 const services = ["Backlinking", "Ranking Reports", "Keyword Research", "Manual Work Reports", "Search Atlas Integration", "SEO Thread Updates", "Others"];
 
