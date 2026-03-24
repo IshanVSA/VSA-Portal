@@ -1,40 +1,80 @@
 
 
-## Update Domain References to `portal.vsavetmedia.com`
+## Department Chat Thread — Admin & Assigned Team Members Only
 
-### What needs to change
+### Summary
 
-Now that the app is hosted at `portal.vsavetmedia.com`, we need to update all hardcoded fallback URLs and meta tags that still reference `vet-dash-suite.lovable.app`.
+Add a persistent, Slack-like chat thread to each department page (Website, SEO, Google Ads, Social Media). Messages are scoped per department + clinic combination. Only admins and team members assigned to that department for the selected clinic can see and use the chat. Clients never see it.
 
-### Changes
+### Database
 
-**1. Edge Functions — update fallback FRONTEND_URL (2 files)**
+**New table: `department_chats`**
 
-- `supabase/functions/google-oauth/index.ts` line 16: change fallback from `"https://vet-dash-suite.lovable.app"` to `"https://portal.vsavetmedia.com"`
-- `supabase/functions/meta-oauth/index.ts` line 18: same change
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | default gen_random_uuid() |
+| department | department (enum) | website, seo, google_ads, social_media |
+| clinic_id | uuid | FK to clinics |
+| user_id | uuid | sender, FK to auth.users |
+| message | text | not null |
+| created_at | timestamptz | default now() |
 
-These are fallbacks when `SITE_URL` env var isn't set. The OAuth flows already pass `window.location.origin` dynamically, but the fallback should be correct.
+**RLS policies:**
+- SELECT: admin OR (concierge AND user is in `department_members` for this department)
+- INSERT: same check, plus `user_id = auth.uid()`
+- No UPDATE/DELETE (immutable messages)
 
-**2. Set `SITE_URL` secret in Supabase**
+The SELECT/INSERT policies will use a security definer function to check department membership:
 
-Add/update the `SITE_URL` secret to `https://portal.vsavetmedia.com` so edge functions use the correct domain.
+```sql
+create or replace function public.is_department_member(_user_id uuid, _department department)
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select exists (
+    select 1 from public.department_members
+    where user_id = _user_id and department = _department
+  )
+$$;
+```
 
-**3. Update `index.html` meta tags**
+Policy logic: `has_role(auth.uid(), 'admin') OR (has_role(auth.uid(), 'concierge') AND is_department_member(auth.uid(), department))`
 
-- Line 23: `og:title` → "VSA Vet Media Portal" (instead of "Lovable App")
-- Line 24: `twitter:title` → "VSA Vet Media Portal"
-- Line 25: `og:description` → "VSA Vet Media Content Platform"
-- Line 26: `twitter:description` → "VSA Vet Media Content Platform"
-- Line 21: `twitter:site` → remove `@Lovable` or set to your brand handle
-- Line 9: `author` → "VSA Vet Media"
+**Enable Realtime** on `department_chats` so messages appear instantly.
 
-**4. Update Google & Meta OAuth app settings (manual, your side)**
+### New Component: `DepartmentChat.tsx`
 
-In Google Cloud Console and Meta Developer portal, add `https://portal.vsavetmedia.com` to the list of authorized redirect URIs / allowed domains. The existing Supabase callback URLs stay the same — only the frontend origin needs whitelisting.
+**Location:** `src/components/department/DepartmentChat.tsx`
 
-### No changes needed
+**Props:** `{ department: string; clinicId: string | undefined }`
 
-- `window.location.origin` calls in Login, MetaConnectionCard, GoogleAdsConnectionCard — these automatically resolve to whatever domain the user is on
-- Privacy/data deletion pages — those reference `vsavetmedia.ca`/`vsavetmedia.com` email addresses which are correct
-- Supabase redirect URI (`supabase.co/functions/v1/...`) — unchanged, this is the OAuth callback endpoint
+**Behavior:**
+- Fetches messages from `department_chats` filtered by department + clinic_id, ordered by created_at ascending
+- Subscribes to Supabase Realtime for new inserts on the same filter
+- Shows sender name (joined from profiles), timestamp, and message text
+- Input field at the bottom to send a new message
+- Scrolls to bottom on new messages
+- Compact card UI with a `MessageSquare` icon header — "Team Chat"
+- Shows user avatars/initials, message bubbles (own messages right-aligned, others left-aligned)
+
+### Integration into Department Pages
+
+In each of the 4 department pages, after the `Tabs` component (inside the unlocked content area):
+
+1. Import `useUserRole` (already imported in most) and `DepartmentChat`
+2. Only render `<DepartmentChat>` if `role === "admin" || role === "concierge"` — clients never see it
+3. Pass `department` and `clinicId={selectedClinicId}`
+
+**Files modified:**
+- `src/pages/WebsiteDepartment.tsx` — add chat below tabs
+- `src/pages/SeoDepartment.tsx` — add chat below tabs
+- `src/pages/GoogleAdsDepartment.tsx` — add chat below tabs
+- `src/pages/SocialMedia.tsx` — add chat below tabs
+
+### Technical Details
+
+- Uses `supabase.channel()` realtime subscription with postgres_changes filter on `department_chats` for the specific department + clinic_id
+- Messages join profiles table for sender name display via a separate query or by fetching profiles of participants
+- The component handles its own loading/empty states
+- No edge function needed — direct client SDK insert with RLS enforcement
 
