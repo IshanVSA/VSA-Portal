@@ -384,6 +384,29 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     setNewMessage((prev) => prev + emoji);
   };
 
+  const handleTogglePin = async (messageId: string, currentlyPinned: boolean) => {
+    await supabase.from("department_chats").update({ pinned: !currentlyPinned } as any).eq("id", messageId);
+    queryClient.invalidateQueries({ queryKey });
+  };
+
+  // Build a map of which messages have been read by whom
+  const getReadByForMessage = (messageId: string): string[] => {
+    if (!user) return [];
+    // Find all read receipts where last_read_message_id >= this message
+    // Since we order by created_at asc, we can compare by checking if the read receipt's
+    // last_read_message is this message or comes after it
+    const msgIndex = messages.findIndex((m) => m.id === messageId);
+    if (msgIndex < 0) return [];
+    
+    return readReceipts
+      .filter((r) => {
+        if (r.user_id === user.id) return false; // Don't show self
+        const readMsgIdx = messages.findIndex((m) => m.id === r.last_read_message_id);
+        return readMsgIdx >= msgIndex;
+      })
+      .map((r) => r.user_id);
+  };
+
   if (!clinicId) return null;
 
   const getInitials = (name: string) => name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
