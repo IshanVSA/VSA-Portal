@@ -128,6 +128,6 @@ export default function WebsiteDepartment() {
           )}
         </AnimatePresence>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

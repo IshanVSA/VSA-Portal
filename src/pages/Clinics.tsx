@@ -415,7 +415,7 @@ export default function Clinics() {
     : COMMON_TIMEZONES;
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-4 sm:space-y-6">
         {/* Hero */}
         <div className="hero-section">

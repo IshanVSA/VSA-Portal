@@ -102,6 +102,6 @@ export default function SocialMedia() {
           )}
         </AnimatePresence>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

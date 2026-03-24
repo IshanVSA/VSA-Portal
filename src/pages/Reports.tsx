@@ -32,6 +32,6 @@ export default function Reports() {
           <p className="text-muted-foreground text-sm text-center py-12">Select a clinic to generate a unified report.</p>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

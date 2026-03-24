@@ -47,6 +47,6 @@ export default function AiSeoDepartment() {
           <DepartmentAccessLocked clinicName={selectedClinic?.clinic_name} departmentName="AI SEO" />
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

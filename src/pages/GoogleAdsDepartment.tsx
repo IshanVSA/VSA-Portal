@@ -130,6 +130,6 @@ export default function GoogleAdsDepartment() {
           )}
         </AnimatePresence>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

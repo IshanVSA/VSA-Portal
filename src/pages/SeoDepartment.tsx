@@ -198,6 +198,6 @@ export default function SeoDepartment() {
           defaults={latest ? { month: latest.month, domain_authority: latest.domain_authority, backlinks: latest.backlinks, keywords_top_10: latest.keywords_top_10, organic_traffic: latest.organic_traffic, top_keywords: latest.top_keywords, extended_data: latest.extended_data } : undefined}
         />
       )}
-    </DashboardLayout>
+    </>
   );
 }
