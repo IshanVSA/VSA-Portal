@@ -33,7 +33,7 @@ export default function Login() {
           <img src={vsaLogo} alt="VSA Vet Media" className="h-14 w-14 rounded-2xl object-cover mb-8 shadow-2xl" />
           <h2 className="text-3xl font-bold text-white mb-3 tracking-tight">Digital Marketing, Simplified.</h2>
           <p className="text-[hsl(215,20%,55%)] text-base leading-relaxed">
-            Manage your veterinary clinic's social media, ads, and content — all from one powerful dashboard.
+            Manage your veterinary clinic's online presence from one powerful dashboard.
           </p>
           <div className="mt-10 flex items-center gap-3">
             <div className="h-1 w-8 rounded-full bg-[hsl(var(--primary))]" />
