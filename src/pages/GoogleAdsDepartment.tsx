@@ -16,6 +16,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useClinicServiceAccess } from "@/hooks/useClinicServiceAccess";
 import { DepartmentAccessLocked } from "@/components/department/DepartmentAccessLocked";
+import { useUserRole } from "@/hooks/useUserRole";
+import { DepartmentChat } from "@/components/department/DepartmentChat";
 
 const tabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
@@ -35,6 +37,7 @@ export default function GoogleAdsDepartment() {
   const { team } = useDepartmentTeam("google_ads", selectedClinicId);
   const adsData = useGoogleAdsKPIs(selectedClinicId);
   const { isLocked, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "google_ads", clinicsLoading);
+  const { role } = useUserRole();
 
   const selectedClinicName = selectedClinic?.clinic_name;
 
@@ -126,6 +129,7 @@ export default function GoogleAdsDepartment() {
                 <TabsContent value="reports" className="mt-4"><GoogleAdsReportsTab clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="google_ads" clinicId={selectedClinicId} /></TabsContent>
               </Tabs>
+              {(role === "admin" || role === "concierge") && <DepartmentChat department="google_ads" clinicId={selectedClinicId} />}
             </motion.div>
           )}
         </AnimatePresence>

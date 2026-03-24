@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import type { SeoKeyword } from "@/hooks/useSeoAnalytics";
 import { useClinicServiceAccess } from "@/hooks/useClinicServiceAccess";
 import { DepartmentAccessLocked } from "@/components/department/DepartmentAccessLocked";
+import { DepartmentChat } from "@/components/department/DepartmentChat";
 
 const tabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
@@ -187,6 +188,7 @@ export default function SeoDepartment() {
                 <TabsContent value="reports" className="mt-4"><SeoReportsTab clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="seo" clinicId={selectedClinicId} /></TabsContent>
               </Tabs>
+              {(role === "admin" || role === "concierge") && <DepartmentChat department="seo" clinicId={selectedClinicId} />}
             </motion.div>
           )}
         </AnimatePresence>

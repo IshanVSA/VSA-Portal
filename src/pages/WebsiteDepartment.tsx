@@ -16,6 +16,7 @@ import { useWebsiteKPIs } from "@/hooks/useWebsiteKPIs";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useClinicServiceAccess } from "@/hooks/useClinicServiceAccess";
 import { DepartmentAccessLocked } from "@/components/department/DepartmentAccessLocked";
+import { DepartmentChat } from "@/components/department/DepartmentChat";
 
 const baseTabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
@@ -124,6 +125,7 @@ export default function WebsiteDepartment() {
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="website" clinicId={selectedClinicId} /></TabsContent>
                 {canViewHealth && <TabsContent value="health" className="mt-4"><WebsiteHealthTab clinicId={selectedClinicId} /></TabsContent>}
               </Tabs>
+              {(role === "admin" || role === "concierge") && <DepartmentChat department="website" clinicId={selectedClinicId} />}
             </motion.div>
           )}
         </AnimatePresence>
