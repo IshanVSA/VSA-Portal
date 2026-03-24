@@ -61,6 +61,13 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useCallback((node: HTMLDivElement | null) => {
+    if (node) {
+      // Find the ScrollArea viewport
+      const viewport = node.querySelector("[data-radix-scroll-area-viewport]");
+      (scrollRef as any).current = viewport || node;
+    }
+  }, []);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
