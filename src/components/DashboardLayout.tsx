@@ -129,6 +129,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
   const [clinicAccess, setClinicAccess] = useState<ClinicAccessState | null>(null);
   const [clinicAccessLoading, setClinicAccessLoading] = useState(true);
   const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
+  const [userDepartments, setUserDepartments] = useState<string[] | null>(null);
   const { pendingRequests, pendingReview } = usePendingCounts();
 
   const [deptPickerOpen, setDeptPickerOpen] = useState(false);
@@ -146,6 +147,21 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
     supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle()
       .then(({ data }) => { if (data) setProfile(data); });
   }, [user]);
+
+  // Fetch department assignments for concierge users
+  useEffect(() => {
+    if (!user || role !== "concierge") return;
+    supabase
+      .from("department_members")
+      .select("department")
+      .eq("user_id", user.id)
+      .then(({ data }) => {
+        if (data) {
+          setUserDepartments(data.map(d => d.department));
+        }
+      });
+  }, [user, role]);
+
 
   useEffect(() => {
     if (role === "client" && user) {
@@ -244,7 +260,28 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
       })),
     }));
 
-  const sections = injectBadges(role === "admin" ? adminSections : role === "concierge" ? conciergeSections : clientSections);
+  // Map department_members enum values to sidebar paths
+  const deptEnumToPath: Record<string, string[]> = {
+    website: ["/website"],
+    seo: ["/seo", "/ai-seo"],
+    google_ads: ["/google-ads"],
+    social_media: ["/social"],
+  };
+
+  const filterSectionsByDepartment = (secs: NavSection[]): NavSection[] => {
+    if (role !== "concierge" || !userDepartments) return secs;
+    const allowedPaths = new Set<string>();
+    userDepartments.forEach(dept => {
+      (deptEnumToPath[dept] || []).forEach(p => allowedPaths.add(p));
+    });
+    return secs.map(s => {
+      if (s.title !== "DEPARTMENTS") return s;
+      return { ...s, items: s.items.filter(item => allowedPaths.has(item.path)) };
+    }).filter(s => s.title !== "DEPARTMENTS" || s.items.length > 0);
+  };
+
+  const baseSections = role === "admin" ? adminSections : role === "concierge" ? filterSectionsByDepartment(conciergeSections) : clientSections;
+  const sections = injectBadges(baseSections);
   const currentPageTitle = pageTitles[location.pathname] || "";
 
   const clinicSelectorPages = ["/website", "/seo", "/ai-seo", "/google-ads", "/social", "/reports"];
