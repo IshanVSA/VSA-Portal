@@ -1,39 +1,72 @@
 
+Goal: stop the sidebar lock badge from disappearing when switching departments.
 
-## Move Clinic Selector to the Navbar
+What’s actually causing it
+- The lock UI in `DashboardLayout.tsx` depends on `clinicAccess`.
+- Every department page mounts its own `<DashboardLayout>`, so changing routes unmounts and remounts the entire layout.
+- On each remount:
+  - `clinicAccess` starts as `null`
+  - `clinicAccessLoading` starts as `true`
+  - `isDepartmentLocked()` returns `false`
+- Result: the lock badge briefly renders hidden until the clinic access query finishes, which is the flicker you’re seeing.
 
-Currently every department page (Website, SEO, AI SEO, Google Ads, Social Media, Reports) has its own `<ClinicSelector>` in the page header. The goal is to have one global clinic selector in the top navbar that all pages share.
+Implementation plan
 
-### Approach
+1. Make `DashboardLayout` persistent across department navigation
+- Refactor routing in `src/App.tsx` to use a shared authenticated layout route instead of wrapping each page individually with `<DashboardLayout>`.
+- Render `DashboardLayout` once and place department pages inside it with nested routes / outlet-style composition.
+- This preserves sidebar state, clinic access state, and lock indicators while moving between departments.
 
-**1. Lift `useClinicSelector` state to `DashboardLayout`**
-- The `useClinicSelector` hook already uses URL search params (`?clinic=...`), so it's inherently global. We just need to call it once in `DashboardLayout` and render the `<ClinicSelector>` in the top header bar.
-- Place it in the navbar between the breadcrumb and the action buttons, visible on department/report pages (or always visible for simplicity).
+2. Remove per-page layout wrapping
+- Update department and workspace pages that currently return:
+  - `<DashboardLayout> ...page content... </DashboardLayout>`
+- Change them to return only their page content.
+- Main targets:
+  - `src/pages/WebsiteDepartment.tsx`
+  - `src/pages/SeoDepartment.tsx`
+  - `src/pages/GoogleAdsDepartment.tsx`
+  - `src/pages/AiSeoDepartment.tsx`
+  - `src/pages/SocialMedia.tsx`
+  - plus other authenticated pages already using `DashboardLayout`
 
-**2. Add `<ClinicSelector>` to the navbar header**
-- In `DashboardLayout.tsx`, import and render the `ClinicSelector` component in the `<header>` element (line ~405).
-- Show it for admin/concierge roles always; for client role, hide it (clients have a single clinic auto-selected).
-- The existing `activeClinicId` logic in DashboardLayout already reads `searchParams.get("clinic")`, so the sidebar lock indicators will continue working seamlessly.
+3. Keep clinic access loaded in one stable place
+- Keep the clinic access fetch/subscription logic in `src/components/DashboardLayout.tsx`, but let it live for the whole authenticated session instead of per page.
+- Preserve current behavior:
+  - admin bypass
+  - real-time updates from clinic access changes
+  - fixed-width lock badge container
 
-**3. Remove `<ClinicSelector>` from each department page**
-- Remove the `ClinicSelector` import and rendering from:
-  - `WebsiteDepartment.tsx`
-  - `SeoDepartment.tsx`
-  - `GoogleAdsDepartment.tsx`
-  - `AiSeoDepartment.tsx`
-  - `SocialMedia.tsx`
-  - `Reports.tsx`
-- Each page still calls `useClinicSelector()` to get `selectedClinicId` and `selectedClinic` for data fetching — that stays. Only the UI selector moves out.
+4. Make locked-state rendering stay stable during route transitions
+- Since the layout will no longer remount, the sidebar badge should remain visible continuously.
+- Also keep the existing fixed-width / opacity-based badge rendering so there is no layout twitching while navigating.
 
-**4. Keep the clinic name subtitle in department headers**
-- The department page headers currently show the selected clinic name as a subtitle (e.g., "Website / Alma Animal Hospital"). This stays — it reads from `selectedClinic?.clinic_name` which still comes from `useClinicSelector()`.
+5. Clean up page transitions if needed
+- Verify `PageTransition` only animates page content and does not force a layout reset.
+- If necessary, keep the animation keyed to route content only, not the sidebar/layout shell.
 
-### Files Changed
-- `src/components/DashboardLayout.tsx` — add ClinicSelector to header, import hook + component
-- `src/pages/WebsiteDepartment.tsx` — remove ClinicSelector from page header
-- `src/pages/SeoDepartment.tsx` — remove ClinicSelector from page header
-- `src/pages/GoogleAdsDepartment.tsx` — remove ClinicSelector from page header
-- `src/pages/AiSeoDepartment.tsx` — remove ClinicSelector from page header
-- `src/pages/SocialMedia.tsx` — remove ClinicSelector from page header
-- `src/pages/Reports.tsx` — remove ClinicSelector from page header
+Files to update
+- `src/App.tsx`
+- `src/components/DashboardLayout.tsx`
+- authenticated pages currently wrapping themselves in `DashboardLayout`:
+  - `src/pages/WebsiteDepartment.tsx`
+  - `src/pages/SeoDepartment.tsx`
+  - `src/pages/GoogleAdsDepartment.tsx`
+  - `src/pages/AiSeoDepartment.tsx`
+  - `src/pages/SocialMedia.tsx`
+  - `src/pages/Dashboard.tsx`
+  - `src/pages/Clinics.tsx`
+  - `src/pages/ClinicDetail.tsx`
+  - `src/pages/Employees.tsx`
+  - `src/pages/Clients.tsx`
+  - `src/pages/AdminReview.tsx`
+  - `src/pages/Reports.tsx`
+  - `src/pages/Settings.tsx`
 
+Expected result
+- The selected clinic remains stable.
+- Sidebar lock badges remain visible continuously when moving between departments.
+- No half-second unlock flash.
+- Department pages still keep their own loading/locked/content transitions, but the sidebar shell no longer resets on navigation.
+
+Technical note
+- This is a structural fix, not just a styling fix. Trying to mask the flicker inside the current setup would be less reliable because the root problem is that the entire dashboard shell is being recreated on every department route change.
