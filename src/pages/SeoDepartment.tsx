@@ -2,7 +2,7 @@ import { useState } from "react";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
-import { DashboardLayout } from "@/components/DashboardLayout";
+
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SearchCode, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Globe, Link2, Hash, TrendingUp } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
@@ -136,7 +136,7 @@ export default function SeoDepartment() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-4 dept-tint-seo min-h-full -m-6 p-6" data-dept="SEO">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/60">
           <div className="flex items-center gap-3">
@@ -198,6 +198,6 @@ export default function SeoDepartment() {
           defaults={latest ? { month: latest.month, domain_authority: latest.domain_authority, backlinks: latest.backlinks, keywords_top_10: latest.keywords_top_10, organic_traffic: latest.organic_traffic, top_keywords: latest.top_keywords, extended_data: latest.extended_data } : undefined}
         />
       )}
-    </DashboardLayout>
+    </>
   );
 }

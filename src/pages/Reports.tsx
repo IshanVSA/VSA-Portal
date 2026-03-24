@@ -1,4 +1,3 @@
-import { DashboardLayout } from "@/components/DashboardLayout";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { UnifiedReportTab } from "@/components/department/UnifiedReportTab";
 import { FileText } from "lucide-react";
@@ -7,7 +6,7 @@ export default function Reports() {
   const { selectedClinicId, setSelectedClinicId, clinics, loading: clinicsLoading } = useClinicSelector();
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-4 sm:space-y-6">
         {/* Hero Header */}
         <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-[hsl(280,65%,55%)] p-5 sm:p-8 text-primary-foreground shadow-lg">
@@ -33,6 +32,6 @@ export default function Reports() {
           <p className="text-muted-foreground text-sm text-center py-12">Select a clinic to generate a unified report.</p>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

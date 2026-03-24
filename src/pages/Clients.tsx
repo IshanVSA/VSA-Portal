@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
-import { DashboardLayout } from "@/components/DashboardLayout";
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -67,7 +67,7 @@ export default function ClientsPage() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         <div className="hero-section">
           <div className="relative z-10 flex items-center justify-between">
@@ -166,6 +166,6 @@ export default function ClientsPage() {
           </Card>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

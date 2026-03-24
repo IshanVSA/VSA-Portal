@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useSearchParams, Outlet } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole, type AppRole } from "@/hooks/useUserRole";
 import { usePendingCounts } from "@/hooks/usePendingCounts";
@@ -108,7 +108,7 @@ const pageTitles: Record<string, string> = {
   "/employees": "Team Members", "/clients": "Clients", "/reports": "Reports", "/settings": "Settings",
 };
 
-export function DashboardLayout({ children }: { children: React.ReactNode }) {
+export function DashboardLayout({ children }: { children?: React.ReactNode }) {
   const { clinics: navClinics, selectedClinicId: navSelectedClinicId, setSelectedClinicId: navSetSelectedClinicId, loading: navClinicsLoading } = useClinicSelector();
   const { role } = useUserRole();
   const { user, signOut } = useAuth();
@@ -503,7 +503,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         
         <div className="flex-1 p-4 lg:p-8">
           <PageTransition>
-            {children}
+            {children || <Outlet />}
           </PageTransition>
         </div>
       </main>

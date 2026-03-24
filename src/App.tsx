@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { DashboardLayout } from "@/components/DashboardLayout";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
@@ -36,25 +37,31 @@ const App = () => (
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/data-deletion" element={<DataDeletion />} />
-          <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/social" element={<ProtectedRoute><SocialMedia /></ProtectedRoute>} />
-          <Route path="/website" element={<ProtectedRoute><WebsiteDepartment /></ProtectedRoute>} />
-          <Route path="/seo" element={<ProtectedRoute><SeoDepartment /></ProtectedRoute>} />
-          <Route path="/ai-seo" element={<ProtectedRoute><AiSeoDepartment /></ProtectedRoute>} />
-          <Route path="/google-ads" element={<ProtectedRoute><GoogleAdsDepartment /></ProtectedRoute>} />
-          <Route path="/clinics" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}><Clinics /></ProtectedRoute>} />
-          <Route path="/clinics/:id" element={<ProtectedRoute><ClinicDetail /></ProtectedRoute>} />
+
+          {/* All authenticated routes share a single persistent DashboardLayout */}
+          <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/social" element={<SocialMedia />} />
+            <Route path="/website" element={<WebsiteDepartment />} />
+            <Route path="/seo" element={<SeoDepartment />} />
+            <Route path="/ai-seo" element={<AiSeoDepartment />} />
+            <Route path="/google-ads" element={<GoogleAdsDepartment />} />
+            <Route path="/clinics" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}><Clinics /></ProtectedRoute>} />
+            <Route path="/clinics/:id" element={<ClinicDetail />} />
+            <Route path="/employees" element={<ProtectedRoute allowedRoles={["admin"]}><Employees /></ProtectedRoute>} />
+            <Route path="/clients" element={<ProtectedRoute allowedRoles={["admin"]}><ClientsPage /></ProtectedRoute>} />
+            <Route path="/review" element={<ProtectedRoute allowedRoles={["admin"]}><AdminReview /></ProtectedRoute>} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/reports" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}><Reports /></ProtectedRoute>} />
+          </Route>
+
           {/* Redirects from old routes to Social Media tabs */}
           <Route path="/content" element={<Navigate to="/social?tab=calendar" replace />} />
           <Route path="/content-requests" element={<Navigate to="/social?tab=requests" replace />} />
           <Route path="/ai-content" element={<Navigate to="/social?tab=requests" replace />} />
           <Route path="/intake-forms" element={<Navigate to="/social?tab=intake" replace />} />
           <Route path="/analytics" element={<Navigate to="/social?tab=analytics" replace />} />
-          <Route path="/employees" element={<ProtectedRoute allowedRoles={["admin"]}><Employees /></ProtectedRoute>} />
-          <Route path="/clients" element={<ProtectedRoute allowedRoles={["admin"]}><ClientsPage /></ProtectedRoute>} />
-          <Route path="/review" element={<ProtectedRoute allowedRoles={["admin"]}><AdminReview /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-          <Route path="/reports" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}><Reports /></ProtectedRoute>} />
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

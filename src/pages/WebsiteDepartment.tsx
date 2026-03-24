@@ -1,7 +1,7 @@
 import { useSearchParams } from "react-router-dom";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { AnimatePresence, motion } from "framer-motion";
-import { DashboardLayout } from "@/components/DashboardLayout";
+
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Eye, TrendingUp, Clock, Layers, HeartPulse } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
@@ -80,7 +80,7 @@ export default function WebsiteDepartment() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-4 dept-tint-website min-h-full -m-6 p-6" data-dept="Website">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/60">
           <div className="flex items-center gap-3">
@@ -128,6 +128,6 @@ export default function WebsiteDepartment() {
           )}
         </AnimatePresence>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

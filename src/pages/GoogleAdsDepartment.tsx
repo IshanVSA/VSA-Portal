@@ -1,7 +1,7 @@
 import { useSearchParams } from "react-router-dom";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { AnimatePresence, motion } from "framer-motion";
-import { DashboardLayout } from "@/components/DashboardLayout";
+
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Megaphone, LayoutDashboard, Ticket, BarChart3, FileText, Upload, DollarSign, MousePointerClick, Percent, Eye } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
@@ -82,7 +82,7 @@ export default function GoogleAdsDepartment() {
   ) : undefined;
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-4 dept-tint-ads min-h-full -m-6 p-6" data-dept="Google Ads">
         {/* Compact page header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/60">
@@ -130,6 +130,6 @@ export default function GoogleAdsDepartment() {
           )}
         </AnimatePresence>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

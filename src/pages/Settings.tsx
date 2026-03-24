@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { DashboardLayout } from "@/components/DashboardLayout";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -77,7 +77,7 @@ export default function Settings() {
   const tabs = role === "admin" ? adminTabs : baseTabs;
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-4 sm:space-y-6">
         {/* Hero Header */}
         <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-[hsl(280,65%,55%)] p-5 sm:p-8 text-primary-foreground shadow-lg">
@@ -342,7 +342,7 @@ export default function Settings() {
           )}
         </Tabs>
       </div>
-    </DashboardLayout>
+    </>
   );
 }
 

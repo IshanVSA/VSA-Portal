@@ -1,4 +1,3 @@
-import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sparkles } from "lucide-react";
 import { useAiSeoAccess } from "@/hooks/useAiSeoAccess";
@@ -11,7 +10,7 @@ export default function AiSeoDepartment() {
   const { hasAccess, isLoading } = useAiSeoAccess(selectedClinicId || undefined);
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-4 dept-tint-ai-seo min-h-full -m-6 p-6" data-dept="AI SEO">
         <div className="flex flex-col gap-2 pb-3 border-b border-border/60 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2.5">
@@ -48,6 +47,6 @@ export default function AiSeoDepartment() {
           <DepartmentAccessLocked clinicName={selectedClinic?.clinic_name} departmentName="AI SEO" />
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }
