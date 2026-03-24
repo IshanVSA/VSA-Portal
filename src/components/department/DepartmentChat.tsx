@@ -171,7 +171,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
         .select("user_id, last_read_message_id, last_read_at")
         .eq("department", department)
         .eq("clinic_id", clinicId);
-      return (data || []) as { user_id: string; last_read_message_id: string | null; last_read_at: string }[];
+      return (data || []) as unknown as { user_id: string; last_read_message_id: string | null; last_read_at: string }[];
     },
     enabled: !!clinicId,
   });
