@@ -463,7 +463,24 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
                           <span className="text-[10px] text-muted-foreground">
                             {format(msgDate, "h:mm a")}
                           </span>
+                          <button
+                            onClick={() => setReplyTo(msg)}
+                            className="opacity-0 group-hover/msg:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                            title="Reply"
+                          >
+                            <Reply className="h-3 w-3" />
+                          </button>
                         </div>
+                        {/* Reply preview */}
+                        {msg.reply_preview && (
+                          <div className={`flex items-start gap-1.5 mb-1 ${isOwn ? "justify-end" : ""}`}>
+                            <CornerDownRight className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5" />
+                            <div className="text-[11px] text-muted-foreground bg-muted/50 rounded px-2 py-0.5 max-w-[200px] truncate border-l-2 border-primary/40">
+                              <span className="font-medium">{msg.reply_preview.sender_name}:</span>{" "}
+                              {msg.reply_preview.message.slice(0, 60)}{msg.reply_preview.message.length > 60 ? "…" : ""}
+                            </div>
+                          </div>
+                        )}
                         {msg.message && (
                           <div
                             className={`inline-block px-3 py-1.5 rounded-xl text-sm whitespace-pre-wrap break-words ${
@@ -472,9 +489,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
                                 : "bg-muted text-foreground rounded-tl-sm"
                             }`}
                           >
-                            {searchQuery.trim()
-                              ? highlightText(msg.message, searchQuery)
-                              : msg.message}
+                            {renderMessageWithMentions(msg.message, searchQuery.trim() ? searchQuery : undefined)}
                           </div>
                         )}
                         {attachments.length > 0 && (
