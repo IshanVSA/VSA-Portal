@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Share2, LayoutDashboard, FileCheck, CalendarDays, ClipboardList, BarChart3, Ticket, Upload } from "lucide-react";
+import { Share2, LayoutDashboard, FileCheck, CalendarDays, ClipboardList, BarChart3, Ticket, Upload, MessageSquare } from "lucide-react";
 import { SocialOverview } from "@/components/social/SocialOverview";
 import { lazy, Suspense } from "react";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
@@ -28,7 +28,7 @@ const TabFallback = () => (
 
 const socialServices = ["Content Creation", "Post Scheduling", "Engagement Management", "Analytics Review", "Campaign Strategy", "Others"];
 
-const allTabs = [
+const baseTabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
   { value: "requests", label: "Content Requests", icon: FileCheck },
   { value: "tickets", label: "Tickets", icon: Ticket },
@@ -37,6 +37,7 @@ const allTabs = [
   { value: "analytics", label: "Analytics", icon: BarChart3 },
   { value: "uploads", label: "Uploads", icon: Upload },
 ];
+const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
 
 export default function SocialMedia() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -45,7 +46,8 @@ export default function SocialMedia() {
   const currentTab = searchParams.get("tab") || "overview";
   const { isLocked, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "social_media", clinicsLoading);
 
-  const visibleTabs = role === "client" ? allTabs.filter(t => ["overview", "requests", "tickets"].includes(t.value)) : allTabs;
+  const isStaff = role === "admin" || role === "concierge";
+  const visibleTabs = role === "client" ? baseTabs.filter(t => ["overview", "requests", "tickets"].includes(t.value)) : [...baseTabs, ...(isStaff ? [chatTab] : [])];
 
   const handleTabChange = (value: string) => {
     setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", value); return next; }, { replace: true });
@@ -98,8 +100,8 @@ export default function SocialMedia() {
                 <TabsContent value="intake" className="mt-4"><Suspense fallback={<TabFallback />}><IntakeFormsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="analytics" className="mt-4"><Suspense fallback={<TabFallback />}><AnalyticsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="social_media" clinicId={selectedClinicId} /></TabsContent>
+                {isStaff && <TabsContent value="chat" className="mt-4"><DepartmentChat department="social_media" clinicId={selectedClinicId} /></TabsContent>}
               </Tabs>
-              {(role === "admin" || role === "concierge") && <DepartmentChat department="social_media" clinicId={selectedClinicId} />}
             </motion.div>
           )}
         </AnimatePresence>

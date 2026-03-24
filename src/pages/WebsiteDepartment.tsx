@@ -3,7 +3,7 @@ import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Eye, TrendingUp, Clock, Layers, HeartPulse } from "lucide-react";
+import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Eye, TrendingUp, Clock, Layers, HeartPulse, MessageSquare } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { WebsiteAnalyticsTab } from "@/components/department/WebsiteAnalyticsTab";
@@ -27,6 +27,7 @@ const baseTabs = [
 ];
 
 const healthTab = { value: "health", label: "Health", icon: HeartPulse };
+const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
 
 const services = [
   "Time Changes", "Pop-up Offers", "Third Party Integrations", "Payment Options",
@@ -58,8 +59,12 @@ export default function WebsiteDepartment() {
   const { role } = useUserRole();
   const canViewHealth = role === "admin" || role === "concierge";
   const { isLocked, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "website", clinicsLoading);
-  const tabs = canViewHealth ? [...baseTabs, healthTab] : baseTabs;
-
+  const isStaff = role === "admin" || role === "concierge";
+  const tabs = [
+    ...baseTabs,
+    ...(canViewHealth ? [healthTab] : []),
+    ...(isStaff ? [chatTab] : []),
+  ];
   const selectedClinicName = selectedClinic?.clinic_name;
 
   const visitorsChange = formatChange(kpiData.visitorsToday, kpiData.visitorsLastWeek);
@@ -124,8 +129,8 @@ export default function WebsiteDepartment() {
                 <TabsContent value="reports" className="mt-4"><WebsiteReportsTab clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="website" clinicId={selectedClinicId} /></TabsContent>
                 {canViewHealth && <TabsContent value="health" className="mt-4"><WebsiteHealthTab clinicId={selectedClinicId} /></TabsContent>}
+                {isStaff && <TabsContent value="chat" className="mt-4"><DepartmentChat department="website" clinicId={selectedClinicId} /></TabsContent>}
               </Tabs>
-              {(role === "admin" || role === "concierge") && <DepartmentChat department="website" clinicId={selectedClinicId} />}
             </motion.div>
           )}
         </AnimatePresence>

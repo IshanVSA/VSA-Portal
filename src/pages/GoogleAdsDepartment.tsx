@@ -3,7 +3,7 @@ import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Megaphone, LayoutDashboard, Ticket, BarChart3, FileText, Upload, DollarSign, MousePointerClick, Percent, Eye } from "lucide-react";
+import { Megaphone, LayoutDashboard, Ticket, BarChart3, FileText, Upload, DollarSign, MousePointerClick, Percent, Eye, MessageSquare } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { GoogleAdsAnalyticsTab } from "@/components/department/GoogleAdsAnalyticsTab";
@@ -19,13 +19,14 @@ import { DepartmentAccessLocked } from "@/components/department/DepartmentAccess
 import { useUserRole } from "@/hooks/useUserRole";
 import { DepartmentChat } from "@/components/department/DepartmentChat";
 
-const tabs = [
+const baseTabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
   { value: "tickets", label: "Tickets", icon: Ticket },
   { value: "analytics", label: "Analytics", icon: BarChart3 },
   { value: "reports", label: "Reports", icon: FileText },
   { value: "uploads", label: "Uploads", icon: Upload },
 ];
+const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
 
 const services = ["Dashboard Access", "Analytics Review", "Monthly Performance Report", "Call Volume Issues", "Wrong Call Tracking", "Campaign Adjustments", "Others"];
 const quickActions = ["Call Volume Issues", "Wrong Call Tracking", "Others"];
@@ -38,7 +39,8 @@ export default function GoogleAdsDepartment() {
   const adsData = useGoogleAdsKPIs(selectedClinicId);
   const { isLocked, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "google_ads", clinicsLoading);
   const { role } = useUserRole();
-
+  const isStaff = role === "admin" || role === "concierge";
+  const tabs = isStaff ? [...baseTabs, chatTab] : baseTabs;
   const selectedClinicName = selectedClinic?.clinic_name;
 
   const kpis = [
@@ -128,8 +130,8 @@ export default function GoogleAdsDepartment() {
                 <TabsContent value="analytics" className="mt-4"><GoogleAdsAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="reports" className="mt-4"><GoogleAdsReportsTab clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="google_ads" clinicId={selectedClinicId} /></TabsContent>
+                {isStaff && <TabsContent value="chat" className="mt-4"><DepartmentChat department="google_ads" clinicId={selectedClinicId} /></TabsContent>}
               </Tabs>
-              {(role === "admin" || role === "concierge") && <DepartmentChat department="google_ads" clinicId={selectedClinicId} />}
             </motion.div>
           )}
         </AnimatePresence>
