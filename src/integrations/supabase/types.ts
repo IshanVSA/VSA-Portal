@@ -534,6 +534,33 @@ export type Database = {
           },
         ]
       }
+      oauth_temp_tokens: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          payload: Json
+          provider: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          payload?: Json
+          provider: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          payload?: Json
+          provider?: string
+        }
+        Relationships: []
+      }
       pagespeed_scores: {
         Row: {
           accessibility_score: number
