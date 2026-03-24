@@ -13,7 +13,7 @@ const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET")!;
 const GOOGLE_ADS_DEVELOPER_TOKEN = Deno.env.get("GOOGLE_ADS_DEVELOPER_TOKEN")!;
 
 const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/google-oauth?action=callback`;
-const FRONTEND_URL = Deno.env.get("SITE_URL") || "https://vet-dash-suite.lovable.app";
+const FRONTEND_URL = Deno.env.get("SITE_URL") || "https://portal.vsavetmedia.com";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {

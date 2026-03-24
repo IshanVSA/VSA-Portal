@@ -15,7 +15,7 @@ const META_APP_SECRET = Deno.env.get("META_APP_SECRET")!;
 const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/meta-oauth?action=callback`;
 
 // Frontend URL for redirecting after OAuth
-const FRONTEND_URL = Deno.env.get("SITE_URL") || "https://vet-dash-suite.lovable.app";
+const FRONTEND_URL = Deno.env.get("SITE_URL") || "https://portal.vsavetmedia.com";
 
 const SCOPES = [
   "pages_show_list",
