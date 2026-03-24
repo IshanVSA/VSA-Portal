@@ -85,6 +85,8 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const dragCounterRef = useRef(0);
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Mark as read when visible
   useEffect(() => {
