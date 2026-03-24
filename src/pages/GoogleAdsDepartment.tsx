@@ -1,4 +1,5 @@
 import { useSearchParams } from "react-router-dom";
+import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Megaphone, LayoutDashboard, Ticket, BarChart3, FileText, Upload, DollarSign, MousePointerClick, Percent, Eye } from "lucide-react";

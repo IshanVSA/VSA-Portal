@@ -6,6 +6,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Share2, LayoutDashboard, FileCheck, CalendarDays, ClipboardList, BarChart3, Ticket, Upload } from "lucide-react";
 import { SocialOverview } from "@/components/social/SocialOverview";
 import { lazy, Suspense } from "react";
+import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
