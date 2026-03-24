@@ -451,6 +451,41 @@ export type Database = {
           },
         ]
       }
+      department_chats: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          department: Database["public"]["Enums"]["department_type"]
+          id: string
+          message: string
+          user_id: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          department: Database["public"]["Enums"]["department_type"]
+          id?: string
+          message: string
+          user_id: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          department?: Database["public"]["Enums"]["department_type"]
+          id?: string
+          message?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_chats_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       department_members: {
         Row: {
           created_at: string
@@ -861,6 +896,13 @@ export type Database = {
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_department_member: {
+        Args: {
+          _department: Database["public"]["Enums"]["department_type"]
           _user_id: string
         }
         Returns: boolean
