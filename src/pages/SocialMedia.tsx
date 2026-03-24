@@ -53,7 +53,7 @@ export default function SocialMedia() {
   const selectedClinicName = selectedClinic?.clinic_name;
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-4 dept-tint-social min-h-full -m-6 p-6" data-dept="Social Media">
         {/* Compact page header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/60">
