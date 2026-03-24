@@ -159,7 +159,7 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
     onConsentChange(checked);
   };
 
-  const canVerify = offerTitle.trim() && startDate && endDate;
+  const canVerify = offerTitle.trim() && dateRange.from && dateRange.to;
   const locked = consented;
 
   return (
