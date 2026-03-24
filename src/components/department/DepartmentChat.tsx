@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { MessageSquare, Send, Paperclip, X, FileText, Image as ImageIcon, Download, Search, Reply, CornerDownRight } from "lucide-react";
+import { MessageSquare, Send, Paperclip, X, FileText, Image as ImageIcon, Download, Search, Reply, CornerDownRight, Pin, PinOff, Check, CheckCheck } from "lucide-react";
 import { EmojiPicker } from "./EmojiPicker";
 import { MessageReactions } from "./MessageReactions";
 import { MentionInput, renderMessageWithMentions } from "./MentionInput";
@@ -41,6 +41,7 @@ interface ChatMessage {
   reactions?: Record<string, string[]>;
   reply_to?: string | null;
   reply_preview?: { sender_name: string; message: string } | null;
+  pinned?: boolean;
 }
 
 function getDateLabel(date: Date): string {
@@ -101,7 +102,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
       if (!clinicId) return [];
       const { data, error } = await supabase
         .from("department_chats")
-        .select("id, message, created_at, user_id, attachments, reactions, reply_to")
+        .select("id, message, created_at, user_id, attachments, reactions, reply_to, pinned")
         .eq("department", department)
         .eq("clinic_id", clinicId)
         .order("created_at", { ascending: true })
@@ -127,6 +128,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
         reactions: (m.reactions as unknown as Record<string, string[]> | null) || {},
         reply_to: (m as any).reply_to as string | null,
         reply_preview: null as { sender_name: string; message: string } | null,
+        pinned: (m as any).pinned as boolean || false,
       }));
 
       // Build reply previews
@@ -157,6 +159,51 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     enabled: !!user,
     staleTime: Infinity,
   });
+
+  // Read receipts - fetch all readers for this dept+clinic
+  const readReceiptsKey = ["department-chat-reads", department, clinicId];
+  const { data: readReceipts = [] } = useQuery({
+    queryKey: readReceiptsKey,
+    queryFn: async () => {
+      if (!clinicId) return [];
+      const { data } = await supabase
+        .from("department_chat_reads" as any)
+        .select("user_id, last_read_message_id, last_read_at")
+        .eq("department", department)
+        .eq("clinic_id", clinicId);
+      return (data || []) as unknown as { user_id: string; last_read_message_id: string | null; last_read_at: string }[];
+    },
+    enabled: !!clinicId,
+  });
+
+  // Mark messages as read when viewing
+  const markAsRead = useCallback(async () => {
+    if (!clinicId || !user || messages.length === 0) return;
+    const lastMsg = messages[messages.length - 1];
+    const myReceipt = readReceipts.find((r) => r.user_id === user.id);
+    if (myReceipt?.last_read_message_id === lastMsg.id) return;
+
+    if (myReceipt) {
+      await supabase
+        .from("department_chat_reads" as any)
+        .update({ last_read_message_id: lastMsg.id, last_read_at: new Date().toISOString() } as any)
+        .eq("user_id", user.id)
+        .eq("department", department)
+        .eq("clinic_id", clinicId);
+    } else {
+      await supabase.from("department_chat_reads" as any).insert({
+        user_id: user.id,
+        department,
+        clinic_id: clinicId,
+        last_read_message_id: lastMsg.id,
+      } as any);
+    }
+    queryClient.invalidateQueries({ queryKey: readReceiptsKey });
+  }, [clinicId, user, messages, readReceipts, department, queryClient]);
+
+  useEffect(() => {
+    markAsRead();
+  }, [messages, markAsRead]);
 
   // Filtered messages for search
   const filteredMessages = searchQuery.trim()
@@ -337,6 +384,29 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     setNewMessage((prev) => prev + emoji);
   };
 
+  const handleTogglePin = async (messageId: string, currentlyPinned: boolean) => {
+    await supabase.from("department_chats").update({ pinned: !currentlyPinned } as any).eq("id", messageId);
+    queryClient.invalidateQueries({ queryKey });
+  };
+
+  // Build a map of which messages have been read by whom
+  const getReadByForMessage = (messageId: string): string[] => {
+    if (!user) return [];
+    // Find all read receipts where last_read_message_id >= this message
+    // Since we order by created_at asc, we can compare by checking if the read receipt's
+    // last_read_message is this message or comes after it
+    const msgIndex = messages.findIndex((m) => m.id === messageId);
+    if (msgIndex < 0) return [];
+    
+    return readReceipts
+      .filter((r) => {
+        if (r.user_id === user.id) return false; // Don't show self
+        const readMsgIdx = messages.findIndex((m) => m.id === r.last_read_message_id);
+        return readMsgIdx >= msgIndex;
+      })
+      .map((r) => r.user_id);
+  };
+
   if (!clinicId) return null;
 
   const getInitials = (name: string) => name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
@@ -348,7 +418,11 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     : typingNames.length > 2 ? `${typingNames[0]} and ${typingNames.length - 1} others are typing…`
     : null;
 
+  const pinnedMessages = messages.filter((m) => m.pinned);
   const displayMessages = searchQuery.trim() ? filteredMessages : messages;
+
+  // Build profile map for read receipt names
+  const profilesMap = new Map(messages.map((m) => [m.user_id, m.sender_name || "Unknown"]));
 
   return (
     <Card
@@ -405,6 +479,31 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
       </div>
 
       <CardContent className="p-0">
+        {/* Pinned messages bar */}
+        {pinnedMessages.length > 0 && !searchQuery.trim() && (
+          <div className="px-4 py-2 bg-accent/30 border-b border-border/40">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-foreground mb-1">
+              <Pin className="h-3 w-3 text-primary" />
+              <span>Pinned ({pinnedMessages.length})</span>
+            </div>
+            <div className="space-y-1">
+              {pinnedMessages.slice(0, 3).map((pm) => (
+                <div key={pm.id} className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                  <span className="font-medium text-foreground">{pm.sender_name}:</span>
+                  <span className="truncate">{pm.message.slice(0, 80)}{pm.message.length > 80 ? "…" : ""}</span>
+                  <button
+                    onClick={() => handleTogglePin(pm.id, true)}
+                    className="ml-auto shrink-0 text-muted-foreground hover:text-foreground"
+                    title="Unpin"
+                  >
+                    <PinOff className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {searchQuery.trim() && (
           <div className="px-4 py-1.5 bg-muted/30 border-b border-border/30 text-xs text-muted-foreground">
             {filteredMessages.length} result{filteredMessages.length !== 1 ? "s" : ""} for "{searchQuery}"
@@ -456,6 +555,12 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
                         <div className="flex-1 h-px bg-border/50" />
                       </div>
                     )}
+                    {msg.pinned && (
+                      <div className="flex items-center gap-1 text-[10px] text-primary mb-0.5">
+                        <Pin className="h-2.5 w-2.5" />
+                        <span>Pinned</span>
+                      </div>
+                    )}
                     <div className={`flex gap-2 group/msg ${isOwn ? "flex-row-reverse" : ""}`}>
                       <Avatar className="h-7 w-7 shrink-0">
                         <AvatarFallback className="text-[10px] bg-muted">
@@ -470,13 +575,22 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
                           <span className="text-[10px] text-muted-foreground">
                             {format(msgDate, "h:mm a")}
                           </span>
-                          <button
-                            onClick={() => setReplyTo(msg)}
-                            className="opacity-0 group-hover/msg:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-                            title="Reply"
-                          >
-                            <Reply className="h-3 w-3" />
-                          </button>
+                          <span className="opacity-0 group-hover/msg:opacity-100 transition-opacity flex items-center gap-1">
+                            <button
+                              onClick={() => setReplyTo(msg)}
+                              className="text-muted-foreground hover:text-foreground"
+                              title="Reply"
+                            >
+                              <Reply className="h-3 w-3" />
+                            </button>
+                            <button
+                              onClick={() => handleTogglePin(msg.id, !!msg.pinned)}
+                              className="text-muted-foreground hover:text-foreground"
+                              title={msg.pinned ? "Unpin" : "Pin"}
+                            >
+                              {msg.pinned ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
+                            </button>
+                          </span>
                         </div>
                         {/* Reply preview */}
                         {msg.reply_preview && (
@@ -512,6 +626,25 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
                           onToggleReaction={(emoji) => handleToggleReaction(msg.id, emoji)}
                           isOwn={isOwn}
                         />
+                        {/* Read receipts - show on own messages */}
+                        {isOwn && (() => {
+                          const readers = getReadByForMessage(msg.id);
+                          if (readers.length === 0) return (
+                            <div className={`flex items-center gap-0.5 mt-0.5 ${isOwn ? "justify-end" : ""}`}>
+                              <Check className="h-3 w-3 text-muted-foreground/50" />
+                            </div>
+                          );
+                          return (
+                            <div className={`flex items-center gap-1 mt-0.5 ${isOwn ? "justify-end" : ""}`}>
+                              <CheckCheck className="h-3 w-3 text-primary" />
+                              <span className="text-[10px] text-muted-foreground">
+                                {readers.length === 1
+                                  ? `Seen by ${profilesMap.get(readers[0]) || "1 person"}`
+                                  : `Seen by ${readers.length}`}
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
