@@ -183,6 +183,13 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
           onVisible?.();
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "department_chats", filter: `clinic_id=eq.${clinicId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey });
+        }
+      )
       .on("broadcast", { event: "typing" }, ({ payload }) => {
         if (payload.user_id === user.id) return;
         setTypingUsers((prev) => {
