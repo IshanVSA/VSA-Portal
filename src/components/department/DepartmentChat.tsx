@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { MessageSquare, Send, Paperclip, X, FileText, Image as ImageIcon, Download, Search, Reply, CornerDownRight } from "lucide-react";
+import { MessageSquare, Send, Paperclip, X, FileText, Image as ImageIcon, Download, Search, Reply, CornerDownRight, Pin, PinOff, Check, CheckCheck } from "lucide-react";
 import { EmojiPicker } from "./EmojiPicker";
 import { MessageReactions } from "./MessageReactions";
 import { MentionInput, renderMessageWithMentions } from "./MentionInput";
