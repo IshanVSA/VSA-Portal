@@ -97,30 +97,38 @@ export default function GoogleAdsDepartment() {
           </div>
         </div>
 
-        {accessLoading ? (
-          <DashboardSkeleton />
-        ) : isLocked ? (
-          <DepartmentAccessLocked clinicName={selectedClinicName} departmentName="Google Ads" />
-        ) : (
-          <Tabs value={currentTab} onValueChange={(v) => setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", v); return next; }, { replace: true })} className="w-full">
-            <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto">
-              {tabs.map(tab => (
-                <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm">
-                  <tab.icon className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
+        <AnimatePresence mode="wait">
+          {accessLoading ? (
+            <motion.div key="skeleton" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+              <DashboardSkeleton />
+            </motion.div>
+          ) : isLocked ? (
+            <motion.div key="locked" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+              <DepartmentAccessLocked clinicName={selectedClinicName} departmentName="Google Ads" />
+            </motion.div>
+          ) : (
+            <motion.div key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+              <Tabs value={currentTab} onValueChange={(v) => setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", v); return next; }, { replace: true })} className="w-full">
+                <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto">
+                  {tabs.map(tab => (
+                    <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm">
+                      <tab.icon className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">{tab.label}</span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
 
-            <TabsContent value="overview" className="mt-4">
-              <DepartmentOverview kpis={kpis} services={quickActions} trafficData={trafficData} trafficLabel="Weekly Click Trend" team={team} department="google_ads" accentColor="hsl(var(--dept-ads))" extraSection={campaignsCard} clinicId={selectedClinicId} />
-            </TabsContent>
-            <TabsContent value="tickets" className="mt-4"><TicketsTab department="google_ads" services={services} clinicId={selectedClinicId} /></TabsContent>
-            <TabsContent value="analytics" className="mt-4"><GoogleAdsAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
-            <TabsContent value="reports" className="mt-4"><GoogleAdsReportsTab clinicId={selectedClinicId} /></TabsContent>
-            <TabsContent value="uploads" className="mt-4"><UploadsTab department="google_ads" clinicId={selectedClinicId} /></TabsContent>
-          </Tabs>
-        )}
+                <TabsContent value="overview" className="mt-4">
+                  <DepartmentOverview kpis={kpis} services={quickActions} trafficData={trafficData} trafficLabel="Weekly Click Trend" team={team} department="google_ads" accentColor="hsl(var(--dept-ads))" extraSection={campaignsCard} clinicId={selectedClinicId} />
+                </TabsContent>
+                <TabsContent value="tickets" className="mt-4"><TicketsTab department="google_ads" services={services} clinicId={selectedClinicId} /></TabsContent>
+                <TabsContent value="analytics" className="mt-4"><GoogleAdsAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
+                <TabsContent value="reports" className="mt-4"><GoogleAdsReportsTab clinicId={selectedClinicId} /></TabsContent>
+                <TabsContent value="uploads" className="mt-4"><UploadsTab department="google_ads" clinicId={selectedClinicId} /></TabsContent>
+              </Tabs>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </DashboardLayout>
   );

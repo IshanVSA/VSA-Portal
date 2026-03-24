@@ -158,30 +158,38 @@ export default function SeoDepartment() {
           </div>
         </div>
 
-        {accessLoading ? (
-          <DashboardSkeleton />
-        ) : isLocked ? (
-          <DepartmentAccessLocked clinicName={selectedClinicName} departmentName="SEO" />
-        ) : (
-          <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto">
-              {tabs.map(tab => (
-                <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm">
-                  <tab.icon className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
+        <AnimatePresence mode="wait">
+          {accessLoading ? (
+            <motion.div key="skeleton" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+              <DashboardSkeleton />
+            </motion.div>
+          ) : isLocked ? (
+            <motion.div key="locked" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+              <DepartmentAccessLocked clinicName={selectedClinicName} departmentName="SEO" />
+            </motion.div>
+          ) : (
+            <motion.div key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+              <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
+                <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto">
+                  {tabs.map(tab => (
+                    <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm">
+                      <tab.icon className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">{tab.label}</span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
 
-            <TabsContent value="overview" className="mt-4">
-              <DepartmentOverview kpis={kpis} services={services} trafficData={trafficData.length > 0 ? trafficData : [{ label: "No data", value: 0 }]} trafficLabel="Organic Traffic Trend" team={team} department="seo" accentColor="hsl(var(--dept-seo))" extraSection={<TopKeywordsCard keywords={topKeywords} />} clinicId={selectedClinicId} hideQuickActions={isClient} />
-            </TabsContent>
-            <TabsContent value="tickets" className="mt-4"><TicketsTab department="seo" services={services} clinicId={selectedClinicId} /></TabsContent>
-            <TabsContent value="analytics" className="mt-4"><SeoAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
-            <TabsContent value="reports" className="mt-4"><SeoReportsTab clinicId={selectedClinicId} /></TabsContent>
-            <TabsContent value="uploads" className="mt-4"><UploadsTab department="seo" clinicId={selectedClinicId} /></TabsContent>
-          </Tabs>
-        )}
+                <TabsContent value="overview" className="mt-4">
+                  <DepartmentOverview kpis={kpis} services={services} trafficData={trafficData.length > 0 ? trafficData : [{ label: "No data", value: 0 }]} trafficLabel="Organic Traffic Trend" team={team} department="seo" accentColor="hsl(var(--dept-seo))" extraSection={<TopKeywordsCard keywords={topKeywords} />} clinicId={selectedClinicId} hideQuickActions={isClient} />
+                </TabsContent>
+                <TabsContent value="tickets" className="mt-4"><TicketsTab department="seo" services={services} clinicId={selectedClinicId} /></TabsContent>
+                <TabsContent value="analytics" className="mt-4"><SeoAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
+                <TabsContent value="reports" className="mt-4"><SeoReportsTab clinicId={selectedClinicId} /></TabsContent>
+                <TabsContent value="uploads" className="mt-4"><UploadsTab department="seo" clinicId={selectedClinicId} /></TabsContent>
+              </Tabs>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {selectedClinicId && (

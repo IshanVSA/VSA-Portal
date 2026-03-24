@@ -68,31 +68,39 @@ export default function SocialMedia() {
           </div>
         </div>
 
-        {accessLoading ? (
-          <DashboardSkeleton />
-        ) : isLocked ? (
-          <DepartmentAccessLocked clinicName={selectedClinicName} departmentName="Social Media" />
-        ) : (
-          <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto">
-              {visibleTabs.map(tab => (
-                <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm">
-                  <tab.icon className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                  <span className="sm:hidden">{tab.label.split(" ").pop()}</span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
+        <AnimatePresence mode="wait">
+          {accessLoading ? (
+            <motion.div key="skeleton" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+              <DashboardSkeleton />
+            </motion.div>
+          ) : isLocked ? (
+            <motion.div key="locked" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+              <DepartmentAccessLocked clinicName={selectedClinicName} departmentName="Social Media" />
+            </motion.div>
+          ) : (
+            <motion.div key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+              <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
+                <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto">
+                  {visibleTabs.map(tab => (
+                    <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm">
+                      <tab.icon className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">{tab.label}</span>
+                      <span className="sm:hidden">{tab.label.split(" ").pop()}</span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
 
-            <TabsContent value="overview" className="mt-4"><SocialOverview clinicId={selectedClinicId} /></TabsContent>
-            <TabsContent value="requests" className="mt-4"><Suspense fallback={<TabFallback />}><ContentRequestsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
-            <TabsContent value="tickets" className="mt-4"><TicketsTab department="social_media" services={socialServices} clinicId={selectedClinicId} /></TabsContent>
-            <TabsContent value="calendar" className="mt-4"><Suspense fallback={<TabFallback />}><ContentCalendarContent clinicId={selectedClinicId} /></Suspense></TabsContent>
-            <TabsContent value="intake" className="mt-4"><Suspense fallback={<TabFallback />}><IntakeFormsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
-            <TabsContent value="analytics" className="mt-4"><Suspense fallback={<TabFallback />}><AnalyticsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
-            <TabsContent value="uploads" className="mt-4"><UploadsTab department="social_media" clinicId={selectedClinicId} /></TabsContent>
-          </Tabs>
-        )}
+                <TabsContent value="overview" className="mt-4"><SocialOverview clinicId={selectedClinicId} /></TabsContent>
+                <TabsContent value="requests" className="mt-4"><Suspense fallback={<TabFallback />}><ContentRequestsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
+                <TabsContent value="tickets" className="mt-4"><TicketsTab department="social_media" services={socialServices} clinicId={selectedClinicId} /></TabsContent>
+                <TabsContent value="calendar" className="mt-4"><Suspense fallback={<TabFallback />}><ContentCalendarContent clinicId={selectedClinicId} /></Suspense></TabsContent>
+                <TabsContent value="intake" className="mt-4"><Suspense fallback={<TabFallback />}><IntakeFormsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
+                <TabsContent value="analytics" className="mt-4"><Suspense fallback={<TabFallback />}><AnalyticsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
+                <TabsContent value="uploads" className="mt-4"><UploadsTab department="social_media" clinicId={selectedClinicId} /></TabsContent>
+              </Tabs>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </DashboardLayout>
   );
