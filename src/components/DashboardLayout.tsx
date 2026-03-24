@@ -108,7 +108,7 @@ const pageTitles: Record<string, string> = {
   "/employees": "Team Members", "/clients": "Clients", "/reports": "Reports", "/settings": "Settings",
 };
 
-export function DashboardLayout({ children }: { children: React.ReactNode }) {
+export function DashboardLayout({ children }: { children?: React.ReactNode }) {
   const { clinics: navClinics, selectedClinicId: navSelectedClinicId, setSelectedClinicId: navSetSelectedClinicId, loading: navClinicsLoading } = useClinicSelector();
   const { role } = useUserRole();
   const { user, signOut } = useAuth();
