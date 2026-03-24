@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Trash2, Users, Search, X, Pencil } from "lucide-react";
+import { Plus, Trash2, Users, Search, X, Pencil, AlertTriangle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 
 const TEAM_ROLES = [
