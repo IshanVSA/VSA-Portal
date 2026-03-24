@@ -44,7 +44,7 @@ export default function Login() {
       </div>
 
       {/* Right panel */}
-      <div className="flex-1 flex items-center justify-center p-6 bg-background">
+      <div className="flex-1 flex items-center justify-center p-6 bg-white">
         <div className="w-full max-w-sm space-y-6">
           <div className="lg:hidden flex items-center gap-3 mb-4">
             <img src={vsaLogo} alt="VSA Vet Media" className="h-8 w-8 rounded-lg object-cover" />
