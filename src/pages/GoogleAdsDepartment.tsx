@@ -137,7 +137,7 @@ export default function GoogleAdsDepartment() {
                 <TabsContent value="analytics" className="mt-4"><GoogleAdsAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="reports" className="mt-4"><GoogleAdsReportsTab clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="google_ads" clinicId={selectedClinicId} /></TabsContent>
-                {isStaff && <TabsContent value="chat" className="mt-4"><DepartmentChat department="google_ads" clinicId={selectedClinicId} /></TabsContent>}
+                {isStaff && <TabsContent value="chat" className="mt-4"><DepartmentChat department="google_ads" clinicId={selectedClinicId} onVisible={markAsRead} /></TabsContent>}
               </Tabs>
             </motion.div>
           )}
