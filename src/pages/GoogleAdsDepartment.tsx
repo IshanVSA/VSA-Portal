@@ -82,7 +82,7 @@ export default function GoogleAdsDepartment() {
   ) : undefined;
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-4 dept-tint-ads min-h-full -m-6 p-6" data-dept="Google Ads">
         {/* Compact page header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/60">
