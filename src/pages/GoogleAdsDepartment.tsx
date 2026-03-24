@@ -129,6 +129,7 @@ export default function GoogleAdsDepartment() {
                 <TabsContent value="reports" className="mt-4"><GoogleAdsReportsTab clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="google_ads" clinicId={selectedClinicId} /></TabsContent>
               </Tabs>
+              {(role === "admin" || role === "concierge") && <DepartmentChat department="google_ads" clinicId={selectedClinicId} />}
             </motion.div>
           )}
         </AnimatePresence>

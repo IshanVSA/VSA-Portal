@@ -125,6 +125,7 @@ export default function WebsiteDepartment() {
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="website" clinicId={selectedClinicId} /></TabsContent>
                 {canViewHealth && <TabsContent value="health" className="mt-4"><WebsiteHealthTab clinicId={selectedClinicId} /></TabsContent>}
               </Tabs>
+              {(role === "admin" || role === "concierge") && <DepartmentChat department="website" clinicId={selectedClinicId} />}
             </motion.div>
           )}
         </AnimatePresence>
