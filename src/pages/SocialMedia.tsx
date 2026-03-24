@@ -48,6 +48,7 @@ export default function SocialMedia() {
   const { isLocked, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "social_media", clinicsLoading);
 
   const isStaff = role === "admin" || role === "concierge";
+  const { unreadCount, markAsRead } = useDepartmentChatUnread("social_media", selectedClinicId);
   const visibleTabs = role === "client" ? baseTabs.filter(t => ["overview", "requests", "tickets"].includes(t.value)) : [...baseTabs, ...(isStaff ? [chatTab] : [])];
 
   const handleTabChange = (value: string) => {
