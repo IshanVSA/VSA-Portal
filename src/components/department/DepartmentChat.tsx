@@ -429,7 +429,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
                         <div className="flex-1 h-px bg-border/50" />
                       </div>
                     )}
-                    <div className={`flex gap-2 ${isOwn ? "flex-row-reverse" : ""}`}>
+                    <div className={`flex gap-2 group/msg ${isOwn ? "flex-row-reverse" : ""}`}>
                       <Avatar className="h-7 w-7 shrink-0">
                         <AvatarFallback className="text-[10px] bg-muted">
                           {getInitials(msg.sender_name || "?")}
@@ -464,6 +464,12 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
                             ))}
                           </div>
                         )}
+                        <MessageReactions
+                          reactions={msg.reactions || {}}
+                          currentUserId={user?.id || ""}
+                          onToggleReaction={(emoji) => handleToggleReaction(msg.id, emoji)}
+                          isOwn={isOwn}
+                        />
                       </div>
                     </div>
                   </div>
