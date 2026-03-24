@@ -14,6 +14,7 @@ import { UploadsTab } from "@/components/department/UploadsTab";
 import { useClinicServiceAccess } from "@/hooks/useClinicServiceAccess";
 import { DepartmentAccessLocked } from "@/components/department/DepartmentAccessLocked";
 import { DepartmentChat } from "@/components/department/DepartmentChat";
+import { useDepartmentChatUnread } from "@/hooks/useDepartmentChatUnread";
 
 const ContentRequestsContent = lazy(() => import("@/components/social/ContentRequestsContent"));
 const ContentCalendarContent = lazy(() => import("@/components/social/ContentCalendarContent"));
@@ -47,6 +48,7 @@ export default function SocialMedia() {
   const { isLocked, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "social_media", clinicsLoading);
 
   const isStaff = role === "admin" || role === "concierge";
+  const { unreadCount, markAsRead } = useDepartmentChatUnread("social_media", selectedClinicId);
   const visibleTabs = role === "client" ? baseTabs.filter(t => ["overview", "requests", "tickets"].includes(t.value)) : [...baseTabs, ...(isStaff ? [chatTab] : [])];
 
   const handleTabChange = (value: string) => {
@@ -85,10 +87,15 @@ export default function SocialMedia() {
               <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
                 <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto">
                   {visibleTabs.map(tab => (
-                    <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm">
+                    <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm relative">
                       <tab.icon className="h-3.5 w-3.5" />
                       <span className="hidden sm:inline">{tab.label}</span>
                       <span className="sm:hidden">{tab.label.split(" ").pop()}</span>
+                      {tab.value === "chat" && unreadCount > 0 && currentTab !== "chat" && (
+                        <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                          {unreadCount > 99 ? "99+" : unreadCount}
+                        </span>
+                      )}
                     </TabsTrigger>
                   ))}
                 </TabsList>
@@ -100,7 +107,7 @@ export default function SocialMedia() {
                 <TabsContent value="intake" className="mt-4"><Suspense fallback={<TabFallback />}><IntakeFormsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="analytics" className="mt-4"><Suspense fallback={<TabFallback />}><AnalyticsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="social_media" clinicId={selectedClinicId} /></TabsContent>
-                {isStaff && <TabsContent value="chat" className="mt-4"><DepartmentChat department="social_media" clinicId={selectedClinicId} /></TabsContent>}
+                {isStaff && <TabsContent value="chat" className="mt-4"><DepartmentChat department="social_media" clinicId={selectedClinicId} onVisible={markAsRead} /></TabsContent>}
               </Tabs>
             </motion.div>
           )}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, DragEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageSquare, Send, Paperclip, X, FileText, Image as ImageIcon, Download } from "lucide-react";
+import { MessageSquare, Send, Paperclip, X, FileText, Image as ImageIcon, Download, Search } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ type DepartmentType = Database["public"]["Enums"]["department_type"];
 interface Props {
   department: DepartmentType;
   clinicId: string | undefined;
+  onVisible?: () => void;
 }
 
 interface FileAttachment {
@@ -52,14 +53,21 @@ function isImageType(type: string): boolean {
   return type.startsWith("image/");
 }
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const MAX_FILES = 5;
 const TYPING_TIMEOUT = 3000;
 
-export function DepartmentChat({ department, clinicId }: Props) {
+export function DepartmentChat({ department, clinicId, onVisible }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useCallback((node: HTMLDivElement | null) => {
+    if (node) {
+      // Find the ScrollArea viewport
+      const viewport = node.querySelector("[data-radix-scroll-area-viewport]");
+      (scrollRef as any).current = viewport || node;
+    }
+  }, []);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
@@ -67,6 +75,15 @@ export function DepartmentChat({ department, clinicId }: Props) {
   const [typingUsers, setTypingUsers] = useState<Record<string, { name: string; timeout: NodeJS.Timeout }>>({});
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const lastTypingSentRef = useRef(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounterRef = useRef(0);
+
+  // Mark as read when visible
+  useEffect(() => {
+    onVisible?.();
+  }, [onVisible]);
 
   const queryKey = ["department-chats", department, clinicId];
 
@@ -119,53 +136,45 @@ export function DepartmentChat({ department, clinicId }: Props) {
     staleTime: Infinity,
   });
 
-  // Realtime: DB changes + typing broadcast
+  // Filtered messages for search
+  const filteredMessages = searchQuery.trim()
+    ? messages.filter(
+        (m) =>
+          m.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (m.sender_name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (m.attachments || []).some((a) =>
+            a.name.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+      )
+    : messages;
+
+  // Realtime
   useEffect(() => {
     if (!clinicId || !user) return;
-
-    const channelName = `dept-chat-${department}-${clinicId}`;
     const channel = supabase
-      .channel(channelName)
+      .channel(`dept-chat-${department}-${clinicId}`)
       .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "department_chats",
-          filter: `clinic_id=eq.${clinicId}`,
-        },
+        { event: "INSERT", schema: "public", table: "department_chats", filter: `clinic_id=eq.${clinicId}` },
         () => {
           queryClient.invalidateQueries({ queryKey });
+          onVisible?.();
         }
       )
       .on("broadcast", { event: "typing" }, ({ payload }) => {
         if (payload.user_id === user.id) return;
         setTypingUsers((prev) => {
-          if (prev[payload.user_id]) {
-            clearTimeout(prev[payload.user_id].timeout);
-          }
+          if (prev[payload.user_id]) clearTimeout(prev[payload.user_id].timeout);
           const timeout = setTimeout(() => {
-            setTypingUsers((p) => {
-              const next = { ...p };
-              delete next[payload.user_id];
-              return next;
-            });
+            setTypingUsers((p) => { const next = { ...p }; delete next[payload.user_id]; return next; });
           }, TYPING_TIMEOUT);
-          return {
-            ...prev,
-            [payload.user_id]: { name: payload.name, timeout },
-          };
+          return { ...prev, [payload.user_id]: { name: payload.name, timeout } };
         });
       })
       .subscribe();
-
     typingChannelRef.current = channel;
-
     return () => {
-      setTypingUsers((prev) => {
-        Object.values(prev).forEach((v) => clearTimeout(v.timeout));
-        return {};
-      });
+      setTypingUsers((prev) => { Object.values(prev).forEach((v) => clearTimeout(v.timeout)); return {}; });
       supabase.removeChannel(channel);
       typingChannelRef.current = null;
     };
@@ -176,37 +185,64 @@ export function DepartmentChat({ department, clinicId }: Props) {
     const now = Date.now();
     if (now - lastTypingSentRef.current < 2000) return;
     lastTypingSentRef.current = now;
-    typingChannelRef.current.send({
-      type: "broadcast",
-      event: "typing",
-      payload: { user_id: user.id, name: ownProfile },
-    });
+    typingChannelRef.current.send({ type: "broadcast", event: "typing", payload: { user_id: user.id, name: ownProfile } });
   }, [user, ownProfile]);
 
   useEffect(() => {
-    if (scrollRef.current) {
+    if (scrollRef.current && !searchQuery) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, searchQuery]);
+
+  // --- Drag & Drop ---
+  const addFiles = (files: File[]) => {
+    const valid = files.filter((f) => {
+      if (f.size > MAX_FILE_SIZE) { toast.error(`${f.name} exceeds 10MB limit`); return false; }
+      return true;
+    });
+    setPendingFiles((prev) => {
+      const combined = [...prev, ...valid].slice(0, MAX_FILES);
+      if (prev.length + valid.length > MAX_FILES) toast.warning(`Maximum ${MAX_FILES} files per message`);
+      return combined;
+    });
+  };
+
+  const handleDragEnter = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current++;
+    if (e.dataTransfer.types.includes("Files")) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) setIsDragging(false);
+  };
+
+  const handleDragOver = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current = 0;
+    setIsDragging(false);
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    if (droppedFiles.length > 0) addFiles(droppedFiles);
+  };
 
   const uploadFiles = async (files: File[]): Promise<FileAttachment[]> => {
     const uploaded: FileAttachment[] = [];
     for (const file of files) {
       const ext = file.name.split(".").pop() || "bin";
       const storagePath = `chat/${department}/${clinicId}/${crypto.randomUUID()}.${ext}`;
-      const { error } = await supabase.storage
-        .from("department-files")
-        .upload(storagePath, file);
-      if (error) {
-        toast.error(`Failed to upload ${file.name}`);
-        continue;
-      }
-      uploaded.push({
-        name: file.name,
-        path: storagePath,
-        type: file.type,
-        size: file.size,
-      });
+      const { error } = await supabase.storage.from("department-files").upload(storagePath, file);
+      if (error) { toast.error(`Failed to upload ${file.name}`); continue; }
+      uploaded.push({ name: file.name, path: storagePath, type: file.type, size: file.size });
     }
     return uploaded;
   };
@@ -215,33 +251,22 @@ export function DepartmentChat({ department, clinicId }: Props) {
     const hasMessage = newMessage.trim().length > 0;
     const hasFiles = pendingFiles.length > 0;
     if ((!hasMessage && !hasFiles) || !clinicId || !user) return;
-
     setSending(true);
     try {
       let attachments: FileAttachment[] = [];
-      if (hasFiles) {
-        attachments = await uploadFiles(pendingFiles);
-      }
-
+      if (hasFiles) attachments = await uploadFiles(pendingFiles);
       await supabase.from("department_chats").insert({
-        department,
-        clinic_id: clinicId,
-        user_id: user.id,
+        department, clinic_id: clinicId, user_id: user.id,
         message: newMessage.trim() || (attachments.length > 0 ? `Sent ${attachments.length} file${attachments.length > 1 ? "s" : ""}` : ""),
         attachments: attachments as any,
       });
       setNewMessage("");
       setPendingFiles([]);
-    } finally {
-      setSending(false);
-    }
+    } finally { setSending(false); }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -250,76 +275,93 @@ export function DepartmentChat({ department, clinicId }: Props) {
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = Array.from(e.target.files || []);
-    const valid = selected.filter((f) => {
-      if (f.size > MAX_FILE_SIZE) {
-        toast.error(`${f.name} exceeds 10MB limit`);
-        return false;
-      }
-      return true;
-    });
-
-    setPendingFiles((prev) => {
-      const combined = [...prev, ...valid].slice(0, MAX_FILES);
-      if (prev.length + valid.length > MAX_FILES) {
-        toast.warning(`Maximum ${MAX_FILES} files per message`);
-      }
-      return combined;
-    });
-
-    // Reset input so re-selecting same file works
+    addFiles(Array.from(e.target.files || []));
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const removePendingFile = (index: number) => {
-    setPendingFiles((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const getSignedUrl = async (path: string) => {
-    const { data } = await supabase.storage
-      .from("department-files")
-      .createSignedUrl(path, 300);
-    return data?.signedUrl;
-  };
+  const removePendingFile = (index: number) => setPendingFiles((prev) => prev.filter((_, i) => i !== index));
 
   const handleDownload = async (attachment: FileAttachment) => {
-    const url = await getSignedUrl(attachment.path);
-    if (url) {
-      window.open(url, "_blank");
-    } else {
-      toast.error("Failed to get download link");
-    }
+    const { data } = await supabase.storage.from("department-files").createSignedUrl(attachment.path, 300);
+    if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+    else toast.error("Failed to get download link");
   };
 
   if (!clinicId) return null;
 
-  const getInitials = (name: string) =>
-    name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
+  const getInitials = (name: string) => name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
   const typingNames = Object.values(typingUsers).map((v) => v.name);
   const typingText =
-    typingNames.length === 1
-      ? `${typingNames[0]} is typing…`
-      : typingNames.length === 2
-      ? `${typingNames[0]} and ${typingNames[1]} are typing…`
-      : typingNames.length > 2
-      ? `${typingNames[0]} and ${typingNames.length - 1} others are typing…`
-      : null;
+    typingNames.length === 1 ? `${typingNames[0]} is typing…`
+    : typingNames.length === 2 ? `${typingNames[0]} and ${typingNames[1]} are typing…`
+    : typingNames.length > 2 ? `${typingNames[0]} and ${typingNames.length - 1} others are typing…`
+    : null;
+
+  const displayMessages = searchQuery.trim() ? filteredMessages : messages;
 
   return (
-    <Card className="border-border/60">
+    <Card
+      className={`border-border/60 relative transition-colors ${isDragging ? "ring-2 ring-primary/50 bg-primary/5" : ""}`}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {/* Drag overlay */}
+      {isDragging && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-lg border-2 border-dashed border-primary/50">
+          <div className="flex flex-col items-center gap-2 text-primary">
+            <Paperclip className="h-8 w-8" />
+            <p className="text-sm font-medium">Drop files here</p>
+          </div>
+        </div>
+      )}
+
       <div className="px-4 py-3 border-b border-border/40 flex items-center gap-2">
         <MessageSquare className="h-4 w-4 text-muted-foreground" />
         <h3 className="text-sm font-bold text-foreground">Team Chat</h3>
-        <span className="text-xs text-muted-foreground ml-auto">Internal only</span>
+        <div className="ml-auto flex items-center gap-1">
+          {searchOpen ? (
+            <div className="flex items-center gap-1">
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search messages..."
+                className="h-7 w-48 text-xs"
+                autoFocus
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => { setSearchOpen(false); setSearchQuery(""); }}
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0"
+              onClick={() => setSearchOpen(true)}
+            >
+              <Search className="h-3.5 w-3.5 text-muted-foreground" />
+            </Button>
+          )}
+          <span className="text-xs text-muted-foreground">Internal only</span>
+        </div>
       </div>
+
       <CardContent className="p-0">
-        <ScrollArea className="h-[300px] px-4 py-3" ref={scrollRef as any}>
+        {searchQuery.trim() && (
+          <div className="px-4 py-1.5 bg-muted/30 border-b border-border/30 text-xs text-muted-foreground">
+            {filteredMessages.length} result{filteredMessages.length !== 1 ? "s" : ""} for "{searchQuery}"
+          </div>
+        )}
+
+        <ScrollArea className="h-[300px] px-4 py-3" ref={scrollContainerRef}>
           {isLoading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
@@ -332,17 +374,23 @@ export function DepartmentChat({ department, clinicId }: Props) {
                 </div>
               ))}
             </div>
-          ) : messages.length === 0 ? (
+          ) : displayMessages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm">
               <MessageSquare className="h-8 w-8 mb-2 opacity-40" />
-              <p>No messages yet</p>
-              <p className="text-xs">Start the conversation</p>
+              {searchQuery.trim() ? (
+                <p>No messages matching your search</p>
+              ) : (
+                <>
+                  <p>No messages yet</p>
+                  <p className="text-xs">Start the conversation</p>
+                </>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
-              {messages.map((msg, idx) => {
+              {displayMessages.map((msg, idx) => {
                 const msgDate = new Date(msg.created_at);
-                const prevDate = idx > 0 ? new Date(messages[idx - 1].created_at) : null;
+                const prevDate = idx > 0 ? new Date(displayMessages[idx - 1].created_at) : null;
                 const showDateSeparator = !prevDate || !isSameDay(msgDate, prevDate);
                 const isOwn = msg.user_id === user?.id;
                 const attachments = msg.attachments || [];
@@ -375,13 +423,15 @@ export function DepartmentChat({ department, clinicId }: Props) {
                         </div>
                         {msg.message && (
                           <div
-                            className={`inline-block px-3 py-1.5 rounded-xl text-sm ${
+                            className={`inline-block px-3 py-1.5 rounded-xl text-sm whitespace-pre-wrap break-words ${
                               isOwn
                                 ? "bg-primary text-primary-foreground rounded-tr-sm"
                                 : "bg-muted text-foreground rounded-tl-sm"
                             }`}
                           >
-                            {msg.message}
+                            {searchQuery.trim()
+                              ? highlightText(msg.message, searchQuery)
+                              : msg.message}
                           </div>
                         )}
                         {attachments.length > 0 && (
@@ -418,10 +468,7 @@ export function DepartmentChat({ department, clinicId }: Props) {
         {pendingFiles.length > 0 && (
           <div className="px-3 pb-1 flex flex-wrap gap-1.5">
             {pendingFiles.map((file, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-1.5 bg-muted rounded-lg px-2 py-1 text-xs text-foreground"
-              >
+              <div key={i} className="flex items-center gap-1.5 bg-muted rounded-lg px-2 py-1 text-xs text-foreground">
                 {isImageType(file.type) ? (
                   <ImageIcon className="h-3 w-3 text-muted-foreground shrink-0" />
                 ) : (
@@ -429,10 +476,7 @@ export function DepartmentChat({ department, clinicId }: Props) {
                 )}
                 <span className="truncate max-w-[120px]">{file.name}</span>
                 <span className="text-muted-foreground">{formatFileSize(file.size)}</span>
-                <button
-                  onClick={() => removePendingFile(i)}
-                  className="ml-0.5 text-muted-foreground hover:text-foreground transition-colors"
-                >
+                <button onClick={() => removePendingFile(i)} className="ml-0.5 text-muted-foreground hover:text-foreground transition-colors">
                   <X className="h-3 w-3" />
                 </button>
               </div>
@@ -441,38 +485,12 @@ export function DepartmentChat({ department, clinicId }: Props) {
         )}
 
         <div className="flex gap-2 p-3 border-t border-border/40">
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            className="hidden"
-            onChange={handleFileSelect}
-            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip"
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={sending}
-            className="h-9 w-9 p-0 shrink-0"
-          >
+          <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileSelect} accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip" />
+          <Button type="button" variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} disabled={sending} className="h-9 w-9 p-0 shrink-0">
             <Paperclip className="h-4 w-4 text-muted-foreground" />
           </Button>
-          <Input
-            placeholder="Type a message..."
-            value={newMessage}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            disabled={sending}
-            className="text-sm h-9"
-          />
-          <Button
-            size="sm"
-            onClick={handleSend}
-            disabled={(!newMessage.trim() && pendingFiles.length === 0) || sending}
-            className="h-9 px-3"
-          >
+          <Input placeholder="Type a message..." value={newMessage} onChange={handleInputChange} onKeyDown={handleKeyDown} disabled={sending} className="text-sm h-9" />
+          <Button size="sm" onClick={handleSend} disabled={(!newMessage.trim() && pendingFiles.length === 0) || sending} className="h-9 px-3">
             <Send className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -481,14 +499,28 @@ export function DepartmentChat({ department, clinicId }: Props) {
   );
 }
 
+// Highlight matching text in search results
+function highlightText(text: string, query: string) {
+  if (!query.trim()) return text;
+  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
+  const parts = text.split(regex);
+  return (
+    <>
+      {parts.map((part, i) =>
+        regex.test(part) ? (
+          <mark key={i} className="bg-yellow-300/60 dark:bg-yellow-500/30 text-inherit rounded-sm px-0.5">
+            {part}
+          </mark>
+        ) : (
+          part
+        )
+      )}
+    </>
+  );
+}
+
 // Attachment preview sub-component
-function AttachmentPreview({
-  attachment,
-  onDownload,
-}: {
-  attachment: FileAttachment;
-  onDownload: (att: FileAttachment) => void;
-}) {
+function AttachmentPreview({ attachment, onDownload }: { attachment: FileAttachment; onDownload: (att: FileAttachment) => void }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const isImage = isImageType(attachment.type);
 
@@ -496,9 +528,7 @@ function AttachmentPreview({
     if (!isImage) return;
     let cancelled = false;
     (async () => {
-      const { data } = await supabase.storage
-        .from("department-files")
-        .createSignedUrl(attachment.path, 300);
+      const { data } = await supabase.storage.from("department-files").createSignedUrl(attachment.path, 300);
       if (!cancelled && data?.signedUrl) setPreviewUrl(data.signedUrl);
     })();
     return () => { cancelled = true; };
@@ -506,15 +536,8 @@ function AttachmentPreview({
 
   if (isImage && previewUrl) {
     return (
-      <button
-        onClick={() => onDownload(attachment)}
-        className="group relative rounded-lg overflow-hidden border border-border/50 max-w-[200px]"
-      >
-        <img
-          src={previewUrl}
-          alt={attachment.name}
-          className="max-h-[140px] w-auto object-cover rounded-lg"
-        />
+      <button onClick={() => onDownload(attachment)} className="group relative rounded-lg overflow-hidden border border-border/50 max-w-[200px]">
+        <img src={previewUrl} alt={attachment.name} className="max-h-[140px] w-auto object-cover rounded-lg" />
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
           <Download className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
@@ -523,10 +546,7 @@ function AttachmentPreview({
   }
 
   return (
-    <button
-      onClick={() => onDownload(attachment)}
-      className="flex items-center gap-2 bg-muted hover:bg-muted/80 transition-colors rounded-lg px-3 py-2 text-xs text-foreground"
-    >
+    <button onClick={() => onDownload(attachment)} className="flex items-center gap-2 bg-muted hover:bg-muted/80 transition-colors rounded-lg px-3 py-2 text-xs text-foreground">
       <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
       <div className="text-left min-w-0">
         <p className="truncate max-w-[150px] font-medium">{attachment.name}</p>
