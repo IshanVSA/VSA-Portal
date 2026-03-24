@@ -291,6 +291,25 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     else toast.error("Failed to get download link");
   };
 
+  const handleToggleReaction = async (messageId: string, emoji: string) => {
+    if (!user) return;
+    const msg = messages.find((m) => m.id === messageId);
+    if (!msg) return;
+    const reactions = { ...(msg.reactions || {}) };
+    const users = reactions[emoji] ? [...reactions[emoji]] : [];
+    const idx = users.indexOf(user.id);
+    if (idx >= 0) users.splice(idx, 1);
+    else users.push(user.id);
+    if (users.length === 0) delete reactions[emoji];
+    else reactions[emoji] = users;
+    await supabase.from("department_chats").update({ reactions: reactions as any }).eq("id", messageId);
+    queryClient.invalidateQueries({ queryKey });
+  };
+
+  const handleEmojiInsert = (emoji: string) => {
+    setNewMessage((prev) => prev + emoji);
+  };
+
   if (!clinicId) return null;
 
   const getInitials = (name: string) => name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
