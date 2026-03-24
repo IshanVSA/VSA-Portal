@@ -13,6 +13,7 @@ import { TicketsTab } from "@/components/department/TicketsTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
 import { useClinicServiceAccess } from "@/hooks/useClinicServiceAccess";
 import { DepartmentAccessLocked } from "@/components/department/DepartmentAccessLocked";
+import { DepartmentChat } from "@/components/department/DepartmentChat";
 
 const ContentRequestsContent = lazy(() => import("@/components/social/ContentRequestsContent"));
 const ContentCalendarContent = lazy(() => import("@/components/social/ContentCalendarContent"));
