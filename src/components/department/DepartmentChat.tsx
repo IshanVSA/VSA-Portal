@@ -281,19 +281,21 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
         department, clinic_id: clinicId, user_id: user.id,
         message: newMessage.trim() || (attachments.length > 0 ? `Sent ${attachments.length} file${attachments.length > 1 ? "s" : ""}` : ""),
         attachments: attachments as any,
-      });
+        reply_to: replyTo?.id || null,
+      } as any);
       setNewMessage("");
       setPendingFiles([]);
+      setReplyTo(null);
     } finally { setSending(false); }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewMessage(e.target.value);
-    if (e.target.value.trim()) broadcastTyping();
+  const handleInputChange = (val: string) => {
+    setNewMessage(val);
+    if (val.trim()) broadcastTyping();
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
