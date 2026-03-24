@@ -119,6 +119,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
         ...m,
         sender_name: profileMap[m.user_id] || "Unknown",
         attachments: (m.attachments as unknown as FileAttachment[] | null) || [],
+        reactions: (m.reactions as unknown as Record<string, string[]> | null) || {},
       })) as ChatMessage[];
     },
     enabled: !!clinicId,
