@@ -59,8 +59,12 @@ export default function WebsiteDepartment() {
   const { role } = useUserRole();
   const canViewHealth = role === "admin" || role === "concierge";
   const { isLocked, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "website", clinicsLoading);
-  const tabs = canViewHealth ? [...baseTabs, healthTab] : baseTabs;
-
+  const isStaff = role === "admin" || role === "concierge";
+  const tabs = [
+    ...baseTabs,
+    ...(canViewHealth ? [healthTab] : []),
+    ...(isStaff ? [chatTab] : []),
+  ];
   const selectedClinicName = selectedClinic?.clinic_name;
 
   const visitorsChange = formatChange(kpiData.visitorsToday, kpiData.visitorsLastWeek);
