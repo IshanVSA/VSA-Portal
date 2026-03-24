@@ -128,6 +128,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
         reactions: (m.reactions as unknown as Record<string, string[]> | null) || {},
         reply_to: (m as any).reply_to as string | null,
         reply_preview: null as { sender_name: string; message: string } | null,
+        pinned: (m as any).pinned as boolean || false,
       }));
 
       // Build reply previews
