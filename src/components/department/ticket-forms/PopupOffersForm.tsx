@@ -116,11 +116,13 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
     if (fields.offerText) { setOfferText(fields.offerText); handleFieldChange(); }
     if (fields.termsAndConditions) { setTermsAndConditions(fields.termsAndConditions); handleFieldChange(); }
     if (fields.additionalNotes) { setAdditionalNotes(fields.additionalNotes); handleFieldChange(); }
-    if (fields.startDate) {
-      try { setStartDate(parse(fields.startDate, "yyyy-MM-dd", new Date())); handleFieldChange(); } catch {}
-    }
-    if (fields.endDate) {
-      try { setEndDate(parse(fields.endDate, "yyyy-MM-dd", new Date())); handleFieldChange(); } catch {}
+    if (fields.startDate || fields.endDate) {
+      try {
+        const from = fields.startDate ? parse(fields.startDate, "yyyy-MM-dd", new Date()) : dateRange.from;
+        const to = fields.endDate ? parse(fields.endDate, "yyyy-MM-dd", new Date()) : dateRange.to;
+        setDateRange({ from, to });
+        handleFieldChange();
+      } catch {}
     }
   }, [handleFieldChange]);
 
