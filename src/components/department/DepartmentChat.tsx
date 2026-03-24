@@ -39,6 +39,8 @@ interface ChatMessage {
   sender_name?: string;
   attachments?: FileAttachment[];
   reactions?: Record<string, string[]>;
+  reply_to?: string | null;
+  reply_preview?: { sender_name: string; message: string } | null;
 }
 
 function getDateLabel(date: Date): string {
