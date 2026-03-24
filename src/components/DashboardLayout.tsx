@@ -163,6 +163,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
   }, [user, role]);
 
 
+  useEffect(() => {
     if (role === "client" && user) {
       supabase
         .from("clinics")
