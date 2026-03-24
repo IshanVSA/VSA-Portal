@@ -195,7 +195,7 @@ export default function AdminReview() {
   const completedRequests = requests.filter(r => r.status === "final_approved");
 
   return (
-    <DashboardLayout>
+    <>
       <div className="min-h-full dot-grid rounded-xl p-4 sm:p-6 md:p-8">
         <div className="space-y-4 sm:space-y-6">
           {/* Hero Header */}
