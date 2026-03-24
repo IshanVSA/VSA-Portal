@@ -67,7 +67,7 @@ export default function ClientsPage() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         <div className="hero-section">
           <div className="relative z-10 flex items-center justify-between">
