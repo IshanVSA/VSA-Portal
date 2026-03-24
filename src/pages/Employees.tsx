@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { Plus, Trash2, Users, Search, X, Pencil, AlertTriangle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -410,10 +411,19 @@ export default function Employees() {
                           <span className="text-sm flex items-center gap-1.5">
                             {c.clinic_name}
                             {existingMembers && existingMembers.length > 0 && (
-                              <>
-                                <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                                <span className="text-amber-600 dark:text-amber-400 text-xs">({existingMembers.join(", ")})</span>
-                              </>
+                              <TooltipProvider delayDuration={200}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="inline-flex items-center gap-1 cursor-help">
+                                      <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                                      <span className="text-amber-600 dark:text-amber-400 text-xs">({existingMembers.join(", ")})</span>
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="right">
+                                    <p className="text-xs">This clinic already has {editForm.team_role === "Ads Analyst" ? "an" : "a"} {editForm.team_role} assigned</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             )}
                           </span>
                         </label>
