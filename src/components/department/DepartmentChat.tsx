@@ -3,13 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageSquare, Send, Paperclip, X, FileText, Image as ImageIcon, Download, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { MessageSquare, Send, Paperclip, X, FileText, Image as ImageIcon, Download, Search, Reply, CornerDownRight } from "lucide-react";
 import { EmojiPicker } from "./EmojiPicker";
 import { MessageReactions } from "./MessageReactions";
+import { MentionInput, renderMessageWithMentions } from "./MentionInput";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { toast } from "sonner";
@@ -38,6 +39,8 @@ interface ChatMessage {
   sender_name?: string;
   attachments?: FileAttachment[];
   reactions?: Record<string, string[]>;
+  reply_to?: string | null;
+  reply_preview?: { sender_name: string; message: string } | null;
 }
 
 function getDateLabel(date: Date): string {
@@ -82,6 +85,8 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const dragCounterRef = useRef(0);
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Mark as read when visible
   useEffect(() => {
@@ -96,7 +101,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
       if (!clinicId) return [];
       const { data, error } = await supabase
         .from("department_chats")
-        .select("id, message, created_at, user_id, attachments, reactions")
+        .select("id, message, created_at, user_id, attachments, reactions, reply_to")
         .eq("department", department)
         .eq("clinic_id", clinicId)
         .order("created_at", { ascending: true })
@@ -115,12 +120,25 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
         );
       }
 
-      return (data || []).map((m) => ({
+      const mapped = (data || []).map((m) => ({
         ...m,
         sender_name: profileMap[m.user_id] || "Unknown",
         attachments: (m.attachments as unknown as FileAttachment[] | null) || [],
         reactions: (m.reactions as unknown as Record<string, string[]> | null) || {},
-      })) as ChatMessage[];
+        reply_to: (m as any).reply_to as string | null,
+        reply_preview: null as { sender_name: string; message: string } | null,
+      }));
+
+      // Build reply previews
+      const msgMap = new Map(mapped.map((m) => [m.id, m]));
+      for (const m of mapped) {
+        if (m.reply_to && msgMap.has(m.reply_to)) {
+          const parent = msgMap.get(m.reply_to)!;
+          m.reply_preview = { sender_name: parent.sender_name, message: parent.message };
+        }
+      }
+
+      return mapped as ChatMessage[];
     },
     enabled: !!clinicId,
   });
@@ -163,6 +181,13 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
         () => {
           queryClient.invalidateQueries({ queryKey });
           onVisible?.();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "department_chats", filter: `clinic_id=eq.${clinicId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey });
         }
       )
       .on("broadcast", { event: "typing" }, ({ payload }) => {
@@ -263,19 +288,21 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
         department, clinic_id: clinicId, user_id: user.id,
         message: newMessage.trim() || (attachments.length > 0 ? `Sent ${attachments.length} file${attachments.length > 1 ? "s" : ""}` : ""),
         attachments: attachments as any,
-      });
+        reply_to: replyTo?.id || null,
+      } as any);
       setNewMessage("");
       setPendingFiles([]);
+      setReplyTo(null);
     } finally { setSending(false); }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewMessage(e.target.value);
-    if (e.target.value.trim()) broadcastTyping();
+  const handleInputChange = (val: string) => {
+    setNewMessage(val);
+    if (val.trim()) broadcastTyping();
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -443,7 +470,24 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
                           <span className="text-[10px] text-muted-foreground">
                             {format(msgDate, "h:mm a")}
                           </span>
+                          <button
+                            onClick={() => setReplyTo(msg)}
+                            className="opacity-0 group-hover/msg:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                            title="Reply"
+                          >
+                            <Reply className="h-3 w-3" />
+                          </button>
                         </div>
+                        {/* Reply preview */}
+                        {msg.reply_preview && (
+                          <div className={`flex items-start gap-1.5 mb-1 ${isOwn ? "justify-end" : ""}`}>
+                            <CornerDownRight className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5" />
+                            <div className="text-[11px] text-muted-foreground bg-muted/50 rounded px-2 py-0.5 max-w-[200px] truncate border-l-2 border-primary/40">
+                              <span className="font-medium">{msg.reply_preview.sender_name}:</span>{" "}
+                              {msg.reply_preview.message.slice(0, 60)}{msg.reply_preview.message.length > 60 ? "…" : ""}
+                            </div>
+                          </div>
+                        )}
                         {msg.message && (
                           <div
                             className={`inline-block px-3 py-1.5 rounded-xl text-sm whitespace-pre-wrap break-words ${
@@ -452,9 +496,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
                                 : "bg-muted text-foreground rounded-tl-sm"
                             }`}
                           >
-                            {searchQuery.trim()
-                              ? highlightText(msg.message, searchQuery)
-                              : msg.message}
+                            {renderMessageWithMentions(msg.message, searchQuery.trim() ? searchQuery : undefined)}
                           </div>
                         )}
                         {attachments.length > 0 && (
@@ -513,13 +555,34 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
           </div>
         )}
 
+        {/* Reply preview */}
+        {replyTo && (
+          <div className="px-3 pt-2 pb-1 flex items-center gap-2 text-xs text-muted-foreground border-t border-border/40 bg-muted/20">
+            <Reply className="h-3 w-3 shrink-0" />
+            <span className="truncate">
+              Replying to <span className="font-medium text-foreground">{replyTo.sender_name}</span>: {replyTo.message.slice(0, 50)}{replyTo.message.length > 50 ? "…" : ""}
+            </span>
+            <button onClick={() => setReplyTo(null)} className="ml-auto shrink-0 text-muted-foreground hover:text-foreground">
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        )}
+
         <div className="flex gap-2 p-3 border-t border-border/40">
           <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileSelect} accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip" />
           <Button type="button" variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} disabled={sending} className="h-9 w-9 p-0 shrink-0">
             <Paperclip className="h-4 w-4 text-muted-foreground" />
           </Button>
           <EmojiPicker onSelect={handleEmojiInsert} side="top" align="start" />
-          <Input placeholder="Type a message..." value={newMessage} onChange={handleInputChange} onKeyDown={handleKeyDown} disabled={sending} className="text-sm h-9" />
+          <MentionInput
+            value={newMessage}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            department={department}
+            clinicId={clinicId}
+            disabled={sending}
+            placeholder="Type a message... Use @ to mention"
+          />
           <Button size="sm" onClick={handleSend} disabled={(!newMessage.trim() && pendingFiles.length === 0) || sending} className="h-9 px-3">
             <Send className="h-3.5 w-3.5" />
           </Button>
@@ -529,25 +592,8 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
   );
 }
 
-// Highlight matching text in search results
-function highlightText(text: string, query: string) {
-  if (!query.trim()) return text;
-  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
-  const parts = text.split(regex);
-  return (
-    <>
-      {parts.map((part, i) =>
-        regex.test(part) ? (
-          <mark key={i} className="bg-yellow-300/60 dark:bg-yellow-500/30 text-inherit rounded-sm px-0.5">
-            {part}
-          </mark>
-        ) : (
-          part
-        )
-      )}
-    </>
-  );
-}
+
+
 
 // Attachment preview sub-component
 function AttachmentPreview({ attachment, onDownload }: { attachment: FileAttachment; onDownload: (att: FileAttachment) => void }) {
