@@ -1,7 +1,7 @@
 import { useSearchParams } from "react-router-dom";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { AnimatePresence, motion } from "framer-motion";
-import { DashboardLayout } from "@/components/DashboardLayout";
+
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Eye, TrendingUp, Clock, Layers, HeartPulse } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
