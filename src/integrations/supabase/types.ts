@@ -451,6 +451,48 @@ export type Database = {
           },
         ]
       }
+      department_chat_reads: {
+        Row: {
+          clinic_id: string
+          department: Database["public"]["Enums"]["department_type"]
+          id: string
+          last_read_at: string
+          last_read_message_id: string | null
+          user_id: string
+        }
+        Insert: {
+          clinic_id: string
+          department: Database["public"]["Enums"]["department_type"]
+          id?: string
+          last_read_at?: string
+          last_read_message_id?: string | null
+          user_id: string
+        }
+        Update: {
+          clinic_id?: string
+          department?: Database["public"]["Enums"]["department_type"]
+          id?: string
+          last_read_at?: string
+          last_read_message_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_chat_reads_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_chat_reads_last_read_message_id_fkey"
+            columns: ["last_read_message_id"]
+            isOneToOne: false
+            referencedRelation: "department_chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       department_chats: {
         Row: {
           attachments: Json
@@ -459,6 +501,7 @@ export type Database = {
           department: Database["public"]["Enums"]["department_type"]
           id: string
           message: string
+          pinned: boolean
           reactions: Json
           reply_to: string | null
           user_id: string
@@ -470,6 +513,7 @@ export type Database = {
           department: Database["public"]["Enums"]["department_type"]
           id?: string
           message: string
+          pinned?: boolean
           reactions?: Json
           reply_to?: string | null
           user_id: string
@@ -481,6 +525,7 @@ export type Database = {
           department?: Database["public"]["Enums"]["department_type"]
           id?: string
           message?: string
+          pinned?: boolean
           reactions?: Json
           reply_to?: string | null
           user_id?: string

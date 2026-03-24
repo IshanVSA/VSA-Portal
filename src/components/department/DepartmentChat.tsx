@@ -41,6 +41,7 @@ interface ChatMessage {
   reactions?: Record<string, string[]>;
   reply_to?: string | null;
   reply_preview?: { sender_name: string; message: string } | null;
+  pinned?: boolean;
 }
 
 function getDateLabel(date: Date): string {
