@@ -1,5 +1,5 @@
 import { useSearchParams } from "react-router-dom";
-import { DashboardLayout } from "@/components/DashboardLayout";
+
 import { useUserRole } from "@/hooks/useUserRole";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
