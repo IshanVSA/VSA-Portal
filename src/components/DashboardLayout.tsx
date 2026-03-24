@@ -255,7 +255,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const clinicSelectorSelectedId = role === "client" ? clientSelectedId || "" : navSelectedClinicId;
 
   const isDepartmentLocked = (path: string) => {
-    if (role === "admin" || !clinicAccess) return false;
+    if (role === "admin") return false;
+    if (clinicAccessLoading || !clinicAccess) return false;
 
     const accessKey = departmentPathToAccessKey[path];
     if (!accessKey) return false;
