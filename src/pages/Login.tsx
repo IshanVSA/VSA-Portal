@@ -44,29 +44,29 @@ export default function Login() {
       </div>
 
       {/* Right panel */}
-      <div className="flex-1 flex items-center justify-center p-6 bg-background">
-        <div className="w-full max-w-sm space-y-6">
+      <div className="flex-1 flex items-center justify-center p-6 bg-white">
+        <div className="w-full max-w-sm space-y-6 text-gray-900">
           <div className="lg:hidden flex items-center gap-3 mb-4">
             <img src={vsaLogo} alt="VSA Vet Media" className="h-8 w-8 rounded-lg object-cover" />
-            <span className="font-semibold text-foreground text-sm">VSA Vet Media</span>
+            <span className="font-semibold text-gray-900 text-sm">VSA Vet Media</span>
           </div>
 
           <div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">Welcome back</h1>
-            <p className="text-muted-foreground mt-1 text-sm">Sign in to your dashboard</p>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Welcome back</h1>
+            <p className="text-gray-500 mt-1 text-sm">Sign in to your dashboard</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required className="input-glow" />
+              <Label htmlFor="email" className="text-gray-700">Email</Label>
+              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required className="input-glow border-gray-200 bg-white text-gray-900 placeholder:text-gray-400" />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="text-gray-700">Password</Label>
                 <button type="button" onClick={() => setForgotMode(true)} className="text-xs text-primary hover:underline">Forgot password?</button>
               </div>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required minLength={6} className="input-glow" />
+              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required minLength={6} className="input-glow border-gray-200 bg-white text-gray-900 placeholder:text-gray-400" />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Loading..." : "Sign In"}
