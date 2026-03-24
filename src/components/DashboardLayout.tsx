@@ -187,6 +187,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       .then(({ data }: { data: ClinicAccessState | null }) => {
         setClinicAccess(data);
         setClinicAccessId(activeClinicId);
+        setClinicAccessLoading(false);
       });
   }, [activeClinicId]);
 
