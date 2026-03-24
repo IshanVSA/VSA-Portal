@@ -213,35 +213,38 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label>Start Date *</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" disabled={locked} className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground")}>
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar mode="single" selected={startDate} onSelect={(date) => { setStartDate(date); handleFieldChange(); }} disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))} initialFocus className={cn("p-3 pointer-events-auto")} />
-            </PopoverContent>
-          </Popover>
-        </div>
-        <div className="space-y-1.5">
-          <Label>End Date *</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" disabled={locked} className={cn("w-full justify-start text-left font-normal", !endDate && "text-muted-foreground")}>
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar mode="single" selected={endDate} onSelect={(date) => { setEndDate(date); handleFieldChange(); }} disabled={(date) => { const today = new Date(new Date().setHours(0, 0, 0, 0)); return date < (startDate || today); }} initialFocus className={cn("p-3 pointer-events-auto")} />
-            </PopoverContent>
-          </Popover>
-        </div>
+      <div className="space-y-1.5">
+        <Label>Offer Period *</Label>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" disabled={locked} className={cn("w-full justify-start text-left font-normal", !dateRange.from && "text-muted-foreground")}>
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {dateRange.from ? (
+                dateRange.to ? (
+                  <span>{format(dateRange.from, "MMM d, yyyy")} – {format(dateRange.to, "MMM d, yyyy")}</span>
+                ) : (
+                  <span>{format(dateRange.from, "MMM d, yyyy")} – pick end date</span>
+                )
+              ) : (
+                <span>Pick date range</span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="range"
+              selected={dateRange.from ? { from: dateRange.from, to: dateRange.to } : undefined}
+              onSelect={(range) => {
+                setDateRange({ from: range?.from, to: range?.to });
+                handleFieldChange();
+              }}
+              disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+              numberOfMonths={2}
+              initialFocus
+              className={cn("p-3 pointer-events-auto")}
+            />
+          </PopoverContent>
+        </Popover>
       </div>
 
       {complianceBody && (
