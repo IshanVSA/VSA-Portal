@@ -160,6 +160,51 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     staleTime: Infinity,
   });
 
+  // Read receipts - fetch all readers for this dept+clinic
+  const readReceiptsKey = ["department-chat-reads", department, clinicId];
+  const { data: readReceipts = [] } = useQuery({
+    queryKey: readReceiptsKey,
+    queryFn: async () => {
+      if (!clinicId) return [];
+      const { data } = await supabase
+        .from("department_chat_reads" as any)
+        .select("user_id, last_read_message_id, last_read_at")
+        .eq("department", department)
+        .eq("clinic_id", clinicId);
+      return (data || []) as { user_id: string; last_read_message_id: string | null; last_read_at: string }[];
+    },
+    enabled: !!clinicId,
+  });
+
+  // Mark messages as read when viewing
+  const markAsRead = useCallback(async () => {
+    if (!clinicId || !user || messages.length === 0) return;
+    const lastMsg = messages[messages.length - 1];
+    const myReceipt = readReceipts.find((r) => r.user_id === user.id);
+    if (myReceipt?.last_read_message_id === lastMsg.id) return;
+
+    if (myReceipt) {
+      await supabase
+        .from("department_chat_reads" as any)
+        .update({ last_read_message_id: lastMsg.id, last_read_at: new Date().toISOString() } as any)
+        .eq("user_id", user.id)
+        .eq("department", department)
+        .eq("clinic_id", clinicId);
+    } else {
+      await supabase.from("department_chat_reads" as any).insert({
+        user_id: user.id,
+        department,
+        clinic_id: clinicId,
+        last_read_message_id: lastMsg.id,
+      } as any);
+    }
+    queryClient.invalidateQueries({ queryKey: readReceiptsKey });
+  }, [clinicId, user, messages, readReceipts, department, queryClient]);
+
+  useEffect(() => {
+    markAsRead();
+  }, [messages, markAsRead]);
+
   // Filtered messages for search
   const filteredMessages = searchQuery.trim()
     ? messages.filter(
