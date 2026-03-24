@@ -31,7 +31,7 @@ export default function Login() {
       <div className="hidden lg:flex lg:flex-1 relative items-center justify-center p-12 bg-[hsl(222,47%,6%)]">
         <div className="max-w-sm relative z-10">
           <img src={vsaLogo} alt="VSA Vet Media" className="h-14 w-14 rounded-2xl object-cover mb-8 shadow-2xl" />
-          <h2 className="text-3xl font-bold text-white mb-3 tracking-tight">Digital Marketing, Simplified.</h2>
+          <h2 className="text-3xl font-bold text-white mb-3 tracking-tight">Digital Marketing - Simplified.</h2>
           <p className="text-[hsl(215,20%,55%)] text-base leading-relaxed">
             Manage your veterinary clinic's online presence from one powerful dashboard.
           </p>
