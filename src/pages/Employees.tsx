@@ -378,20 +378,45 @@ export default function Employees() {
                 <div className="max-h-48 overflow-y-auto space-y-1 border rounded-md p-2">
                   {allClinics.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-3">No active clinics found.</p>
-                  ) : allClinics.map(c => (
-                    <label key={c.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer">
-                      <Checkbox
-                        checked={editForm.clinicIds.includes(c.id)}
-                        onCheckedChange={(checked) => {
-                          setEditForm(f => ({
-                            ...f,
-                            clinicIds: checked ? [...f.clinicIds, c.id] : f.clinicIds.filter(id => id !== c.id),
-                          }));
-                        }}
-                      />
-                      <span className="text-sm">{c.clinic_name}</span>
-                    </label>
-                  ))}
+                  ) : (() => {
+                    // Build map of clinicId → names of same-role members (excluding current user)
+                    const sameRoleMap = new Map<string, string[]>();
+                    if (editForm.team_role && editDialogUser) {
+                      const sameRoleProfiles = staffProfiles.filter(
+                        p => p.id !== editDialogUser.id && p.team_role === editForm.team_role
+                      );
+                      sameRoleProfiles.forEach(p => {
+                        const clinicIds = getAssignedClinicIds(p.id);
+                        clinicIds.forEach(cId => {
+                          const existing = sameRoleMap.get(cId) || [];
+                          existing.push(p.full_name || p.email || "Unknown");
+                          sameRoleMap.set(cId, existing);
+                        });
+                      });
+                    }
+                    return allClinics.map(c => {
+                      const existingMembers = sameRoleMap.get(c.id);
+                      return (
+                        <label key={c.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer">
+                          <Checkbox
+                            checked={editForm.clinicIds.includes(c.id)}
+                            onCheckedChange={(checked) => {
+                              setEditForm(f => ({
+                                ...f,
+                                clinicIds: checked ? [...f.clinicIds, c.id] : f.clinicIds.filter(id => id !== c.id),
+                              }));
+                            }}
+                          />
+                          <span className="text-sm">
+                            {c.clinic_name}
+                            {existingMembers && existingMembers.length > 0 && (
+                              <span className="text-muted-foreground text-xs ml-1">({existingMembers.join(", ")})</span>
+                            )}
+                          </span>
+                        </label>
+                      );
+                    });
+                  })()}
                 </div>
               </div>
             </div>
