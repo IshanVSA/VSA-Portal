@@ -134,8 +134,8 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
       const { data, error } = await supabase.functions.invoke("verify-popup-offer", {
         body: {
           offerTitle, offerText, termsAndConditions,
-          startDate: startDate ? format(startDate, "yyyy-MM-dd") : "",
-          endDate: endDate ? format(endDate, "yyyy-MM-dd") : "",
+          startDate: dateRange.from ? format(dateRange.from, "yyyy-MM-dd") : "",
+          endDate: dateRange.to ? format(dateRange.to, "yyyy-MM-dd") : "",
           complianceBody,
         },
       });
