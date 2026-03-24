@@ -1,5 +1,6 @@
 import { useSearchParams } from "react-router-dom";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
+import { AnimatePresence, motion } from "framer-motion";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Eye, TrendingUp, Clock, Layers, HeartPulse } from "lucide-react";
@@ -93,31 +94,39 @@ export default function WebsiteDepartment() {
           </div>
         </div>
 
-        {accessLoading ? (
-          <DashboardSkeleton />
-        ) : isLocked ? (
-          <DepartmentAccessLocked clinicName={selectedClinicName} departmentName="Website" />
-        ) : (
-          <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto">
-              {tabs.map(tab => (
-                <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm">
-                  <tab.icon className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
+        <AnimatePresence mode="wait">
+          {accessLoading ? (
+            <motion.div key="skeleton" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+              <DashboardSkeleton />
+            </motion.div>
+          ) : isLocked ? (
+            <motion.div key="locked" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+              <DepartmentAccessLocked clinicName={selectedClinicName} departmentName="Website" />
+            </motion.div>
+          ) : (
+            <motion.div key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+              <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
+                <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto">
+                  {tabs.map(tab => (
+                    <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm">
+                      <tab.icon className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">{tab.label}</span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
 
-            <TabsContent value="overview" className="mt-4">
-              <DepartmentOverview kpis={kpis} services={services} trafficData={trafficData} trafficLabel="Weekly Traffic" team={team} department="website" accentColor="hsl(var(--dept-website))" clinicId={selectedClinicId} />
-            </TabsContent>
-            <TabsContent value="tickets" className="mt-4"><TicketsTab department="website" services={services} clinicId={selectedClinicId} /></TabsContent>
-            <TabsContent value="analytics" className="mt-4"><WebsiteAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
-            <TabsContent value="reports" className="mt-4"><WebsiteReportsTab clinicId={selectedClinicId} /></TabsContent>
-            <TabsContent value="uploads" className="mt-4"><UploadsTab department="website" clinicId={selectedClinicId} /></TabsContent>
-            {canViewHealth && <TabsContent value="health" className="mt-4"><WebsiteHealthTab clinicId={selectedClinicId} /></TabsContent>}
-          </Tabs>
-        )}
+                <TabsContent value="overview" className="mt-4">
+                  <DepartmentOverview kpis={kpis} services={services} trafficData={trafficData} trafficLabel="Weekly Traffic" team={team} department="website" accentColor="hsl(var(--dept-website))" clinicId={selectedClinicId} />
+                </TabsContent>
+                <TabsContent value="tickets" className="mt-4"><TicketsTab department="website" services={services} clinicId={selectedClinicId} /></TabsContent>
+                <TabsContent value="analytics" className="mt-4"><WebsiteAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
+                <TabsContent value="reports" className="mt-4"><WebsiteReportsTab clinicId={selectedClinicId} /></TabsContent>
+                <TabsContent value="uploads" className="mt-4"><UploadsTab department="website" clinicId={selectedClinicId} /></TabsContent>
+                {canViewHealth && <TabsContent value="health" className="mt-4"><WebsiteHealthTab clinicId={selectedClinicId} /></TabsContent>}
+              </Tabs>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </DashboardLayout>
   );
