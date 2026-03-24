@@ -40,7 +40,7 @@ export default function SocialMedia() {
   const { role } = useUserRole();
   const { clinics, selectedClinic, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
   const currentTab = searchParams.get("tab") || "overview";
-  const { isLocked } = useClinicServiceAccess(selectedClinic, "social_media");
+  const { isLocked, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "social_media", clinicsLoading);
 
   const visibleTabs = role === "client" ? allTabs.filter(t => ["overview", "requests", "tickets"].includes(t.value)) : allTabs;
 

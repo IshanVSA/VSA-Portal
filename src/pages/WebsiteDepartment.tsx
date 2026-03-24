@@ -54,7 +54,7 @@ export default function WebsiteDepartment() {
   const kpiData = useWebsiteKPIs(selectedClinicId);
   const { role } = useUserRole();
   const canViewHealth = role === "admin" || role === "concierge";
-  const { isLocked } = useClinicServiceAccess(selectedClinic, "website");
+  const { isLocked, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "website", clinicsLoading);
   const tabs = canViewHealth ? [...baseTabs, healthTab] : baseTabs;
 
   const selectedClinicName = selectedClinic?.clinic_name;
