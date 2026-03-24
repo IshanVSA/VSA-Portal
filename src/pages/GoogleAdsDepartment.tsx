@@ -37,6 +37,7 @@ export default function GoogleAdsDepartment() {
   const { team } = useDepartmentTeam("google_ads", selectedClinicId);
   const adsData = useGoogleAdsKPIs(selectedClinicId);
   const { isLocked, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "google_ads", clinicsLoading);
+  const { role } = useUserRole();
 
   const selectedClinicName = selectedClinic?.clinic_name;
 
