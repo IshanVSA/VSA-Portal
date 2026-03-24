@@ -453,6 +453,7 @@ export type Database = {
       }
       department_chats: {
         Row: {
+          attachments: Json
           clinic_id: string
           created_at: string
           department: Database["public"]["Enums"]["department_type"]
@@ -461,6 +462,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attachments?: Json
           clinic_id: string
           created_at?: string
           department: Database["public"]["Enums"]["department_type"]
@@ -469,6 +471,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attachments?: Json
           clinic_id?: string
           created_at?: string
           department?: Database["public"]["Enums"]["department_type"]
