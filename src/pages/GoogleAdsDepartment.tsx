@@ -19,13 +19,14 @@ import { DepartmentAccessLocked } from "@/components/department/DepartmentAccess
 import { useUserRole } from "@/hooks/useUserRole";
 import { DepartmentChat } from "@/components/department/DepartmentChat";
 
-const tabs = [
+const baseTabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
   { value: "tickets", label: "Tickets", icon: Ticket },
   { value: "analytics", label: "Analytics", icon: BarChart3 },
   { value: "reports", label: "Reports", icon: FileText },
   { value: "uploads", label: "Uploads", icon: Upload },
 ];
+const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
 
 const services = ["Dashboard Access", "Analytics Review", "Monthly Performance Report", "Call Volume Issues", "Wrong Call Tracking", "Campaign Adjustments", "Others"];
 const quickActions = ["Call Volume Issues", "Wrong Call Tracking", "Others"];
