@@ -120,6 +120,8 @@ export default function SeoDepartment() {
   const { role } = useUserRole();
   const { isLocked, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "seo", clinicsLoading);
   const isClient = role === "client";
+  const isStaff = !isClient;
+  const tabs = isStaff ? [...baseTabs, chatTab] : baseTabs;
   const [seoDialogOpen, setSeoDialogOpen] = useState(false);
 
   const selectedClinicName = selectedClinic?.clinic_name;
