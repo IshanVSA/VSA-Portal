@@ -295,6 +295,19 @@ export default function Clinics() {
       return;
     }
 
+    // Check for duplicate clinic by website
+    if (trimmedWebsite) {
+      const { data: existing } = await supabase
+        .from("clinics")
+        .select("id, clinic_name")
+        .eq("website", trimmedWebsite)
+        .limit(1);
+      if (existing && existing.length > 0) {
+        toast.error(`A clinic with this website already exists: "${existing[0].clinic_name}"`);
+        return;
+      }
+    }
+
     const { data: clinicData, error } = await (supabase.from("clinics" as any).insert({
       clinic_name: newName.trim(),
       phone: newPhone || null,
