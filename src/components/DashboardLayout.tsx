@@ -176,9 +176,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [clinicAccessId, setClinicAccessId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!activeClinicId) return;
+    if (!activeClinicId) { setClinicAccessLoading(false); return; }
     if (activeClinicId === clinicAccessId && clinicAccess) return;
 
+    setClinicAccessLoading(true);
     (supabase
       .from("clinics" as any)
       .select("website_enabled, seo_enabled, google_ads_enabled, ai_seo_enabled, social_media_enabled")
