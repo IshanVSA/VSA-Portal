@@ -3,7 +3,7 @@ import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Eye, TrendingUp, Clock, Layers, HeartPulse } from "lucide-react";
+import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Eye, TrendingUp, Clock, Layers, HeartPulse, MessageSquare } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { WebsiteAnalyticsTab } from "@/components/department/WebsiteAnalyticsTab";
