@@ -1,30 +1,40 @@
 
 
-## Show Existing Same-Role Members on Clinic Assignment List
+## Update Domain References to `portal.vsavetmedia.com`
 
-### What's happening now
-When editing a team member's clinic assignments, the checkbox list shows clinic names only. There's no indication of who else with the same role is already assigned to each clinic.
+### What needs to change
 
-### What changes
+Now that the app is hosted at `portal.vsavetmedia.com`, we need to update all hardcoded fallback URLs and meta tags that still reference `vet-dash-suite.lovable.app`.
 
-**File: `src/pages/Employees.tsx`**
+### Changes
 
-In the Edit dialog's "Assigned Clinics" section (lines 376-395), enhance each clinic row to show the name(s) of existing team members who share the same `team_role` and are already assigned to that clinic.
+**1. Edge Functions — update fallback FRONTEND_URL (2 files)**
 
-1. Compute a helper inside the edit dialog render: for the current `editForm.team_role`, find all other staff members (excluding the user being edited) who have that same `team_role` and are assigned to each clinic
-2. Build a map: `clinicId → string[]` of names of same-role members assigned to that clinic
-3. In each clinic checkbox row, if there are existing same-role members for that clinic, render their names in a muted text span after the clinic name — e.g. `"Alma Vet Clinic (John Doe)"`
-4. If multiple members share the role on the same clinic, comma-separate: `"Alma Vet Clinic (John Doe, Jane Smith)"`
+- `supabase/functions/google-oauth/index.ts` line 16: change fallback from `"https://vet-dash-suite.lovable.app"` to `"https://portal.vsavetmedia.com"`
+- `supabase/functions/meta-oauth/index.ts` line 18: same change
 
-### Logic detail
+These are fallbacks when `SITE_URL` env var isn't set. The OAuth flows already pass `window.location.origin` dynamically, but the fallback should be correct.
 
-```text
-// For the user being edited, get their team_role from editForm.team_role
-// Find all other profiles with the same team_role (exclude editDialogUser.id)
-// For each of those profiles, get their assigned clinic IDs
-// Build Map<clinicId, memberName[]>
-// Render next to clinic name as muted text
-```
+**2. Set `SITE_URL` secret in Supabase**
 
-Only the clinic list rendering inside the edit dialog changes. No new files, no database changes.
+Add/update the `SITE_URL` secret to `https://portal.vsavetmedia.com` so edge functions use the correct domain.
+
+**3. Update `index.html` meta tags**
+
+- Line 23: `og:title` → "VSA Vet Media Portal" (instead of "Lovable App")
+- Line 24: `twitter:title` → "VSA Vet Media Portal"
+- Line 25: `og:description` → "VSA Vet Media Content Platform"
+- Line 26: `twitter:description` → "VSA Vet Media Content Platform"
+- Line 21: `twitter:site` → remove `@Lovable` or set to your brand handle
+- Line 9: `author` → "VSA Vet Media"
+
+**4. Update Google & Meta OAuth app settings (manual, your side)**
+
+In Google Cloud Console and Meta Developer portal, add `https://portal.vsavetmedia.com` to the list of authorized redirect URIs / allowed domains. The existing Supabase callback URLs stay the same — only the frontend origin needs whitelisting.
+
+### No changes needed
+
+- `window.location.origin` calls in Login, MetaConnectionCard, GoogleAdsConnectionCard — these automatically resolve to whatever domain the user is on
+- Privacy/data deletion pages — those reference `vsavetmedia.ca`/`vsavetmedia.com` email addresses which are correct
+- Supabase redirect URI (`supabase.co/functions/v1/...`) — unchanged, this is the OAuth callback endpoint
 
