@@ -459,6 +459,7 @@ export type Database = {
           department: Database["public"]["Enums"]["department_type"]
           id: string
           message: string
+          reactions: Json
           user_id: string
         }
         Insert: {
@@ -468,6 +469,7 @@ export type Database = {
           department: Database["public"]["Enums"]["department_type"]
           id?: string
           message: string
+          reactions?: Json
           user_id: string
         }
         Update: {
@@ -477,6 +479,7 @@ export type Database = {
           department?: Database["public"]["Enums"]["department_type"]
           id?: string
           message?: string
+          reactions?: Json
           user_id?: string
         }
         Relationships: [
