@@ -548,13 +548,34 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
           </div>
         )}
 
+        {/* Reply preview */}
+        {replyTo && (
+          <div className="px-3 pt-2 pb-1 flex items-center gap-2 text-xs text-muted-foreground border-t border-border/40 bg-muted/20">
+            <Reply className="h-3 w-3 shrink-0" />
+            <span className="truncate">
+              Replying to <span className="font-medium text-foreground">{replyTo.sender_name}</span>: {replyTo.message.slice(0, 50)}{replyTo.message.length > 50 ? "…" : ""}
+            </span>
+            <button onClick={() => setReplyTo(null)} className="ml-auto shrink-0 text-muted-foreground hover:text-foreground">
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        )}
+
         <div className="flex gap-2 p-3 border-t border-border/40">
           <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileSelect} accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip" />
           <Button type="button" variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} disabled={sending} className="h-9 w-9 p-0 shrink-0">
             <Paperclip className="h-4 w-4 text-muted-foreground" />
           </Button>
           <EmojiPicker onSelect={handleEmojiInsert} side="top" align="start" />
-          <Input placeholder="Type a message..." value={newMessage} onChange={handleInputChange} onKeyDown={handleKeyDown} disabled={sending} className="text-sm h-9" />
+          <MentionInput
+            value={newMessage}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            department={department}
+            clinicId={clinicId}
+            disabled={sending}
+            placeholder="Type a message... Use @ to mention"
+          />
           <Button size="sm" onClick={handleSend} disabled={(!newMessage.trim() && pendingFiles.length === 0) || sending} className="h-9 px-3">
             <Send className="h-3.5 w-3.5" />
           </Button>
