@@ -460,6 +460,7 @@ export type Database = {
           id: string
           message: string
           reactions: Json
+          reply_to: string | null
           user_id: string
         }
         Insert: {
@@ -470,6 +471,7 @@ export type Database = {
           id?: string
           message: string
           reactions?: Json
+          reply_to?: string | null
           user_id: string
         }
         Update: {
@@ -480,6 +482,7 @@ export type Database = {
           id?: string
           message?: string
           reactions?: Json
+          reply_to?: string | null
           user_id?: string
         }
         Relationships: [
@@ -488,6 +491,13 @@ export type Database = {
             columns: ["clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_chats_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "department_chats"
             referencedColumns: ["id"]
           },
         ]
