@@ -94,8 +94,8 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
       `Offer Description: ${offerText || "N/A"}`,
       `Terms & Conditions: ${termsAndConditions || "None"}`,
       `Additional Notes: ${additionalNotes || "None"}`,
-      `Start Date: ${startDate ? format(startDate, "PPP") : "N/A"}`,
-      `End Date: ${endDate ? format(endDate, "PPP") : "N/A"}`,
+      `Start Date: ${dateRange.from ? format(dateRange.from, "PPP") : "N/A"}`,
+      `End Date: ${dateRange.to ? format(dateRange.to, "PPP") : "N/A"}`,
       `Compliance Body: ${complianceBody || "N/A"}`,
       `Verified: ${verified ? "Yes" : "No"}`,
     ];
