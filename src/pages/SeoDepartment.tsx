@@ -122,6 +122,7 @@ export default function SeoDepartment() {
   const { isLocked, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "seo", clinicsLoading);
   const isClient = role === "client";
   const isStaff = !isClient;
+  const { unreadCount, markAsRead } = useDepartmentChatUnread("seo", selectedClinicId);
   const tabs = isStaff ? [...baseTabs, chatTab] : baseTabs;
   const [seoDialogOpen, setSeoDialogOpen] = useState(false);
 
