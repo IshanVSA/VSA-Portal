@@ -118,9 +118,14 @@ export default function GoogleAdsDepartment() {
               <Tabs value={currentTab} onValueChange={(v) => setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", v); return next; }, { replace: true })} className="w-full">
                 <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto">
                   {tabs.map(tab => (
-                    <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm">
+                    <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm relative">
                       <tab.icon className="h-3.5 w-3.5" />
                       <span className="hidden sm:inline">{tab.label}</span>
+                      {tab.value === "chat" && unreadCount > 0 && currentTab !== "chat" && (
+                        <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                          {unreadCount > 99 ? "99+" : unreadCount}
+                        </span>
+                      )}
                     </TabsTrigger>
                   ))}
                 </TabsList>
