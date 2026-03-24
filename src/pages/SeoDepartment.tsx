@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
+import { AnimatePresence, motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
