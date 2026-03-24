@@ -479,6 +479,31 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
       </div>
 
       <CardContent className="p-0">
+        {/* Pinned messages bar */}
+        {pinnedMessages.length > 0 && !searchQuery.trim() && (
+          <div className="px-4 py-2 bg-accent/30 border-b border-border/40">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-foreground mb-1">
+              <Pin className="h-3 w-3 text-primary" />
+              <span>Pinned ({pinnedMessages.length})</span>
+            </div>
+            <div className="space-y-1">
+              {pinnedMessages.slice(0, 3).map((pm) => (
+                <div key={pm.id} className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                  <span className="font-medium text-foreground">{pm.sender_name}:</span>
+                  <span className="truncate">{pm.message.slice(0, 80)}{pm.message.length > 80 ? "…" : ""}</span>
+                  <button
+                    onClick={() => handleTogglePin(pm.id, true)}
+                    className="ml-auto shrink-0 text-muted-foreground hover:text-foreground"
+                    title="Unpin"
+                  >
+                    <PinOff className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {searchQuery.trim() && (
           <div className="px-4 py-1.5 bg-muted/30 border-b border-border/30 text-xs text-muted-foreground">
             {filteredMessages.length} result{filteredMessages.length !== 1 ? "s" : ""} for "{searchQuery}"
