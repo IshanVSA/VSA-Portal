@@ -555,6 +555,12 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
                         <div className="flex-1 h-px bg-border/50" />
                       </div>
                     )}
+                    {msg.pinned && (
+                      <div className="flex items-center gap-1 text-[10px] text-primary mb-0.5">
+                        <Pin className="h-2.5 w-2.5" />
+                        <span>Pinned</span>
+                      </div>
+                    )}
                     <div className={`flex gap-2 group/msg ${isOwn ? "flex-row-reverse" : ""}`}>
                       <Avatar className="h-7 w-7 shrink-0">
                         <AvatarFallback className="text-[10px] bg-muted">
@@ -569,13 +575,22 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
                           <span className="text-[10px] text-muted-foreground">
                             {format(msgDate, "h:mm a")}
                           </span>
-                          <button
-                            onClick={() => setReplyTo(msg)}
-                            className="opacity-0 group-hover/msg:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-                            title="Reply"
-                          >
-                            <Reply className="h-3 w-3" />
-                          </button>
+                          <span className="opacity-0 group-hover/msg:opacity-100 transition-opacity flex items-center gap-1">
+                            <button
+                              onClick={() => setReplyTo(msg)}
+                              className="text-muted-foreground hover:text-foreground"
+                              title="Reply"
+                            >
+                              <Reply className="h-3 w-3" />
+                            </button>
+                            <button
+                              onClick={() => handleTogglePin(msg.id, !!msg.pinned)}
+                              className="text-muted-foreground hover:text-foreground"
+                              title={msg.pinned ? "Unpin" : "Pin"}
+                            >
+                              {msg.pinned ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
+                            </button>
+                          </span>
                         </div>
                         {/* Reply preview */}
                         {msg.reply_preview && (
@@ -611,6 +626,25 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
                           onToggleReaction={(emoji) => handleToggleReaction(msg.id, emoji)}
                           isOwn={isOwn}
                         />
+                        {/* Read receipts - show on own messages */}
+                        {isOwn && (() => {
+                          const readers = getReadByForMessage(msg.id);
+                          if (readers.length === 0) return (
+                            <div className={`flex items-center gap-0.5 mt-0.5 ${isOwn ? "justify-end" : ""}`}>
+                              <Check className="h-3 w-3 text-muted-foreground/50" />
+                            </div>
+                          );
+                          return (
+                            <div className={`flex items-center gap-1 mt-0.5 ${isOwn ? "justify-end" : ""}`}>
+                              <CheckCheck className="h-3 w-3 text-primary" />
+                              <span className="text-[10px] text-muted-foreground">
+                                {readers.length === 1
+                                  ? `Seen by ${profilesMap.get(readers[0]) || "1 person"}`
+                                  : `Seen by ${readers.length}`}
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
