@@ -1,5 +1,4 @@
 import { useClinicSelector } from "@/hooks/useClinicSelector";
-import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { UnifiedReportTab } from "@/components/department/UnifiedReportTab";
 import { FileText } from "lucide-react";
 
