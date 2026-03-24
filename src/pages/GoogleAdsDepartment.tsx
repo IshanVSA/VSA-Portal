@@ -39,7 +39,8 @@ export default function GoogleAdsDepartment() {
   const adsData = useGoogleAdsKPIs(selectedClinicId);
   const { isLocked, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "google_ads", clinicsLoading);
   const { role } = useUserRole();
-
+  const isStaff = role === "admin" || role === "concierge";
+  const tabs = isStaff ? [...baseTabs, chatTab] : baseTabs;
   const selectedClinicName = selectedClinic?.clinic_name;
 
   const kpis = [
