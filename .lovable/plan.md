@@ -1,72 +1,84 @@
 
-Goal: stop the sidebar lock badge from disappearing when switching departments.
 
-What’s actually causing it
-- The lock UI in `DashboardLayout.tsx` depends on `clinicAccess`.
-- Every department page mounts its own `<DashboardLayout>`, so changing routes unmounts and remounts the entire layout.
-- On each remount:
-  - `clinicAccess` starts as `null`
-  - `clinicAccessLoading` starts as `true`
-  - `isDepartmentLocked()` returns `false`
-- Result: the lock badge briefly renders hidden until the clinic access query finishes, which is the flicker you’re seeing.
+## Admin Dashboard Redesign
 
-Implementation plan
+The current dashboard has good bones but can be improved for a true "command center" feel. Based on the platform's features (clinics, tickets, content workflow, departments, team), here's the redesign.
 
-1. Make `DashboardLayout` persistent across department navigation
-- Refactor routing in `src/App.tsx` to use a shared authenticated layout route instead of wrapping each page individually with `<DashboardLayout>`.
-- Render `DashboardLayout` once and place department pages inside it with nested routes / outlet-style composition.
-- This preserves sidebar state, clinic access state, and lock indicators while moving between departments.
+### Layout Overview
 
-2. Remove per-page layout wrapping
-- Update department and workspace pages that currently return:
-  - `<DashboardLayout> ...page content... </DashboardLayout>`
-- Change them to return only their page content.
-- Main targets:
-  - `src/pages/WebsiteDepartment.tsx`
-  - `src/pages/SeoDepartment.tsx`
-  - `src/pages/GoogleAdsDepartment.tsx`
-  - `src/pages/AiSeoDepartment.tsx`
-  - `src/pages/SocialMedia.tsx`
-  - plus other authenticated pages already using `DashboardLayout`
+```text
+┌─────────────────────────────────────────────────────────┐
+│  Welcome back, [Name]        [Review Queue] [+ Ticket]  │
+│  3 pending · 2 urgent · 5 active clinics                │
+├─────────┬─────────┬─────────┬─────────┬─────────────────┤
+│ Active  │  Open   │ Pending │  Team   │  Content        │
+│ Clinics │ Tickets │ Review  │ Members │  Requests       │
+│   5     │   12    │   3     │   8     │   4 pending     │
+├─────────┴─────────┴─────────┴─────────┴─────────────────┤
+│                                                         │
+│  ┌─ Tickets by Dept ──┐  ┌─ Clinic Health ────────────┐ │
+│  │ Website    4 open  │  │ Clinic 1  ✓Web ✓SEO ✗Ads  │ │
+│  │ SEO        2 open  │  │ Clinic 2  ✓Web ✗SEO ✓Ads  │ │
+│  │ Google Ads 3 open  │  │ Clinic 3  ✓All enabled     │ │
+│  │ Social     1 open  │  │                            │ │
+│  └────────────────────┘  └────────────────────────────┘ │
+│                                                         │
+│  ┌─ Content Pipeline ─┐  ┌─ Content Trend ───────────┐ │
+│  │ Generated    12     │  │  [area chart, 6 months]   │ │
+│  │ In Review     3     │  │                           │ │
+│  │ Approved      8     │  │                           │ │
+│  │ Scheduled    22     │  │                           │ │
+│  └─────────────────────┘  └───────────────────────────┘ │
+│                                                         │
+│  ┌─ My Tickets ──┐  ┌─ Upcoming Posts ┐  ┌─ Activity ┐ │
+│  │  (existing)   │  │   (existing)    │  │ (existing) │ │
+│  └───────────────┘  └─────────────────┘  └───────────┘ │
+└─────────────────────────────────────────────────────────┘
+```
 
-3. Keep clinic access loaded in one stable place
-- Keep the clinic access fetch/subscription logic in `src/components/DashboardLayout.tsx`, but let it live for the whole authenticated session instead of per page.
-- Preserve current behavior:
-  - admin bypass
-  - real-time updates from clinic access changes
-  - fixed-width lock badge container
+### What Changes
 
-4. Make locked-state rendering stay stable during route transitions
-- Since the layout will no longer remount, the sidebar badge should remain visible continuously.
-- Also keep the existing fixed-width / opacity-based badge rendering so there is no layout twitching while navigating.
+**1. Expand KPI row to 5 cards (from 4)**
+- Active Clinics (existing)
+- Open Tickets (existing, with urgent count)
+- Pending Review — content posts awaiting admin review (links to /review)
+- Team Members — total concierges + clients (links to /employees)
+- Content Requests — pending content requests needing action (links to /content-requests)
 
-5. Clean up page transitions if needed
-- Verify `PageTransition` only animates page content and does not force a layout reset.
-- If necessary, keep the animation keyed to route content only, not the sidebar/layout shell.
+**2. Replace "All Clinics" table with "Clinic Health" compact card**
+- Shows top 8 clinics with their service-access badges (Web/SEO/Ads/Social) as colored dots
+- Shows concierge assignment and status
+- Much more information-dense than the current plain table
+- "View All" links to /clinics
 
-Files to update
-- `src/App.tsx`
-- `src/components/DashboardLayout.tsx`
-- authenticated pages currently wrapping themselves in `DashboardLayout`:
-  - `src/pages/WebsiteDepartment.tsx`
-  - `src/pages/SeoDepartment.tsx`
-  - `src/pages/GoogleAdsDepartment.tsx`
-  - `src/pages/AiSeoDepartment.tsx`
-  - `src/pages/SocialMedia.tsx`
-  - `src/pages/Dashboard.tsx`
-  - `src/pages/Clinics.tsx`
-  - `src/pages/ClinicDetail.tsx`
-  - `src/pages/Employees.tsx`
-  - `src/pages/Clients.tsx`
-  - `src/pages/AdminReview.tsx`
-  - `src/pages/Reports.tsx`
-  - `src/pages/Settings.tsx`
+**3. Add "Content Pipeline" card (new)**
+- Shows content request workflow stages as a vertical funnel/list:
+  - Generated, Concierge Preferred, Admin Approved, Client Selected, Finalized
+- Each with a count, giving the admin instant visibility into the content workflow bottleneck
+- Replaces the less-useful "Concierges/Clients" KPI cards which are static numbers
 
-Expected result
-- The selected clinic remains stable.
-- Sidebar lock badges remain visible continuously when moving between departments.
-- No half-second unlock flash.
-- Department pages still keep their own loading/locked/content transitions, but the sidebar shell no longer resets on navigation.
+**4. Keep existing widgets but reorder for priority**
+- Department Tickets card stays (left column, row 2)
+- Content Trend chart stays (right column, row 2)
+- My Tickets, Upcoming Posts, Recent Activity stay as the 3-col bottom row
 
-Technical note
-- This is a structural fix, not just a styling fix. Trying to mask the flicker inside the current setup would be less reliable because the root problem is that the entire dashboard shell is being recreated on every department route change.
+**5. Improve header with a "+ New Ticket" quick action**
+- Keep Review Queue button with badge
+- Add a quick "New Ticket" button alongside "Clinics"
+
+### Files to Change
+
+- `src/components/dashboard/AdminDashboard.tsx` — full rewrite of the component with the new layout, additional data fetches (content_requests pipeline counts, clinic service flags), and the new Clinic Health card
+
+### Data Fetches to Add
+
+- `content_requests` grouped by status for the pipeline card
+- `clinics` with service-enabled flags (`website_enabled`, `seo_enabled`, etc.) for the health card
+- `content_posts` with `status = 'pending'` for the KPI (already partially done)
+
+### What Gets Removed
+
+- The full "All Clinics" table (10 rows) — replaced by the compact health overview
+- Separate "Concierges" and "Clients" KPI cards — merged into one "Team" card
+- No new files needed; everything fits in the existing AdminDashboard component
+
