@@ -46,7 +46,8 @@ export default function SocialMedia() {
   const currentTab = searchParams.get("tab") || "overview";
   const { isLocked, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "social_media", clinicsLoading);
 
-  const visibleTabs = role === "client" ? allTabs.filter(t => ["overview", "requests", "tickets"].includes(t.value)) : allTabs;
+  const isStaff = role === "admin" || role === "concierge";
+  const visibleTabs = role === "client" ? baseTabs.filter(t => ["overview", "requests", "tickets"].includes(t.value)) : [...baseTabs, ...(isStaff ? [chatTab] : [])];
 
   const handleTabChange = (value: string) => {
     setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", value); return next; }, { replace: true });
