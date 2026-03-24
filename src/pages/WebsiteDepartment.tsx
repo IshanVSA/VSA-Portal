@@ -16,6 +16,7 @@ import { useWebsiteKPIs } from "@/hooks/useWebsiteKPIs";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useClinicServiceAccess } from "@/hooks/useClinicServiceAccess";
 import { DepartmentAccessLocked } from "@/components/department/DepartmentAccessLocked";
+import { DepartmentChat } from "@/components/department/DepartmentChat";
 
 const baseTabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
