@@ -120,12 +120,25 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
         );
       }
 
-      return (data || []).map((m) => ({
+      const mapped = (data || []).map((m) => ({
         ...m,
         sender_name: profileMap[m.user_id] || "Unknown",
         attachments: (m.attachments as unknown as FileAttachment[] | null) || [],
         reactions: (m.reactions as unknown as Record<string, string[]> | null) || {},
-      })) as ChatMessage[];
+        reply_to: (m as any).reply_to as string | null,
+        reply_preview: null as { sender_name: string; message: string } | null,
+      }));
+
+      // Build reply previews
+      const msgMap = new Map(mapped.map((m) => [m.id, m]));
+      for (const m of mapped) {
+        if (m.reply_to && msgMap.has(m.reply_to)) {
+          const parent = msgMap.get(m.reply_to)!;
+          m.reply_preview = { sender_name: parent.sender_name, message: parent.message };
+        }
+      }
+
+      return mapped as ChatMessage[];
     },
     enabled: !!clinicId,
   });
