@@ -61,8 +61,7 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
   const [offerText, setOfferText] = useState("");
   const [termsAndConditions, setTermsAndConditions] = useState("");
   const [additionalNotes, setAdditionalNotes] = useState("");
-  const [startDate, setStartDate] = useState<Date | undefined>();
-  const [endDate, setEndDate] = useState<Date | undefined>();
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({ from: undefined, to: undefined });
 
   const [clinicAddress, setClinicAddress] = useState("");
   const [complianceBody, setComplianceBody] = useState("");
