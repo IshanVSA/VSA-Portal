@@ -50,14 +50,21 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
       setLoading(false);
       return;
     }
-    const mapped: UploadedFile[] = (data || [])
-      .filter((f) => f.name !== ".emptyFolderPlaceholder")
-      .map((f) => ({
+    const filtered = (data || []).filter((f) => f.name !== ".emptyFolderPlaceholder");
+    
+    // Generate signed URLs for private bucket
+    const mapped: UploadedFile[] = [];
+    for (const f of filtered) {
+      const { data: signedData } = await supabase.storage
+        .from(BUCKET)
+        .createSignedUrl(`${folder}${f.name}`, 3600); // 1 hour expiry
+      mapped.push({
         name: f.name,
         created_at: f.created_at || new Date().toISOString(),
         size: f.metadata?.size || 0,
-        url: supabase.storage.from(BUCKET).getPublicUrl(`${folder}${f.name}`).data.publicUrl,
-      }));
+        url: signedData?.signedUrl || "",
+      });
+    }
     setFiles(mapped);
     setLoading(false);
   }, [department, folder]);

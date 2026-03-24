@@ -304,12 +304,30 @@ Deno.serve(async (req) => {
 
       console.log(`Found ${accounts.length} accounts for selection`);
       
-      // Always show account selection dialog
-      const encoded = btoa(JSON.stringify({ accounts, refresh_token: refreshToken }));
+      // Store tokens server-side, pass only a UUID reference in the URL
+      const supabaseStore = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      const { data: tempToken, error: storeError } = await supabaseStore
+        .from("oauth_temp_tokens")
+        .insert({
+          clinic_id: clinic_id,
+          provider: "google_ads",
+          payload: { accounts, refresh_token: refreshToken },
+        })
+        .select("id")
+        .single();
+
+      if (storeError || !tempToken) {
+        console.error("Failed to store OAuth temp token:", storeError);
+        return new Response(null, {
+          status: 302,
+          headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=token_store` },
+        });
+      }
+
       return new Response(null, {
         status: 302,
         headers: {
-          Location: `${redirectBase}/clinics/${clinic_id}?google_accounts=${encodeURIComponent(encoded)}`,
+          Location: `${redirectBase}/clinics/${clinic_id}?google_token_ref=${tempToken.id}`,
         },
       });
     }
