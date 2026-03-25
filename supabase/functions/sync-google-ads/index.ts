@@ -6,6 +6,21 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+const ENCRYPTION_KEY = Deno.env.get("ENCRYPTION_KEY")!;
+
+async function decryptToken(encryptedText: string): Promise<string> {
+  if (!encryptedText || !encryptedText.startsWith("enc:")) return encryptedText;
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  const keyHash = await crypto.subtle.digest("SHA-256", encoder.encode(ENCRYPTION_KEY));
+  const key = await crypto.subtle.importKey("raw", keyHash, "AES-GCM", false, ["decrypt"]);
+  const combined = Uint8Array.from(atob(encryptedText.slice(4)), c => c.charCodeAt(0));
+  const iv = combined.slice(0, 12);
+  const ciphertext = combined.slice(12);
+  const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
+  return decoder.decode(decrypted);
+}
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID")!;
@@ -80,13 +95,14 @@ Deno.serve(async (req) => {
     }
 
     // Exchange refresh token for access token
+    const decryptedRefreshToken = await decryptToken(creds.google_ads_refresh_token);
     const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
         client_id: GOOGLE_CLIENT_ID,
         client_secret: GOOGLE_CLIENT_SECRET,
-        refresh_token: creds.google_ads_refresh_token,
+        refresh_token: decryptedRefreshToken,
         grant_type: "refresh_token",
       }),
     });
