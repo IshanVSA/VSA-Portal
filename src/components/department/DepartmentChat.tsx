@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { MessageSquare, Send, Paperclip, X, FileText, Image as ImageIcon, Download, Search, Reply, CornerDownRight, Pin, PinOff, Check, CheckCheck } from "lucide-react";
+import { MessageSquare, Send, Paperclip, X, FileText, Image as ImageIcon, Download, Search, Reply, CornerDownRight, Pin, PinOff, Check, CheckCheck, Trash2 } from "lucide-react";
 import { EmojiPicker } from "./EmojiPicker";
 import { MessageReactions } from "./MessageReactions";
 import { MentionInput, renderMessageWithMentions } from "./MentionInput";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useUserRole } from "@/hooks/useUserRole";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
@@ -66,6 +67,7 @@ const TYPING_TIMEOUT = 3000;
 
 export function DepartmentChat({ department, clinicId, onVisible }: Props) {
   const { user } = useAuth();
+  const { role } = useUserRole();
   const queryClient = useQueryClient();
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useCallback((node: HTMLDivElement | null) => {
@@ -384,9 +386,20 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     setNewMessage((prev) => prev + emoji);
   };
 
-  const handleTogglePin = async (messageId: string, currentlyPinned: boolean) => {
+   const handleTogglePin = async (messageId: string, currentlyPinned: boolean) => {
     await supabase.from("department_chats").update({ pinned: !currentlyPinned } as any).eq("id", messageId);
     queryClient.invalidateQueries({ queryKey });
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!confirm("Delete this message? This cannot be undone.")) return;
+    const { error } = await supabase.from("department_chats").delete().eq("id", messageId);
+    if (error) {
+      toast.error("Failed to delete message");
+    } else {
+      queryClient.invalidateQueries({ queryKey });
+      toast.success("Message deleted");
+    }
   };
 
   // Build a map of which messages have been read by whom
@@ -590,6 +603,15 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
                             >
                               {msg.pinned ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
                             </button>
+                            {role === "admin" && (
+                              <button
+                                onClick={() => handleDeleteMessage(msg.id)}
+                                className="text-muted-foreground hover:text-destructive"
+                                title="Delete message"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            )}
                           </span>
                         </div>
                         {/* Reply preview */}
