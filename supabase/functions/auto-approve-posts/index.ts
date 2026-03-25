@@ -15,8 +15,7 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Auth check: require Authorization header and verify admin role
-    // This allows both cron jobs (using anon key) and admin users
+    // Auth check: allow cron jobs via CRON_SECRET or authenticated admins
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -25,13 +24,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify the caller is an admin (skip for service-role calls from cron)
     const token = authHeader.replace("Bearer ", "");
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
-    
-    // If the token is the anon key itself (cron job), allow it
-    // Otherwise verify admin role
-    if (token !== anonKey) {
+    const cronSecret = Deno.env.get("CRON_SECRET");
+
+    // Check if this is a cron job call using the dedicated secret
+    const isCronCall = cronSecret && token === cronSecret;
+
+    if (!isCronCall) {
+      // Verify the caller is an authenticated admin
+      const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
       const supabaseAuth = createClient(supabaseUrl, anonKey, {
         global: { headers: { Authorization: authHeader } },
       });
