@@ -386,9 +386,20 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     setNewMessage((prev) => prev + emoji);
   };
 
-  const handleTogglePin = async (messageId: string, currentlyPinned: boolean) => {
+   const handleTogglePin = async (messageId: string, currentlyPinned: boolean) => {
     await supabase.from("department_chats").update({ pinned: !currentlyPinned } as any).eq("id", messageId);
     queryClient.invalidateQueries({ queryKey });
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!confirm("Delete this message? This cannot be undone.")) return;
+    const { error } = await supabase.from("department_chats").delete().eq("id", messageId);
+    if (error) {
+      toast.error("Failed to delete message");
+    } else {
+      queryClient.invalidateQueries({ queryKey });
+      toast.success("Message deleted");
+    }
   };
 
   // Build a map of which messages have been read by whom
