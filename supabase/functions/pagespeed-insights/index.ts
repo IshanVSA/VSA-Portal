@@ -77,7 +77,8 @@ Deno.serve(async (req) => {
     }
 
     // Call Google PageSpeed Insights API
-    const psiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=${strategy}&category=performance&category=accessibility&category=best-practices&category=seo`;
+    const apiKey = Deno.env.get("GOOGLE_PAGESPEED_API_KEY");
+    const psiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=${strategy}&category=performance&category=accessibility&category=best-practices&category=seo${apiKey ? `&key=${apiKey}` : ""}`;
 
     const psiRes = await fetch(psiUrl);
     if (!psiRes.ok) {
