@@ -35,11 +35,9 @@ interface ClinicData {
   social_media_enabled?: boolean;
 }
 interface ClinicCredentials {
-  meta_page_access_token: string | null;
   meta_page_id: string | null;
   meta_instagram_business_id: string | null;
   meta_page_name: string | null;
-  google_ads_refresh_token: string | null;
   google_ads_customer_id: string | null;
   google_ads_login_customer_id: string | null;
   google_ads_account_name: string | null;
@@ -142,8 +140,8 @@ export default function ClinicDetail() {
   const { role } = useUserRole();
   const [clinic, setClinic] = useState<ClinicData | null>(null);
   const [creds, setCreds] = useState<ClinicCredentials>({
-    meta_page_access_token: null, meta_page_id: null, meta_instagram_business_id: null, meta_page_name: null,
-    google_ads_refresh_token: null, google_ads_customer_id: null, google_ads_login_customer_id: null, google_ads_account_name: null,
+    meta_page_id: null, meta_instagram_business_id: null, meta_page_name: null,
+    google_ads_customer_id: null, google_ads_login_customer_id: null, google_ads_account_name: null,
     last_meta_sync_at: null, last_google_sync_at: null,
   });
   
@@ -245,7 +243,7 @@ export default function ClinicDetail() {
   const fetchCredentials = async () => {
     if (!id) return;
     const { data } = await supabase.from("clinic_api_credentials")
-      .select("meta_page_access_token, meta_page_id, meta_instagram_business_id, meta_page_name, google_ads_refresh_token, google_ads_customer_id, google_ads_login_customer_id, google_ads_account_name, last_meta_sync_at, last_google_sync_at")
+      .select("meta_page_id, meta_instagram_business_id, meta_page_name, google_ads_customer_id, google_ads_login_customer_id, google_ads_account_name, last_meta_sync_at, last_google_sync_at")
       .eq("clinic_id", id).maybeSingle();
     if (data) setCreds(data);
   };
@@ -317,7 +315,7 @@ export default function ClinicDetail() {
 
 
 
-  const hasGoogleCreds = !!(creds.google_ads_refresh_token && creds.google_ads_customer_id);
+  const hasGoogleCreds = !!creds.google_ads_customer_id;
 
   const EmptyState = ({ message }: { message: string }) => (
     <Card><CardContent className="py-12 text-center"><p className="text-muted-foreground">{message}</p></CardContent></Card>
@@ -676,7 +674,7 @@ export default function ClinicDetail() {
             <TabsContent value="connections" className="space-y-4 mt-4">
               <MetaConnectionCard
                 clinicId={id!}
-                hasMetaCreds={!!(creds.meta_page_access_token && creds.meta_page_id)}
+                hasMetaCreds={!!creds.meta_page_id}
                 metaPageName={(creds as any).meta_page_name || null}
                 metaPageId={creds.meta_page_id}
                 metaInstagramBusinessId={creds.meta_instagram_business_id}

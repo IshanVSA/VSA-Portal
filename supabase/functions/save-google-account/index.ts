@@ -6,6 +6,21 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+const ENCRYPTION_KEY = Deno.env.get("ENCRYPTION_KEY")!;
+
+async function encryptToken(plainText: string): Promise<string> {
+  if (!plainText) return plainText;
+  const encoder = new TextEncoder();
+  const keyHash = await crypto.subtle.digest("SHA-256", encoder.encode(ENCRYPTION_KEY));
+  const key = await crypto.subtle.importKey("raw", keyHash, "AES-GCM", false, ["encrypt"]);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoder.encode(plainText));
+  const combined = new Uint8Array(iv.length + new Uint8Array(encrypted).length);
+  combined.set(iv);
+  combined.set(new Uint8Array(encrypted), iv.length);
+  return "enc:" + btoa(String.fromCharCode(...combined));
+}
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -84,8 +99,9 @@ Deno.serve(async (req) => {
       .eq("clinic_id", clinic_id)
       .maybeSingle();
 
+    const encryptedRefreshToken = await encryptToken(refresh_token);
     const updateData = {
-      google_ads_refresh_token: refresh_token,
+      google_ads_refresh_token: encryptedRefreshToken,
       google_ads_customer_id: customer_id,
       google_ads_login_customer_id: login_customer_id || customer_id,
       google_ads_account_name: typeof account_name === "string" ? account_name.slice(0, 200) : null,
