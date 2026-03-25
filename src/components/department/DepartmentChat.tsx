@@ -67,6 +67,7 @@ const TYPING_TIMEOUT = 3000;
 
 export function DepartmentChat({ department, clinicId, onVisible }: Props) {
   const { user } = useAuth();
+  const { role } = useUserRole();
   const queryClient = useQueryClient();
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useCallback((node: HTMLDivElement | null) => {
