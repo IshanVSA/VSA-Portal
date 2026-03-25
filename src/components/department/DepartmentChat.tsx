@@ -603,6 +603,15 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
                             >
                               {msg.pinned ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
                             </button>
+                            {role === "admin" && (
+                              <button
+                                onClick={() => handleDeleteMessage(msg.id)}
+                                className="text-muted-foreground hover:text-destructive"
+                                title="Delete message"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            )}
                           </span>
                         </div>
                         {/* Reply preview */}
