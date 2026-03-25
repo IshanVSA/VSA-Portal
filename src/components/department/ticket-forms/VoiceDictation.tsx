@@ -165,7 +165,7 @@ export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationPr
               )}
             </Button>
           </TooltipTrigger>
-          <TooltipContent>
+          <TooltipContent className="max-w-[200px] text-center">
             {transcribing
               ? "Transcribing your audio…"
               : recording
