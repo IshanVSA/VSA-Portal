@@ -391,15 +391,18 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     queryClient.invalidateQueries({ queryKey });
   };
 
-  const handleDeleteMessage = async (messageId: string) => {
-    if (!confirm("Delete this message? This cannot be undone.")) return;
-    const { error } = await supabase.from("department_chats").delete().eq("id", messageId);
+  const [deleteMessageId, setDeleteMessageId] = useState<string | null>(null);
+
+  const confirmDeleteMessage = async () => {
+    if (!deleteMessageId) return;
+    const { error } = await supabase.from("department_chats").delete().eq("id", deleteMessageId);
     if (error) {
       toast.error("Failed to delete message");
     } else {
       queryClient.invalidateQueries({ queryKey });
       toast.success("Message deleted");
     }
+    setDeleteMessageId(null);
   };
 
   // Build a map of which messages have been read by whom

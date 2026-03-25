@@ -148,11 +148,14 @@ export default function Employees() {
     await fetchData();
   };
 
-  const handleDelete = async (userId: string, name: string) => {
-    if (!confirm(`Delete team member "${name}"? This cannot be undone.`)) return;
-    const { error } = await supabase.from("user_roles").delete().eq("user_id", userId);
-    if (error) { toast.error(error.message); return; }
-    toast.success(`"${name}" removed`);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const { error } = await supabase.from("user_roles").delete().eq("user_id", deleteTarget.id);
+    if (error) { toast.error(error.message); setDeleteTarget(null); return; }
+    toast.success(`"${deleteTarget.name}" removed`);
+    setDeleteTarget(null);
     await fetchData();
   };
 
