@@ -22,6 +22,7 @@ import Settings from "./pages/Settings";
 import Reports from "./pages/Reports";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import DataDeletion from "./pages/DataDeletion";
+import TermsOfService from "./pages/TermsOfService";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/data-deletion" element={<DataDeletion />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
 
           {/* All authenticated routes share a single persistent DashboardLayout */}
           <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
