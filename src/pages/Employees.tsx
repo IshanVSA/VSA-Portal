@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { Plus, Trash2, Users, Search, X, Pencil, AlertTriangle } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 
 const TEAM_ROLES = [
@@ -148,11 +149,14 @@ export default function Employees() {
     await fetchData();
   };
 
-  const handleDelete = async (userId: string, name: string) => {
-    if (!confirm(`Delete team member "${name}"? This cannot be undone.`)) return;
-    const { error } = await supabase.from("user_roles").delete().eq("user_id", userId);
-    if (error) { toast.error(error.message); return; }
-    toast.success(`"${name}" removed`);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const { error } = await supabase.from("user_roles").delete().eq("user_id", deleteTarget.id);
+    if (error) { toast.error(error.message); setDeleteTarget(null); return; }
+    toast.success(`"${deleteTarget.name}" removed`);
+    setDeleteTarget(null);
     await fetchData();
   };
 
@@ -329,7 +333,7 @@ export default function Employees() {
                         <Button variant="ghost" size="sm" className="h-8" onClick={() => openEditDialog(p)} title="Edit member">
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => handleDelete(p.id, p.full_name || "User")}>
+                        <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => setDeleteTarget({ id: p.id, name: p.full_name || "User" })}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </TableCell>
@@ -442,6 +446,19 @@ export default function Employees() {
           </DialogContent>
         </Dialog>
       </div>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete team member?</AlertDialogTitle>
+            <AlertDialogDescription>Remove "{deleteTarget?.name}"? This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

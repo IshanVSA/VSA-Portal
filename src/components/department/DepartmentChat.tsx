@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { MessageSquare, Send, Paperclip, X, FileText, Image as ImageIcon, Download, Search, Reply, CornerDownRight, Pin, PinOff, Check, CheckCheck, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { EmojiPicker } from "./EmojiPicker";
 import { MessageReactions } from "./MessageReactions";
 import { MentionInput, renderMessageWithMentions } from "./MentionInput";
@@ -391,15 +392,18 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     queryClient.invalidateQueries({ queryKey });
   };
 
-  const handleDeleteMessage = async (messageId: string) => {
-    if (!confirm("Delete this message? This cannot be undone.")) return;
-    const { error } = await supabase.from("department_chats").delete().eq("id", messageId);
+  const [deleteMessageId, setDeleteMessageId] = useState<string | null>(null);
+
+  const confirmDeleteMessage = async () => {
+    if (!deleteMessageId) return;
+    const { error } = await supabase.from("department_chats").delete().eq("id", deleteMessageId);
     if (error) {
       toast.error("Failed to delete message");
     } else {
       queryClient.invalidateQueries({ queryKey });
       toast.success("Message deleted");
     }
+    setDeleteMessageId(null);
   };
 
   // Build a map of which messages have been read by whom
@@ -605,7 +609,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
                             </button>
                             {role === "admin" && (
                               <button
-                                onClick={() => handleDeleteMessage(msg.id)}
+                                onClick={() => setDeleteMessageId(msg.id)}
                                 className="text-muted-foreground hover:text-destructive"
                                 title="Delete message"
                               >
@@ -743,6 +747,19 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
           </Button>
         </div>
       </CardContent>
+
+      <AlertDialog open={!!deleteMessageId} onOpenChange={(open) => { if (!open) setDeleteMessageId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete message?</AlertDialogTitle>
+            <AlertDialogDescription>This action cannot be undone. The message will be permanently removed.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteMessage} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
