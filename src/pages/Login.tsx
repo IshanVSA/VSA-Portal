@@ -44,7 +44,7 @@ export default function Login() {
       </div>
 
       {/* Right panel */}
-      <div className="flex-1 flex items-center justify-center p-6 bg-white">
+      <div className="flex-1 relative flex items-center justify-center p-6 bg-white">
         <div className="w-full max-w-sm space-y-6 text-gray-900">
           <div className="lg:hidden flex items-center gap-3 mb-4">
             <img src={vsaLogo} alt="VSA Vet Media" className="h-8 w-8 rounded-lg object-cover" />
@@ -95,7 +95,7 @@ export default function Login() {
           )}
         </div>
 
-        <div className="mt-6 text-center text-xs text-muted-foreground space-x-3">
+        <div className="absolute bottom-6 right-6 text-xs text-muted-foreground space-x-3">
           <a href="/privacy-policy" className="hover:text-foreground underline">Privacy Policy</a>
           <span>·</span>
           <a href="/terms-of-service" className="hover:text-foreground underline">Terms of Service</a>
