@@ -6,6 +6,21 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+const ENCRYPTION_KEY = Deno.env.get("ENCRYPTION_KEY")!;
+
+async function decryptToken(encryptedText: string): Promise<string> {
+  if (!encryptedText || !encryptedText.startsWith("enc:")) return encryptedText;
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  const keyHash = await crypto.subtle.digest("SHA-256", encoder.encode(ENCRYPTION_KEY));
+  const key = await crypto.subtle.importKey("raw", keyHash, "AES-GCM", false, ["decrypt"]);
+  const combined = Uint8Array.from(atob(encryptedText.slice(4)), c => c.charCodeAt(0));
+  const iv = combined.slice(0, 12);
+  const ciphertext = combined.slice(12);
+  const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
+  return decoder.decode(decrypted);
+}
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -76,7 +91,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const token_str = creds.meta_page_access_token;
+    const token_str = await decryptToken(creds.meta_page_access_token);
     const pageId = creds.meta_page_id;
     const igId = creds.meta_instagram_business_id;
     const today = new Date().toISOString().slice(0, 10);
