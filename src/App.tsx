@@ -24,51 +24,52 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import DataDeletion from "./pages/DataDeletion";
 import TermsOfService from "./pages/TermsOfService";
 import NotFound from "./pages/NotFound";
+import SplashScreen from "./components/SplashScreen";
 
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-          <Route path="/data-deletion" element={<DataDeletion />} />
-          <Route path="/terms-of-service" element={<TermsOfService />} />
+  <SplashScreen>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/data-deletion" element={<DataDeletion />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
 
-          {/* All authenticated routes share a single persistent DashboardLayout */}
-          <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/social" element={<SocialMedia />} />
-            <Route path="/website" element={<WebsiteDepartment />} />
-            <Route path="/seo" element={<SeoDepartment />} />
-            <Route path="/ai-seo" element={<AiSeoDepartment />} />
-            <Route path="/google-ads" element={<GoogleAdsDepartment />} />
-            <Route path="/clinics" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}><Clinics /></ProtectedRoute>} />
-            <Route path="/clinics/:id" element={<ClinicDetail />} />
-            <Route path="/employees" element={<ProtectedRoute allowedRoles={["admin"]}><Employees /></ProtectedRoute>} />
-            <Route path="/clients" element={<ProtectedRoute allowedRoles={["admin"]}><ClientsPage /></ProtectedRoute>} />
-            <Route path="/review" element={<ProtectedRoute allowedRoles={["admin"]}><AdminReview /></ProtectedRoute>} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/reports" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}><Reports /></ProtectedRoute>} />
-          </Route>
+            <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/social" element={<SocialMedia />} />
+              <Route path="/website" element={<WebsiteDepartment />} />
+              <Route path="/seo" element={<SeoDepartment />} />
+              <Route path="/ai-seo" element={<AiSeoDepartment />} />
+              <Route path="/google-ads" element={<GoogleAdsDepartment />} />
+              <Route path="/clinics" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}><Clinics /></ProtectedRoute>} />
+              <Route path="/clinics/:id" element={<ClinicDetail />} />
+              <Route path="/employees" element={<ProtectedRoute allowedRoles={["admin"]}><Employees /></ProtectedRoute>} />
+              <Route path="/clients" element={<ProtectedRoute allowedRoles={["admin"]}><ClientsPage /></ProtectedRoute>} />
+              <Route path="/review" element={<ProtectedRoute allowedRoles={["admin"]}><AdminReview /></ProtectedRoute>} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/reports" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}><Reports /></ProtectedRoute>} />
+            </Route>
 
-          {/* Redirects from old routes to Social Media tabs */}
-          <Route path="/content" element={<Navigate to="/social?tab=calendar" replace />} />
-          <Route path="/content-requests" element={<Navigate to="/social?tab=requests" replace />} />
-          <Route path="/ai-content" element={<Navigate to="/social?tab=requests" replace />} />
-          <Route path="/intake-forms" element={<Navigate to="/social?tab=intake" replace />} />
-          <Route path="/analytics" element={<Navigate to="/social?tab=analytics" replace />} />
+            <Route path="/content" element={<Navigate to="/social?tab=calendar" replace />} />
+            <Route path="/content-requests" element={<Navigate to="/social?tab=requests" replace />} />
+            <Route path="/ai-content" element={<Navigate to="/social?tab=requests" replace />} />
+            <Route path="/intake-forms" element={<Navigate to="/social?tab=intake" replace />} />
+            <Route path="/analytics" element={<Navigate to="/social?tab=analytics" replace />} />
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </SplashScreen>
 );
 
 export default App;
