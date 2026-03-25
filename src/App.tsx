@@ -24,10 +24,12 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import DataDeletion from "./pages/DataDeletion";
 import TermsOfService from "./pages/TermsOfService";
 import NotFound from "./pages/NotFound";
+import SplashScreen from "./components/SplashScreen";
 
 const queryClient = new QueryClient();
 
 const App = () => (
+  <SplashScreen>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -68,7 +70,8 @@ const App = () => (
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
-  </QueryClientProvider>
+  </SplashScreen>
+);
 );
 
 export default App;
