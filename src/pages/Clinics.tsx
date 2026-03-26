@@ -212,7 +212,43 @@ export default function Clinics() {
     setNewName(""); setNewPhone(""); setNewEmail(""); setNewAddress(""); setNewWebsite(""); setNewTimezone(""); setNewOwnerId("");
     setNewAccess(defaultClinicAccessSettings);
     setExtractingWebsite(false);
+    setWebsiteDuplicate(null);
+    setCheckingDuplicate(false);
   };
+
+  // Debounced duplicate website check
+  useEffect(() => {
+    const trimmed = newWebsite.trim();
+    if (!trimmed) {
+      setWebsiteDuplicate(null);
+      return;
+    }
+
+    let normalizedUrl = "";
+    try {
+      normalizedUrl = normalizeClinicWebsiteUrl(trimmed);
+    } catch {
+      setWebsiteDuplicate(null);
+      return;
+    }
+
+    setCheckingDuplicate(true);
+    const timer = setTimeout(async () => {
+      const { data } = await supabase
+        .from("clinics")
+        .select("clinic_name")
+        .eq("website", normalizedUrl)
+        .limit(1);
+      if (data && data.length > 0) {
+        setWebsiteDuplicate(data[0].clinic_name);
+      } else {
+        setWebsiteDuplicate(null);
+      }
+      setCheckingDuplicate(false);
+    }, 500);
+
+    return () => { clearTimeout(timer); setCheckingDuplicate(false); };
+  }, [newWebsite]);
 
   const toggleAddAccess = (key: keyof ClinicAccessSettings) => {
     setNewAccess((prev) => ({ ...prev, [key]: !prev[key] }));
