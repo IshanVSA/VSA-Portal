@@ -507,7 +507,12 @@ export default function Clinics() {
                           Extract from Website
                         </Button>
                       </div>
-                      <p className="text-xs text-muted-foreground">Paste the clinic website, then extract name, phone, address, email, and timezone before saving.</p>
+                      {websiteDuplicate && (
+                        <p className="text-xs text-destructive font-medium">⚠ A clinic with this website already exists: "{websiteDuplicate}"</p>
+                      )}
+                      {!websiteDuplicate && (
+                        <p className="text-xs text-muted-foreground">Paste the clinic website, then extract name, phone, address, email, and timezone before saving.</p>
+                      )}
                     </div>
                     <div className="space-y-2"><Label>Clinic Name</Label><Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Happy Paws Vet" className="input-glow" /></div>
                     <div className="space-y-2"><Label>Phone</Label><Input value={newPhone} onChange={e => setNewPhone(e.target.value)} placeholder="(555) 123-4567" className="input-glow" /></div>
