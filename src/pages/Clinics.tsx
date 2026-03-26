@@ -544,7 +544,7 @@ export default function Clinics() {
                       value={newAccess}
                       onToggle={toggleAddAccess}
                     />
-                    <Button onClick={addClinic} className="w-full">Add Clinic</Button>
+                    <Button onClick={addClinic} className="w-full" disabled={!!websiteDuplicate || checkingDuplicate}>Add Clinic</Button>
                   </div>
                 </DialogContent>
               </Dialog>
