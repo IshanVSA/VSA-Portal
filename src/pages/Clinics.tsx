@@ -155,6 +155,8 @@ export default function Clinics() {
   const [newOwnerId, setNewOwnerId] = useState("");
   const [newAccess, setNewAccess] = useState<ClinicAccessSettings>(defaultClinicAccessSettings);
   const [extractingWebsite, setExtractingWebsite] = useState(false);
+  const [websiteDuplicate, setWebsiteDuplicate] = useState<string | null>(null);
+  const [checkingDuplicate, setCheckingDuplicate] = useState(false);
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editClinic, setEditClinic] = useState<Clinic | null>(null);
@@ -210,7 +212,43 @@ export default function Clinics() {
     setNewName(""); setNewPhone(""); setNewEmail(""); setNewAddress(""); setNewWebsite(""); setNewTimezone(""); setNewOwnerId("");
     setNewAccess(defaultClinicAccessSettings);
     setExtractingWebsite(false);
+    setWebsiteDuplicate(null);
+    setCheckingDuplicate(false);
   };
+
+  // Debounced duplicate website check
+  useEffect(() => {
+    const trimmed = newWebsite.trim();
+    if (!trimmed) {
+      setWebsiteDuplicate(null);
+      return;
+    }
+
+    let normalizedUrl = "";
+    try {
+      normalizedUrl = normalizeClinicWebsiteUrl(trimmed);
+    } catch {
+      setWebsiteDuplicate(null);
+      return;
+    }
+
+    setCheckingDuplicate(true);
+    const timer = setTimeout(async () => {
+      const { data } = await supabase
+        .from("clinics")
+        .select("clinic_name")
+        .eq("website", normalizedUrl)
+        .limit(1);
+      if (data && data.length > 0) {
+        setWebsiteDuplicate(data[0].clinic_name);
+      } else {
+        setWebsiteDuplicate(null);
+      }
+      setCheckingDuplicate(false);
+    }, 500);
+
+    return () => { clearTimeout(timer); setCheckingDuplicate(false); };
+  }, [newWebsite]);
 
   const toggleAddAccess = (key: keyof ClinicAccessSettings) => {
     setNewAccess((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -469,7 +507,12 @@ export default function Clinics() {
                           Extract from Website
                         </Button>
                       </div>
-                      <p className="text-xs text-muted-foreground">Paste the clinic website, then extract name, phone, address, email, and timezone before saving.</p>
+                      {websiteDuplicate && (
+                        <p className="text-xs text-destructive font-medium">⚠ A clinic with this website already exists: "{websiteDuplicate}"</p>
+                      )}
+                      {!websiteDuplicate && (
+                        <p className="text-xs text-muted-foreground">Paste the clinic website, then extract name, phone, address, email, and timezone before saving.</p>
+                      )}
                     </div>
                     <div className="space-y-2"><Label>Clinic Name</Label><Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Happy Paws Vet" className="input-glow" /></div>
                     <div className="space-y-2"><Label>Phone</Label><Input value={newPhone} onChange={e => setNewPhone(e.target.value)} placeholder="(555) 123-4567" className="input-glow" /></div>
@@ -501,7 +544,7 @@ export default function Clinics() {
                       value={newAccess}
                       onToggle={toggleAddAccess}
                     />
-                    <Button onClick={addClinic} className="w-full">Add Clinic</Button>
+                    <Button onClick={addClinic} className="w-full" disabled={!!websiteDuplicate || checkingDuplicate}>Add Clinic</Button>
                   </div>
                 </DialogContent>
               </Dialog>
