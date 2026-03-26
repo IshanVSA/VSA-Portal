@@ -101,8 +101,27 @@ function TimezoneField({ clinicId, currentTimezone, onSaved }: { clinicId: strin
 function WebsiteUrlField({ clinicId, currentUrl, onSaved }: { clinicId: string; currentUrl: string; onSaved: (url: string) => void }) {
   const [url, setUrl] = useState(currentUrl);
   const [saving, setSaving] = useState(false);
+  const [duplicate, setDuplicate] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => { setUrl(currentUrl); }, [currentUrl]);
+
+  useEffect(() => {
+    const trimmed = url.trim();
+    if (!trimmed || trimmed === (currentUrl || "")) { setDuplicate(null); return; }
+    if (!trimmed.startsWith("https://")) { setDuplicate(null); return; }
+    setChecking(true);
+    const timer = setTimeout(async () => {
+      try {
+        const normalized = new URL(trimmed).toString();
+        const { data } = await supabase.from("clinics").select("id, clinic_name").eq("website", normalized).limit(1);
+        const match = data?.find((c: any) => c.id !== clinicId);
+        setDuplicate(match ? match.clinic_name : null);
+      } catch { setDuplicate(null); }
+      setChecking(false);
+    }, 500);
+    return () => { clearTimeout(timer); setChecking(false); };
+  }, [url, clinicId, currentUrl]);
 
   const save = async () => {
     const trimmed = url.trim();
@@ -110,6 +129,7 @@ function WebsiteUrlField({ clinicId, currentUrl, onSaved }: { clinicId: string; 
       toast.error("Website URL must start with https://");
       return;
     }
+    if (duplicate) { toast.error("A clinic with this website already exists"); return; }
     setSaving(true);
     const { error } = await supabase.from("clinics").update({ website: trimmed || null }).eq("id", clinicId);
     setSaving(false);
@@ -119,17 +139,22 @@ function WebsiteUrlField({ clinicId, currentUrl, onSaved }: { clinicId: string; 
   };
 
   return (
-    <div className="flex gap-2">
-      <Input
-        placeholder="https://example.com"
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        className="flex-1"
-      />
-      <Button size="sm" onClick={save} disabled={saving || url.trim() === (currentUrl || "")}>
-        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-        Save
-      </Button>
+    <div className="space-y-1">
+      <div className="flex gap-2">
+        <Input
+          placeholder="https://example.com"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          className="flex-1"
+        />
+        <Button size="sm" onClick={save} disabled={saving || !!duplicate || checking || url.trim() === (currentUrl || "")}>
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+          Save
+        </Button>
+      </div>
+      {duplicate && (
+        <p className="text-sm text-destructive">⚠ A clinic with this website already exists: "{duplicate}"</p>
+      )}
     </div>
   );
 }
