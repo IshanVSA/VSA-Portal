@@ -52,7 +52,7 @@ export function GoogleAccountSelectionDialog({
 }: GoogleAccountSelectionDialogProps) {
   const [selectedId, setSelectedId] = useState<string>("");
   const [saving, setSaving] = useState(false);
-  const [search, setSearch] = useState(clinicName);
+  const [search, setSearch] = useState("");
 
   const scoredAccounts = useMemo(() => {
     return accounts.map(a => ({
