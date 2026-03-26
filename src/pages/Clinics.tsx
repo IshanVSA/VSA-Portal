@@ -155,6 +155,8 @@ export default function Clinics() {
   const [newOwnerId, setNewOwnerId] = useState("");
   const [newAccess, setNewAccess] = useState<ClinicAccessSettings>(defaultClinicAccessSettings);
   const [extractingWebsite, setExtractingWebsite] = useState(false);
+  const [websiteDuplicate, setWebsiteDuplicate] = useState<string | null>(null);
+  const [checkingDuplicate, setCheckingDuplicate] = useState(false);
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editClinic, setEditClinic] = useState<Clinic | null>(null);
