@@ -178,7 +178,7 @@ export default function Clinics() {
     let query = supabase.from("clinics").select("*");
     if (role === "concierge") query = query.eq("assigned_concierge_id", user?.id);
     if (role === "client") query = query.eq("owner_user_id", user?.id);
-    const { data } = await query;
+    const { data } = await query.order("clinic_name", { ascending: true });
     setClinics(data || []);
     setLoading(false);
   };
