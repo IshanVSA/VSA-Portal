@@ -88,16 +88,24 @@ export default function Employees() {
     return r === "admin" || r === "concierge";
   });
 
-  const filteredProfiles = staffProfiles.filter(p => {
-    const q = searchQuery.toLowerCase();
-    if (q && !(p.full_name?.toLowerCase().includes(q) || p.email?.toLowerCase().includes(q))) return false;
-    if (filterTeamRole !== "all" && p.team_role !== filterTeamRole) return false;
-    if (filterClinic !== "all") {
-      const clinicIds = getAssignedClinicIds(p.id);
-      if (!clinicIds.includes(filterClinic)) return false;
-    }
-    return true;
-  });
+  const filteredProfiles = staffProfiles
+    .filter(p => {
+      const q = searchQuery.toLowerCase();
+      if (q && !(p.full_name?.toLowerCase().includes(q) || p.email?.toLowerCase().includes(q))) return false;
+      if (filterTeamRole !== "all" && p.team_role !== filterTeamRole) return false;
+      if (filterClinic !== "all") {
+        const clinicIds = getAssignedClinicIds(p.id);
+        if (!clinicIds.includes(filterClinic)) return false;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      const roleA = getRole(a.id);
+      const roleB = getRole(b.id);
+      if (roleA === "admin" && roleB !== "admin") return -1;
+      if (roleA !== "admin" && roleB === "admin") return 1;
+      return (a.full_name || "").localeCompare(b.full_name || "");
+    });
 
   const getRole = (userId: string) => roles.find(r => r.user_id === userId)?.role || "unknown";
   const getAssignedClinics = (userId: string) => assignments.find(a => a.user_id === userId)?.clinic_names || [];
