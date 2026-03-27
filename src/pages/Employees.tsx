@@ -100,8 +100,8 @@ export default function Employees() {
       return true;
     })
     .sort((a, b) => {
-      const roleA = getRole(a.id);
-      const roleB = getRole(b.id);
+      const roleA = roles.find(r => r.user_id === a.id)?.role;
+      const roleB = roles.find(r => r.user_id === b.id)?.role;
       if (roleA === "admin" && roleB !== "admin") return -1;
       if (roleA !== "admin" && roleB === "admin") return 1;
       return (a.full_name || "").localeCompare(b.full_name || "");
