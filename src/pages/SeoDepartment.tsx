@@ -27,9 +27,12 @@ import { DepartmentAccessLocked } from "@/components/department/DepartmentAccess
 import { DepartmentChat } from "@/components/department/DepartmentChat";
 import { useDepartmentChatUnread } from "@/hooks/useDepartmentChatUnread";
 
-const baseTabs = [
-  { value: "overview", label: "Overview", icon: LayoutDashboard },
+const staffOnlyTabs = [
   { value: "tickets", label: "Tickets", icon: Ticket },
+];
+
+const commonTabs = [
+  { value: "overview", label: "Overview", icon: LayoutDashboard },
   { value: "analytics", label: "Analytics", icon: BarChart3 },
   { value: "reports", label: "Reports", icon: FileText },
   { value: "uploads", label: "Uploads", icon: Upload },
