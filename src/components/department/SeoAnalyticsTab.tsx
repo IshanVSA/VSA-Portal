@@ -53,7 +53,6 @@ function KPICard({ icon: Icon, label, value, change, accentClass }: {
           <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center", accentClass)}>
             <Icon className="h-4 w-4" />
           </div>
-          <ChangeIndicator change={change} />
         </div>
         <p className="text-2xl font-bold text-foreground tracking-tight">{value}</p>
         <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
