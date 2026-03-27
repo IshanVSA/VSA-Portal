@@ -27,9 +27,12 @@ import { DepartmentAccessLocked } from "@/components/department/DepartmentAccess
 import { DepartmentChat } from "@/components/department/DepartmentChat";
 import { useDepartmentChatUnread } from "@/hooks/useDepartmentChatUnread";
 
-const baseTabs = [
-  { value: "overview", label: "Overview", icon: LayoutDashboard },
+const staffOnlyTabs = [
   { value: "tickets", label: "Tickets", icon: Ticket },
+];
+
+const commonTabs = [
+  { value: "overview", label: "Overview", icon: LayoutDashboard },
   { value: "analytics", label: "Analytics", icon: BarChart3 },
   { value: "reports", label: "Reports", icon: FileText },
   { value: "uploads", label: "Uploads", icon: Upload },
@@ -123,7 +126,7 @@ export default function SeoDepartment() {
   const isClient = role === "client";
   const isStaff = !isClient;
   const { unreadCount, markAsRead } = useDepartmentChatUnread("seo", selectedClinicId);
-  const tabs = isStaff ? [...baseTabs, chatTab] : baseTabs;
+  const tabs = isStaff ? [...commonTabs.slice(0, 1), ...staffOnlyTabs, ...commonTabs.slice(1), chatTab] : commonTabs;
   const [seoDialogOpen, setSeoDialogOpen] = useState(false);
 
   const selectedClinicName = selectedClinic?.clinic_name;
