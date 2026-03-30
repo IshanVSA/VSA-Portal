@@ -22,7 +22,7 @@ const people = [
     description: "Operations, marketing execution & technical support.",
     calendarUrl: "https://calendar.app.google/a5tNn8E145UNmT7f8",
     gradient: "from-accent to-accent/60",
-    photo: null as string | null,
+    photo: aviPhoto,
   },
 ];
 
