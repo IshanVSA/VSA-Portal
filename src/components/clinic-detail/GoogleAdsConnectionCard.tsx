@@ -101,11 +101,26 @@ export function GoogleAdsConnectionCard({
               <Badge variant="secondary" className="text-xs">Connected</Badge>
             </div>
 
-            <div className="space-y-1 text-xs text-muted-foreground">
-              {customerId && <p>Customer ID: {customerId}</p>}
-              {lastGoogleSyncAt && (
-                <p>Last synced: {new Date(lastGoogleSyncAt).toLocaleString()}</p>
+            <div className="rounded-lg bg-muted/50 p-3 space-y-2 text-xs">
+              {customerId && (
+                <p className="text-muted-foreground">Customer ID: {customerId}</p>
               )}
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" />
+                <span>Last synced: </span>
+                {lastGoogleSyncAt ? (
+                  <span className="text-foreground font-medium" title={new Date(lastGoogleSyncAt).toLocaleString()}>
+                    {formatDistanceToNow(new Date(lastGoogleSyncAt), { addSuffix: true })}
+                  </span>
+                ) : (
+                  <span className="text-amber-500 font-medium">Never</span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <CalendarClock className="h-3.5 w-3.5" />
+                <span>Next auto-sync: </span>
+                <NextSyncTime />
+              </div>
             </div>
 
             <div className="flex gap-2">
