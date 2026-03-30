@@ -6,7 +6,7 @@ import { usePendingCounts } from "@/hooks/usePendingCounts";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Building2, Users, BarChart3, Settings, LogOut, Menu, X, ChevronRight,
-  ShieldCheck, LayoutDashboard, UserCheck,
+  ShieldCheck, LayoutDashboard, UserCheck, CalendarCheck,
   Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone, Globe, Sparkles, Plus, FileText, SearchCode, Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -66,7 +66,10 @@ const departmentPathToAccessKey: Record<string, keyof ClinicAccessState> = {
 };
 
 const adminSections: NavSection[] = [
-  { items: [{ label: "Dashboard", icon: LayoutDashboard, path: "/" }] },
+  { items: [
+    { label: "Dashboard", icon: LayoutDashboard, path: "/" },
+    { label: "Book a Meeting", icon: CalendarCheck, path: "/book-meeting" },
+  ] },
   { title: "DEPARTMENTS", items: [
     { label: "Website", icon: Globe, path: "/website" },
     { label: "SEO", icon: SearchCode, path: "/seo" },
@@ -87,7 +90,10 @@ const adminSections: NavSection[] = [
 ];
 
 const conciergeSections: NavSection[] = [
-  { items: [{ label: "Dashboard", icon: LayoutDashboard, path: "/" }] },
+  { items: [
+    { label: "Dashboard", icon: LayoutDashboard, path: "/" },
+    { label: "Book a Meeting", icon: CalendarCheck, path: "/book-meeting" },
+  ] },
   { title: "DEPARTMENTS", items: [
     { label: "Website", icon: Globe, path: "/website" },
     { label: "SEO", icon: SearchCode, path: "/seo" },
@@ -103,7 +109,7 @@ const conciergeSections: NavSection[] = [
 ];
 
 const pageTitles: Record<string, string> = {
-  "/": "Dashboard", "/website": "Website", "/seo": "SEO", "/ai-seo": "AI SEO", "/google-ads": "Google Ads",
+  "/": "Dashboard", "/book-meeting": "Book a Meeting", "/website": "Website", "/seo": "SEO", "/ai-seo": "AI SEO", "/google-ads": "Google Ads",
   "/social": "Social Media", "/review": "Admin Review", "/clinics": "Clinics",
   "/employees": "Team Members", "/clients": "Clients", "/reports": "Reports", "/settings": "Settings",
 };
@@ -240,7 +246,10 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
   }, [activeClinicId]);
 
   const clientSections: NavSection[] = [
-    { items: [{ label: "Dashboard", icon: LayoutDashboard, path: "/" }] },
+    { items: [
+      { label: "Dashboard", icon: LayoutDashboard, path: "/" },
+      { label: "Book a Meeting", icon: CalendarCheck, path: "/book-meeting" },
+    ] },
     { title: "DEPARTMENTS", items: [
       { label: "Website", icon: Globe, path: "/website" },
       { label: "SEO", icon: SearchCode, path: "/seo" },
