@@ -66,7 +66,7 @@ export default function BookMeeting() {
             {/* CTA */}
             <Button
               className="mt-6 w-full"
-              onClick={() => window.open(person.calendarUrl, "_blank")}
+              onClick={() => window.open(person.calendarUrl, "_self")}
             >
               <CalendarCheck className="mr-2 h-4 w-4" />
               Schedule a Meeting
