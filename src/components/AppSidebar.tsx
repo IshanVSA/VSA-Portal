@@ -20,6 +20,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: ["admin", "concierge", "client"] },
+  { title: "Book a Meeting", url: "/book-meeting", icon: CalendarCheck, roles: ["admin", "concierge", "client"] },
   { title: "Clinics", url: "/clinics", icon: Building2, roles: ["admin"] },
   { title: "Content", url: "/content", icon: CalendarDays, roles: ["admin", "concierge"] },
   
