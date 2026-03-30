@@ -109,7 +109,7 @@ const conciergeSections: NavSection[] = [
 ];
 
 const pageTitles: Record<string, string> = {
-  "/": "Dashboard", "/website": "Website", "/seo": "SEO", "/ai-seo": "AI SEO", "/google-ads": "Google Ads",
+  "/": "Dashboard", "/book-meeting": "Book a Meeting", "/website": "Website", "/seo": "SEO", "/ai-seo": "AI SEO", "/google-ads": "Google Ads",
   "/social": "Social Media", "/review": "Admin Review", "/clinics": "Clinics",
   "/employees": "Team Members", "/clients": "Clients", "/reports": "Reports", "/settings": "Settings",
 };
