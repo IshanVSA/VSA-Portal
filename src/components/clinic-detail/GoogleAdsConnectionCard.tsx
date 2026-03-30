@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, RefreshCw, Loader2, Unlink } from "lucide-react";
+import { CheckCircle, XCircle, RefreshCw, Loader2, Unlink, Clock, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
+import { formatDistanceToNow, addDays, setHours, setMinutes, setSeconds, isAfter } from "date-fns";
 
 interface GoogleAdsConnectionCardProps {
   clinicId: string;
