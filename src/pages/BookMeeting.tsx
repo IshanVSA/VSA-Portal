@@ -44,13 +44,19 @@ export default function BookMeeting() {
             className="glass-card rounded-2xl p-6 flex flex-col items-center text-center hover-lift transition-all duration-300"
           >
             {/* Avatar */}
-            <div
-              className={`h-20 w-20 rounded-full bg-gradient-to-br ${person.gradient} flex items-center justify-center mb-4 shadow-lg`}
-            >
-              <span className="text-2xl font-bold text-primary-foreground">
-                {person.initials}
-              </span>
-            </div>
+            {person.photo ? (
+              <div className="h-20 w-20 rounded-full overflow-hidden mb-4 shadow-lg ring-2 ring-primary/20">
+                <img src={person.photo} alt={person.name} className="h-full w-full object-cover object-top" />
+              </div>
+            ) : (
+              <div
+                className={`h-20 w-20 rounded-full bg-gradient-to-br ${person.gradient} flex items-center justify-center mb-4 shadow-lg`}
+              >
+                <span className="text-2xl font-bold text-primary-foreground">
+                  {person.initials}
+                </span>
+              </div>
+            )}
 
             {/* Info */}
             <h2 className="text-xl font-semibold text-foreground">{person.name}</h2>
