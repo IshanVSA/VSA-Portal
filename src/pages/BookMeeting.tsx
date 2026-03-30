@@ -11,7 +11,7 @@ const people = [
   {
     name: "Avi Adhikari",
     email: "vsavetmediainc@gmail.com",
-    calendarUrl: "https://calendar.google.com/calendar/appointments/schedules/AcZssZ0-placeholder-avi",
+    calendarUrl: "https://calendar.app.google/a5tNn8E145UNmT7f8",
   },
 ];
 
