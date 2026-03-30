@@ -6,7 +6,7 @@ const people = [
   {
     name: "Vedant Chhabra",
     email: "vsavetmedia@gmail.com",
-    calendarUrl: "https://calendar.google.com/calendar/appointments/schedules/AcZssZ0-placeholder-vedant",
+    calendarUrl: "https://calendar.app.google/ZxnqGTX5kbz9939c9",
   },
   {
     name: "Avi Adhikari",
