@@ -1,6 +1,7 @@
 import { CalendarCheck, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import vedantPhoto from "@/assets/vedant-photo.png";
+import aviPhoto from "@/assets/avi-photo.jpeg";
 
 const people = [
   {
@@ -21,7 +22,7 @@ const people = [
     description: "Operations, marketing execution & technical support.",
     calendarUrl: "https://calendar.app.google/a5tNn8E145UNmT7f8",
     gradient: "from-accent to-accent/60",
-    photo: null as string | null,
+    photo: aviPhoto,
   },
 ];
 
