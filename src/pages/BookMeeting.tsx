@@ -11,6 +11,7 @@ const people = [
     description: "Strategic planning, growth initiatives & client success.",
     calendarUrl: "https://calendar.app.google/ZxnqGTX5kbz9939c9",
     gradient: "from-primary to-primary/60",
+    photo: vedantPhoto,
   },
   {
     name: "Avi Adhikari",
