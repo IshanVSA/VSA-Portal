@@ -53,9 +53,6 @@ export default function BookMeeting() {
 
             {/* Info */}
             <h2 className="text-xl font-semibold text-foreground">{person.name}</h2>
-            <span className="text-xs font-medium uppercase tracking-widest text-primary mt-1">
-              {person.role}
-            </span>
 
             <div className="flex items-center gap-1.5 mt-3 text-sm text-muted-foreground">
               <Mail className="h-3.5 w-3.5" />
