@@ -1,6 +1,7 @@
 import { CalendarCheck, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import vedantPhoto from "@/assets/vedant-photo.png";
+import aviPhoto from "@/assets/avi-photo.jpeg";
 
 const people = [
   {
