@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Building2, CalendarDays, Sparkles, BarChart3,
-  ClipboardList, Users, UserCheck, ShieldCheck, Settings, LogOut, FileCheck,
+  ClipboardList, Users, UserCheck, ShieldCheck, Settings, LogOut, FileCheck, CalendarCheck,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useUserRole, type AppRole } from "@/hooks/useUserRole";
