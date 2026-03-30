@@ -16,6 +16,20 @@ interface GoogleAdsConnectionCardProps {
   onRefresh: () => void;
 }
 
+function NextSyncTime() {
+  const nextSync = useMemo(() => {
+    const now = new Date();
+    let next = setSeconds(setMinutes(setHours(now, 7), 0), 0); // 7:00 AM UTC
+    if (isAfter(now, next)) next = addDays(next, 1);
+    return next;
+  }, []);
+  return (
+    <span className="text-foreground font-medium" title={nextSync.toLocaleString()}>
+      {formatDistanceToNow(nextSync, { addSuffix: true })}
+    </span>
+  );
+}
+
 export function GoogleAdsConnectionCard({
   clinicId,
   hasGoogleCreds,
