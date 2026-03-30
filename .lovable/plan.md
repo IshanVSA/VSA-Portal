@@ -1,32 +1,37 @@
 
 
-## Replace Browser-Level Confirm Dialogs with In-App AlertDialog
+## Book a Meeting - UI/UX Redesign
 
-### Problem
-Three places use the native browser `confirm()` dialog, which looks out of place in the dashboard. The user wants all confirmations to be styled within the app.
+### Current Issues
+- Plain layout with basic cards and raw iframe embeds
+- No visual hierarchy or personality
+- Iframes may not render well (Google Calendar embeds can be blocked)
+- No engaging header or visual differentiation between the two team members
 
-### Files to Modify
+### Redesigned Approach
 
-1. **`src/components/department/DepartmentChat.tsx`** — Delete message confirmation
-2. **`src/pages/Clients.tsx`** — Remove client confirmation
-3. **`src/pages/Employees.tsx`** — Delete team member confirmation
+**Page Header**: Add a centered hero section with a gradient-text heading, a warm subtitle, and a subtle dot-grid background pattern for visual depth.
 
-### Approach
+**Team Member Cards**: Replace the plain cards with premium styled cards featuring:
+- Initials-based avatar circles (matching the platform's existing pattern) with gradient backgrounds - "VC" for Vedant, "AA" for Avi
+- Role/title beneath each name (e.g., "Founder" or "Co-Founder")
+- A short friendly description line
+- Remove the iframe embed entirely (Google Calendar appointment links don't embed well) and replace with a prominent, styled CTA button that opens the scheduling link
+- Add a subtle hover-lift effect on cards
+- Use stagger entrance animations
 
-For each file, replace the `confirm()` call with a state-driven `AlertDialog` (already available in `src/components/ui/alert-dialog.tsx`):
+**Layout**: Center the content with a max-width container. Cards side by side on desktop, stacked on mobile. Add generous spacing and the dot-grid background.
 
-- Add state: `deleteTarget` (stores the id/name of the item pending deletion), set to `null` by default
-- When the user clicks delete, set `deleteTarget` instead of calling `confirm()`
-- Render an `AlertDialog` controlled by `!!deleteTarget`:
-  - Title: "Delete message?" / "Remove client?" / "Delete team member?"
-  - Description: "This cannot be undone."
-  - Cancel button clears `deleteTarget`
-  - Continue button executes the existing delete logic, then clears `deleteTarget`
-- Styled consistently with the dashboard's dark theme
+**Dark/Light Mode**: Use existing CSS variables and card styles (glass-card patterns). The gradient avatars and primary-colored CTAs will naturally adapt.
 
-### Technical Details
+### File Changes
 
-- Import `AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle` from `@/components/ui/alert-dialog`
-- Use destructive variant styling on the confirm button (`className="bg-destructive text-destructive-foreground"`)
-- No database changes needed
+**`src/pages/BookMeeting.tsx`** - Complete rewrite:
+- Centered layout with `max-w-3xl mx-auto`
+- Hero section with gradient heading and descriptive subtitle
+- Two cards with: initials avatar (gradient bg), name, role, email, description, and a primary CTA button linking to the Google Calendar appointment page
+- "Open in new tab" button replaced with a single prominent "Schedule a Meeting" button
+- Add `Video` or `CalendarCheck` icon to the CTA
+- Use `stagger-children` class for entrance animation
+- Use `hover-lift` class on cards
 
