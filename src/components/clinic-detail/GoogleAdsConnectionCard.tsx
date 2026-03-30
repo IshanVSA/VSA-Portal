@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, RefreshCw, Loader2, Unlink } from "lucide-react";
+import { CheckCircle, XCircle, RefreshCw, Loader2, Unlink, Clock, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
+import { formatDistanceToNow, addDays, setHours, setMinutes, setSeconds, isAfter } from "date-fns";
 
 interface GoogleAdsConnectionCardProps {
   clinicId: string;
@@ -13,6 +14,20 @@ interface GoogleAdsConnectionCardProps {
   customerId: string | null;
   lastGoogleSyncAt: string | null;
   onRefresh: () => void;
+}
+
+function NextSyncTime() {
+  const nextSync = useMemo(() => {
+    const now = new Date();
+    let next = setSeconds(setMinutes(setHours(now, 7), 0), 0); // 7:00 AM UTC
+    if (isAfter(now, next)) next = addDays(next, 1);
+    return next;
+  }, []);
+  return (
+    <span className="text-foreground font-medium" title={nextSync.toLocaleString()}>
+      {formatDistanceToNow(nextSync, { addSuffix: true })}
+    </span>
+  );
 }
 
 export function GoogleAdsConnectionCard({
@@ -100,11 +115,26 @@ export function GoogleAdsConnectionCard({
               <Badge variant="secondary" className="text-xs">Connected</Badge>
             </div>
 
-            <div className="space-y-1 text-xs text-muted-foreground">
-              {customerId && <p>Customer ID: {customerId}</p>}
-              {lastGoogleSyncAt && (
-                <p>Last synced: {new Date(lastGoogleSyncAt).toLocaleString()}</p>
+            <div className="rounded-lg bg-muted/50 p-3 space-y-2 text-xs">
+              {customerId && (
+                <p className="text-muted-foreground">Customer ID: {customerId}</p>
               )}
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" />
+                <span>Last synced: </span>
+                {lastGoogleSyncAt ? (
+                  <span className="text-foreground font-medium" title={new Date(lastGoogleSyncAt).toLocaleString()}>
+                    {formatDistanceToNow(new Date(lastGoogleSyncAt), { addSuffix: true })}
+                  </span>
+                ) : (
+                  <span className="text-amber-500 font-medium">Never</span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <CalendarClock className="h-3.5 w-3.5" />
+                <span>Next auto-sync: </span>
+                <NextSyncTime />
+              </div>
             </div>
 
             <div className="flex gap-2">
