@@ -6,7 +6,7 @@ import { usePendingCounts } from "@/hooks/usePendingCounts";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Building2, Users, BarChart3, Settings, LogOut, Menu, X, ChevronRight,
-  ShieldCheck, LayoutDashboard, UserCheck,
+  ShieldCheck, LayoutDashboard, UserCheck, CalendarCheck,
   Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone, Globe, Sparkles, Plus, FileText, SearchCode, Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
