@@ -1,5 +1,6 @@
 import { CalendarCheck, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import vedantPhoto from "@/assets/vedant-photo.png";
 
 const people = [
   {
@@ -10,6 +11,7 @@ const people = [
     description: "Strategic planning, growth initiatives & client success.",
     calendarUrl: "https://calendar.app.google/ZxnqGTX5kbz9939c9",
     gradient: "from-primary to-primary/60",
+    photo: vedantPhoto,
   },
   {
     name: "Avi Adhikari",
@@ -19,6 +21,7 @@ const people = [
     description: "Operations, marketing execution & technical support.",
     calendarUrl: "https://calendar.app.google/a5tNn8E145UNmT7f8",
     gradient: "from-accent to-accent/60",
+    photo: null as string | null,
   },
 ];
 
@@ -43,13 +46,19 @@ export default function BookMeeting() {
             className="glass-card rounded-2xl p-6 flex flex-col items-center text-center hover-lift transition-all duration-300"
           >
             {/* Avatar */}
-            <div
-              className={`h-20 w-20 rounded-full bg-gradient-to-br ${person.gradient} flex items-center justify-center mb-4 shadow-lg`}
-            >
-              <span className="text-2xl font-bold text-primary-foreground">
-                {person.initials}
-              </span>
-            </div>
+            {person.photo ? (
+              <div className="h-20 w-20 rounded-full overflow-hidden mb-4 shadow-lg ring-2 ring-primary/20">
+                <img src={person.photo} alt={person.name} className="h-full w-full object-cover object-top" />
+              </div>
+            ) : (
+              <div
+                className={`h-20 w-20 rounded-full bg-gradient-to-br ${person.gradient} flex items-center justify-center mb-4 shadow-lg`}
+              >
+                <span className="text-2xl font-bold text-primary-foreground">
+                  {person.initials}
+                </span>
+              </div>
+            )}
 
             {/* Info */}
             <h2 className="text-xl font-semibold text-foreground">{person.name}</h2>
