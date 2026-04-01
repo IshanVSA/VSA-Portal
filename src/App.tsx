@@ -25,6 +25,7 @@ import DataDeletion from "./pages/DataDeletion";
 import TermsOfService from "./pages/TermsOfService";
 import NotFound from "./pages/NotFound";
 import BookMeeting from "./pages/BookMeeting";
+import ClientJourneyPage from "./pages/ClientJourney";
 import SplashScreen from "./components/SplashScreen";
 
 const queryClient = new QueryClient();
