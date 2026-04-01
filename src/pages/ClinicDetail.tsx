@@ -776,6 +776,12 @@ export default function ClinicDetail() {
               </Card>
             </TabsContent>
           )}
+
+          {(role === "admin" || role === "concierge") && (
+            <TabsContent value="journey" className="mt-4">
+              <ClientJourney clinicId={id!} />
+            </TabsContent>
+          )}
         </Tabs>
 
         {metaPages && id && (
