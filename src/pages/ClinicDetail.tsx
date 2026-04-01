@@ -22,6 +22,7 @@ import { FacebookInsightCard } from "@/components/clinic-detail/FacebookInsightC
 import { GoogleAdsConnectionCard } from "@/components/clinic-detail/GoogleAdsConnectionCard";
 import { GoogleAccountSelectionDialog } from "@/components/clinic-detail/GoogleAccountSelectionDialog";
 import { TrackingSetupCard } from "@/components/clinic-detail/TrackingSetupCard";
+import { ClientJourney } from "@/components/clinic-detail/ClientJourney";
 import { COMMON_TIMEZONES, DEFAULT_CLINIC_TIMEZONE, getSafeTimeZone } from "@/lib/website-analytics";
 
 interface ClinicData {
