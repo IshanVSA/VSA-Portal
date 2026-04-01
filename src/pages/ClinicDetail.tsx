@@ -393,6 +393,7 @@ export default function ClinicDetail() {
             <TabsTrigger value="google">Google Ads</TabsTrigger>
             <TabsTrigger value="ai">AI Insights</TabsTrigger>
             {role === "admin" && <TabsTrigger value="connections">Connections</TabsTrigger>}
+            {(role === "admin" || role === "concierge") && <TabsTrigger value="journey">Client Journey</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="instagram" className="space-y-4 mt-4">
