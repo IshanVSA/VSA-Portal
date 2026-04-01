@@ -63,8 +63,10 @@ export default function ClientsPage() {
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
-    const { error } = await supabase.from("user_roles").delete().eq("user_id", deleteTarget.id);
-    if (error) { toast.error(error.message); setDeleteTarget(null); return; }
+    const { data, error } = await supabase.functions.invoke("delete-user", {
+      body: { user_id: deleteTarget.id },
+    });
+    if (error || data?.error) { toast.error(data?.error || error.message); setDeleteTarget(null); return; }
     toast.success(`"${deleteTarget.name}" removed`);
     setDeleteTarget(null);
     await fetchData();
