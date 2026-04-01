@@ -100,7 +100,7 @@ export default function ClientsPage() {
                 <DialogFooter>
                   <Button disabled={creating} onClick={async () => {
                     if (!form.full_name || !form.email || !form.password) { toast.error("All fields are required"); return; }
-                    if (form.password.length < 6) { toast.error("Password must be at least 6 characters"); return; }
+                    if (form.password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
                     setCreating(true);
                     const { data, error } = await supabase.functions.invoke("create-team-member", { body: { ...form, role: "client" } });
                     setCreating(false);
