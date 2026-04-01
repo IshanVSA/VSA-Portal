@@ -61,14 +61,14 @@ const STATUS_LABEL: Record<string, string> = {
   completed: "Completed",
 };
 
-export function ClientJourney({ clinicId }: { clinicId: string }) {
+export function ClientJourney({ clinicId, readOnly }: { clinicId: string; readOnly?: boolean }) {
   const { user } = useAuth();
   const { role } = useUserRole();
   const queryClient = useQueryClient();
   const [expandedNotes, setExpandedNotes] = useState<number | null>(null);
   const [noteText, setNoteText] = useState("");
 
-  const canEdit = role === "admin" || role === "concierge";
+  const canEdit = !readOnly && (role === "admin" || role === "concierge");
 
   // Fetch steps
   const { data: steps = [], isLoading } = useQuery({

@@ -45,6 +45,14 @@ export default function ClientJourneyPage() {
           setClinics(data ?? []);
           if (data && data.length > 0) setSelectedClinicId(data[0].id);
         }
+      } else if (role === "client" && user) {
+        const { data } = await supabase
+          .from("clinics")
+          .select("id, clinic_name")
+          .eq("owner_user_id", user.id)
+          .order("clinic_name");
+        setClinics(data ?? []);
+        if (data && data.length > 0) setSelectedClinicId(data[0].id);
       }
       setLoading(false);
     }
@@ -94,7 +102,7 @@ export default function ClientJourneyPage() {
         </div>
 
         {selectedClinicId ? (
-          <ClientJourneyComponent clinicId={selectedClinicId} />
+          <ClientJourneyComponent clinicId={selectedClinicId} readOnly={role === "client"} />
         ) : (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16 text-center">
