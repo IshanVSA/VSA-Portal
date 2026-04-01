@@ -13,11 +13,12 @@ Deno.serve(async (req) => {
 
     const uid = "628859c2-5896-4441-828a-d0b1df61f071";
 
-    // Clean all references
+    // Clean all FK references that block auth.users deletion
+    await supabaseAdmin.from("calendar_submissions").update({ submitted_by: null }).eq("submitted_by", uid);
+    await supabaseAdmin.from("seo_analytics").update({ updated_by: null }).eq("updated_by", uid);
     await supabaseAdmin.from("department_tickets").update({ created_by: null }).eq("created_by", uid);
     await supabaseAdmin.from("department_tickets").update({ assigned_to: null }).eq("assigned_to", uid);
-    
-    // Get content_requests by this user, delete their versions first
+
     const { data: crs } = await supabaseAdmin.from("content_requests").select("id").eq("created_by_concierge_id", uid);
     if (crs && crs.length > 0) {
       for (const cr of crs) {
@@ -27,13 +28,14 @@ Deno.serve(async (req) => {
       await supabaseAdmin.from("content_requests").delete().eq("created_by_concierge_id", uid);
     }
 
+    // These should cascade but clean explicitly just in case
     await supabaseAdmin.from("post_comments").delete().eq("user_id", uid);
-    await supabaseAdmin.from("content_posts").delete().eq("created_by", uid);
+    await supabaseAdmin.from("content_posts").update({ created_by: null }).eq("created_by", uid);
     await supabaseAdmin.from("department_chat_reads").delete().eq("user_id", uid);
     await supabaseAdmin.from("department_chats").delete().eq("user_id", uid);
     await supabaseAdmin.from("department_members").delete().eq("user_id", uid);
     await supabaseAdmin.from("clinic_team_members").delete().eq("user_id", uid);
-    await supabaseAdmin.from("client_journey_steps").delete().eq("completed_by", uid);
+    await supabaseAdmin.from("client_journey_steps").update({ completed_by: null }).eq("completed_by", uid);
     await supabaseAdmin.from("user_roles").delete().eq("user_id", uid);
     await supabaseAdmin.from("profiles").delete().eq("id", uid);
     await supabaseAdmin.from("clinics").update({ owner_user_id: null }).eq("owner_user_id", uid);
