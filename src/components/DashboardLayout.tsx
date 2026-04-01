@@ -69,6 +69,7 @@ const adminSections: NavSection[] = [
   { items: [
     { label: "Dashboard", icon: LayoutDashboard, path: "/" },
     { label: "Book a Meeting", icon: CalendarCheck, path: "/book-meeting" },
+    { label: "Client Journey", icon: Milestone, path: "/client-journey" },
   ] },
   { title: "DEPARTMENTS", items: [
     { label: "Website", icon: Globe, path: "/website" },
