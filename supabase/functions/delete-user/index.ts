@@ -53,18 +53,32 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Clean up related tables before deleting auth user
+    // Clean up all FK references that block auth.users deletion
+    await supabaseAdmin.from("calendar_submissions").update({ submitted_by: null }).eq("submitted_by", user_id);
+    await supabaseAdmin.from("seo_analytics").update({ updated_by: null }).eq("updated_by", user_id);
+    await supabaseAdmin.from("department_tickets").update({ created_by: null }).eq("created_by", user_id);
+    await supabaseAdmin.from("department_tickets").update({ assigned_to: null }).eq("assigned_to", user_id);
+    await supabaseAdmin.from("content_posts").update({ created_by: null }).eq("created_by", user_id);
+    await supabaseAdmin.from("post_comments").delete().eq("user_id", user_id);
     await supabaseAdmin.from("department_chat_reads").delete().eq("user_id", user_id);
     await supabaseAdmin.from("department_chats").delete().eq("user_id", user_id);
     await supabaseAdmin.from("department_members").delete().eq("user_id", user_id);
     await supabaseAdmin.from("clinic_team_members").delete().eq("user_id", user_id);
-    await supabaseAdmin.from("client_journey_steps").delete().eq("completed_by", user_id);
+    await supabaseAdmin.from("client_journey_steps").update({ completed_by: null }).eq("completed_by", user_id);
     await supabaseAdmin.from("user_roles").delete().eq("user_id", user_id);
     await supabaseAdmin.from("profiles").delete().eq("id", user_id);
-
-    // Remove clinic ownership references
     await supabaseAdmin.from("clinics").update({ owner_user_id: null }).eq("owner_user_id", user_id);
     await supabaseAdmin.from("clinics").update({ assigned_concierge_id: null }).eq("assigned_concierge_id", user_id);
+
+    // Handle content_requests (has non-cascading FK)
+    const { data: crs } = await supabaseAdmin.from("content_requests").select("id").eq("created_by_concierge_id", user_id);
+    if (crs && crs.length > 0) {
+      for (const cr of crs) {
+        await supabaseAdmin.from("content_versions").delete().eq("content_request_id", cr.id);
+        await supabaseAdmin.from("content_calendar").delete().eq("content_request_id", cr.id);
+      }
+      await supabaseAdmin.from("content_requests").delete().eq("created_by_concierge_id", user_id);
+    }
 
     // Delete from Supabase Auth
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user_id);
