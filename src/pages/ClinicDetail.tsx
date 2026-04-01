@@ -22,6 +22,7 @@ import { FacebookInsightCard } from "@/components/clinic-detail/FacebookInsightC
 import { GoogleAdsConnectionCard } from "@/components/clinic-detail/GoogleAdsConnectionCard";
 import { GoogleAccountSelectionDialog } from "@/components/clinic-detail/GoogleAccountSelectionDialog";
 import { TrackingSetupCard } from "@/components/clinic-detail/TrackingSetupCard";
+import { ClientJourney } from "@/components/clinic-detail/ClientJourney";
 import { COMMON_TIMEZONES, DEFAULT_CLINIC_TIMEZONE, getSafeTimeZone } from "@/lib/website-analytics";
 
 interface ClinicData {
@@ -392,6 +393,7 @@ export default function ClinicDetail() {
             <TabsTrigger value="google">Google Ads</TabsTrigger>
             <TabsTrigger value="ai">AI Insights</TabsTrigger>
             {role === "admin" && <TabsTrigger value="connections">Connections</TabsTrigger>}
+            {(role === "admin" || role === "concierge") && <TabsTrigger value="journey">Client Journey</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="instagram" className="space-y-4 mt-4">
@@ -772,6 +774,12 @@ export default function ClinicDetail() {
                   })}
                 </CardContent>
               </Card>
+            </TabsContent>
+          )}
+
+          {(role === "admin" || role === "concierge") && (
+            <TabsContent value="journey" className="mt-4">
+              <ClientJourney clinicId={id!} />
             </TabsContent>
           )}
         </Tabs>
