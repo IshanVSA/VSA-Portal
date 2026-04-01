@@ -1,45 +1,37 @@
 
 
-## Auto-Recovery from Stale Sessions
+## Fix: Properly Delete Users from Database
 
 ### Problem
-When a user's session becomes stale (e.g., server-side session was revoked/expired but client still holds old tokens), API calls fail with 401/403 "session not found" errors, requiring manual logout/login.
+When you delete a team member or client from the dashboard, the code only removes their row from the `user_roles` table. The user still exists in:
+- `auth.users` (Supabase Auth) — this is why you can't re-use their email
+- `profiles` table
+- `department_members` table (for team members)
+- `clinic_team_members` table (for team members)
 
 ### Solution
-Two complementary fixes to make session recovery fully automatic:
-
-### 1. Global Auth Error Interceptor (`useAuth.ts`)
-Listen for the `TOKEN_REFRESHED` and `SIGNED_OUT` events, but more critically, handle the case where `getSession()` returns a session with tokens that are actually invalid server-side.
-
-Add logic to `useAuth.ts`:
-- Listen for the `onAuthStateChange` event `TOKEN_REFRESH_FAILED` — when Supabase can't refresh the token, automatically call `signOut()` to clear stale local storage and redirect to `/login`.
-- This covers the scenario where the refresh token itself is expired or revoked.
-
-### 2. Global Supabase Fetch Interceptor (`client.ts`)
-Add a custom `global.fetch` wrapper to the Supabase client config that intercepts 401/403 responses from any Supabase API call (including edge functions). When detected:
-- Attempt `supabase.auth.refreshSession()` 
-- If refresh fails, auto-sign-out and redirect to `/login`
-- If refresh succeeds, the SDK will automatically retry with the new token on subsequent calls
+Create a new edge function `delete-user` that uses the Supabase Admin API to fully delete the user from `auth.users`. Since the `profiles` table has `id` referencing `auth.users(id)`, and other tables reference `user_id`, we also clean those up. Then update both Employees and Clients pages to call this function instead of just deleting from `user_roles`.
 
 ### Changes
 
-**File: `src/integrations/supabase/client.ts`**
-- Add a custom `fetch` wrapper in the `global` config that catches 401/403 from Supabase endpoints, triggers a session refresh, and if that fails, clears the session and redirects to `/login`.
+**New file: `supabase/functions/delete-user/index.ts`**
+- Verify caller is admin (same pattern as `create-team-member`)
+- Accept `{ user_id }` in request body
+- Delete from `department_members`, `clinic_team_members`, `user_roles`, `profiles` using service role
+- Call `supabaseAdmin.auth.admin.deleteUser(user_id)` to remove from Auth
+- Return success/error
 
-**File: `src/hooks/useAuth.ts`**  
-- Add handling for `TOKEN_REFRESHED` failure scenario — if `onAuthStateChange` fires with event `TOKEN_REFRESHED` but session is null, or if a `SIGNED_OUT` event fires unexpectedly, navigate to login.
-- Specifically handle the case where `getSession()` succeeds but the session is actually stale by wrapping the initial check with a `getUser()` validation call — if `getUser()` returns an auth error, sign out automatically.
+**Update: `src/pages/Employees.tsx`**
+- Change `confirmDelete` to call `supabase.functions.invoke("delete-user", { body: { user_id: deleteTarget.id } })` instead of just deleting from `user_roles`
 
-### How It Works
-```text
-API call → 401/403 response
-  ↓
-Custom fetch intercepts
-  ↓
-Tries refreshSession()
-  ├─ Success → next call uses fresh token
-  └─ Failure → signOut() + redirect to /login
-```
+**Update: `src/pages/Clients.tsx`**
+- Same change to `confirmDelete` — invoke `delete-user` edge function
 
-This ensures users never see a broken state — stale sessions are silently refreshed or cleanly logged out without any manual intervention.
+### Cleanup of Existing Stale Data
+After the edge function is deployed, I'll also provide guidance on cleaning up the existing orphaned accounts (emp1, emp2, test, user1-3, etc.) that are already stuck in the database.
+
+### Technical Details
+- The edge function uses `SUPABASE_SERVICE_ROLE_KEY` (already configured) to call `auth.admin.deleteUser()`
+- Deleting from `auth.users` is the only way to free up the email address
+- The function cleans up all related tables before deleting the auth user to avoid foreign key issues
 
