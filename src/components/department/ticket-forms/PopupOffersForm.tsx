@@ -243,6 +243,13 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
               initialFocus
               className={cn("p-3 pointer-events-auto")}
             />
+            <div className="flex items-center justify-end border-t border-border px-3 py-2">
+              <PopoverClose asChild>
+                <Button size="sm" className="h-8 text-xs" disabled={!dateRange.from || !dateRange.to}>
+                  Confirm
+                </Button>
+              </PopoverClose>
+            </div>
           </PopoverContent>
         </Popover>
       </div>
