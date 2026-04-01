@@ -111,6 +111,50 @@ export type Database = {
           },
         ]
       }
+      client_journey_steps: {
+        Row: {
+          clinic_id: string
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          status: string
+          step_number: number
+          updated_at: string
+        }
+        Insert: {
+          clinic_id: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          step_number: number
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          step_number?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_journey_steps_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_api_credentials: {
         Row: {
           clinic_id: string
