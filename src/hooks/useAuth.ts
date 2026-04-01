@@ -2,6 +2,15 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
+function forceLogout() {
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith('sb-')) localStorage.removeItem(key);
+  });
+  if (window.location.pathname !== '/login') {
+    window.location.href = '/login';
+  }
+}
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -11,8 +20,8 @@ export function useAuth() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'TOKEN_REFRESHED' && !session) {
-          await supabase.auth.signOut();
-          window.location.href = '/login';
+          await supabase.auth.signOut({ scope: 'local' });
+          forceLogout();
           return;
         }
 
@@ -26,8 +35,8 @@ export function useAuth() {
       if (session) {
         const { error } = await supabase.auth.getUser();
         if (error) {
-          await supabase.auth.signOut();
-          window.location.href = '/login';
+          await supabase.auth.signOut({ scope: 'local' });
+          forceLogout();
           return;
         }
       }
@@ -40,7 +49,13 @@ export function useAuth() {
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // If server signout fails, force local cleanup
+      await supabase.auth.signOut({ scope: 'local' });
+    }
+    forceLogout();
   };
 
   return { user, session, loading, signOut };

@@ -6,6 +6,16 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 let isRefreshing = false;
 
+function forceLogout() {
+  // Clear all Supabase auth keys from localStorage to break stale state
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith('sb-')) localStorage.removeItem(key);
+  });
+  if (window.location.pathname !== '/login') {
+    window.location.href = '/login';
+  }
+}
+
 const customFetch: typeof fetch = async (input, init) => {
   const response = await fetch(input, init);
 
@@ -17,12 +27,13 @@ const customFetch: typeof fetch = async (input, init) => {
       try {
         const { error } = await supabase.auth.refreshSession();
         if (error) {
-          await supabase.auth.signOut();
-          window.location.href = '/login';
+          // Local-only signout to avoid another server call that may also fail
+          await supabase.auth.signOut({ scope: 'local' });
+          forceLogout();
         }
       } catch {
-        await supabase.auth.signOut();
-        window.location.href = '/login';
+        await supabase.auth.signOut({ scope: 'local' });
+        forceLogout();
       } finally {
         isRefreshing = false;
       }
