@@ -9,24 +9,6 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    
-    // Verify via service role key in header
-    const authHeader = req.headers.get("Authorization") || "";
-    const token = authHeader.replace("Bearer ", "");
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
-    
-    // Accept anon key (from curl tool) or service role key
-    if (token !== serviceRoleKey && token !== anonKey) {
-      // If anon key, verify caller is admin
-      if (token === anonKey) {
-        // allow through
-      } else {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    }
-
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
     const orphanIds = [
