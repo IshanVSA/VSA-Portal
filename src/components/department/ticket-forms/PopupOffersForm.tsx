@@ -62,6 +62,7 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
   const [termsAndConditions, setTermsAndConditions] = useState("");
   const [additionalNotes, setAdditionalNotes] = useState("");
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({ from: undefined, to: undefined });
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   const [clinicAddress, setClinicAddress] = useState("");
   const [complianceBody, setComplianceBody] = useState("");
@@ -215,7 +216,7 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
 
       <div className="space-y-1.5">
         <Label>Offer Period *</Label>
-        <Popover>
+        <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
           <PopoverTrigger asChild>
             <Button variant="outline" disabled={locked} className={cn("w-full justify-start text-left font-normal", !dateRange.from && "text-muted-foreground")}>
               <CalendarIcon className="mr-2 h-4 w-4" />
@@ -243,6 +244,11 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
               initialFocus
               className={cn("p-3 pointer-events-auto")}
             />
+            <div className="flex items-center justify-end border-t border-border px-3 py-2">
+              <Button size="sm" className="h-8 text-xs" disabled={!dateRange.from || !dateRange.to} onClick={() => setDatePickerOpen(false)}>
+                Confirm
+              </Button>
+            </div>
           </PopoverContent>
         </Popover>
       </div>
