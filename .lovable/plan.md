@@ -1,37 +1,105 @@
 
 
-## Book a Meeting - UI/UX Redesign
+## Client Journey / Lifecycle Tracker
 
-### Current Issues
-- Plain layout with basic cards and raw iframe embeds
-- No visual hierarchy or personality
-- Iframes may not render well (Google Calendar embeds can be blocked)
-- No engaging header or visual differentiation between the two team members
+### Overview
+Build a new "Client Journey" section accessible from the Clinic Detail page that tracks the full onboarding and ongoing lifecycle of each clinic across 8 phases and 31 steps, matching the VSA workflow document exactly. Each step is assigned to specific department(s), and team members from those departments can mark steps as complete.
 
-### Redesigned Approach
+### Workflow Phases & Steps (from document)
 
-**Page Header**: Add a centered hero section with a gradient-text heading, a warm subtitle, and a subtle dot-grid background pattern for visual depth.
+```text
+Phase 01: Client Onboarding (3 steps)
+  01. Discovery call                    → All Depts
+  02. Client negotiations               → All Depts
+  03. Brand assessment form             → All Depts
 
-**Team Member Cards**: Replace the plain cards with premium styled cards featuring:
-- Initials-based avatar circles (matching the platform's existing pattern) with gradient backgrounds - "VC" for Vedant, "AA" for Avi
-- Role/title beneath each name (e.g., "Founder" or "Co-Founder")
-- A short friendly description line
-- Remove the iframe embed entirely (Google Calendar appointment links don't embed well) and replace with a prominent, styled CTA button that opens the scheduling link
-- Add a subtle hover-lift effect on cards
-- Use stagger entrance animations
+Phase 02: Website Build (5 steps)
+  04. Designing                         → Design
+  05. Development                       → Design
+  06. Review                            → Design
+  07. Finalizing                        → Design
+  08. Content - website & services      → Design, SEO
 
-**Layout**: Center the content with a max-width container. Cards side by side on desktop, stacked on mobile. Add generous spacing and the dot-grid background.
+Phase 03: SEO Foundation (3 steps)
+  09. On-page SEO                       → SEO
+  10. Meta titles                       → SEO
+  11. Privacy policy setup              → SEO, Design
 
-**Dark/Light Mode**: Use existing CSS variables and card styles (glass-card patterns). The gradient avatars and primary-colored CTAs will naturally adapt.
+Phase 04: Technical Integration (3 steps)
+  12. GBP linking                       → SEO
+  13. Google Tag Manager                → SEO, Design
+  14. Google Analytics                  → SEO
 
-### File Changes
+Phase 05: Social Media Setup (5 steps)
+  15. Meta access - Facebook page       → Social
+  16. Instagram login                   → Social
+  17. Meta account setup                → Social
+  18. Meta Pixel code generation        → Social
+  19. Location targeting                → Social, Ads
 
-**`src/pages/BookMeeting.tsx`** - Complete rewrite:
-- Centered layout with `max-w-3xl mx-auto`
-- Hero section with gradient heading and descriptive subtitle
-- Two cards with: initials avatar (gradient bg), name, role, email, description, and a primary CTA button linking to the Google Calendar appointment page
-- "Open in new tab" button replaced with a single prominent "Schedule a Meeting" button
-- Add `Video` or `CalendarCheck` icon to the CTA
-- Use `stagger-children` class for entrance animation
-- Use `hover-lift` class on cards
+Phase 06: Ads Setup (1 step)
+  20. Ads group setup                   → Ads
+
+Phase 07: Brand & Content Launch (5 steps)
+  21. Brand evaluation                  → Design, Social
+  22. Color scheme                      → Design
+  23. Content generation                → Social
+  24. Graphics                          → Design
+  25. Posting & scheduling              → Social
+
+--- monthly recurring line ---
+
+Phase 08: Monthly Ongoing (6 steps)
+  26. Google Ads campaign mgmt          → Ads
+  27. Compliance work                   → All Depts
+  28. Monthly SEO posting               → SEO
+  29. GBP posting                       → SEO
+  30. GBP optimization                  → SEO
+  31. Backlinking                       → SEO
+```
+
+### Database Changes
+
+**New table: `client_journey_steps`**
+- `id` (uuid, PK)
+- `clinic_id` (uuid, FK → clinics)
+- `step_number` (int) — 1-31
+- `status` (text) — `pending`, `in_progress`, `completed`
+- `completed_by` (uuid, FK → auth.users, nullable)
+- `completed_at` (timestamptz, nullable)
+- `notes` (text, nullable)
+- `created_at` (timestamptz, default now())
+- `updated_at` (timestamptz, default now())
+
+RLS: Admin/concierge can read/write all. Clients can read their own clinic's journey.
+
+**Seed logic**: When a clinic is created (or when the journey tab is first opened), auto-insert 31 rows for that clinic with `status = 'pending'`.
+
+### Frontend Changes
+
+1. **New tab on Clinic Detail page** — "Client Journey" tab (admin/concierge only)
+2. **New component: `src/components/clinic-detail/ClientJourney.tsx`**
+   - Displays all 8 phases as a vertical timeline/accordion
+   - Each phase shows a progress bar (X/Y steps complete)
+   - Each step shows: step number, name, department badge(s), status indicator
+   - Staff can toggle step status (pending → in_progress → completed)
+   - Completed steps show who completed them and when
+   - Phase 08 marked as "Monthly Recurring" with a visual separator
+3. **Journey config file: `src/lib/client-journey-config.ts`**
+   - Static definition of all 31 steps with phase groupings and department assignments
+   - Department color mapping for badges
+
+### UI Design
+- Vertical stepper/timeline layout with phase headers as collapsible sections
+- Color-coded department badges (Design=blue, SEO=green, Social=purple, Ads=amber, All=gray)
+- Progress ring or bar per phase
+- Step cards with inline status toggle button
+- Clean dark/light mode support using existing Tailwind theme tokens
+
+### Technical Details
+- Migration creates table + RLS policies + updated_at trigger
+- Steps are initialized on first load via an upsert pattern (if no rows exist for clinic, insert all 31)
+- Query uses react-query with `queryKey: ["client-journey", clinicId]`
+- Status updates via optimistic mutation
+- Department badges use the same color scheme as the workflow document
 
