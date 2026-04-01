@@ -54,6 +54,7 @@ const App = () => (
               <Route path="/google-ads" element={<GoogleAdsDepartment />} />
               <Route path="/clinics" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}><Clinics /></ProtectedRoute>} />
               <Route path="/clinics/:id" element={<ClinicDetail />} />
+              <Route path="/client-journey" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}><ClientJourneyPage /></ProtectedRoute>} />
               <Route path="/employees" element={<ProtectedRoute allowedRoles={["admin"]}><Employees /></ProtectedRoute>} />
               <Route path="/clients" element={<ProtectedRoute allowedRoles={["admin"]}><ClientsPage /></ProtectedRoute>} />
               <Route path="/review" element={<ProtectedRoute allowedRoles={["admin"]}><AdminReview /></ProtectedRoute>} />
