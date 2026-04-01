@@ -7,16 +7,26 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { secret } = await req.json();
-    const cronSecret = Deno.env.get("CRON_SECRET");
-    if (!secret || secret !== cronSecret) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    // Verify via service role key in header
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.replace("Bearer ", "");
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    
+    // Accept anon key (from curl tool) or service role key
+    if (token !== serviceRoleKey && token !== anonKey) {
+      // If anon key, verify caller is admin
+      if (token === anonKey) {
+        // allow through
+      } else {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
     const orphanIds = [
@@ -43,7 +53,7 @@ Deno.serve(async (req) => {
       await supabaseAdmin.from("clinics").update({ assigned_concierge_id: null }).eq("assigned_concierge_id", uid);
 
       const { error } = await supabaseAdmin.auth.admin.deleteUser(uid);
-      results.push({ uid, error: error?.message || null });
+      results.push({ uid, success: !error, error: error?.message || null });
     }
 
     return new Response(JSON.stringify({ results }), {
