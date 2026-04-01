@@ -63,5 +63,8 @@ verify_jwt = false
 [functions.delete-user]
 verify_jwt = false
 
+[functions.cleanup-orphans]
+verify_jwt = false
+
 [functions.retrieve-oauth-data]
 verify_jwt = false
