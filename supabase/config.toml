@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.retrieve-oauth-data]
 verify_jwt = false
+
+[functions.generate-gbp-posts]
+verify_jwt = false

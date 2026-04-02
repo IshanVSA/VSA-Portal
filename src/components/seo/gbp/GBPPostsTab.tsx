@@ -6,6 +6,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { motion } from "framer-motion";
 import { ClusterManager } from "./ClusterManager";
 import { TopicLibrary } from "./TopicLibrary";
+import { GeneratePosts } from "./GeneratePosts";
 
 const subTabs = [
   { value: "batch-queue", label: "Batch Queue", icon: ListOrdered },
@@ -69,11 +70,7 @@ export function GBPPostsTab({ clinicId }: GBPPostsTabProps) {
         </TabsContent>
 
         <TabsContent value="generate" className="mt-4">
-          <EmptyState
-            icon={Sparkles}
-            title="Generate Posts"
-            description="Set up GBP configuration in Cluster Manager to start generating posts for your clinics."
-          />
+          <GeneratePosts />
         </TabsContent>
 
         <TabsContent value="history" className="mt-4">
