@@ -66,30 +66,34 @@ export function GBPPostsTab({ clinicId }: GBPPostsTabProps) {
           ))}
         </TabsList>
 
-        {/* Use hidden divs instead of TabsContent to preserve state across tab switches */}
         <div className="mt-4">
-          <div className={activeTab === "batch-queue" ? "" : "hidden"}>
-            <BatchQueue clinicId={clinicId} />
-          </div>
-
-          <div className={activeTab === "generate" ? "" : "hidden"}>
-            <GeneratePosts clinicId={clinicId} />
-          </div>
-
-          <div className={activeTab === "history" ? "" : "hidden"}>
-            <PostHistory clinicId={clinicId} />
-          </div>
-
-          {!isClient && (
-            <div className={activeTab === "clusters" ? "" : "hidden"}>
-              <ClusterManager />
-            </div>
-          )}
-
-          {!isClient && (
-            <div className={activeTab === "topics" ? "" : "hidden"}>
-              <TopicLibrary />
-            </div>
+          {isClient ? (
+            <>
+              <div className={activeTab === "scheduled" ? "" : "hidden"}>
+                <ScheduledPosts clinicId={clinicId} />
+              </div>
+              <div className={activeTab === "history" ? "" : "hidden"}>
+                <PostHistory clinicId={clinicId} />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className={activeTab === "batch-queue" ? "" : "hidden"}>
+                <BatchQueue clinicId={clinicId} />
+              </div>
+              <div className={activeTab === "generate" ? "" : "hidden"}>
+                <GeneratePosts clinicId={clinicId} />
+              </div>
+              <div className={activeTab === "history" ? "" : "hidden"}>
+                <PostHistory clinicId={clinicId} />
+              </div>
+              <div className={activeTab === "clusters" ? "" : "hidden"}>
+                <ClusterManager />
+              </div>
+              <div className={activeTab === "topics" ? "" : "hidden"}>
+                <TopicLibrary />
+              </div>
+            </>
           )}
         </div>
       </Tabs>
