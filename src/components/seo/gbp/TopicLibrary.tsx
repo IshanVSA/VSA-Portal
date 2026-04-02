@@ -226,6 +226,43 @@ export function TopicLibrary() {
   );
 }
 
+// ─── Topic Cell with Compliance Check ────────────────────────────
+function TopicCell({ title }: { title: string }) {
+  const scan = scanTopicTitle(title);
+  if (scan.pass) {
+    return (
+      <TableCell className="text-xs">
+        <span className="flex items-center gap-1">
+          {title}
+          <ShieldCheck className="h-3 w-3 text-emerald-500 shrink-0" />
+        </span>
+      </TableCell>
+    );
+  }
+  return (
+    <TableCell className="text-xs">
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 cursor-help">
+              {title}
+              <ShieldAlert className="h-3 w-3 shrink-0" />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-xs">
+            <p className="text-xs font-medium mb-1">Compliance Issues:</p>
+            <ul className="text-[10px] space-y-0.5">
+              {scan.issues.map((issue, i) => (
+                <li key={i}>• {issue}</li>
+              ))}
+            </ul>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </TableCell>
+  );
+}
+
 // ─── Default Topic Seeds ─────────────────────────────────────────
 function generateDefaultTopics(): Array<Partial<GBPTopicSet>> {
   const themes: Record<number, { theme: string; topics: Record<TopicVariant, [string, string, string, string]> }> = {
