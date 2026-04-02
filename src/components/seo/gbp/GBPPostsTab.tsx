@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ListOrdered, Sparkles, History, Map, BookOpen } from "lucide-react";
+import { ListOrdered, Sparkles, History, Map, BookOpen, CalendarCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUserRole } from "@/hooks/useUserRole";
 import { motion } from "framer-motion";
@@ -9,13 +9,19 @@ import { TopicLibrary } from "./TopicLibrary";
 import { GeneratePosts } from "./GeneratePosts";
 import { BatchQueue } from "./BatchQueue";
 import { PostHistory } from "./PostHistory";
+import { ScheduledPosts } from "./ScheduledPosts";
 
-const subTabs = [
+const adminTabs = [
   { value: "batch-queue", label: "Batch Queue", icon: ListOrdered },
   { value: "generate", label: "Generate Posts", icon: Sparkles },
   { value: "history", label: "Post History", icon: History },
   { value: "clusters", label: "Cluster Manager", icon: Map },
   { value: "topics", label: "Topic Library", icon: BookOpen },
+];
+
+const clientTabs = [
+  { value: "scheduled", label: "Scheduled Posts", icon: CalendarCheck },
+  { value: "history", label: "Post History", icon: History },
 ];
 
 interface GBPPostsTabProps {
@@ -39,13 +45,10 @@ function EmptyState({ icon: Icon, title, description }: { icon: React.ElementTyp
 }
 
 export function GBPPostsTab({ clinicId }: GBPPostsTabProps) {
-  const [activeTab, setActiveTab] = useState("batch-queue");
   const { role } = useUserRole();
   const isClient = role === "client";
-
-  const visibleTabs = isClient
-    ? subTabs.filter(t => ["batch-queue", "history"].includes(t.value))
-    : subTabs;
+  const visibleTabs = isClient ? clientTabs : adminTabs;
+  const [activeTab, setActiveTab] = useState(visibleTabs[0]?.value || "batch-queue");
 
   return (
     <div className="space-y-4">
@@ -63,30 +66,34 @@ export function GBPPostsTab({ clinicId }: GBPPostsTabProps) {
           ))}
         </TabsList>
 
-        {/* Use hidden divs instead of TabsContent to preserve state across tab switches */}
         <div className="mt-4">
-          <div className={activeTab === "batch-queue" ? "" : "hidden"}>
-            <BatchQueue clinicId={clinicId} />
-          </div>
-
-          <div className={activeTab === "generate" ? "" : "hidden"}>
-            <GeneratePosts clinicId={clinicId} />
-          </div>
-
-          <div className={activeTab === "history" ? "" : "hidden"}>
-            <PostHistory clinicId={clinicId} />
-          </div>
-
-          {!isClient && (
-            <div className={activeTab === "clusters" ? "" : "hidden"}>
-              <ClusterManager />
-            </div>
-          )}
-
-          {!isClient && (
-            <div className={activeTab === "topics" ? "" : "hidden"}>
-              <TopicLibrary />
-            </div>
+          {isClient ? (
+            <>
+              <div className={activeTab === "scheduled" ? "" : "hidden"}>
+                <ScheduledPosts clinicId={clinicId} />
+              </div>
+              <div className={activeTab === "history" ? "" : "hidden"}>
+                <PostHistory clinicId={clinicId} />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className={activeTab === "batch-queue" ? "" : "hidden"}>
+                <BatchQueue clinicId={clinicId} />
+              </div>
+              <div className={activeTab === "generate" ? "" : "hidden"}>
+                <GeneratePosts clinicId={clinicId} />
+              </div>
+              <div className={activeTab === "history" ? "" : "hidden"}>
+                <PostHistory clinicId={clinicId} />
+              </div>
+              <div className={activeTab === "clusters" ? "" : "hidden"}>
+                <ClusterManager />
+              </div>
+              <div className={activeTab === "topics" ? "" : "hidden"}>
+                <TopicLibrary />
+              </div>
+            </>
           )}
         </div>
       </Tabs>
