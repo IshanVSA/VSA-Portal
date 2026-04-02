@@ -330,10 +330,18 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
               </Select>
             </div>
             {hasApprovedPosts ? (
-              <Badge className="bg-green-600/20 text-green-400 border-green-500/30 text-[11px] h-9 px-3 flex items-center gap-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                Approved for {MONTH_NAMES[selectedMonth - 1]} {selectedYear}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge className="bg-green-600/20 text-green-400 border-green-500/30 text-[11px] h-9 px-3 flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Approved for {MONTH_NAMES[selectedMonth - 1]} {selectedYear}
+                </Badge>
+                {role === 'admin' && (
+                  <Button onClick={() => setRegenerateMode(true)} variant="ghost" size="sm" className="gap-1.5 text-amber-500 hover:text-amber-400">
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Regenerate
+                  </Button>
+                )}
+              </div>
             ) : (
               <Button onClick={handleGenerate} disabled={!selectedClinicId || !topics || isGenerating} size="sm" className="gap-1.5">
                 {isGenerating ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
