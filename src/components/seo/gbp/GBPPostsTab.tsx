@@ -4,6 +4,8 @@ import { ListOrdered, Sparkles, History, Map, BookOpen } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUserRole } from "@/hooks/useUserRole";
 import { motion } from "framer-motion";
+import { ClusterManager } from "./ClusterManager";
+import { TopicLibrary } from "./TopicLibrary";
 
 const subTabs = [
   { value: "batch-queue", label: "Batch Queue", icon: ListOrdered },
@@ -22,8 +24,8 @@ function EmptyState({ icon: Icon, title, description }: { icon: React.ElementTyp
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <Card className="border-dashed border-border/60">
         <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="h-12 w-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-4">
-            <Icon className="h-6 w-6 text-emerald-500" />
+          <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center mb-4">
+            <Icon className="h-6 w-6 text-muted-foreground" />
           </div>
           <h3 className="text-base font-semibold text-foreground mb-1">{title}</h3>
           <p className="text-sm text-muted-foreground max-w-md">{description}</p>
@@ -38,7 +40,6 @@ export function GBPPostsTab({ clinicId }: GBPPostsTabProps) {
   const { role } = useUserRole();
   const isClient = role === "client";
 
-  // Clients only see batch queue, history (read-only)
   const visibleTabs = isClient
     ? subTabs.filter(t => ["batch-queue", "history"].includes(t.value))
     : subTabs;
@@ -46,12 +47,12 @@ export function GBPPostsTab({ clinicId }: GBPPostsTabProps) {
   return (
     <div className="space-y-4">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full justify-start bg-emerald-500/5 border border-emerald-500/20 h-9 p-0.5 overflow-x-auto">
+        <TabsList className="w-full justify-start bg-muted/50 border border-border/40 h-9 p-0.5 overflow-x-auto">
           {visibleTabs.map(tab => (
             <TabsTrigger
               key={tab.value}
               value={tab.value}
-              className="gap-1.5 text-xs data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-700 dark:data-[state=active]:text-emerald-400 data-[state=active]:shadow-sm"
+              className="gap-1.5 text-xs data-[state=active]:shadow-sm"
             >
               <tab.icon className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">{tab.label}</span>
@@ -85,21 +86,13 @@ export function GBPPostsTab({ clinicId }: GBPPostsTabProps) {
 
         {!isClient && (
           <TabsContent value="clusters" className="mt-4">
-            <EmptyState
-              icon={Map}
-              title="Cluster Manager"
-              description="Manage geographic clusters to prevent content collision across nearby clinics. Add clinics and configure their GBP settings here."
-            />
+            <ClusterManager />
           </TabsContent>
         )}
 
         {!isClient && (
           <TabsContent value="topics" className="mt-4">
-            <EmptyState
-              icon={BookOpen}
-              title="Topic Library"
-              description="Seed the topic library to enable post generation. The library contains 48 topic sets across 12 months and 4 variants."
-            />
+            <TopicLibrary />
           </TabsContent>
         )}
       </Tabs>
