@@ -56,8 +56,7 @@ export function PostHistory({ clinicId: navClinicId }: PostHistoryProps) {
 
   const filteredPosts = useMemo(() => {
     return posts.filter(p => {
-      // Only show approved/rejected posts (not drafts/generated)
-      const validStatuses = statusFilter === "all" ? ["approved", "rejected"] : [statusFilter];
+      const validStatuses = statusFilter === "all" ? ["approved", "rejected", "generated"] : [statusFilter];
       if (!validStatuses.includes(p.status)) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
