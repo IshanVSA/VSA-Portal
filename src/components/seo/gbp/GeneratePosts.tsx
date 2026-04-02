@@ -24,6 +24,7 @@ interface GeneratePostsProps {
 }
 
 export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
+  const queryClient = useQueryClient();
   const { configs, isLoading: configsLoading } = useClinicGBPConfigs();
   const { topicsByMonth } = useTopicLibrary();
   const { role } = useUserRole();
