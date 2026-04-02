@@ -334,6 +334,13 @@ function ClusterRow({ cluster, clinicNameMap, configs, expanded, onToggle, isAdm
                             {config?.cluster_position ?? positions[idx] ?? '—'}
                           </Badge>
                         </TableCell>
+                        <TableCell>
+                          {config?.cluster_position ? (
+                            <Badge variant="outline" className="text-[10px] font-mono">
+                              {getHookStyleForPosition(new Date().getMonth() + 1, config.cluster_position as TopicVariant)}
+                            </Badge>
+                          ) : '—'}
+                        </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {config?.local_landmarks?.join(', ') || '—'}
                         </TableCell>
