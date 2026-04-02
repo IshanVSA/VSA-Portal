@@ -25,9 +25,14 @@ const statusBadgeColors: Record<string, string> = {
   rejected: "bg-destructive/10 text-destructive",
 };
 
-export function PostHistory() {
+interface PostHistoryProps {
+  clinicId?: string | null;
+}
+
+export function PostHistory({ clinicId: navClinicId }: PostHistoryProps) {
   const { configs } = useClinicGBPConfigs();
-  const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null);
+  const [internalClinicId, setInternalClinicId] = useState<string | null>(null);
+  const selectedClinicId = navClinicId || internalClinicId;
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"table" | "card">("table");
