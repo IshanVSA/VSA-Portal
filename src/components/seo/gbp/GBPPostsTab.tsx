@@ -45,13 +45,10 @@ function EmptyState({ icon: Icon, title, description }: { icon: React.ElementTyp
 }
 
 export function GBPPostsTab({ clinicId }: GBPPostsTabProps) {
-  const [activeTab, setActiveTab] = useState("batch-queue");
   const { role } = useUserRole();
   const isClient = role === "client";
-
-  const visibleTabs = isClient
-    ? subTabs.filter(t => ["batch-queue", "history"].includes(t.value))
-    : subTabs;
+  const visibleTabs = isClient ? clientTabs : adminTabs;
+  const [activeTab, setActiveTab] = useState(visibleTabs[0]?.value || "batch-queue");
 
   return (
     <div className="space-y-4">
