@@ -170,12 +170,12 @@ export function BatchQueue({ clinicId }: BatchQueueProps) {
       </Card>
 
       {/* Progress */}
-      {batches.length > 0 && (
+      {filteredBatches.length > 0 && (
         <div className="flex items-center gap-3">
           <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
             <div className="h-full bg-primary transition-all rounded-full" style={{ width: `${progressPct}%` }} />
           </div>
-          <span className="text-xs text-muted-foreground">{completedBatches}/{batches.length} batches • {totalClinics} clinics</span>
+          <span className="text-xs text-muted-foreground">{completedBatches}/{filteredBatches.length} batches • {totalClinics} clinics</span>
         </div>
       )}
 
