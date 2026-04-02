@@ -175,10 +175,10 @@ export function TopicLibrary() {
                                 return (
                                   <TableRow key={variant}>
                                     <TableCell><Badge variant="outline" className="text-[10px] font-mono">{variant}</Badge></TableCell>
-                                    <TableCell className="text-xs">{topic.week_1_topic}</TableCell>
-                                    <TableCell className="text-xs">{topic.week_2_topic}</TableCell>
-                                    <TableCell className="text-xs">{topic.week_3_topic}</TableCell>
-                                    <TableCell className="text-xs">{topic.week_4_topic}</TableCell>
+                                    <TopicCell title={topic.week_1_topic} />
+                                    <TopicCell title={topic.week_2_topic} />
+                                    <TopicCell title={topic.week_3_topic} />
+                                    <TopicCell title={topic.week_4_topic} />
                                     {isAdmin && (
                                       <TableCell>
                                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingTopic(topic); setEditDialogOpen(true); }}>
