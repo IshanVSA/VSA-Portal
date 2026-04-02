@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ShieldCheck, ShieldAlert, AlertTriangle } from "lucide-react";
+import { ChevronDown, ShieldCheck, ShieldAlert, AlertTriangle, Wrench } from "lucide-react";
 import type { ComplianceScan } from "@/lib/gbp/types";
 
 function PassFail({ value }: { value: 'PASS' | 'FAIL' | string }) {
@@ -37,17 +38,85 @@ function CheckRow({ label, value }: { label: string; value: 'PASS' | 'FAIL' | st
   );
 }
 
-interface Props {
-  scan: ComplianceScan;
+/** Extract human-readable issue descriptions from a compliance scan */
+export function extractIssueDescriptions(scan: ComplianceScan): string[] {
+  const issues: string[] = [];
+
+  // Tier 1
+  if (scan.tier_1.flagged_terms.found > 0)
+    issues.push(`Tier 1 — Flagged terms found: ${scan.tier_1.flagged_terms.details.join(', ')}. Replace with compliant alternatives.`);
+  if (scan.tier_1.em_dashes.found > 0)
+    issues.push(`Tier 1 — Em dashes (—) found in ${scan.tier_1.em_dashes.details.join(', ')}. Replace with hyphens (-).`);
+  if (scan.tier_1.us_english === 'FAIL')
+    issues.push('Tier 1 — British spelling detected. Convert all spelling to US English (e.g., "behaviour" → "behavior", "centre" → "center").');
+  if (scan.tier_1.specialist_claims === 'FAIL')
+    issues.push('Tier 1 — Specialist claims detected. Remove any "specialist", "board-certified specialist" language.');
+  if (scan.tier_1.hospital_type_language.result === 'FAIL')
+    issues.push(`Tier 1 — Hospital Type ${scan.tier_1.hospital_type_language.type} language violation. Remove forbidden emergency/24-hour terms for this hospital type.`);
+  if (scan.tier_1.guaranteed_outcomes === 'FAIL')
+    issues.push('Tier 1 — Guaranteed outcome language detected. Remove "guarantee" and similar outcome-promising words.');
+  if (scan.tier_1.emoji_compliance === 'FAIL')
+    issues.push('Tier 1 — Emoji violation: emojis must only appear at the very start or end of a post, max 2 per post.');
+
+  // Tier 2
+  if (scan.tier_2.prescription_drug_terms.found > 0)
+    issues.push(`Tier 2 — Prescription drug terms found: ${scan.tier_2.prescription_drug_terms.details.join(', ')}. Replace with "comfort care", "supportive care", "wellness support".`);
+  if (scan.tier_2.drug_brand_names.found > 0)
+    issues.push(`Tier 2 — Drug brand names found: ${scan.tier_2.drug_brand_names.details.join(', ')}. Replace with generic terms like "preventive care products", "parasite prevention".`);
+  if (scan.tier_2.direct_health_targeting === 'FAIL')
+    issues.push('Tier 2 — Direct health targeting language detected ("your condition/symptoms"). Use "signs you may notice in your pet" instead.');
+  if (scan.tier_2.outcome_guarantee === 'FAIL')
+    issues.push('Tier 2 — Outcome guarantee words (cure/heal/fix/100%) detected. Use "manage", "support", "help with" instead.');
+  if (scan.tier_2.sensitive_terms.found > 0)
+    issues.push(`Tier 2 — Sensitive terms found: ${scan.tier_2.sensitive_terms.details.join(', ')}. Use compliant alternatives (e.g., "end-of-life support", "assess", "evaluate").`);
+  if (scan.tier_2.landing_page_risk_terms.found > 0)
+    issues.push(`Tier 2 — Landing page risk terms found: ${scan.tier_2.landing_page_risk_terms.details.join(', ')}. Remove commercial/transactional language.`);
+
+  // Tier 3
+  for (let i = 1; i <= 4; i++) {
+    const key = `post_${i}` as keyof typeof scan.tier_3.geo_keyword_first_100;
+    if (!scan.tier_3.geo_keyword_first_100[key])
+      issues.push(`Tier 3 — Post ${i}: neighbourhood/geo keyword missing from first 100 characters. Add it near the beginning of the post.`);
+  }
+  if (scan.tier_3.service_keyword === 'FAIL')
+    issues.push('Tier 3 — Service keyword not found in post content. Ensure at least one post contains its primary keyword in the body text.');
+  for (let i = 1; i <= 4; i++) {
+    const key = `post_${i}` as keyof typeof scan.tier_3.word_count;
+    const wc = scan.tier_3.word_count[key];
+    if (wc < 80) issues.push(`Tier 3 — Post ${i}: word count is ${wc} (minimum 80). Add more content.`);
+    if (wc > 120) issues.push(`Tier 3 — Post ${i}: word count is ${wc} (maximum 120). Trim the post.`);
+  }
+  if (scan.tier_3.phone_in_2_plus === 'FAIL')
+    issues.push('Tier 3 — Phone number must appear in at least 2 of the 4 posts. Add the clinic phone number to more posts.');
+  if (scan.tier_3.keyword_diversity === 'FAIL')
+    issues.push('Tier 3 — Keyword diversity failed. Each post must have a unique primary keyword — no overlap allowed.');
+  if (scan.tier_3.cta_service_page === 'FAIL')
+    issues.push('Tier 3 — CTA links to homepage or is missing. Each post CTA must link to a specific service page.');
+  if (scan.tier_3.neighbourhood_in_all === 'FAIL')
+    issues.push('Tier 3 — Neighbourhood name missing from one or more posts. Every post must mention the neighbourhood.');
+
+  return issues;
 }
 
-export function ComplianceScanDisplay({ scan }: Props) {
+interface Props {
+  scan: ComplianceScan;
+  onFixIssues?: (issues: string[]) => void;
+  isFixing?: boolean;
+}
+
+export function ComplianceScanDisplay({ scan, onFixIssues, isFixing }: Props) {
   const [openTiers, setOpenTiers] = useState<Record<string, boolean>>({ tier1: true, tier2: false, tier3: false });
 
   const toggle = (tier: string) => setOpenTiers(prev => ({ ...prev, [tier]: !prev[tier] }));
 
   const tierIcon = scan.overall === 'PASS' ? ShieldCheck : ShieldAlert;
   const TierIcon = tierIcon;
+
+  const handleFix = () => {
+    if (!onFixIssues) return;
+    const issues = extractIssueDescriptions(scan);
+    onFixIssues(issues);
+  };
 
   return (
     <Card className="border-border/50">
@@ -58,6 +127,18 @@ export function ComplianceScanDisplay({ scan }: Props) {
             Compliance Scan
           </CardTitle>
           <div className="flex items-center gap-2">
+            {scan.issues_count > 0 && onFixIssues && (
+              <Button
+                onClick={handleFix}
+                disabled={isFixing}
+                size="sm"
+                variant="outline"
+                className="h-6 text-[10px] gap-1 border-amber-500/30 text-amber-600 hover:bg-amber-500/10"
+              >
+                <Wrench className="h-3 w-3" />
+                {isFixing ? 'Fixing...' : 'Fix Issues'}
+              </Button>
+            )}
             {scan.issues_count > 0 && (
               <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30 text-[10px]">
                 <AlertTriangle className="h-3 w-3 mr-1" />
