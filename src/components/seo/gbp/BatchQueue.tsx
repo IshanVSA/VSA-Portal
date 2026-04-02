@@ -63,6 +63,7 @@ export function BatchQueue() {
   const { batches, isLoading, generateQueue, runCollisionCheck } = useGBPBatches(selectedMonth, selectedYear);
   const [clusterNames, setClusterNames] = useState<Record<string, string>>({});
   const [clinicNames, setClinicNames] = useState<Record<string, string>>({});
+  const uniqueClinicIds = useMemo(() => [...new Set(batches.flatMap((b) => b.clinics))], [batches]);
 
   // Fetch cluster & clinic names
   useEffect(() => {
