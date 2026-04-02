@@ -4,7 +4,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { SearchCode, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Globe, Link2, Hash, TrendingUp, MessageSquare } from "lucide-react";
+import { SearchCode, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Globe, Link2, Hash, TrendingUp, MessageSquare, MapPin } from "lucide-react";
+import { GBPPostsTab } from "@/components/seo/gbp/GBPPostsTab";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { SeoAnalyticsTab } from "@/components/department/SeoAnalyticsTab";
