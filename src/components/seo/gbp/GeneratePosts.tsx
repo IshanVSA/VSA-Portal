@@ -358,10 +358,17 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
                 )}
               </div>
             ) : (
-              <Button onClick={handleGenerate} disabled={!selectedClinicId || !topics || isGenerating} size="sm" className="gap-1.5">
-                {isGenerating ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                {isGenerating ? "Generating..." : "Generate 4 Posts"}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button onClick={handleGenerate} disabled={!selectedClinicId || !topics || isGenerating} size="sm" className="gap-1.5">
+                  {isGenerating ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                  {isGenerating ? "Generating..." : regenerateMode ? "Regenerate 4 Posts" : "Generate 4 Posts"}
+                </Button>
+                {regenerateMode && (
+                  <Button onClick={() => { setRegenerateMode(false); setGeneratedPosts([]); setComplianceScan(null); }} variant="ghost" size="sm" className="text-muted-foreground">
+                    Cancel
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         </CardContent>
