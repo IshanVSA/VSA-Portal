@@ -40,10 +40,6 @@ const TIER2_SENSITIVE_TERMS = [
 
 const TIER2_OUTCOME_WORDS = ['cure', 'heal', 'fix'];
 
-// Hospital type rules aligned to VSA 3-Type Framework:
-// TYPE 1 = 24/7 Emergency Hospital (nothing restricted)
-// TYPE 2 = Dedicated Emergency (can't say 24/7 unless truly continuous)
-// TYPE 3 = General Practice (most restricted)
 const HOSPITAL_TYPE_RULES: Record<number, { forbidden: string[] }> = {
   1: { forbidden: [] },
   2: { forbidden: ['24/7', '24-hour'] },
@@ -65,9 +61,8 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -82,12 +77,12 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "AI service not configured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) {
+      return new Response(JSON.stringify({ error: "Anthropic API key not configured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Build the hospital type label (corrected per VSA 3-Type Framework)
+    // Hospital type label
     const hospitalLabels: Record<number, string> = {
       1: "24/7 Emergency Hospital (Type 1)",
       2: "Dedicated Emergency Hospital (Type 2)",
@@ -95,18 +90,31 @@ serve(async (req) => {
     };
     const hospitalLabel = hospitalLabels[hospital_type] || "General Practice Veterinary Clinic";
 
-    // Get forbidden terms for this hospital type
+    // Forbidden terms for this hospital type
     const typeRules = HOSPITAL_TYPE_RULES[hospital_type] || HOSPITAL_TYPE_RULES[3];
     const forbiddenTermsNote = typeRules.forbidden.length > 0
-      ? `\n- For this ${hospitalLabel}, NEVER use these terms: ${typeRules.forbidden.join(', ')}`
+      ? `\n   ✗ For ${hospitalLabel}, these terms are ABSOLUTELY FORBIDDEN: ${typeRules.forbidden.join(', ')}`
       : '';
 
-    // Build recent content exclusion context
+    // Jurisdiction-specific regulatory body
+    const regulatoryBody = jurisdiction === 'BC'
+      ? 'CVBC (College of Veterinarians of British Columbia)'
+      : jurisdiction === 'AB'
+        ? 'ABVMA (Alberta Veterinary Medical Association)'
+        : jurisdiction === 'ON'
+          ? 'CVO (College of Veterinarians of Ontario)'
+          : jurisdiction === 'CA-OTHER'
+            ? 'the applicable Canadian provincial veterinary regulatory body'
+            : jurisdiction === 'UK'
+              ? 'RCVS (Royal College of Veterinary Surgeons)'
+              : 'AVMA (American Veterinary Medical Association)';
+
+    // Recent content exclusion context
     let recentContext = "";
     if (recent_content_context) {
       const { last_month_gbp = [], recent_blogs = [], recent_p2_pages = [] } = recent_content_context;
       if (last_month_gbp.length > 0) {
-        recentContext += `\n\nRECENT GBP POSTS (DO NOT REPEAT THESE TOPICS/HOOKS):\n${last_month_gbp.map((p: any) => `- Topic: ${p.topic}, Hook: ${p.hook}, Keywords: ${p.keywords?.join(', ')}`).join('\n')}`;
+        recentContext += `\n\nCONTENT COLLISION AVOIDANCE — RECENT GBP POSTS (DO NOT REPEAT):\n${last_month_gbp.map((p: any) => `- Topic: ${p.topic}, Hook: ${p.hook}, Keywords: ${p.keywords?.join(', ')}`).join('\n')}`;
       }
       if (recent_blogs.length > 0) {
         recentContext += `\n\nRECENT BLOG POSTS (DO NOT DUPLICATE KEYWORDS):\n${recent_blogs.map((b: any) => `- ${b.title} (keyword: ${b.primary_keyword})`).join('\n')}`;
@@ -116,54 +124,105 @@ serve(async (req) => {
       }
     }
 
-    const systemPrompt = `You are a veterinary marketing content specialist creating Google Business Profile (GBP) posts. You must follow these rules STRICTLY:
+    // ══════════════════════════════════════════════════════════════════
+    // STRICT 3-TIER COMPLIANCE SYSTEM PROMPT
+    // The prompt itself acts as the FIRST layer of compliance.
+    // The post-generation compliance scan is the SECOND layer.
+    // ══════════════════════════════════════════════════════════════════
 
-TIER 1 — VSA CORE COMPLIANCE:
-- NEVER use these flagged terms: ${TIER1_FLAGGED_TERMS.join(', ')}
-- NEVER use the word "surgery" — use "surgical care" or "procedure" instead
-- NEVER use em dashes (—), use regular dashes (-) instead
-- Use US English spelling only (behavior not behaviour, center not centre)
-- Do NOT make specialist claims unless the clinic is a board-certified specialty hospital
-- No guaranteed outcomes or promises of results
-- Maximum 1-2 emojis per post, only at the very start or very end (NEVER mid-sentence)
-- Hospital Type: ${hospitalLabel}${forbiddenTermsNote}
-- ${jurisdiction === 'BC' ? 'Follow CVBC (College of Veterinarians of British Columbia) guidelines' : jurisdiction === 'CA-OTHER' ? 'Follow Canadian veterinary regulatory guidelines' : 'Follow AVMA guidelines'}
+    const systemPrompt = `You are VSA's Chief Veterinary Marketing Compliance Officer AND Senior Content Strategist. Your #1 priority — above all else — is producing posts that pass a strict 3-tier compliance audit on the FIRST attempt. Every single word you write will be scanned against the exact term lists below. A single violation means the entire batch fails.
 
-TIER 2 — GOOGLE ADS HEALTHCARE POLICY:
-- NEVER mention specific drug brand names: ${TIER2_DRUG_BRAND_NAMES.join(', ')} — use "veterinary products" or "preventive care products"
-- NEVER use prescription drug terms: ${TIER2_PRESCRIPTION_TERMS.join(', ')} — use "comfort care" or "supportive care"
-- NEVER use sensitive terms: ${TIER2_SENSITIVE_TERMS.join(', ')} — use softer alternatives (e.g., "end-of-life care", "assess", "evaluate", "recommend care for")
-- NEVER use outcome guarantee words: ${TIER2_OUTCOME_WORDS.join(', ')}, guaranteed results, 100%, proven — remove entirely or use "manage" / "support"
-- NEVER use direct health targeting: "your condition", "your symptoms", "your illness" — use "signs you may notice" or "common signs in pets"
-- No before/after language implying guaranteed transformation
-- No time-bound outcome promises
-${hospital_type === 3 ? '- Do NOT imply the clinic can replace emergency or specialist care' : ''}
+═══════════════════════════════════════════════════════════════
+TIER 1 — VSA CORE COMPLIANCE (ZERO TOLERANCE)
+═══════════════════════════════════════════════════════════════
+These terms trigger INSTANT FAILURE. Do NOT use them, do NOT use synonyms that sound like them, do NOT use them in any form (singular, plural, adjective, adverb):
 
-TIER 3 — PERFORMANCE & SEO:
-- Include "${neighbourhood}" in the first 100 characters of each post
-- Include the phone number "${phone_number}" in at least 2 of the 4 posts
-- Each post must be 80-120 words
-- Use a DIFFERENT primary keyword for each post (no keyword cannibalization)
-- Each post needs a CTA with action verb (Book, Call, Visit) linking to a specific service page on ${website_url} (NOT the homepage)
-- Include neighbourhood name "${neighbourhood}" in every post (not just city)
-- Reference local landmarks: ${local_landmarks?.join(', ') || 'none specified'}
-- Top services to highlight: ${top_services?.join(', ') || 'general veterinary services'}
+BANNED SUPERLATIVES & CLAIMS: ${TIER1_FLAGGED_TERMS.join(', ')}
+BANNED WORD "surgery": Always write "surgical care" or "procedure" instead.
+BANNED PUNCTUATION: Em dashes (—) → use regular hyphens (-) only.
+BANNED EMOJI PLACEMENT: Emojis may ONLY appear at the very start or very end of a post. NEVER mid-sentence. Maximum 2 per post.
 
+REGULATORY BODY: All content must comply with ${regulatoryBody} marketing guidelines.
+HOSPITAL CLASSIFICATION: This clinic is a ${hospitalLabel}.${forbiddenTermsNote}
+
+SPECIALIST CLAIMS: Unless this is a board-certified specialty hospital, NEVER claim specialist status.
+OUTCOME PROMISES: NEVER guarantee results, outcomes, or use language implying certainty of medical outcomes.
+SPELLING: Use US English exclusively (behavior, not behaviour; center, not centre).
+
+═══════════════════════════════════════════════════════════════
+TIER 2 — GOOGLE ADS HEALTHCARE ADVERTISING POLICY (STRICT)
+═══════════════════════════════════════════════════════════════
+Google scans GBP posts the same way it scans ads. These terms will get the post flagged or the listing suspended:
+
+DRUG BRAND NAMES (NEVER USE): ${TIER2_DRUG_BRAND_NAMES.join(', ')}
+→ Instead say: "veterinary wellness products", "preventive care products", "parasite prevention"
+
+PRESCRIPTION/MEDICAL TERMS (NEVER USE): ${TIER2_PRESCRIPTION_TERMS.join(', ')}
+→ Instead say: "comfort care", "supportive care", "wellness support"
+
+SENSITIVE MEDICAL TERMS (NEVER USE): ${TIER2_SENSITIVE_TERMS.join(', ')}
+→ Instead say: "end-of-life support", "compassionate care", "evaluate", "assess", "recommend care for"
+→ For "cancer treatment": say "oncology support" or "specialized care"
+→ For "diagnose/treat/prescribe": say "assess", "evaluate", "recommend", "provide care for"
+
+OUTCOME GUARANTEE WORDS (NEVER USE): ${TIER2_OUTCOME_WORDS.join(', ')}, guaranteed results, 100%, proven
+→ Instead say: "manage", "support", "help with"
+
+PERSONAL HEALTH TARGETING (NEVER USE): "your condition", "your symptoms", "your illness", "suffering from"
+→ Instead say: "signs you may notice in your pet", "common signs in pets"
+
+NO before/after transformation language.
+NO time-bound outcome promises ("results in X days").
+${hospital_type === 3 ? 'Do NOT imply this clinic can replace emergency or specialist care.' : ''}
+
+═══════════════════════════════════════════════════════════════
+TIER 3 — PERFORMANCE, SEO & LOCAL SIGNALS (MANDATORY)
+═══════════════════════════════════════════════════════════════
+Every post MUST satisfy ALL of these requirements:
+
+WORD COUNT: Each post must be exactly 80-120 words. Count carefully.
+NEIGHBOURHOOD: Include "${neighbourhood}" within the first 100 characters of every post.
+PHONE NUMBER: Include "${phone_number}" in at least 2 of the 4 posts.
+UNIQUE KEYWORDS: Each post MUST have a DIFFERENT primary keyword. Zero keyword overlap across posts.
+CTA REQUIREMENT: Every post needs a CTA with an action verb (Book, Call, Visit, Schedule) linking to a specific service page on ${website_url} — NEVER the homepage.
+LOCAL LANDMARKS: Reference at least one of these landmarks across the 4 posts: ${local_landmarks?.join(', ') || 'local area'}
+TOP SERVICES: Highlight these services across the batch: ${top_services?.join(', ') || 'general veterinary services'}
+
+═══════════════════════════════════════════════════════════════
 HOOK STYLE: ${hook_style}
-- STAT: Lead with a surprising statistic
-- QUESTION: Lead with an engaging question
-- URGENCY: Lead with time-sensitive language
-- MYTH-BUST: Lead by debunking a common myth
+═══════════════════════════════════════════════════════════════
+Apply this hook style consistently across all 4 posts:
+- STAT: Open with a surprising, verifiable statistic about pet health
+- QUESTION: Open with an engaging question that pet owners would want answered
+- URGENCY: Open with time-sensitive seasonal language (NOT medical urgency)
+- MYTH-BUST: Open by debunking a common pet health misconception
 
-POST TYPES:
+═══════════════════════════════════════════════════════════════
+POST TYPE SCHEDULE
+═══════════════════════════════════════════════════════════════
 - Week 1: WHATS_NEW
-- Week 2: PRODUCTS_SERVICES (mandatory for Week 2)
+- Week 2: PRODUCTS_SERVICES (mandatory — must highlight a specific service)
 - Week 3: WHATS_NEW
 - Week 4: WHATS_NEW
 
+═══════════════════════════════════════════════════════════════
+SELF-AUDIT BEFORE RESPONDING
+═══════════════════════════════════════════════════════════════
+Before outputting each post, mentally run this checklist:
+1. Scan every word against ALL Tier 1 banned terms — if ANY match, rewrite.
+2. Scan every word against ALL Tier 2 banned terms — if ANY match, rewrite.
+3. Verify word count is 80-120.
+4. Verify "${neighbourhood}" appears in first 100 characters.
+5. Verify primary keyword is unique across all 4 posts.
+6. Verify CTA links to a service page, NOT homepage.
+7. Verify no em dashes exist — only hyphens.
+8. Verify emojis are only at start or end, max 2 per post.
+9. Verify hospital type restrictions are respected.
+
+If ANY check fails, rewrite the post before including it in your response.
 ${recentContext}`;
 
-    const userPrompt = `Generate exactly 4 Google Business Profile posts for "${clinic_name}" for the month of ${month}/${year}.
+    const userPrompt = `Generate exactly 4 Google Business Profile posts for "${clinic_name}" for ${month}/${year}.
 
 Topics for each week:
 - Week 1: ${topics.week_1}
@@ -173,100 +232,90 @@ Topics for each week:
 
 Topic Variant: ${topic_variant}
 
-Return a JSON array with exactly 4 objects, each with these fields:
-- week_number (1-4)
-- post_type ("WHATS_NEW" for weeks 1/3/4, "PRODUCTS_SERVICES" for week 2)
-- topic (the topic for this week)
-- hook_style ("${hook_style}")
-- primary_keyword (a unique SEO keyword for this post — must be different across all 4 posts)
-- secondary_keywords (array of 2-3 related keywords)
-- post_content (the full post text, 80-120 words)
-- cta_text (call-to-action text with action verb)
-- cta_url (URL to relevant service page on ${website_url}, NOT homepage)
-- word_count (actual word count of post_content)
-- local_landmark_used (which landmark was referenced, or "none")`;
+You MUST respond with ONLY a valid JSON object (no markdown, no code fences, no explanation) with this exact structure:
+{
+  "posts": [
+    {
+      "week_number": 1,
+      "post_type": "WHATS_NEW",
+      "topic": "...",
+      "hook_style": "${hook_style}",
+      "primary_keyword": "unique keyword for this post",
+      "secondary_keywords": ["kw1", "kw2", "kw3"],
+      "post_content": "the full post text, 80-120 words",
+      "cta_text": "action verb CTA",
+      "cta_url": "specific service page URL on ${website_url}",
+      "word_count": 95,
+      "local_landmark_used": "landmark name or none"
+    }
+  ]
+}
 
-    console.log("Generating GBP posts for clinic:", clinic_id);
+CRITICAL REMINDERS:
+- 4 posts total, one per week
+- Week 2 post_type MUST be "PRODUCTS_SERVICES", all others "WHATS_NEW"
+- Each primary_keyword MUST be different
+- "${neighbourhood}" in first 100 chars of every post
+- Phone "${phone_number}" in at least 2 posts
+- 80-120 words per post — count them
+- CTA URLs must be specific service pages on ${website_url}, NOT the homepage
+- Run your self-audit checklist before responding`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    console.log("Generating GBP posts via Anthropic Claude for clinic:", clinic_id);
+
+    const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 4096,
+        system: systemPrompt,
         messages: [
-          { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        tools: [{
-          type: "function",
-          function: {
-            name: "generate_gbp_posts",
-            description: "Generate 4 GBP posts",
-            parameters: {
-              type: "object",
-              properties: {
-                posts: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      week_number: { type: "number" },
-                      post_type: { type: "string", enum: ["WHATS_NEW", "PRODUCTS_SERVICES"] },
-                      topic: { type: "string" },
-                      hook_style: { type: "string" },
-                      primary_keyword: { type: "string" },
-                      secondary_keywords: { type: "array", items: { type: "string" } },
-                      post_content: { type: "string" },
-                      cta_text: { type: "string" },
-                      cta_url: { type: "string" },
-                      word_count: { type: "number" },
-                      local_landmark_used: { type: "string" },
-                    },
-                    required: ["week_number", "post_type", "topic", "hook_style", "primary_keyword", "secondary_keywords", "post_content", "cta_text", "cta_url", "word_count", "local_landmark_used"],
-                    additionalProperties: false,
-                  },
-                },
-              },
-              required: ["posts"],
-              additionalProperties: false,
-            },
-          },
-        }],
-        tool_choice: { type: "function", function: { name: "generate_gbp_posts" } },
       }),
     });
 
     if (!aiResponse.ok) {
       const status = aiResponse.status;
-      if (status === 429) {
-        return new Response(JSON.stringify({ error: "AI rate limit exceeded. Please try again shortly." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-      if (status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds in Settings > Workspace > Usage." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
       const errText = await aiResponse.text();
-      console.error("AI gateway error:", status, errText);
-      return new Response(JSON.stringify({ error: "AI generation failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      console.error("Anthropic API error:", status, errText);
+      if (status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      if (status === 401) {
+        return new Response(JSON.stringify({ error: "Invalid Anthropic API key." }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      return new Response(JSON.stringify({ error: `AI generation failed (${status})` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const aiData = await aiResponse.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall?.function?.arguments) {
-      console.error("No tool call in AI response:", JSON.stringify(aiData));
+    
+    // Extract text content from Anthropic response
+    const textBlock = aiData.content?.find((b: any) => b.type === "text");
+    if (!textBlock?.text) {
+      console.error("No text in Anthropic response:", JSON.stringify(aiData));
       return new Response(JSON.stringify({ error: "AI returned unexpected format" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const parsed = JSON.parse(toolCall.function.arguments);
+    // Parse JSON from response (strip any markdown fences if present)
+    let rawText = textBlock.text.trim();
+    if (rawText.startsWith("```")) {
+      rawText = rawText.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
+    }
+
+    const parsed = JSON.parse(rawText);
     const posts = parsed.posts;
 
     if (!Array.isArray(posts) || posts.length === 0) {
       return new Response(JSON.stringify({ error: "AI returned no posts" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    console.log(`Generated ${posts.length} posts for clinic ${clinic_id}`);
+    console.log(`Generated ${posts.length} posts for clinic ${clinic_id} via Anthropic Claude`);
 
     return new Response(JSON.stringify({ posts }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
