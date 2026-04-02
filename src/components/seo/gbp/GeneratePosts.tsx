@@ -321,10 +321,17 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={handleGenerate} disabled={!selectedClinicId || !topics || isGenerating} size="sm" className="gap-1.5">
-              {isGenerating ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-              {isGenerating ? "Generating..." : "Generate 4 Posts"}
-            </Button>
+            {hasApprovedPosts ? (
+              <Badge className="bg-green-600/20 text-green-400 border-green-500/30 text-[11px] h-9 px-3 flex items-center gap-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Approved for {MONTH_NAMES[selectedMonth - 1]} {selectedYear}
+              </Badge>
+            ) : (
+              <Button onClick={handleGenerate} disabled={!selectedClinicId || !topics || isGenerating} size="sm" className="gap-1.5">
+                {isGenerating ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                {isGenerating ? "Generating..." : "Generate 4 Posts"}
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
