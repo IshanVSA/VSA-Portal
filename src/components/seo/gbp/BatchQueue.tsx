@@ -124,7 +124,7 @@ export function BatchQueue({ clinicId }: BatchQueueProps) {
 
   const totalClinics = new Set(filteredBatches.flatMap(b => b.clinics)).size;
   const completedBatches = filteredBatches.filter(b => b.status === "complete").length;
-  const progressPct = batches.length > 0 ? Math.round((completedBatches / batches.length) * 100) : 0;
+  const progressPct = filteredBatches.length > 0 ? Math.round((completedBatches / filteredBatches.length) * 100) : 0;
 
   return (
     <div className="space-y-4">
