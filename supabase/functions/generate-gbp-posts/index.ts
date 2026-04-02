@@ -70,10 +70,12 @@ serve(async (req) => {
     const {
       clinic_id, clinic_name, month, year, hospital_type, topic_variant, hook_style,
       local_landmarks, neighbourhood, phone_number, website_url, top_services,
-      jurisdiction, topics, recent_content_context
+      jurisdiction, topics, recent_content_context,
+      // Fix mode fields
+      fix_mode, existing_posts, issues_to_fix
     } = body;
 
-    if (!clinic_id || !month || !year || !topics) {
+    if (!clinic_id || !month || !year || (!topics && !fix_mode)) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
