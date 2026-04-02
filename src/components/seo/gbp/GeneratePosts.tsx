@@ -41,6 +41,26 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
 
   const { savePosts } = useGBPPosts(selectedClinicId);
 
+  // Fetch approved posts for this clinic/month/year
+  const { data: approvedPosts, isLoading: approvedLoading } = useQuery({
+    queryKey: ['gbp-approved-posts', selectedClinicId, selectedMonth, selectedYear],
+    queryFn: async () => {
+      if (!selectedClinicId) return [];
+      const { data, error } = await supabase
+        .from("gbp_post_history")
+        .select("*")
+        .eq("clinic_id", selectedClinicId)
+        .eq("month", selectedMonth)
+        .eq("year", selectedYear)
+        .eq("status", "approved")
+        .order("week_number");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!selectedClinicId,
+  });
+
+  const hasApprovedPosts = (approvedPosts?.length ?? 0) > 0;
   const selectedConfig = useMemo(() => configs.find(c => c.clinic_id === selectedClinicId), [configs, selectedClinicId]);
 
   // Get clinic name
