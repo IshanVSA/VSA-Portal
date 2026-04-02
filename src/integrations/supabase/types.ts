@@ -211,6 +211,81 @@ export type Database = {
           },
         ]
       }
+      clinic_gbp_config: {
+        Row: {
+          clinic_id: string
+          cluster_id: string | null
+          cluster_position: string | null
+          created_at: string | null
+          geo_radius_km: number | null
+          hook_style_current: string | null
+          hospital_type: number | null
+          id: string
+          jurisdiction: string | null
+          last_variant_used: string | null
+          local_landmarks: string[] | null
+          neighbourhood: string | null
+          phone_number: string | null
+          top_services: string[] | null
+          topic_variant_current: string | null
+          updated_at: string | null
+          website_url: string | null
+        }
+        Insert: {
+          clinic_id: string
+          cluster_id?: string | null
+          cluster_position?: string | null
+          created_at?: string | null
+          geo_radius_km?: number | null
+          hook_style_current?: string | null
+          hospital_type?: number | null
+          id?: string
+          jurisdiction?: string | null
+          last_variant_used?: string | null
+          local_landmarks?: string[] | null
+          neighbourhood?: string | null
+          phone_number?: string | null
+          top_services?: string[] | null
+          topic_variant_current?: string | null
+          updated_at?: string | null
+          website_url?: string | null
+        }
+        Update: {
+          clinic_id?: string
+          cluster_id?: string | null
+          cluster_position?: string | null
+          created_at?: string | null
+          geo_radius_km?: number | null
+          hook_style_current?: string | null
+          hospital_type?: number | null
+          id?: string
+          jurisdiction?: string | null
+          last_variant_used?: string | null
+          local_landmarks?: string[] | null
+          neighbourhood?: string | null
+          phone_number?: string | null
+          top_services?: string[] | null
+          topic_variant_current?: string | null
+          updated_at?: string | null
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_gbp_config_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: true
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_gbp_config_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "geo_clusters"
+            referencedColumns: ["cluster_id"]
+          },
+        ]
+      }
       clinic_team_members: {
         Row: {
           clinic_id: string
@@ -673,6 +748,316 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      gbp_batches: {
+        Row: {
+          batch_number: number
+          clinics: string[]
+          cluster_id: string | null
+          collision_check: Json | null
+          created_at: string | null
+          id: string
+          month: number
+          status: string | null
+          updated_at: string | null
+          year: number
+        }
+        Insert: {
+          batch_number: number
+          clinics?: string[]
+          cluster_id?: string | null
+          collision_check?: Json | null
+          created_at?: string | null
+          id?: string
+          month: number
+          status?: string | null
+          updated_at?: string | null
+          year: number
+        }
+        Update: {
+          batch_number?: number
+          clinics?: string[]
+          cluster_id?: string | null
+          collision_check?: Json | null
+          created_at?: string | null
+          id?: string
+          month?: number
+          status?: string | null
+          updated_at?: string | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gbp_batches_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "geo_clusters"
+            referencedColumns: ["cluster_id"]
+          },
+        ]
+      }
+      gbp_compliance_scans: {
+        Row: {
+          batch_id: string | null
+          clinic_id: string
+          id: string
+          issues_count: number | null
+          month: number
+          overall_pass: boolean
+          scan_result: Json
+          scanned_at: string | null
+          year: number
+        }
+        Insert: {
+          batch_id?: string | null
+          clinic_id: string
+          id?: string
+          issues_count?: number | null
+          month: number
+          overall_pass: boolean
+          scan_result: Json
+          scanned_at?: string | null
+          year: number
+        }
+        Update: {
+          batch_id?: string | null
+          clinic_id?: string
+          id?: string
+          issues_count?: number | null
+          month?: number
+          overall_pass?: boolean
+          scan_result?: Json
+          scanned_at?: string | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gbp_compliance_scans_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "gbp_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gbp_compliance_scans_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gbp_post_history: {
+        Row: {
+          approved_by: string | null
+          batch_id: string | null
+          clinic_id: string
+          compliance_scan: Json | null
+          created_at: string | null
+          cta_text: string | null
+          cta_url: string | null
+          generated_by: string | null
+          hook_style: string | null
+          id: string
+          local_landmark_used: string | null
+          month: number
+          post_content: string
+          post_type: string
+          primary_keyword: string
+          reviewed_by: string | null
+          secondary_keywords: string[] | null
+          status: string | null
+          topic: string
+          topic_variant: string | null
+          updated_at: string | null
+          week_number: number
+          word_count: number | null
+          year: number
+        }
+        Insert: {
+          approved_by?: string | null
+          batch_id?: string | null
+          clinic_id: string
+          compliance_scan?: Json | null
+          created_at?: string | null
+          cta_text?: string | null
+          cta_url?: string | null
+          generated_by?: string | null
+          hook_style?: string | null
+          id?: string
+          local_landmark_used?: string | null
+          month: number
+          post_content: string
+          post_type: string
+          primary_keyword: string
+          reviewed_by?: string | null
+          secondary_keywords?: string[] | null
+          status?: string | null
+          topic: string
+          topic_variant?: string | null
+          updated_at?: string | null
+          week_number: number
+          word_count?: number | null
+          year: number
+        }
+        Update: {
+          approved_by?: string | null
+          batch_id?: string | null
+          clinic_id?: string
+          compliance_scan?: Json | null
+          created_at?: string | null
+          cta_text?: string | null
+          cta_url?: string | null
+          generated_by?: string | null
+          hook_style?: string | null
+          id?: string
+          local_landmark_used?: string | null
+          month?: number
+          post_content?: string
+          post_type?: string
+          primary_keyword?: string
+          reviewed_by?: string | null
+          secondary_keywords?: string[] | null
+          status?: string | null
+          topic?: string
+          topic_variant?: string | null
+          updated_at?: string | null
+          week_number?: number
+          word_count?: number | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gbp_post_history_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "gbp_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gbp_post_history_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gbp_recent_content: {
+        Row: {
+          clinic_id: string
+          content_type: string
+          created_at: string | null
+          id: string
+          primary_keyword: string | null
+          publish_date: string | null
+          source_month: number | null
+          source_year: number | null
+          title: string
+          topic_cluster: string | null
+        }
+        Insert: {
+          clinic_id: string
+          content_type: string
+          created_at?: string | null
+          id?: string
+          primary_keyword?: string | null
+          publish_date?: string | null
+          source_month?: number | null
+          source_year?: number | null
+          title: string
+          topic_cluster?: string | null
+        }
+        Update: {
+          clinic_id?: string
+          content_type?: string
+          created_at?: string | null
+          id?: string
+          primary_keyword?: string | null
+          publish_date?: string | null
+          source_month?: number | null
+          source_year?: number | null
+          title?: string
+          topic_cluster?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gbp_recent_content_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gbp_topic_library: {
+        Row: {
+          created_at: string | null
+          id: string
+          month: number
+          seasonal_theme: string
+          updated_at: string | null
+          variant: string
+          week_1_topic: string
+          week_2_topic: string
+          week_3_topic: string
+          week_4_topic: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          month: number
+          seasonal_theme: string
+          updated_at?: string | null
+          variant: string
+          week_1_topic: string
+          week_2_topic: string
+          week_3_topic: string
+          week_4_topic: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          month?: number
+          seasonal_theme?: string
+          updated_at?: string | null
+          variant?: string
+          week_1_topic?: string
+          week_2_topic?: string
+          week_3_topic?: string
+          week_4_topic?: string
+        }
+        Relationships: []
+      }
+      geo_clusters: {
+        Row: {
+          clinics: string[]
+          cluster_id: string
+          created_at: string | null
+          id: string
+          is_solo: boolean | null
+          region: string
+          updated_at: string | null
+        }
+        Insert: {
+          clinics?: string[]
+          cluster_id: string
+          created_at?: string | null
+          id?: string
+          is_solo?: boolean | null
+          region: string
+          updated_at?: string | null
+        }
+        Update: {
+          clinics?: string[]
+          cluster_id?: string
+          created_at?: string | null
+          id?: string
+          is_solo?: boolean | null
+          region?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       oauth_temp_tokens: {
         Row: {

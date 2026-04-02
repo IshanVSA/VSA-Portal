@@ -4,7 +4,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { SearchCode, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Globe, Link2, Hash, TrendingUp, MessageSquare } from "lucide-react";
+import { SearchCode, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Globe, Link2, Hash, TrendingUp, MessageSquare, MapPin } from "lucide-react";
+import { GBPPostsTab } from "@/components/seo/gbp/GBPPostsTab";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { SeoAnalyticsTab } from "@/components/department/SeoAnalyticsTab";
@@ -35,6 +36,7 @@ const commonTabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
   { value: "analytics", label: "Analytics", icon: BarChart3 },
   { value: "reports", label: "Reports", icon: FileText },
+  { value: "gbp-posts", label: "GBP Posts", icon: MapPin },
   { value: "uploads", label: "Uploads", icon: Upload },
 ];
 const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
@@ -199,6 +201,7 @@ export default function SeoDepartment() {
                 <TabsContent value="tickets" className="mt-4"><TicketsTab department="seo" services={services} clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="analytics" className="mt-4"><SeoAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="reports" className="mt-4"><SeoReportsTab clinicId={selectedClinicId} /></TabsContent>
+                <TabsContent value="gbp-posts" className="mt-4"><GBPPostsTab clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="seo" clinicId={selectedClinicId} /></TabsContent>
                 {isStaff && <TabsContent value="chat" className="mt-4"><DepartmentChat department="seo" clinicId={selectedClinicId} onVisible={markAsRead} /></TabsContent>}
               </Tabs>
