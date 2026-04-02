@@ -116,8 +116,14 @@ export function BatchQueue({ clinicId }: BatchQueueProps) {
     }
   }, [batches]);
 
-  const totalClinics = new Set(batches.flatMap(b => b.clinics)).size;
-  const completedBatches = batches.filter(b => b.status === "complete").length;
+  // Filter batches to only show the one containing the selected clinic
+  const filteredBatches = useMemo(() => {
+    if (!clinicId) return batches;
+    return batches.filter(b => b.clinics.includes(clinicId));
+  }, [batches, clinicId]);
+
+  const totalClinics = new Set(filteredBatches.flatMap(b => b.clinics)).size;
+  const completedBatches = filteredBatches.filter(b => b.status === "complete").length;
   const progressPct = batches.length > 0 ? Math.round((completedBatches / batches.length) * 100) : 0;
 
   return (
