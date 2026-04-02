@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ListOrdered, Sparkles, History, Map, BookOpen } from "lucide-react";
+import { ListOrdered, Sparkles, History, Map, BookOpen, CalendarCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUserRole } from "@/hooks/useUserRole";
 import { motion } from "framer-motion";
@@ -9,13 +9,19 @@ import { TopicLibrary } from "./TopicLibrary";
 import { GeneratePosts } from "./GeneratePosts";
 import { BatchQueue } from "./BatchQueue";
 import { PostHistory } from "./PostHistory";
+import { ScheduledPosts } from "./ScheduledPosts";
 
-const subTabs = [
+const adminTabs = [
   { value: "batch-queue", label: "Batch Queue", icon: ListOrdered },
   { value: "generate", label: "Generate Posts", icon: Sparkles },
   { value: "history", label: "Post History", icon: History },
   { value: "clusters", label: "Cluster Manager", icon: Map },
   { value: "topics", label: "Topic Library", icon: BookOpen },
+];
+
+const clientTabs = [
+  { value: "scheduled", label: "Scheduled Posts", icon: CalendarCheck },
+  { value: "history", label: "Post History", icon: History },
 ];
 
 interface GBPPostsTabProps {
