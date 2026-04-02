@@ -179,7 +179,7 @@ export function TopicLibrary() {
                           <Table>
                             <TableHeader>
                               <TableRow>
-                                <TableHead className="text-xs w-16">Variant</TableHead>
+                                <TableHead className="text-xs w-24">Variant</TableHead>
                                 <TableHead className="text-xs">Week 1 (What's New)</TableHead>
                                 <TableHead className="text-xs">Week 2 (Products)</TableHead>
                                 <TableHead className="text-xs">Week 3 (What's New)</TableHead>
