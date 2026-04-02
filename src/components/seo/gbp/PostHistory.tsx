@@ -56,7 +56,9 @@ export function PostHistory({ clinicId: navClinicId }: PostHistoryProps) {
 
   const filteredPosts = useMemo(() => {
     return posts.filter(p => {
-      if (statusFilter !== "all" && p.status !== statusFilter) return false;
+      // Only show approved/rejected posts (not drafts/generated)
+      const validStatuses = statusFilter === "all" ? ["approved", "rejected"] : [statusFilter];
+      if (!validStatuses.includes(p.status)) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         return p.topic.toLowerCase().includes(q) ||
@@ -115,9 +117,8 @@ export function PostHistory({ clinicId: navClinicId }: PostHistoryProps) {
                 <SelectTrigger className="h-9 w-[120px] text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-xs">All</SelectItem>
-                  {["generated", "reviewed", "approved", "published", "rejected"].map(s => (
-                    <SelectItem key={s} value={s} className="text-xs capitalize">{s}</SelectItem>
-                  ))}
+                  <SelectItem value="approved" className="text-xs">Approved</SelectItem>
+                  <SelectItem value="rejected" className="text-xs">Rejected</SelectItem>
                 </SelectContent>
               </Select>
             </div>
