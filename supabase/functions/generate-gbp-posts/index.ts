@@ -230,6 +230,7 @@ Before outputting each post, mentally run this checklist:
 7. Verify no em dashes exist — only hyphens.
 8. Verify emojis are only at start or end, max 2 per post.
 9. Verify hospital type restrictions are respected.
+10. FINAL US ENGLISH SCAN: Re-read every word. Search for ANY -ise, -our, -re (British) suffix. If found, replace with American equivalent. This is the LAST check before output.
 
 If ANY check fails, rewrite the post before including it in your response.
 ${recentContext}`;
