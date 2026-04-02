@@ -18,7 +18,8 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, ChevronDown, ChevronRight, Pencil, Trash2, MapPin, Settings2, Users } from "lucide-react";
 import { ClinicGBPConfigForm } from "./ClinicGBPConfigForm";
-import type { GeoCluster, ClusterPosition } from "@/lib/gbp/types";
+import type { GeoCluster, ClusterPosition, TopicVariant } from "@/lib/gbp/types";
+import { getHookStyleForPosition } from "@/lib/gbp/hookRotation";
 
 export function ClusterManager() {
   const { role } = useUserRole();
@@ -314,11 +315,12 @@ function ClusterRow({ cluster, clinicNameMap, configs, expanded, onToggle, isAdm
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-xs">Clinic</TableHead>
-                    <TableHead className="text-xs w-20">Position</TableHead>
-                    <TableHead className="text-xs w-28">Landmarks</TableHead>
-                    <TableHead className="text-xs w-20">Radius</TableHead>
-                    <TableHead className="text-xs w-20">Type</TableHead>
+                     <TableHead className="text-xs">Clinic</TableHead>
+                     <TableHead className="text-xs w-20">Position</TableHead>
+                     <TableHead className="text-xs w-20">Hook</TableHead>
+                     <TableHead className="text-xs w-28">Landmarks</TableHead>
+                     <TableHead className="text-xs w-20">Radius</TableHead>
+                     <TableHead className="text-xs w-20">Type</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -331,6 +333,13 @@ function ClusterRow({ cluster, clinicNameMap, configs, expanded, onToggle, isAdm
                           <Badge variant="secondary" className="text-[10px] font-mono">
                             {config?.cluster_position ?? positions[idx] ?? '—'}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {config?.cluster_position ? (
+                            <Badge variant="outline" className="text-[10px] font-mono">
+                              {getHookStyleForPosition(new Date().getMonth() + 1, config.cluster_position as TopicVariant)}
+                            </Badge>
+                          ) : '—'}
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {config?.local_landmarks?.join(', ') || '—'}
