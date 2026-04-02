@@ -32,6 +32,8 @@ interface PostHistoryProps {
 
 export function PostHistory({ clinicId: navClinicId }: PostHistoryProps) {
   const { configs } = useClinicGBPConfigs();
+  const { role } = useUserRole();
+  const isClient = role === "client";
   const [internalClinicId, setInternalClinicId] = useState<string | null>(null);
   const selectedClinicId = navClinicId || internalClinicId;
   const [searchQuery, setSearchQuery] = useState("");
