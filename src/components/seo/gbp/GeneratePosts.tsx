@@ -18,12 +18,18 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { GeneratedPost, ComplianceScan, TopicVariant, HospitalType, Jurisdiction } from "@/lib/gbp/types";
 
-export function GeneratePosts() {
+interface GeneratePostsProps {
+  clinicId?: string | null;
+}
+
+export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
   const { configs, isLoading: configsLoading } = useClinicGBPConfigs();
   const { topicsByMonth } = useTopicLibrary();
   const { role } = useUserRole();
 
-  const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null);
+  // Use navbar clinic if provided, otherwise fall back to internal state
+  const [internalClinicId, setInternalClinicId] = useState<string | null>(null);
+  const selectedClinicId = navClinicId || internalClinicId;
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [generatedPosts, setGeneratedPosts] = useState<GeneratedPost[]>([]);
