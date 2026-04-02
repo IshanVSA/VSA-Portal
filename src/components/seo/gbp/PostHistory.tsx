@@ -70,7 +70,7 @@ export function PostHistory({ clinicId: navClinicId }: PostHistoryProps) {
       }
       return true;
     });
-  }, [posts, statusFilter, searchQuery]);
+  }, [posts, statusFilter, searchQuery, isClient]);
 
   const handleExportCSV = () => {
     if (filteredPosts.length === 0) return;
