@@ -243,8 +243,20 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
     if (!selectedConfig || generatedPosts.length === 0 || !complianceScan) return;
     setIsSaving(true);
     try {
-      // Save with approved status
       const { data: { user } } = await supabase.auth.getUser();
+
+      // If regenerating, delete old approved posts for this month first
+      if (regenerateMode) {
+        const { error: delError } = await supabase
+          .from("gbp_post_history")
+          .delete()
+          .eq("clinic_id", selectedConfig.clinic_id)
+          .eq("month", selectedMonth)
+          .eq("year", selectedYear)
+          .eq("status", "approved");
+        if (delError) throw delError;
+      }
+
       const rows = generatedPosts.map(p => ({
         clinic_id: selectedConfig.clinic_id,
         month: selectedMonth,
@@ -267,9 +279,11 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
       }));
       const { error } = await supabase.from("gbp_post_history").insert(rows as any);
       if (error) throw error;
-      toast.success("All posts approved and saved");
+      toast.success(regenerateMode ? "Posts regenerated and approved" : "All posts approved and saved");
       setGeneratedPosts([]);
       setComplianceScan(null);
+      setRegenerateMode(false);
+      queryClient.invalidateQueries({ queryKey: ['gbp-approved-posts', selectedClinicId, selectedMonth, selectedYear] });
     } catch (err: any) {
       toast.error(err.message || "Failed to approve");
     } finally {
