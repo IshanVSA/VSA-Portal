@@ -171,6 +171,8 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
     setIsFixing(true);
     try {
       const clinicName = clinicNames[selectedConfig.clinic_id] || "Clinic";
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000);
       const { data, error } = await supabase.functions.invoke("generate-gbp-posts", {
         body: {
           clinic_id: selectedConfig.clinic_id,
@@ -192,6 +194,7 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
           issues_to_fix: issues,
         },
       });
+      clearTimeout(timeoutId);
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
