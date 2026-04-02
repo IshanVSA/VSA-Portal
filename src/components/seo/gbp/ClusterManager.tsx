@@ -18,7 +18,8 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, ChevronDown, ChevronRight, Pencil, Trash2, MapPin, Settings2, Users } from "lucide-react";
 import { ClinicGBPConfigForm } from "./ClinicGBPConfigForm";
-import type { GeoCluster, ClusterPosition } from "@/lib/gbp/types";
+import type { GeoCluster, ClusterPosition, TopicVariant } from "@/lib/gbp/types";
+import { getHookStyleForPosition } from "@/lib/gbp/hookRotation";
 
 export function ClusterManager() {
   const { role } = useUserRole();
