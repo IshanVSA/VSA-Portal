@@ -117,9 +117,8 @@ export function PostHistory({ clinicId: navClinicId }: PostHistoryProps) {
                 <SelectTrigger className="h-9 w-[120px] text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-xs">All</SelectItem>
-                  {["generated", "reviewed", "approved", "published", "rejected"].map(s => (
-                    <SelectItem key={s} value={s} className="text-xs capitalize">{s}</SelectItem>
-                  ))}
+                  <SelectItem value="approved" className="text-xs">Approved</SelectItem>
+                  <SelectItem value="rejected" className="text-xs">Rejected</SelectItem>
                 </SelectContent>
               </Select>
             </div>
