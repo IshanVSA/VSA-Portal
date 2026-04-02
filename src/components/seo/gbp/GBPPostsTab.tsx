@@ -64,15 +64,15 @@ export function GBPPostsTab({ clinicId }: GBPPostsTabProps) {
         </TabsList>
 
         <TabsContent value="batch-queue" className="mt-4">
-          <BatchQueue />
+          <BatchQueue clinicId={clinicId} />
         </TabsContent>
 
         <TabsContent value="generate" className="mt-4">
-          <GeneratePosts />
+          <GeneratePosts clinicId={clinicId} />
         </TabsContent>
 
         <TabsContent value="history" className="mt-4">
-          <PostHistory />
+          <PostHistory clinicId={clinicId} />
         </TabsContent>
 
         {!isClient && (

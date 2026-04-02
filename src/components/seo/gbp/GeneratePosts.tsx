@@ -18,12 +18,18 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { GeneratedPost, ComplianceScan, TopicVariant, HospitalType, Jurisdiction } from "@/lib/gbp/types";
 
-export function GeneratePosts() {
+interface GeneratePostsProps {
+  clinicId?: string | null;
+}
+
+export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
   const { configs, isLoading: configsLoading } = useClinicGBPConfigs();
   const { topicsByMonth } = useTopicLibrary();
   const { role } = useUserRole();
 
-  const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null);
+  // Use navbar clinic if provided, otherwise fall back to internal state
+  const [internalClinicId, setInternalClinicId] = useState<string | null>(null);
+  const selectedClinicId = navClinicId || internalClinicId;
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [generatedPosts, setGeneratedPosts] = useState<GeneratedPost[]>([]);
@@ -192,9 +198,10 @@ export function GeneratePosts() {
       <Card className="border-border/50">
         <CardContent className="pt-4 pb-4 px-4">
           <div className="flex flex-wrap items-end gap-3">
+            {!navClinicId && (
             <div className="space-y-1 flex-1 min-w-[200px]">
               <label className="text-xs font-medium text-muted-foreground">Clinic</label>
-              <Select value={selectedClinicId || ""} onValueChange={setSelectedClinicId}>
+              <Select value={selectedClinicId || ""} onValueChange={setInternalClinicId}>
                 <SelectTrigger className="h-9 text-xs">
                   <SelectValue placeholder="Select clinic..." />
                 </SelectTrigger>
@@ -207,6 +214,7 @@ export function GeneratePosts() {
                 </SelectContent>
               </Select>
             </div>
+            )}
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">Month</label>
               <Select value={String(selectedMonth)} onValueChange={v => setSelectedMonth(Number(v))}>

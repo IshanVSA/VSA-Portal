@@ -55,7 +55,11 @@ function CollisionResults({ result }: { result: CollisionCheckResult }) {
   );
 }
 
-export function BatchQueue() {
+interface BatchQueueProps {
+  clinicId?: string | null;
+}
+
+export function BatchQueue({ clinicId }: BatchQueueProps) {
   const { role } = useUserRole();
   const isAdmin = role === "admin";
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);

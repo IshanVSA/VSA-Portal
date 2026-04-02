@@ -25,9 +25,14 @@ const statusBadgeColors: Record<string, string> = {
   rejected: "bg-destructive/10 text-destructive",
 };
 
-export function PostHistory() {
+interface PostHistoryProps {
+  clinicId?: string | null;
+}
+
+export function PostHistory({ clinicId: navClinicId }: PostHistoryProps) {
   const { configs } = useClinicGBPConfigs();
-  const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null);
+  const [internalClinicId, setInternalClinicId] = useState<string | null>(null);
+  const selectedClinicId = navClinicId || internalClinicId;
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"table" | "card">("table");
@@ -89,9 +94,10 @@ export function PostHistory() {
       <Card className="border-border/50">
         <CardContent className="pt-4 pb-4 px-4">
           <div className="flex flex-wrap items-end gap-3">
+            {!navClinicId && (
             <div className="space-y-1 flex-1 min-w-[180px]">
               <label className="text-xs font-medium text-muted-foreground">Clinic</label>
-              <Select value={selectedClinicId || ""} onValueChange={v => setSelectedClinicId(v || null)}>
+              <Select value={selectedClinicId || ""} onValueChange={v => setInternalClinicId(v || null)}>
                 <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="All clinics" /></SelectTrigger>
                 <SelectContent>
                   {configs.map(c => (
@@ -102,6 +108,7 @@ export function PostHistory() {
                 </SelectContent>
               </Select>
             </div>
+            )}
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">Status</label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
