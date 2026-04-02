@@ -1,12 +1,19 @@
 import type { ComplianceScan, GeneratedPost, HospitalType, Jurisdiction } from './types';
 
 // ── Tier 1: VSA Core flagged terms ──
+// Superlative / misleading claims
 const FLAGGED_TERMS = [
   'best', 'top', 'leading', 'premier', 'superior', '#1', 'number one',
   'guaranteed', 'cure', 'miracle', 'revolutionary', 'breakthrough',
   'risk-free', 'no side effects', 'proven cure', 'instant results',
   'world-class', 'unmatched', 'exclusive', 'only clinic',
+  // v2.0 additions from doc — cross-pipeline risk terms
+  'narcotic', 'sedation', 'anesthesia', 'steroid', 'antibiotic',
+  'euthanasia', 'fur baby',
 ];
+
+// "surgery" is context-dependent per doc — flag only standalone use
+const SURGERY_REGEX = /\bsurgery\b/i;
 
 const SPECIALIST_TERMS = [
   'specialist', 'board-certified specialist', 'veterinary specialist',
@@ -24,23 +31,41 @@ const DRUG_BRAND_NAMES = [
 const PRESCRIPTION_TERMS = [
   'prescription', 'rx only', 'controlled substance', 'schedule ii',
   'schedule iii', 'schedule iv', 'narcotic',
+  // v2.0 additions from doc
+  'sedation', 'anesthesia', 'antibiotic', 'steroid',
 ];
 
 const SENSITIVE_TERMS = [
   'euthanasia', 'put down', 'put to sleep', 'death', 'dying', 'terminal',
   'cancer treatment', 'chemotherapy', 'radiation therapy',
+  // v2.0 additions from doc — medical practice claim triggers
+  'diagnose', 'treat', 'prescribe',
 ];
 
 const LANDING_PAGE_RISK_TERMS = [
   'buy now', 'order online', 'purchase', 'add to cart', 'shop now',
   'free trial', 'discount code', 'promo code',
+  // v2.0 additions — before/after and transformation language
+  'before and after', 'transformation', 'guaranteed transformation',
 ];
 
-// ── Hospital Type Language Rules ──
+// ── Hospital Type Language Rules (aligned with VSA 3-Type Framework per doc) ──
+// TYPE 1: 24/7 Emergency Hospital — nothing restricted
+// TYPE 2: Dedicated Emergency (overnight/weekend) — can't say "24/7" unless truly continuous
+// TYPE 3: General Practice — can't say emergency hospital/clinic, 24-hour, after-hours emergency
 const HOSPITAL_TYPE_RULES: Record<number, { allowed: string[]; forbidden: string[] }> = {
-  1: { allowed: ['veterinary clinic', 'animal clinic', 'pet clinic', 'vet clinic'], forbidden: ['animal hospital', 'emergency hospital', '24/7 emergency'] },
-  2: { allowed: ['veterinary clinic', 'animal hospital', 'pet hospital'], forbidden: ['24/7 emergency', 'emergency room', 'ER'] },
-  3: { allowed: ['animal hospital', 'veterinary hospital', 'emergency hospital', '24/7 emergency'], forbidden: [] },
+  1: {
+    allowed: ['emergency', 'after-hours', '24-hour', 'emergency hospital', 'overnight emergency'],
+    forbidden: [],
+  },
+  2: {
+    allowed: ['emergency', 'overnight emergency vet', 'emergency care available'],
+    forbidden: ['24/7', '24-hour'],
+  },
+  3: {
+    allowed: ['urgent care', 'walk-in', 'same-day appointments', 'extended hours', 'open evenings'],
+    forbidden: ['emergency hospital', 'emergency clinic', '24-hour', 'after-hours emergency', '24/7'],
+  },
 };
 
 function countMatches(text: string, terms: string[]): { found: number; details: string[] } {
@@ -64,10 +89,27 @@ function hasUsEnglishIssue(text: string): boolean {
   return britishSpellings.some(s => lower.includes(s));
 }
 
-function hasEmoji(text: string): boolean {
+/**
+ * Emoji compliance per doc: max 1-2 per post, only at start or end (no mid-sentence).
+ * Returns true if the post VIOLATES emoji rules.
+ */
+function hasEmojiViolation(text: string): boolean {
   const emojiRegex = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu;
   const matches = text.match(emojiRegex);
-  return (matches?.length ?? 0) > 2;
+  if (!matches) return false;
+
+  // More than 2 emojis = violation
+  if (matches.length > 2) return true;
+
+  // Check mid-sentence placement: emojis should only be in first or last 20 chars
+  const trimmed = text.trim();
+  const startZone = trimmed.substring(0, 20);
+  const endZone = trimmed.substring(Math.max(0, trimmed.length - 20));
+  const midSection = trimmed.substring(20, Math.max(0, trimmed.length - 20));
+  const midEmojis = midSection.match(emojiRegex);
+  if (midEmojis && midEmojis.length > 0) return true;
+
+  return false;
 }
 
 export function runComplianceScan(
@@ -84,6 +126,11 @@ export function runComplianceScan(
 
   // ── TIER 1: VSA Core ──
   const flaggedTerms = countMatches(allContent, FLAGGED_TERMS);
+  // Also check context-dependent "surgery"
+  if (SURGERY_REGEX.test(allContent)) {
+    flaggedTerms.found += 1;
+    flaggedTerms.details.push('surgery');
+  }
   if (flaggedTerms.found > 0) issuesCount += flaggedTerms.found;
 
   const emDashes = posts.reduce<string[]>((acc, p, i) => {
@@ -99,7 +146,7 @@ export function runComplianceScan(
   if (specialistClaims === 'FAIL') issuesCount++;
 
   // Hospital type language check
-  const typeRules = HOSPITAL_TYPE_RULES[hospitalType] || HOSPITAL_TYPE_RULES[1];
+  const typeRules = HOSPITAL_TYPE_RULES[hospitalType] || HOSPITAL_TYPE_RULES[3];
   const forbiddenUsed = typeRules.forbidden.filter(t => allContent.toLowerCase().includes(t.toLowerCase()));
   const hospitalTypeLanguage = forbiddenUsed.length > 0 ? 'FAIL' as const : 'PASS' as const;
   if (hospitalTypeLanguage === 'FAIL') issuesCount += forbiddenUsed.length;
@@ -107,7 +154,7 @@ export function runComplianceScan(
   const guaranteedOutcomes = /guarante/i.test(allContent) ? 'FAIL' as const : 'PASS' as const;
   if (guaranteedOutcomes === 'FAIL') issuesCount++;
 
-  const emojiCompliance = posts.some(p => hasEmoji(p.post_content)) ? 'FAIL' as const : 'PASS' as const;
+  const emojiCompliance = posts.some(p => hasEmojiViolation(p.post_content)) ? 'FAIL' as const : 'PASS' as const;
   if (emojiCompliance === 'FAIL') issuesCount++;
 
   // ── TIER 2: Google Ads Healthcare ──
@@ -117,10 +164,11 @@ export function runComplianceScan(
   const drugBrandNames = countMatches(allContent, DRUG_BRAND_NAMES);
   if (drugBrandNames.found > 0) issuesCount += drugBrandNames.found;
 
-  const directHealthTargeting = /your\s+(illness|disease|condition|diagnosis)/i.test(allContent) ? 'FAIL' as const : 'PASS' as const;
+  const directHealthTargeting = /your\s+(illness|disease|condition|diagnosis|symptoms)/i.test(allContent) ? 'FAIL' as const : 'PASS' as const;
   if (directHealthTargeting === 'FAIL') issuesCount++;
 
-  const outcomeGuarantee = /100%|guaranteed\s+(cure|results|recovery)/i.test(allContent) ? 'FAIL' as const : 'PASS' as const;
+  // v2.0: expanded outcome guarantee to include cure/heal/fix per doc
+  const outcomeGuarantee = /100%|guaranteed\s+(cure|results|recovery)|(?:^|\s)(cure|heal|fix)(?:\s|$)/im.test(allContent) ? 'FAIL' as const : 'PASS' as const;
   if (outcomeGuarantee === 'FAIL') issuesCount++;
 
   const sensitiveTerms = countMatches(allContent, SENSITIVE_TERMS);
