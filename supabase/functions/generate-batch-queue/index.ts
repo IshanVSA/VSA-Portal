@@ -1,21 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
-const HOOK_ROTATION: Record<string, Record<string, string>> = {
-  Q1: { A: "STAT", B: "QUESTION", C: "URGENCY", D: "MYTH-BUST" },
-  Q2: { A: "QUESTION", B: "URGENCY", C: "MYTH-BUST", D: "STAT" },
-  Q3: { A: "URGENCY", B: "MYTH-BUST", C: "STAT", D: "QUESTION" },
-  Q4: { A: "MYTH-BUST", B: "STAT", C: "QUESTION", D: "URGENCY" },
-};
-
 const VARIANT_POSITIONS = ["A", "B", "C", "D"];
-
-function getQuarter(month: number): string {
-  if (month <= 3) return "Q1";
-  if (month <= 6) return "Q2";
-  if (month <= 9) return "Q3";
-  return "Q4";
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -54,26 +40,20 @@ Deno.serve(async (req) => {
       }
     }
 
-    // For cron: auto-detect current month/year; for manual: parse from body
-    let month: number, year: number;
-    if (isCron) {
-      const now = new Date();
-      month = now.getMonth() + 1;
-      year = now.getFullYear();
-    } else {
+    // Parse optional force flag from body
+    let force = false;
+    try {
       const body = await req.json();
-      month = body.month;
-      year = body.year;
-    }
-
-    if (!month || !year) {
-      return new Response(JSON.stringify({ error: "month and year are required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      force = body?.force === true;
+    } catch {
+      // No body or invalid JSON — that's fine
     }
 
     // Check existing batches
-    const { data: existing } = await supabaseAdmin.from("gbp_batches").select("id").eq("month", month).eq("year", year).limit(1);
-    if (existing && existing.length > 0) {
-      return new Response(JSON.stringify({ error: "Batches already exist for this month/year. Delete them first to regenerate." }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const { data: existing } = await supabaseAdmin.from("gbp_batches").select("id").limit(1);
+    if (existing && existing.length > 0 && !force) {
+      // Delete existing batches and regenerate
+      await supabaseAdmin.from("gbp_batches").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     }
 
     // Get all clinics with GBP config
@@ -87,7 +67,6 @@ Deno.serve(async (req) => {
     const clusterMap = new Map<string, any>();
     (clusters || []).forEach(c => clusterMap.set(c.cluster_id, c));
 
-    const quarter = getQuarter(month);
     const batches: any[] = [];
     let batchNumber = 1;
     const processedClinics = new Set<string>();
@@ -108,27 +87,17 @@ Deno.serve(async (req) => {
 
     // Create batches for clusters
     for (const [clusterId, clusterConfigs] of clusterGroups) {
-      // Assign positions and variants
       const clinicIds = clusterConfigs.map((c: any) => c.clinic_id);
-      
-      // Update configs with positions and hook styles
+
       for (let i = 0; i < clusterConfigs.length; i++) {
         const position = VARIANT_POSITIONS[i % 4];
-        const hookStyle = HOOK_ROTATION[quarter]?.[position] || "STAT";
-        const variant = VARIANT_POSITIONS[i % 4];
-
         await supabaseAdmin.from("clinic_gbp_config").update({
           cluster_position: position,
-          topic_variant_current: variant,
-          hook_style_current: hookStyle,
         }).eq("id", clusterConfigs[i].id);
-
         processedClinics.add(clusterConfigs[i].clinic_id);
       }
 
       batches.push({
-        month,
-        year,
         batch_number: batchNumber++,
         cluster_id: clusterId,
         clinics: clinicIds,
@@ -136,20 +105,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Create batches for solo clinics (one per clinic)
+    // Create batches for solo clinics
     for (const config of soloConfigs) {
-      const position = "A";
-      const hookStyle = HOOK_ROTATION[quarter]?.["A"] || "STAT";
-
       await supabaseAdmin.from("clinic_gbp_config").update({
-        cluster_position: position,
-        topic_variant_current: "A",
-        hook_style_current: hookStyle,
+        cluster_position: "A",
       }).eq("id", config.id);
 
       batches.push({
-        month,
-        year,
         batch_number: batchNumber++,
         cluster_id: null,
         clinics: [config.clinic_id],

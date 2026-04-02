@@ -5,8 +5,6 @@ import { toast } from "sonner";
 
 export interface GBPBatchRow {
   id: string;
-  month: number;
-  year: number;
   batch_number: number;
   cluster_id: string | null;
   clinics: string[];
@@ -51,17 +49,15 @@ async function getEdgeFunctionErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
-export function useGBPBatches(month: number, year: number) {
+export function useGBPBatches() {
   const queryClient = useQueryClient();
 
   const { data: batches = [], isLoading } = useQuery({
-    queryKey: ["gbp-batches", month, year],
+    queryKey: ["gbp-batches"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("gbp_batches")
         .select("*")
-        .eq("month", month)
-        .eq("year", year)
         .order("batch_number");
       if (error) throw error;
       return (data ?? []).map((b: any) => ({
@@ -74,7 +70,7 @@ export function useGBPBatches(month: number, year: number) {
   const generateQueue = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke("generate-batch-queue", {
-        body: { month, year },
+        body: {},
       });
       if (error) throw new Error(await getEdgeFunctionErrorMessage(error, "Failed to generate batch queue"));
       if (data?.error) throw new Error(data.error);

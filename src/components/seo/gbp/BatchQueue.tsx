@@ -2,16 +2,13 @@ import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ListOrdered, Play, Shield, ChevronDown, CheckCircle2, XCircle, AlertTriangle, Users } from "lucide-react";
+import { ListOrdered, Play, Shield, ChevronDown, CheckCircle2, XCircle, AlertTriangle, Users, RefreshCw } from "lucide-react";
 import { useGBPBatches } from "@/hooks/useGBPBatches";
 import { useUserRole } from "@/hooks/useUserRole";
-import { MONTH_NAMES } from "@/lib/gbp/hookRotation";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
 import type { CollisionCheckResult } from "@/lib/gbp/types";
 
 const statusColors: Record<string, string> = {
@@ -62,32 +59,9 @@ interface BatchQueueProps {
 export function BatchQueue({ clinicId }: BatchQueueProps) {
   const { role } = useUserRole();
   const isAdmin = role === "admin";
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const { batches, isLoading, generateQueue, runCollisionCheck } = useGBPBatches(selectedMonth, selectedYear);
+  const { batches, isLoading, generateQueue, runCollisionCheck } = useGBPBatches();
   const [clusterNames, setClusterNames] = useState<Record<string, string>>({});
   const [clinicNames, setClinicNames] = useState<Record<string, string>>({});
-  const uniqueClinicIds = useMemo(() => [...new Set(batches.flatMap((b) => b.clinics))], [batches]);
-
-  const { data: generatedPostCounts = {} } = useQuery({
-    queryKey: ["gbp-batch-post-counts", selectedMonth, selectedYear, uniqueClinicIds],
-    enabled: uniqueClinicIds.length > 0,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("gbp_post_history")
-        .select("clinic_id")
-        .eq("month", selectedMonth)
-        .eq("year", selectedYear)
-        .in("clinic_id", uniqueClinicIds);
-
-      if (error) throw error;
-
-      return (data ?? []).reduce<Record<string, number>>((acc, row) => {
-        acc[row.clinic_id] = (acc[row.clinic_id] || 0) + 1;
-        return acc;
-      }, {});
-    },
-  });
 
   // Fetch cluster & clinic names
   useEffect(() => {
@@ -129,45 +103,28 @@ export function BatchQueue({ clinicId }: BatchQueueProps) {
   return (
     <div className="space-y-4">
       {/* Controls */}
-      <Card className="border-border/50">
-        <CardContent className="pt-4 pb-4 px-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Month</label>
-              <Select value={String(selectedMonth)} onValueChange={v => setSelectedMonth(Number(v))}>
-                <SelectTrigger className="h-9 w-[130px] text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {MONTH_NAMES.map((m, i) => (
-                    <SelectItem key={i} value={String(i + 1)} className="text-xs">{m}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Year</label>
-              <Select value={String(selectedYear)} onValueChange={v => setSelectedYear(Number(v))}>
-                <SelectTrigger className="h-9 w-[90px] text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {[2025, 2026, 2027].map(y => (
-                    <SelectItem key={y} value={String(y)} className="text-xs">{y}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {isAdmin && (
+      {isAdmin && (
+        <Card className="border-border/50">
+          <CardContent className="pt-4 pb-4 px-4">
+            <div className="flex flex-wrap items-center gap-3">
               <Button
                 onClick={() => generateQueue.mutate()}
                 disabled={generateQueue.isPending}
                 size="sm"
                 className="gap-1.5"
               >
-                <Play className="h-3.5 w-3.5" />
-                {generateQueue.isPending ? "Generating..." : "Generate Monthly Queue"}
+                {batches.length > 0 ? <RefreshCw className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+                {generateQueue.isPending ? "Generating..." : batches.length > 0 ? "Regenerate Batches" : "Generate Batches"}
               </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              {batches.length > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  Batches reflect current cluster groupings. Regenerate when clinics are added or removed.
+                </span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Progress */}
       {filteredBatches.length > 0 && (
@@ -189,9 +146,9 @@ export function BatchQueue({ clinicId }: BatchQueueProps) {
             <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center mb-4">
               <ListOrdered className="h-6 w-6 text-muted-foreground" />
             </div>
-            <h3 className="text-base font-semibold text-foreground mb-1">No Batches for {MONTH_NAMES[selectedMonth - 1]} {selectedYear}</h3>
+            <h3 className="text-base font-semibold text-foreground mb-1">No Batches Configured</h3>
             <p className="text-sm text-muted-foreground max-w-md">
-              {clinicId ? "This clinic is not in any batch for the selected month." : isAdmin ? "Click 'Generate Monthly Queue' to create the batch queue for all configured clinics." : "The admin needs to generate the monthly batch queue."}
+              {clinicId ? "This clinic is not in any batch." : isAdmin ? "Click 'Generate Batches' to create the batch queue for all configured clinics." : "The admin needs to generate the batch queue."}
             </p>
           </CardContent>
         </Card>
@@ -199,84 +156,65 @@ export function BatchQueue({ clinicId }: BatchQueueProps) {
 
       {/* Batch Cards */}
       <div className="space-y-2">
-        {filteredBatches.map((batch, idx) => {
-          const missingPostClinicIds = batch.clinics.filter((cId) => !generatedPostCounts[cId]);
-          const canRunCollisionCheck = batch.clinics.length > 1 && missingPostClinicIds.length === 0;
-          const collisionButtonLabel = missingPostClinicIds.length > 0 ? "Generate Posts First" : "Collision Check";
-          const collisionHint = missingPostClinicIds.length > 0
-            ? `Missing generated posts for ${missingPostClinicIds.length} clinic${missingPostClinicIds.length === 1 ? "" : "s"}`
-            : null;
-
-          return (
-            <motion.div key={batch.id} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}>
-              <Collapsible>
-                <Card className="border-border/50">
-                  <CollapsibleTrigger asChild>
-                    <CardHeader className="py-3 px-4 cursor-pointer hover:bg-muted/30 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CardTitle className="text-xs font-semibold">
-                            Batch #{batch.batch_number}
-                            {batch.cluster_id && (
-                              <span className="font-normal text-muted-foreground ml-1.5">
-                                — {clusterNames[batch.cluster_id] || batch.cluster_id}
-                              </span>
-                            )}
-                            {!batch.cluster_id && <span className="font-normal text-muted-foreground ml-1.5">— Solo</span>}
-                          </CardTitle>
-                          <Badge variant="outline" className={`text-[10px] ${statusColors[batch.status || "queued"]}`}>
-                            {(batch.status || "queued").replace("_", " ")}
-                          </Badge>
-                          <Badge variant="outline" className="text-[10px] gap-0.5">
-                            <Users className="h-2.5 w-2.5" />
-                            {batch.clinics.length}
-                          </Badge>
-                          {collisionHint && (
-                            <Badge variant="outline" className="text-[10px] gap-1 border-border/60 text-muted-foreground">
-                              <AlertTriangle className="h-2.5 w-2.5" />
-                              {collisionHint}
-                            </Badge>
+        {filteredBatches.map((batch, idx) => (
+          <motion.div key={batch.id} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}>
+            <Collapsible>
+              <Card className="border-border/50">
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="py-3 px-4 cursor-pointer hover:bg-muted/30 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-xs font-semibold">
+                          Batch #{batch.batch_number}
+                          {batch.cluster_id && (
+                            <span className="font-normal text-muted-foreground ml-1.5">
+                              — {clusterNames[batch.cluster_id] || batch.cluster_id}
+                            </span>
                           )}
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          {isAdmin && batch.clinics.length > 1 && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 text-[11px] gap-1"
-                              onClick={(e) => { e.stopPropagation(); runCollisionCheck.mutate(batch.id); }}
-                              disabled={runCollisionCheck.isPending || !canRunCollisionCheck}
-                              title={collisionHint || undefined}
-                            >
-                              <Shield className="h-3 w-3" />
-                              {collisionButtonLabel}
-                            </Button>
-                          )}
-                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                        </div>
+                          {!batch.cluster_id && <span className="font-normal text-muted-foreground ml-1.5">— Solo</span>}
+                        </CardTitle>
+                        <Badge variant="outline" className={`text-[10px] ${statusColors[batch.status || "queued"]}`}>
+                          {(batch.status || "queued").replace("_", " ")}
+                        </Badge>
+                        <Badge variant="outline" className="text-[10px] gap-0.5">
+                          <Users className="h-2.5 w-2.5" />
+                          {batch.clinics.length}
+                        </Badge>
                       </div>
-                    </CardHeader>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <CardContent className="pt-0 pb-3 px-4">
-                      <div className="space-y-1.5">
-                        {batch.clinics.map(clinicId => (
-                          <div key={clinicId} className="flex items-center justify-between text-xs bg-muted/20 rounded px-2 py-1.5 border border-border/20">
-                            <span>{clinicNames[clinicId] || clinicId.slice(0, 8)}</span>
-                            <Badge variant="outline" className="text-[10px]">
-                              {generatedPostCounts[clinicId] ? `${generatedPostCounts[clinicId]} posts` : "No posts yet"}
-                            </Badge>
-                          </div>
-                        ))}
+                      <div className="flex items-center gap-1.5">
+                        {isAdmin && batch.clinics.length > 1 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-[11px] gap-1"
+                            onClick={(e) => { e.stopPropagation(); runCollisionCheck.mutate(batch.id); }}
+                            disabled={runCollisionCheck.isPending}
+                          >
+                            <Shield className="h-3 w-3" />
+                            Collision Check
+                          </Button>
+                        )}
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
                       </div>
-                      {batch.collision_check && <CollisionResults result={batch.collision_check} />}
-                    </CardContent>
-                  </CollapsibleContent>
-                </Card>
-              </Collapsible>
-            </motion.div>
-          );
-        })}
+                    </div>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="pt-0 pb-3 px-4">
+                    <div className="space-y-1.5">
+                      {batch.clinics.map(cId => (
+                        <div key={cId} className="flex items-center justify-between text-xs bg-muted/20 rounded px-2 py-1.5 border border-border/20">
+                          <span>{clinicNames[cId] || cId.slice(0, 8)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {batch.collision_check && <CollisionResults result={batch.collision_check} />}
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          </motion.div>
+        ))}
       </div>
     </div>
   );
