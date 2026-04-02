@@ -70,11 +70,7 @@ export function GBPPostsTab({ clinicId }: GBPPostsTabProps) {
         </TabsContent>
 
         <TabsContent value="generate" className="mt-4">
-          <EmptyState
-            icon={Sparkles}
-            title="Generate Posts"
-            description="Set up GBP configuration in Cluster Manager to start generating posts for your clinics."
-          />
+          <GeneratePosts />
         </TabsContent>
 
         <TabsContent value="history" className="mt-4">
