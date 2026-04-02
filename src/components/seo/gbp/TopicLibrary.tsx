@@ -7,11 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ChevronRight, Pencil, BookOpen, Sprout, AlertTriangle } from "lucide-react";
+import { ChevronDown, ChevronRight, Pencil, BookOpen, Sprout, AlertTriangle, ShieldAlert, ShieldCheck } from "lucide-react";
 import { TopicSetEditor } from "./TopicSetEditor";
 import { MONTH_NAMES } from "@/lib/gbp/hookRotation";
+import { scanTopicTitle } from "@/lib/gbp/compliance";
 import type { GBPTopicSet, TopicVariant } from "@/lib/gbp/types";
 
 export function TopicLibrary() {
@@ -173,10 +175,10 @@ export function TopicLibrary() {
                                 return (
                                   <TableRow key={variant}>
                                     <TableCell><Badge variant="outline" className="text-[10px] font-mono">{variant}</Badge></TableCell>
-                                    <TableCell className="text-xs">{topic.week_1_topic}</TableCell>
-                                    <TableCell className="text-xs">{topic.week_2_topic}</TableCell>
-                                    <TableCell className="text-xs">{topic.week_3_topic}</TableCell>
-                                    <TableCell className="text-xs">{topic.week_4_topic}</TableCell>
+                                    <TopicCell title={topic.week_1_topic} />
+                                    <TopicCell title={topic.week_2_topic} />
+                                    <TopicCell title={topic.week_3_topic} />
+                                    <TopicCell title={topic.week_4_topic} />
                                     {isAdmin && (
                                       <TableCell>
                                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingTopic(topic); setEditDialogOpen(true); }}>
@@ -221,6 +223,43 @@ export function TopicLibrary() {
         isSaving={upsertTopic.isPending}
       />
     </motion.div>
+  );
+}
+
+// ─── Topic Cell with Compliance Check ────────────────────────────
+function TopicCell({ title }: { title: string }) {
+  const scan = scanTopicTitle(title);
+  if (scan.pass) {
+    return (
+      <TableCell className="text-xs">
+        <span className="flex items-center gap-1">
+          {title}
+          <ShieldCheck className="h-3 w-3 text-emerald-500 shrink-0" />
+        </span>
+      </TableCell>
+    );
+  }
+  return (
+    <TableCell className="text-xs">
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 cursor-help">
+              {title}
+              <ShieldAlert className="h-3 w-3 shrink-0" />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-xs">
+            <p className="text-xs font-medium mb-1">Compliance Issues:</p>
+            <ul className="text-[10px] space-y-0.5">
+              {scan.issues.map((issue, i) => (
+                <li key={i}>• {issue}</li>
+              ))}
+            </ul>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </TableCell>
   );
 }
 
