@@ -38,6 +38,7 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isFixing, setIsFixing] = useState(false);
+  const [regenerateMode, setRegenerateMode] = useState(false);
 
   const { savePosts } = useGBPPosts(selectedClinicId);
 
