@@ -200,7 +200,7 @@ export function BatchQueue({ clinicId }: BatchQueueProps) {
       {/* Batch Cards */}
       <div className="space-y-2">
         {filteredBatches.map((batch, idx) => {
-          const missingPostClinicIds = batch.clinics.filter((clinicId) => !generatedPostCounts[clinicId]);
+          const missingPostClinicIds = batch.clinics.filter((cId) => !generatedPostCounts[cId]);
           const canRunCollisionCheck = batch.clinics.length > 1 && missingPostClinicIds.length === 0;
           const collisionButtonLabel = missingPostClinicIds.length > 0 ? "Generate Posts First" : "Collision Check";
           const collisionHint = missingPostClinicIds.length > 0
