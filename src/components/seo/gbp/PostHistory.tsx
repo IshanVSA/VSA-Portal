@@ -118,6 +118,7 @@ export function PostHistory({ clinicId: navClinicId }: PostHistoryProps) {
                   <SelectItem value="all" className="text-xs">All</SelectItem>
                   <SelectItem value="approved" className="text-xs">Approved</SelectItem>
                   <SelectItem value="rejected" className="text-xs">Rejected</SelectItem>
+                  <SelectItem value="generated" className="text-xs">Drafts</SelectItem>
                 </SelectContent>
               </Select>
             </div>
