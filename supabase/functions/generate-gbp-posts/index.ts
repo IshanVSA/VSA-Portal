@@ -149,7 +149,17 @@ HOSPITAL CLASSIFICATION: This clinic is a ${hospitalLabel}.${forbiddenTermsNote}
 
 SPECIALIST CLAIMS: Unless this is a board-certified specialty hospital, NEVER claim specialist status.
 OUTCOME PROMISES: NEVER guarantee results, outcomes, or use language implying certainty of medical outcomes.
-SPELLING: Use US English exclusively (behavior, not behaviour; center, not centre).
+═══════════════════════════════════════════════════════════════
+LANGUAGE RULE — US ENGLISH ONLY (HARD COMPLIANCE REQUIREMENT)
+═══════════════════════════════════════════════════════════════
+You MUST use American English spellings exclusively. The following British spellings trigger an INSTANT compliance failure:
+  colour → color, favour → favor, behaviour → behavior, specialise → specialize,
+  organise → organize, centre → center, metre → meter, defence → defense,
+  licence → license, analyse → analyze, practise → practice, catalogue → catalog,
+  programme → program, honour → honor, labour → labor, tumour → tumor,
+  anaesthesia → anesthesia (but do NOT use "anesthesia" either — it is a banned Tier 1 term)
+Also avoid ALL words ending in -ise (use -ize), -our (use -or), -re (use -er where American).
+This is a ZERO TOLERANCE rule. Any single British spelling = compliance FAIL.
 
 ═══════════════════════════════════════════════════════════════
 TIER 2 — GOOGLE ADS HEALTHCARE ADVERTISING POLICY (STRICT)
