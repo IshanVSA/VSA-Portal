@@ -315,11 +315,12 @@ function ClusterRow({ cluster, clinicNameMap, configs, expanded, onToggle, isAdm
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-xs">Clinic</TableHead>
-                    <TableHead className="text-xs w-20">Position</TableHead>
-                    <TableHead className="text-xs w-28">Landmarks</TableHead>
-                    <TableHead className="text-xs w-20">Radius</TableHead>
-                    <TableHead className="text-xs w-20">Type</TableHead>
+                     <TableHead className="text-xs">Clinic</TableHead>
+                     <TableHead className="text-xs w-20">Position</TableHead>
+                     <TableHead className="text-xs w-20">Hook</TableHead>
+                     <TableHead className="text-xs w-28">Landmarks</TableHead>
+                     <TableHead className="text-xs w-20">Radius</TableHead>
+                     <TableHead className="text-xs w-20">Type</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
