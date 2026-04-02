@@ -201,6 +201,7 @@ export default function SeoDepartment() {
                 <TabsContent value="tickets" className="mt-4"><TicketsTab department="seo" services={services} clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="analytics" className="mt-4"><SeoAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="reports" className="mt-4"><SeoReportsTab clinicId={selectedClinicId} /></TabsContent>
+                <TabsContent value="gbp-posts" className="mt-4"><GBPPostsTab clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="seo" clinicId={selectedClinicId} /></TabsContent>
                 {isStaff && <TabsContent value="chat" className="mt-4"><DepartmentChat department="seo" clinicId={selectedClinicId} onVisible={markAsRead} /></TabsContent>}
               </Tabs>
