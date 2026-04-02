@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,7 @@ interface GeneratePostsProps {
 }
 
 export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
+  const queryClient = useQueryClient();
   const { configs, isLoading: configsLoading } = useClinicGBPConfigs();
   const { topicsByMonth } = useTopicLibrary();
   const { role } = useUserRole();
@@ -38,6 +39,7 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isFixing, setIsFixing] = useState(false);
+  const [regenerateMode, setRegenerateMode] = useState(false);
 
   const { savePosts } = useGBPPosts(selectedClinicId);
 
@@ -60,7 +62,14 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
     enabled: !!selectedClinicId,
   });
 
-  const hasApprovedPosts = (approvedPosts?.length ?? 0) > 0;
+  const hasApprovedPosts = (approvedPosts?.length ?? 0) > 0 && !regenerateMode;
+
+  // Reset regenerate mode when clinic/month/year changes
+  useEffect(() => {
+    setRegenerateMode(false);
+    setGeneratedPosts([]);
+    setComplianceScan(null);
+  }, [selectedClinicId, selectedMonth, selectedYear]);
   const selectedConfig = useMemo(() => configs.find(c => c.clinic_id === selectedClinicId), [configs, selectedClinicId]);
 
   // Get clinic name
@@ -234,8 +243,20 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
     if (!selectedConfig || generatedPosts.length === 0 || !complianceScan) return;
     setIsSaving(true);
     try {
-      // Save with approved status
       const { data: { user } } = await supabase.auth.getUser();
+
+      // If regenerating, delete old approved posts for this month first
+      if (regenerateMode) {
+        const { error: delError } = await supabase
+          .from("gbp_post_history")
+          .delete()
+          .eq("clinic_id", selectedConfig.clinic_id)
+          .eq("month", selectedMonth)
+          .eq("year", selectedYear)
+          .eq("status", "approved");
+        if (delError) throw delError;
+      }
+
       const rows = generatedPosts.map(p => ({
         clinic_id: selectedConfig.clinic_id,
         month: selectedMonth,
@@ -258,9 +279,11 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
       }));
       const { error } = await supabase.from("gbp_post_history").insert(rows as any);
       if (error) throw error;
-      toast.success("All posts approved and saved");
+      toast.success(regenerateMode ? "Posts regenerated and approved" : "All posts approved and saved");
       setGeneratedPosts([]);
       setComplianceScan(null);
+      setRegenerateMode(false);
+      queryClient.invalidateQueries({ queryKey: ['gbp-approved-posts', selectedClinicId, selectedMonth, selectedYear] });
     } catch (err: any) {
       toast.error(err.message || "Failed to approve");
     } finally {
@@ -322,15 +345,30 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
               </Select>
             </div>
             {hasApprovedPosts ? (
-              <Badge className="bg-green-600/20 text-green-400 border-green-500/30 text-[11px] h-9 px-3 flex items-center gap-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                Approved for {MONTH_NAMES[selectedMonth - 1]} {selectedYear}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge className="bg-green-600/20 text-green-400 border-green-500/30 text-[11px] h-9 px-3 flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Approved for {MONTH_NAMES[selectedMonth - 1]} {selectedYear}
+                </Badge>
+                {role === 'admin' && (
+                  <Button onClick={() => setRegenerateMode(true)} variant="ghost" size="sm" className="gap-1.5 text-amber-500 hover:text-amber-400">
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Regenerate
+                  </Button>
+                )}
+              </div>
             ) : (
-              <Button onClick={handleGenerate} disabled={!selectedClinicId || !topics || isGenerating} size="sm" className="gap-1.5">
-                {isGenerating ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                {isGenerating ? "Generating..." : "Generate 4 Posts"}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button onClick={handleGenerate} disabled={!selectedClinicId || !topics || isGenerating} size="sm" className="gap-1.5">
+                  {isGenerating ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                  {isGenerating ? "Generating..." : regenerateMode ? "Regenerate 4 Posts" : "Generate 4 Posts"}
+                </Button>
+                {regenerateMode && (
+                  <Button onClick={() => { setRegenerateMode(false); setGeneratedPosts([]); setComplianceScan(null); }} variant="ghost" size="sm" className="text-muted-foreground">
+                    Cancel
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         </CardContent>
