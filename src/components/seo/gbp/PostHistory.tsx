@@ -16,6 +16,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 import type { GBPPostHistory, ComplianceScan } from "@/lib/gbp/types";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const statusBadgeColors: Record<string, string> = {
   generated: "bg-muted text-muted-foreground",
