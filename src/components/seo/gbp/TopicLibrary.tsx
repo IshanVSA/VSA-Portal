@@ -192,23 +192,27 @@ export function TopicLibrary() {
                                 const topic = monthTopics.find(t => t.variant === variant);
                                 if (!topic) return (
                                   <TableRow key={variant}>
-                                    <TableCell><Badge variant="outline" className="text-[10px] font-mono">{variant}</Badge></TableCell>
-                                    <TableCell colSpan={4} className="text-xs text-muted-foreground italic">Not configured</TableCell>
-                                    {isAdmin && (
-                                      <TableCell>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
-                                          setEditingTopic({ month, variant, week_1_topic: "", week_2_topic: "", week_3_topic: "", week_4_topic: "", seasonal_theme: monthTopics[0]?.seasonal_theme ?? "" } as any);
-                                          setEditDialogOpen(true);
-                                        }}>
-                                          <Pencil className="h-3 w-3" />
-                                        </Button>
-                                      </TableCell>
-                                    )}
-                                  </TableRow>
-                                );
-                                return (
-                                  <TableRow key={variant}>
-                                    <TableCell><Badge variant="outline" className="text-[10px] font-mono">{variant}</Badge></TableCell>
+                                     <TableCell>
+                                       <VariantBadge variant={variant} clinics={clinicVariantMap[variant] ?? []} />
+                                     </TableCell>
+                                     <TableCell colSpan={4} className="text-xs text-muted-foreground italic">Not configured</TableCell>
+                                     {isAdmin && (
+                                       <TableCell>
+                                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
+                                           setEditingTopic({ month, variant, week_1_topic: "", week_2_topic: "", week_3_topic: "", week_4_topic: "", seasonal_theme: monthTopics[0]?.seasonal_theme ?? "" } as any);
+                                           setEditDialogOpen(true);
+                                         }}>
+                                           <Pencil className="h-3 w-3" />
+                                         </Button>
+                                       </TableCell>
+                                     )}
+                                   </TableRow>
+                                 );
+                                 return (
+                                   <TableRow key={variant}>
+                                     <TableCell>
+                                       <VariantBadge variant={variant} clinics={clinicVariantMap[variant] ?? []} />
+                                     </TableCell>
                                     <TopicCell title={topic.week_1_topic} />
                                     <TopicCell title={topic.week_2_topic} />
                                     <TopicCell title={topic.week_3_topic} />
