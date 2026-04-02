@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Sparkles, Save, CheckCircle2, RefreshCw, FileText, MapPin, Phone, ExternalLink } from "lucide-react";
 import { useClinicGBPConfigs } from "@/hooks/useGeoClusters";
 import { useTopicLibrary } from "@/hooks/useTopicLibrary";
@@ -351,10 +352,29 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
                   Approved for {MONTH_NAMES[selectedMonth - 1]} {selectedYear}
                 </Badge>
                 {role === 'admin' && (
-                  <Button onClick={() => setRegenerateMode(true)} variant="ghost" size="sm" className="gap-1.5 text-amber-500 hover:text-amber-400">
-                    <RefreshCw className="h-3.5 w-3.5" />
-                    Regenerate
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="sm" className="gap-1.5 text-amber-500 hover:text-amber-400">
+                        <RefreshCw className="h-3.5 w-3.5" />
+                        Regenerate
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Regenerate approved posts?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will allow you to generate new posts for {MONTH_NAMES[selectedMonth - 1]} {selectedYear}. 
+                          The currently approved {approvedPosts?.length} post{(approvedPosts?.length ?? 0) !== 1 ? 's' : ''} will be replaced when you approve the new set.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => setRegenerateMode(true)} className="bg-amber-600 hover:bg-amber-700">
+                          Regenerate
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 )}
               </div>
             ) : (
