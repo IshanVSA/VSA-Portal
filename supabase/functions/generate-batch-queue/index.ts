@@ -33,7 +33,6 @@ Deno.serve(async (req) => {
     );
 
     if (!isCron) {
-      // Validate user auth
       if (!authHeader?.startsWith("Bearer ")) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
@@ -44,13 +43,12 @@ Deno.serve(async (req) => {
         { global: { headers: { Authorization: authHeader } } }
       );
 
-      const { data: claimsData, error: claimsError } = await supabaseUser.auth.getClaims(authHeader.replace("Bearer ", ""));
-      if (claimsError || !claimsData?.claims) {
+      const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
+      if (userError || !user) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
-      const userId = claimsData.claims.sub;
-      const { data: roleData } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", userId).maybeSingle();
+      const { data: roleData } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", user.id).maybeSingle();
       if (roleData?.role !== "admin") {
         return new Response(JSON.stringify({ error: "Only admins can generate batch queues" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
