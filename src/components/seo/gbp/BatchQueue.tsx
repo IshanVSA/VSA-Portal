@@ -183,7 +183,7 @@ export function BatchQueue({ clinicId }: BatchQueueProps) {
         <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-20 w-full" />)}</div>
       )}
 
-      {!isLoading && batches.length === 0 && (
+      {!isLoading && filteredBatches.length === 0 && (
         <Card className="border-dashed border-border/60">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center mb-4">
@@ -191,7 +191,7 @@ export function BatchQueue({ clinicId }: BatchQueueProps) {
             </div>
             <h3 className="text-base font-semibold text-foreground mb-1">No Batches for {MONTH_NAMES[selectedMonth - 1]} {selectedYear}</h3>
             <p className="text-sm text-muted-foreground max-w-md">
-              {isAdmin ? "Click 'Generate Monthly Queue' to create the batch queue for all configured clinics." : "The admin needs to generate the monthly batch queue."}
+              {clinicId ? "This clinic is not in any batch for the selected month." : isAdmin ? "Click 'Generate Monthly Queue' to create the batch queue for all configured clinics." : "The admin needs to generate the monthly batch queue."}
             </p>
           </CardContent>
         </Card>
@@ -199,7 +199,7 @@ export function BatchQueue({ clinicId }: BatchQueueProps) {
 
       {/* Batch Cards */}
       <div className="space-y-2">
-        {batches.map((batch, idx) => {
+        {filteredBatches.map((batch, idx) => {
           const missingPostClinicIds = batch.clinics.filter((clinicId) => !generatedPostCounts[clinicId]);
           const canRunCollisionCheck = batch.clinics.length > 1 && missingPostClinicIds.length === 0;
           const collisionButtonLabel = missingPostClinicIds.length > 0 ? "Generate Posts First" : "Collision Check";
