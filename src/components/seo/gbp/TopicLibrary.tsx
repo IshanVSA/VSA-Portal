@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useTopicLibrary } from "@/hooks/useTopicLibrary";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ChevronRight, Pencil, BookOpen, Sprout, AlertTriangle, ShieldAlert, ShieldCheck } from "lucide-react";
+import { ChevronDown, ChevronRight, Pencil, BookOpen, Sprout, AlertTriangle, ShieldAlert, ShieldCheck, Building2 } from "lucide-react";
 import { TopicSetEditor } from "./TopicSetEditor";
 import { MONTH_NAMES } from "@/lib/gbp/hookRotation";
 import { scanTopicTitle } from "@/lib/gbp/compliance";
@@ -24,6 +26,38 @@ export function TopicLibrary() {
   const [editingTopic, setEditingTopic] = useState<GBPTopicSet | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [seeding, setSeeding] = useState(false);
+
+  // Fetch clinic names + their assigned variant positions
+  const { data: clinicVariantMap = {} } = useQuery({
+    queryKey: ["clinic-variant-map"],
+    queryFn: async () => {
+      const { data: configs } = await supabase
+        .from("clinic_gbp_config")
+        .select("clinic_id, cluster_position")
+        .not("cluster_position", "is", null);
+      if (!configs?.length) return {};
+
+      const clinicIds = configs.map(c => c.clinic_id);
+      const { data: clinics } = await supabase
+        .from("clinics")
+        .select("id, clinic_name")
+        .in("id", clinicIds);
+
+      const nameMap = Object.fromEntries((clinics ?? []).map(c => [c.id, c.clinic_name]));
+      const result: Record<string, string[]> = { A: [], B: [], C: [], D: [] };
+      for (const cfg of configs) {
+        const pos = cfg.cluster_position as string;
+        if (pos && result[pos]) {
+          result[pos].push(nameMap[cfg.clinic_id] ?? cfg.clinic_id);
+        }
+      }
+      // Sort clinic names alphabetically
+      for (const key of Object.keys(result)) {
+        result[key].sort();
+      }
+      return result;
+    },
+  });
 
   // Check if library needs annual review
   const lastUpdated = topics.length > 0
@@ -145,7 +179,7 @@ export function TopicLibrary() {
                           <Table>
                             <TableHeader>
                               <TableRow>
-                                <TableHead className="text-xs w-16">Variant</TableHead>
+                                <TableHead className="text-xs w-24">Variant</TableHead>
                                 <TableHead className="text-xs">Week 1 (What's New)</TableHead>
                                 <TableHead className="text-xs">Week 2 (Products)</TableHead>
                                 <TableHead className="text-xs">Week 3 (What's New)</TableHead>
@@ -158,23 +192,27 @@ export function TopicLibrary() {
                                 const topic = monthTopics.find(t => t.variant === variant);
                                 if (!topic) return (
                                   <TableRow key={variant}>
-                                    <TableCell><Badge variant="outline" className="text-[10px] font-mono">{variant}</Badge></TableCell>
-                                    <TableCell colSpan={4} className="text-xs text-muted-foreground italic">Not configured</TableCell>
-                                    {isAdmin && (
-                                      <TableCell>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
-                                          setEditingTopic({ month, variant, week_1_topic: "", week_2_topic: "", week_3_topic: "", week_4_topic: "", seasonal_theme: monthTopics[0]?.seasonal_theme ?? "" } as any);
-                                          setEditDialogOpen(true);
-                                        }}>
-                                          <Pencil className="h-3 w-3" />
-                                        </Button>
-                                      </TableCell>
-                                    )}
-                                  </TableRow>
-                                );
-                                return (
-                                  <TableRow key={variant}>
-                                    <TableCell><Badge variant="outline" className="text-[10px] font-mono">{variant}</Badge></TableCell>
+                                     <TableCell>
+                                       <VariantBadge variant={variant} clinics={clinicVariantMap[variant] ?? []} />
+                                     </TableCell>
+                                     <TableCell colSpan={4} className="text-xs text-muted-foreground italic">Not configured</TableCell>
+                                     {isAdmin && (
+                                       <TableCell>
+                                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
+                                           setEditingTopic({ month, variant, week_1_topic: "", week_2_topic: "", week_3_topic: "", week_4_topic: "", seasonal_theme: monthTopics[0]?.seasonal_theme ?? "" } as any);
+                                           setEditDialogOpen(true);
+                                         }}>
+                                           <Pencil className="h-3 w-3" />
+                                         </Button>
+                                       </TableCell>
+                                     )}
+                                   </TableRow>
+                                 );
+                                 return (
+                                   <TableRow key={variant}>
+                                     <TableCell>
+                                       <VariantBadge variant={variant} clinics={clinicVariantMap[variant] ?? []} />
+                                     </TableCell>
                                     <TopicCell title={topic.week_1_topic} />
                                     <TopicCell title={topic.week_2_topic} />
                                     <TopicCell title={topic.week_3_topic} />
@@ -223,6 +261,42 @@ export function TopicLibrary() {
         isSaving={upsertTopic.isPending}
       />
     </motion.div>
+  );
+}
+
+// ─── Variant Badge with Clinic Indicator ─────────────────────────
+function VariantBadge({ variant, clinics }: { variant: TopicVariant; clinics: string[] }) {
+  const count = clinics.length;
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex items-center gap-1.5">
+            <Badge variant="outline" className="text-[10px] font-mono">{variant}</Badge>
+            {count > 0 && (
+              <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                <Building2 className="h-3 w-3" />
+                {count}
+              </span>
+            )}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="right" className="max-w-xs">
+          {count > 0 ? (
+            <div>
+              <p className="text-xs font-medium mb-1">Clinics on Variant {variant}:</p>
+              <ul className="text-[10px] space-y-0.5">
+                {clinics.map((name, i) => (
+                  <li key={i}>• {name}</li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">No clinics assigned to variant {variant}</p>
+          )}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
