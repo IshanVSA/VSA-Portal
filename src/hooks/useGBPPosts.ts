@@ -40,9 +40,12 @@ export function useGBPPosts(clinicId: string | null) {
 
   const generatePosts = useMutation({
     mutationFn: async (request: GenerateGBPPostsRequest & { clinic_name: string }) => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000);
       const { data, error } = await supabase.functions.invoke("generate-gbp-posts", {
         body: request,
       });
+      clearTimeout(timeoutId);
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       return data as { posts: GeneratedPost[] };
