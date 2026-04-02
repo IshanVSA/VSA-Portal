@@ -7,6 +7,8 @@ import { motion } from "framer-motion";
 import { ClusterManager } from "./ClusterManager";
 import { TopicLibrary } from "./TopicLibrary";
 import { GeneratePosts } from "./GeneratePosts";
+import { BatchQueue } from "./BatchQueue";
+import { PostHistory } from "./PostHistory";
 
 const subTabs = [
   { value: "batch-queue", label: "Batch Queue", icon: ListOrdered },
@@ -62,11 +64,7 @@ export function GBPPostsTab({ clinicId }: GBPPostsTabProps) {
         </TabsList>
 
         <TabsContent value="batch-queue" className="mt-4">
-          <EmptyState
-            icon={ListOrdered}
-            title="Batch Queue"
-            description="Generate the monthly queue to get started. The batch queue manages the GBP generation cycle for all clinics."
-          />
+          <BatchQueue />
         </TabsContent>
 
         <TabsContent value="generate" className="mt-4">
@@ -74,11 +72,7 @@ export function GBPPostsTab({ clinicId }: GBPPostsTabProps) {
         </TabsContent>
 
         <TabsContent value="history" className="mt-4">
-          <EmptyState
-            icon={History}
-            title="Post History"
-            description="No GBP posts generated yet. Once posts are created, they'll appear here with full search and filtering."
-          />
+          <PostHistory />
         </TabsContent>
 
         {!isClient && (
