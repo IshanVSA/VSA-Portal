@@ -27,6 +27,38 @@ export function TopicLibrary() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [seeding, setSeeding] = useState(false);
 
+  // Fetch clinic names + their assigned variant positions
+  const { data: clinicVariantMap = {} } = useQuery({
+    queryKey: ["clinic-variant-map"],
+    queryFn: async () => {
+      const { data: configs } = await supabase
+        .from("clinic_gbp_config")
+        .select("clinic_id, cluster_position")
+        .not("cluster_position", "is", null);
+      if (!configs?.length) return {};
+
+      const clinicIds = configs.map(c => c.clinic_id);
+      const { data: clinics } = await supabase
+        .from("clinics")
+        .select("id, clinic_name")
+        .in("id", clinicIds);
+
+      const nameMap = Object.fromEntries((clinics ?? []).map(c => [c.id, c.clinic_name]));
+      const result: Record<string, string[]> = { A: [], B: [], C: [], D: [] };
+      for (const cfg of configs) {
+        const pos = cfg.cluster_position as string;
+        if (pos && result[pos]) {
+          result[pos].push(nameMap[cfg.clinic_id] ?? cfg.clinic_id);
+        }
+      }
+      // Sort clinic names alphabetically
+      for (const key of Object.keys(result)) {
+        result[key].sort();
+      }
+      return result;
+    },
+  });
+
   // Check if library needs annual review
   const lastUpdated = topics.length > 0
     ? new Date(Math.max(...topics.map(t => new Date(t.updated_at).getTime())))
