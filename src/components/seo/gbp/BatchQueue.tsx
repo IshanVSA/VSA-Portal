@@ -116,9 +116,15 @@ export function BatchQueue({ clinicId }: BatchQueueProps) {
     }
   }, [batches]);
 
-  const totalClinics = new Set(batches.flatMap(b => b.clinics)).size;
-  const completedBatches = batches.filter(b => b.status === "complete").length;
-  const progressPct = batches.length > 0 ? Math.round((completedBatches / batches.length) * 100) : 0;
+  // Filter batches to only show the one containing the selected clinic
+  const filteredBatches = useMemo(() => {
+    if (!clinicId) return batches;
+    return batches.filter(b => b.clinics.includes(clinicId));
+  }, [batches, clinicId]);
+
+  const totalClinics = new Set(filteredBatches.flatMap(b => b.clinics)).size;
+  const completedBatches = filteredBatches.filter(b => b.status === "complete").length;
+  const progressPct = filteredBatches.length > 0 ? Math.round((completedBatches / filteredBatches.length) * 100) : 0;
 
   return (
     <div className="space-y-4">
@@ -164,12 +170,12 @@ export function BatchQueue({ clinicId }: BatchQueueProps) {
       </Card>
 
       {/* Progress */}
-      {batches.length > 0 && (
+      {filteredBatches.length > 0 && (
         <div className="flex items-center gap-3">
           <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
             <div className="h-full bg-primary transition-all rounded-full" style={{ width: `${progressPct}%` }} />
           </div>
-          <span className="text-xs text-muted-foreground">{completedBatches}/{batches.length} batches • {totalClinics} clinics</span>
+          <span className="text-xs text-muted-foreground">{completedBatches}/{filteredBatches.length} batches • {totalClinics} clinics</span>
         </div>
       )}
 
@@ -177,7 +183,7 @@ export function BatchQueue({ clinicId }: BatchQueueProps) {
         <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-20 w-full" />)}</div>
       )}
 
-      {!isLoading && batches.length === 0 && (
+      {!isLoading && filteredBatches.length === 0 && (
         <Card className="border-dashed border-border/60">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center mb-4">
@@ -185,7 +191,7 @@ export function BatchQueue({ clinicId }: BatchQueueProps) {
             </div>
             <h3 className="text-base font-semibold text-foreground mb-1">No Batches for {MONTH_NAMES[selectedMonth - 1]} {selectedYear}</h3>
             <p className="text-sm text-muted-foreground max-w-md">
-              {isAdmin ? "Click 'Generate Monthly Queue' to create the batch queue for all configured clinics." : "The admin needs to generate the monthly batch queue."}
+              {clinicId ? "This clinic is not in any batch for the selected month." : isAdmin ? "Click 'Generate Monthly Queue' to create the batch queue for all configured clinics." : "The admin needs to generate the monthly batch queue."}
             </p>
           </CardContent>
         </Card>
@@ -193,8 +199,8 @@ export function BatchQueue({ clinicId }: BatchQueueProps) {
 
       {/* Batch Cards */}
       <div className="space-y-2">
-        {batches.map((batch, idx) => {
-          const missingPostClinicIds = batch.clinics.filter((clinicId) => !generatedPostCounts[clinicId]);
+        {filteredBatches.map((batch, idx) => {
+          const missingPostClinicIds = batch.clinics.filter((cId) => !generatedPostCounts[cId]);
           const canRunCollisionCheck = batch.clinics.length > 1 && missingPostClinicIds.length === 0;
           const collisionButtonLabel = missingPostClinicIds.length > 0 ? "Generate Posts First" : "Collision Check";
           const collisionHint = missingPostClinicIds.length > 0
