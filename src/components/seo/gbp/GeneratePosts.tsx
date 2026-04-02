@@ -61,7 +61,14 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
     enabled: !!selectedClinicId,
   });
 
-  const hasApprovedPosts = (approvedPosts?.length ?? 0) > 0;
+  const hasApprovedPosts = (approvedPosts?.length ?? 0) > 0 && !regenerateMode;
+
+  // Reset regenerate mode when clinic/month/year changes
+  useEffect(() => {
+    setRegenerateMode(false);
+    setGeneratedPosts([]);
+    setComplianceScan(null);
+  }, [selectedClinicId, selectedMonth, selectedYear]);
   const selectedConfig = useMemo(() => configs.find(c => c.clinic_id === selectedClinicId), [configs, selectedClinicId]);
 
   // Get clinic name
