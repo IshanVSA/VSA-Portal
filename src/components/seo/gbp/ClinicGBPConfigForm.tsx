@@ -175,8 +175,8 @@ export function ClinicGBPConfigForm({ clusters }: Props) {
               <div className="space-y-1">
                 <Label className="text-xs">Cluster</Label>
                 <Select
-                  value={formData.cluster_id ?? ""}
-                  onValueChange={v => updateField("cluster_id", v || null)}
+                  value={formData.cluster_id ?? "__none__"}
+                  onValueChange={v => updateField("cluster_id", v === "__none__" ? null : v)}
                 >
                   <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="None" /></SelectTrigger>
                   <SelectContent>
