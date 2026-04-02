@@ -198,9 +198,10 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
       <Card className="border-border/50">
         <CardContent className="pt-4 pb-4 px-4">
           <div className="flex flex-wrap items-end gap-3">
+            {!navClinicId && (
             <div className="space-y-1 flex-1 min-w-[200px]">
               <label className="text-xs font-medium text-muted-foreground">Clinic</label>
-              <Select value={selectedClinicId || ""} onValueChange={setSelectedClinicId}>
+              <Select value={selectedClinicId || ""} onValueChange={setInternalClinicId}>
                 <SelectTrigger className="h-9 text-xs">
                   <SelectValue placeholder="Select clinic..." />
                 </SelectTrigger>
@@ -213,6 +214,7 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
                 </SelectContent>
               </Select>
             </div>
+            )}
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">Month</label>
               <Select value={String(selectedMonth)} onValueChange={v => setSelectedMonth(Number(v))}>
