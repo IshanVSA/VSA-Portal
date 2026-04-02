@@ -401,7 +401,7 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
           </div>
 
           {/* Compliance Scan */}
-          {complianceScan && <ComplianceScanDisplay scan={complianceScan} />}
+          {complianceScan && <ComplianceScanDisplay scan={complianceScan} onFixIssues={handleFixIssues} isFixing={isFixing} />}
 
           {/* Bulk Actions */}
           {role === 'admin' && (
