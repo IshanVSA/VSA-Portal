@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { MONTH_NAMES } from "@/lib/gbp/hookRotation";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import type { CollisionCheckResult } from "@/lib/gbp/types";
 
 const statusColors: Record<string, string> = {
