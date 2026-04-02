@@ -224,7 +224,52 @@ Before outputting each post, mentally run this checklist:
 If ANY check fails, rewrite the post before including it in your response.
 ${recentContext}`;
 
-    const userPrompt = `Generate exactly 4 Google Business Profile posts for "${clinic_name}" for ${month}/${year}.
+    let userPrompt: string;
+
+    if (fix_mode && existing_posts && issues_to_fix) {
+      // ═══════════════════════════════════════════════════════
+      // FIX MODE — Rewrite only the parts that failed compliance
+      // ═══════════════════════════════════════════════════════
+      console.log("Fix mode: rewriting posts to resolve compliance issues for clinic:", clinic_id);
+      userPrompt = `You previously generated 4 Google Business Profile posts for "${clinic_name}" for ${month}/${year}. A compliance scan found issues that must be fixed.
+
+HERE ARE THE CURRENT POSTS (as JSON):
+${JSON.stringify(existing_posts, null, 2)}
+
+HERE ARE THE SPECIFIC COMPLIANCE ISSUES TO FIX:
+${issues_to_fix.map((issue: string, idx: number) => `${idx + 1}. ${issue}`).join('\n')}
+
+INSTRUCTIONS:
+- Return ALL 4 posts, even if only some need changes.
+- For posts that already pass, keep them EXACTLY as-is (do not change wording).
+- For posts with issues, make the MINIMUM changes needed to resolve each issue while preserving the original meaning and tone.
+- Maintain the same JSON structure as before.
+- After fixing, run your self-audit checklist to ensure NO new violations are introduced.
+- "${neighbourhood}" must appear in first 100 chars of every post.
+- Phone "${phone_number}" in at least 2 posts.
+- 80-120 words per post.
+- CTA URLs must be specific service pages on ${website_url}, NOT the homepage.
+
+You MUST respond with ONLY a valid JSON object (no markdown, no code fences, no explanation) with this exact structure:
+{
+  "posts": [
+    {
+      "week_number": 1,
+      "post_type": "WHATS_NEW",
+      "topic": "...",
+      "hook_style": "${hook_style}",
+      "primary_keyword": "unique keyword for this post",
+      "secondary_keywords": ["kw1", "kw2", "kw3"],
+      "post_content": "the full post text, 80-120 words",
+      "cta_text": "action verb CTA",
+      "cta_url": "specific service page URL on ${website_url}",
+      "word_count": 95,
+      "local_landmark_used": "landmark name or none"
+    }
+  ]
+}`;
+    } else {
+      userPrompt = `Generate exactly 4 Google Business Profile posts for "${clinic_name}" for ${month}/${year}.
 
 Topics for each week:
 - Week 1: ${topics.week_1}
@@ -262,8 +307,9 @@ CRITICAL REMINDERS:
 - 80-120 words per post — count them
 - CTA URLs must be specific service pages on ${website_url}, NOT the homepage
 - Run your self-audit checklist before responding`;
+    }
 
-    console.log("Generating GBP posts via Anthropic Claude for clinic:", clinic_id);
+    console.log(fix_mode ? "Fixing GBP posts via Anthropic Claude for clinic:" : "Generating GBP posts via Anthropic Claude for clinic:", clinic_id);
 
     const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
