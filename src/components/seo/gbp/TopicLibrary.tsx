@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useTopicLibrary } from "@/hooks/useTopicLibrary";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ChevronRight, Pencil, BookOpen, Sprout, AlertTriangle, ShieldAlert, ShieldCheck } from "lucide-react";
+import { ChevronDown, ChevronRight, Pencil, BookOpen, Sprout, AlertTriangle, ShieldAlert, ShieldCheck, Building2 } from "lucide-react";
 import { TopicSetEditor } from "./TopicSetEditor";
 import { MONTH_NAMES } from "@/lib/gbp/hookRotation";
 import { scanTopicTitle } from "@/lib/gbp/compliance";
