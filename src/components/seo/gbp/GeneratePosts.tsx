@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Sparkles, Save, CheckCircle2, RefreshCw, FileText, MapPin, Phone, ExternalLink } from "lucide-react";
 import { useClinicGBPConfigs } from "@/hooks/useGeoClusters";
 import { useTopicLibrary } from "@/hooks/useTopicLibrary";
