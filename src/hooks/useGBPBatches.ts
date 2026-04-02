@@ -16,6 +16,41 @@ export interface GBPBatchRow {
   updated_at: string;
 }
 
+type BlockedCollisionCheckResponse = {
+  status: "blocked";
+  reason: "missing_posts";
+  message: string;
+  missing_clinic_ids?: string[];
+  missing_clinics?: string[];
+};
+
+type RunCollisionCheckResponse = CollisionCheckResult | BlockedCollisionCheckResponse;
+
+function isBlockedCollisionCheckResponse(result: RunCollisionCheckResponse): result is BlockedCollisionCheckResponse {
+  return typeof result === "object" && result !== null && "status" in result && result.status === "blocked";
+}
+
+async function getEdgeFunctionErrorMessage(error: unknown, fallback: string) {
+  const maybeResponse = (error as { context?: { json?: () => Promise<unknown> } })?.context;
+
+  if (maybeResponse && typeof maybeResponse.json === "function") {
+    try {
+      const payload = await maybeResponse.json() as { error?: string; message?: string };
+      if (payload?.error || payload?.message) {
+        return payload.error || payload.message || fallback;
+      }
+    } catch {
+      // Fall through to generic error handling.
+    }
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 export function useGBPBatches(month: number, year: number) {
   const queryClient = useQueryClient();
 
@@ -41,7 +76,7 @@ export function useGBPBatches(month: number, year: number) {
       const { data, error } = await supabase.functions.invoke("generate-batch-queue", {
         body: { month, year },
       });
-      if (error) throw error;
+      if (error) throw new Error(await getEdgeFunctionErrorMessage(error, "Failed to generate batch queue"));
       if (data?.error) throw new Error(data.error);
       return data;
     },
@@ -59,11 +94,31 @@ export function useGBPBatches(month: number, year: number) {
       const { data, error } = await supabase.functions.invoke("run-collision-check", {
         body: { batch_id: batchId },
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+
+      if (error) {
+        throw new Error(await getEdgeFunctionErrorMessage(error, "Collision check failed"));
+      }
+
+      if (!data) {
+        throw new Error("Collision check failed");
+      }
+
+      if (isBlockedCollisionCheckResponse(data as RunCollisionCheckResponse)) {
+        return data as BlockedCollisionCheckResponse;
+      }
+
+      if ((data as { error?: string }).error) {
+        throw new Error((data as { error: string }).error);
+      }
+
       return data as CollisionCheckResult;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (isBlockedCollisionCheckResponse(result)) {
+        toast.info(result.message);
+        return;
+      }
+
       queryClient.invalidateQueries({ queryKey: ["gbp-batches"] });
       toast.success("Collision check complete");
     },
