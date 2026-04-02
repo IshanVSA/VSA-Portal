@@ -6,6 +6,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { motion } from "framer-motion";
 import { ClusterManager } from "./ClusterManager";
 import { TopicLibrary } from "./TopicLibrary";
+import { GeneratePosts } from "./GeneratePosts";
 
 const subTabs = [
   { value: "batch-queue", label: "Batch Queue", icon: ListOrdered },
