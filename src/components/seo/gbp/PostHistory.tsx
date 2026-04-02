@@ -94,9 +94,10 @@ export function PostHistory({ clinicId: navClinicId }: PostHistoryProps) {
       <Card className="border-border/50">
         <CardContent className="pt-4 pb-4 px-4">
           <div className="flex flex-wrap items-end gap-3">
+            {!navClinicId && (
             <div className="space-y-1 flex-1 min-w-[180px]">
               <label className="text-xs font-medium text-muted-foreground">Clinic</label>
-              <Select value={selectedClinicId || ""} onValueChange={v => setSelectedClinicId(v || null)}>
+              <Select value={selectedClinicId || ""} onValueChange={v => setInternalClinicId(v || null)}>
                 <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="All clinics" /></SelectTrigger>
                 <SelectContent>
                   {configs.map(c => (
@@ -107,6 +108,7 @@ export function PostHistory({ clinicId: navClinicId }: PostHistoryProps) {
                 </SelectContent>
               </Select>
             </div>
+            )}
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">Status</label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
