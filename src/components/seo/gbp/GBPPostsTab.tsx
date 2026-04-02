@@ -63,29 +63,32 @@ export function GBPPostsTab({ clinicId }: GBPPostsTabProps) {
           ))}
         </TabsList>
 
-        <TabsContent value="batch-queue" className="mt-4">
-          <BatchQueue clinicId={clinicId} />
-        </TabsContent>
+        {/* Use hidden divs instead of TabsContent to preserve state across tab switches */}
+        <div className="mt-4">
+          <div className={activeTab === "batch-queue" ? "" : "hidden"}>
+            <BatchQueue clinicId={clinicId} />
+          </div>
 
-        <TabsContent value="generate" className="mt-4">
-          <GeneratePosts clinicId={clinicId} />
-        </TabsContent>
+          <div className={activeTab === "generate" ? "" : "hidden"}>
+            <GeneratePosts clinicId={clinicId} />
+          </div>
 
-        <TabsContent value="history" className="mt-4">
-          <PostHistory clinicId={clinicId} />
-        </TabsContent>
+          <div className={activeTab === "history" ? "" : "hidden"}>
+            <PostHistory clinicId={clinicId} />
+          </div>
 
-        {!isClient && (
-          <TabsContent value="clusters" className="mt-4">
-            <ClusterManager />
-          </TabsContent>
-        )}
+          {!isClient && (
+            <div className={activeTab === "clusters" ? "" : "hidden"}>
+              <ClusterManager />
+            </div>
+          )}
 
-        {!isClient && (
-          <TabsContent value="topics" className="mt-4">
-            <TopicLibrary />
-          </TabsContent>
-        )}
+          {!isClient && (
+            <div className={activeTab === "topics" ? "" : "hidden"}>
+              <TopicLibrary />
+            </div>
+          )}
+        </div>
       </Tabs>
     </div>
   );
