@@ -13,12 +13,13 @@ function PassFail({ value }: { value: 'PASS' | 'FAIL' | string }) {
 }
 
 function CountBadge({ label, count, details }: { label: string; count: number; details: string[] }) {
+  const isFail = count > 0;
   return (
-    <div className="flex items-center justify-between py-1">
-      <span className="text-xs text-muted-foreground">{label}</span>
+    <div className={`flex items-center justify-between py-1.5 px-2 rounded-md ${isFail ? 'bg-destructive/5 border border-destructive/20' : ''}`}>
+      <span className={`text-xs ${isFail ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>{label}</span>
       <div className="flex items-center gap-2">
         {count > 0 && (
-          <span className="text-[10px] text-destructive">{details.join(', ')}</span>
+          <span className="text-[10px] text-destructive font-medium">{details.join(', ')}</span>
         )}
         {count === 0
           ? <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px]">0</Badge>
