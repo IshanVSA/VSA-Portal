@@ -65,6 +65,26 @@ export function BatchQueue() {
   const [clinicNames, setClinicNames] = useState<Record<string, string>>({});
   const uniqueClinicIds = useMemo(() => [...new Set(batches.flatMap((b) => b.clinics))], [batches]);
 
+  const { data: generatedPostCounts = {} } = useQuery({
+    queryKey: ["gbp-batch-post-counts", selectedMonth, selectedYear, uniqueClinicIds],
+    enabled: uniqueClinicIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("gbp_post_history")
+        .select("clinic_id")
+        .eq("month", selectedMonth)
+        .eq("year", selectedYear)
+        .in("clinic_id", uniqueClinicIds);
+
+      if (error) throw error;
+
+      return (data ?? []).reduce<Record<string, number>>((acc, row) => {
+        acc[row.clinic_id] = (acc[row.clinic_id] || 0) + 1;
+        return acc;
+      }, {});
+    },
+  });
+
   // Fetch cluster & clinic names
   useEffect(() => {
     if (batches.length === 0) return;
