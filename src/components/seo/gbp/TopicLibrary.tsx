@@ -264,6 +264,42 @@ export function TopicLibrary() {
   );
 }
 
+// ─── Variant Badge with Clinic Indicator ─────────────────────────
+function VariantBadge({ variant, clinics }: { variant: TopicVariant; clinics: string[] }) {
+  const count = clinics.length;
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex items-center gap-1.5">
+            <Badge variant="outline" className="text-[10px] font-mono">{variant}</Badge>
+            {count > 0 && (
+              <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                <Building2 className="h-3 w-3" />
+                {count}
+              </span>
+            )}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="right" className="max-w-xs">
+          {count > 0 ? (
+            <div>
+              <p className="text-xs font-medium mb-1">Clinics on Variant {variant}:</p>
+              <ul className="text-[10px] space-y-0.5">
+                {clinics.map((name, i) => (
+                  <li key={i}>• {name}</li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">No clinics assigned to variant {variant}</p>
+          )}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 // ─── Topic Cell with Compliance Check ────────────────────────────
 function TopicCell({ title }: { title: string }) {
   const scan = scanTopicTitle(title);
