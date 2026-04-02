@@ -50,13 +50,14 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify(soloResult), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Get most recent posts for each clinic in this batch (latest month/year)
     const [postsRes, clinicsRes, configsRes] = await Promise.all([
       supabaseAdmin
         .from("gbp_post_history")
         .select("*")
         .in("clinic_id", batch.clinics)
-        .eq("month", batch.month)
-        .eq("year", batch.year),
+        .order("year", { ascending: false })
+        .order("month", { ascending: false }),
       supabaseAdmin
         .from("clinics")
         .select("id, clinic_name")

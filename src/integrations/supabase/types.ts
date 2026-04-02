@@ -757,10 +757,8 @@ export type Database = {
           collision_check: Json | null
           created_at: string | null
           id: string
-          month: number
           status: string | null
           updated_at: string | null
-          year: number
         }
         Insert: {
           batch_number: number
@@ -769,10 +767,8 @@ export type Database = {
           collision_check?: Json | null
           created_at?: string | null
           id?: string
-          month: number
           status?: string | null
           updated_at?: string | null
-          year: number
         }
         Update: {
           batch_number?: number
@@ -781,10 +777,8 @@ export type Database = {
           collision_check?: Json | null
           created_at?: string | null
           id?: string
-          month?: number
           status?: string | null
           updated_at?: string | null
-          year?: number
         }
         Relationships: [
           {
