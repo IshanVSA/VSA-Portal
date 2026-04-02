@@ -13,12 +13,13 @@ function PassFail({ value }: { value: 'PASS' | 'FAIL' | string }) {
 }
 
 function CountBadge({ label, count, details }: { label: string; count: number; details: string[] }) {
+  const isFail = count > 0;
   return (
-    <div className="flex items-center justify-between py-1">
-      <span className="text-xs text-muted-foreground">{label}</span>
+    <div className={`flex items-center justify-between py-1.5 px-2 rounded-md ${isFail ? 'bg-destructive/5 border border-destructive/20' : ''}`}>
+      <span className={`text-xs ${isFail ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>{label}</span>
       <div className="flex items-center gap-2">
         {count > 0 && (
-          <span className="text-[10px] text-destructive">{details.join(', ')}</span>
+          <span className="text-[10px] text-destructive font-medium">{details.join(', ')}</span>
         )}
         {count === 0
           ? <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px]">0</Badge>
@@ -30,9 +31,10 @@ function CountBadge({ label, count, details }: { label: string; count: number; d
 }
 
 function CheckRow({ label, value }: { label: string; value: 'PASS' | 'FAIL' | string }) {
+  const isFail = value === 'FAIL';
   return (
-    <div className="flex items-center justify-between py-1">
-      <span className="text-xs text-muted-foreground">{label}</span>
+    <div className={`flex items-center justify-between py-1.5 px-2 rounded-md ${isFail ? 'bg-destructive/5 border border-destructive/20' : ''}`}>
+      <span className={`text-xs ${isFail ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>{label}</span>
       <PassFail value={value} />
     </div>
   );
@@ -192,10 +194,11 @@ export function ComplianceScanDisplay({ scan, onFixIssues, isFixing }: Props) {
           <CollapsibleContent className="px-2 space-y-0.5">
             {[1, 2, 3, 4].map(i => {
               const key = `post_${i}` as keyof typeof scan.tier_3.geo_keyword_first_100;
+              const isFail = !scan.tier_3.geo_keyword_first_100[key];
               return (
-                <div key={i} className="flex items-center justify-between py-1">
-                  <span className="text-xs text-muted-foreground">Post {i} Geo Keyword in First 100</span>
-                  <PassFail value={scan.tier_3.geo_keyword_first_100[key] ? 'PASS' : 'FAIL'} />
+                <div key={i} className={`flex items-center justify-between py-1.5 px-2 rounded-md ${isFail ? 'bg-destructive/5 border border-destructive/20' : ''}`}>
+                  <span className={`text-xs ${isFail ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>Post {i} Geo Keyword in First 100</span>
+                  <PassFail value={isFail ? 'FAIL' : 'PASS'} />
                 </div>
               );
             })}
@@ -205,10 +208,10 @@ export function ComplianceScanDisplay({ scan, onFixIssues, isFixing }: Props) {
               const wc = scan.tier_3.word_count[key];
               const pass = wc >= 80 && wc <= 120;
               return (
-                <div key={`wc-${i}`} className="flex items-center justify-between py-1">
-                  <span className="text-xs text-muted-foreground">Post {i} Word Count</span>
+                <div key={`wc-${i}`} className={`flex items-center justify-between py-1.5 px-2 rounded-md ${!pass ? 'bg-destructive/5 border border-destructive/20' : ''}`}>
+                  <span className={`text-xs ${!pass ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>Post {i} Word Count</span>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-muted-foreground">{wc}w</span>
+                    <span className={`text-[10px] ${!pass ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>{wc}w</span>
                     <PassFail value={pass ? 'PASS' : 'FAIL'} />
                   </div>
                 </div>
