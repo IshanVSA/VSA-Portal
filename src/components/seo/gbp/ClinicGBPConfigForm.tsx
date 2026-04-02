@@ -175,12 +175,12 @@ export function ClinicGBPConfigForm({ clusters }: Props) {
               <div className="space-y-1">
                 <Label className="text-xs">Cluster</Label>
                 <Select
-                  value={formData.cluster_id ?? ""}
-                  onValueChange={v => updateField("cluster_id", v || null)}
+                  value={formData.cluster_id ?? "__none__"}
+                  onValueChange={v => updateField("cluster_id", v === "__none__" ? null : v)}
                 >
                   <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="None" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="__none__">None</SelectItem>
                     {clusters.map(c => (
                       <SelectItem key={c.cluster_id} value={c.cluster_id}>{c.cluster_id}</SelectItem>
                     ))}
