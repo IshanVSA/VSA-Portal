@@ -16,6 +16,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 import type { GBPPostHistory, ComplianceScan } from "@/lib/gbp/types";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const statusBadgeColors: Record<string, string> = {
   generated: "bg-muted text-muted-foreground",
@@ -31,6 +32,8 @@ interface PostHistoryProps {
 
 export function PostHistory({ clinicId: navClinicId }: PostHistoryProps) {
   const { configs } = useClinicGBPConfigs();
+  const { role } = useUserRole();
+  const isClient = role === "client";
   const [internalClinicId, setInternalClinicId] = useState<string | null>(null);
   const selectedClinicId = navClinicId || internalClinicId;
   const [searchQuery, setSearchQuery] = useState("");
@@ -56,7 +59,8 @@ export function PostHistory({ clinicId: navClinicId }: PostHistoryProps) {
 
   const filteredPosts = useMemo(() => {
     return posts.filter(p => {
-      const validStatuses = statusFilter === "all" ? ["approved", "rejected", "generated"] : [statusFilter];
+      const allStatuses = isClient ? ["approved", "rejected"] : ["approved", "rejected", "generated"];
+      const validStatuses = statusFilter === "all" ? allStatuses : [statusFilter];
       if (!validStatuses.includes(p.status)) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
@@ -66,7 +70,7 @@ export function PostHistory({ clinicId: navClinicId }: PostHistoryProps) {
       }
       return true;
     });
-  }, [posts, statusFilter, searchQuery]);
+  }, [posts, statusFilter, searchQuery, isClient]);
 
   const handleExportCSV = () => {
     if (filteredPosts.length === 0) return;
@@ -118,7 +122,7 @@ export function PostHistory({ clinicId: navClinicId }: PostHistoryProps) {
                   <SelectItem value="all" className="text-xs">All</SelectItem>
                   <SelectItem value="approved" className="text-xs">Approved</SelectItem>
                   <SelectItem value="rejected" className="text-xs">Rejected</SelectItem>
-                  <SelectItem value="generated" className="text-xs">Drafts</SelectItem>
+                  {!isClient && <SelectItem value="generated" className="text-xs">Drafts</SelectItem>}
                 </SelectContent>
               </Select>
             </div>
