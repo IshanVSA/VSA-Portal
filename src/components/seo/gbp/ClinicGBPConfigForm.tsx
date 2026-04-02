@@ -180,7 +180,7 @@ export function ClinicGBPConfigForm({ clusters }: Props) {
                 >
                   <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="None" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="__none__">None</SelectItem>
                     {clusters.map(c => (
                       <SelectItem key={c.cluster_id} value={c.cluster_id}>{c.cluster_id}</SelectItem>
                     ))}
