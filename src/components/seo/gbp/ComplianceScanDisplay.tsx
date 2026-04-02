@@ -31,9 +31,10 @@ function CountBadge({ label, count, details }: { label: string; count: number; d
 }
 
 function CheckRow({ label, value }: { label: string; value: 'PASS' | 'FAIL' | string }) {
+  const isFail = value === 'FAIL';
   return (
-    <div className="flex items-center justify-between py-1">
-      <span className="text-xs text-muted-foreground">{label}</span>
+    <div className={`flex items-center justify-between py-1.5 px-2 rounded-md ${isFail ? 'bg-destructive/5 border border-destructive/20' : ''}`}>
+      <span className={`text-xs ${isFail ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>{label}</span>
       <PassFail value={value} />
     </div>
   );
