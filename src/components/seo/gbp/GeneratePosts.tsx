@@ -133,6 +133,64 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
     }
   };
 
+  const handleFixIssues = async (issues: string[]) => {
+    if (!selectedConfig || generatedPosts.length === 0) return;
+
+    setIsFixing(true);
+    try {
+      const clinicName = clinicNames[selectedConfig.clinic_id] || "Clinic";
+      const { data, error } = await supabase.functions.invoke("generate-gbp-posts", {
+        body: {
+          clinic_id: selectedConfig.clinic_id,
+          clinic_name: clinicName,
+          month: selectedMonth,
+          year: selectedYear,
+          hospital_type: selectedConfig.hospital_type || 1,
+          topic_variant: selectedConfig.topic_variant_current || 'A',
+          hook_style: hookStyle,
+          local_landmarks: selectedConfig.local_landmarks || [],
+          neighbourhood: selectedConfig.neighbourhood || '',
+          phone_number: selectedConfig.phone_number || '',
+          website_url: selectedConfig.website_url || '',
+          top_services: selectedConfig.top_services || [],
+          jurisdiction: selectedConfig.jurisdiction || 'CA-OTHER',
+          topics: null,
+          fix_mode: true,
+          existing_posts: generatedPosts,
+          issues_to_fix: issues,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const posts = data.posts as GeneratedPost[];
+      setGeneratedPosts(posts);
+
+      // Re-run compliance scan on fixed posts
+      const scan = runComplianceScan(
+        posts,
+        clinicName,
+        `${selectedMonth}/${selectedYear}`,
+        (selectedConfig.hospital_type || 1) as HospitalType,
+        (selectedConfig.jurisdiction || 'CA-OTHER') as Jurisdiction,
+        selectedConfig.neighbourhood || '',
+        selectedConfig.phone_number || ''
+      );
+      setComplianceScan(scan);
+
+      if (scan.overall === 'PASS') {
+        toast.success("All compliance issues fixed!");
+      } else {
+        toast.warning(`${scan.issues_count} issue${scan.issues_count !== 1 ? 's' : ''} remaining after fix`);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Fix failed");
+    } finally {
+      setIsFixing(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!selectedConfig || generatedPosts.length === 0 || !complianceScan) return;
     setIsSaving(true);
