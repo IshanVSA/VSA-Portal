@@ -112,6 +112,8 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
 
     try {
       const clinicName = clinicNames[selectedConfig.clinic_id] || "Clinic";
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000);
       const { data, error } = await supabase.functions.invoke("generate-gbp-posts", {
         body: {
           clinic_id: selectedConfig.clinic_id,
@@ -136,6 +138,7 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
           recent_content_context: { last_month_gbp: [], recent_blogs: [], recent_p2_pages: [] },
         },
       });
+      clearTimeout(timeoutId);
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
