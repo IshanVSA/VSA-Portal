@@ -7,11 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ChevronRight, Pencil, BookOpen, Sprout, AlertTriangle } from "lucide-react";
+import { ChevronDown, ChevronRight, Pencil, BookOpen, Sprout, AlertTriangle, ShieldAlert, ShieldCheck } from "lucide-react";
 import { TopicSetEditor } from "./TopicSetEditor";
 import { MONTH_NAMES } from "@/lib/gbp/hookRotation";
+import { scanTopicTitle } from "@/lib/gbp/compliance";
 import type { GBPTopicSet, TopicVariant } from "@/lib/gbp/types";
 
 export function TopicLibrary() {
