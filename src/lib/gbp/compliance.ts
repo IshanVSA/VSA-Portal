@@ -272,3 +272,67 @@ export function runComplianceScan(
     issues_count: issuesCount,
   };
 }
+
+// ── Topic Title Compliance Scanner ──
+// Lightweight check for topic names in the Topic Library
+export interface TopicTitleScanResult {
+  pass: boolean;
+  issues: string[];
+}
+
+export function scanTopicTitle(title: string): TopicTitleScanResult {
+  const issues: string[] = [];
+  const lower = title.toLowerCase();
+
+  // Tier 1: Flagged terms
+  for (const term of FLAGGED_TERMS) {
+    if (lower.includes(term.toLowerCase())) {
+      issues.push(`Flagged term: "${term}"`);
+    }
+  }
+
+  // Tier 1: Specialist claims
+  for (const term of SPECIALIST_TERMS) {
+    if (lower.includes(term.toLowerCase())) {
+      issues.push(`Specialist claim: "${term}"`);
+    }
+  }
+
+  // Tier 1: Surgery (standalone)
+  if (SURGERY_REGEX.test(title)) {
+    issues.push('Contains "surgery" — context-dependent, review needed');
+  }
+
+  // Tier 2: Drug brand names
+  for (const drug of DRUG_BRAND_NAMES) {
+    if (lower.includes(drug.toLowerCase())) {
+      issues.push(`Drug brand name: "${drug}"`);
+    }
+  }
+
+  // Tier 2: Prescription terms
+  for (const term of PRESCRIPTION_TERMS) {
+    if (lower.includes(term.toLowerCase())) {
+      issues.push(`Prescription term: "${term}"`);
+    }
+  }
+
+  // Tier 2: Sensitive terms
+  for (const term of SENSITIVE_TERMS) {
+    if (lower.includes(term.toLowerCase())) {
+      issues.push(`Sensitive term: "${term}"`);
+    }
+  }
+
+  // Tier 1: Em-dash
+  if (hasEmDash(title)) {
+    issues.push('Contains em-dash (—) — use hyphens instead');
+  }
+
+  // Tier 1: British spelling
+  if (hasUsEnglishIssue(title)) {
+    issues.push('Contains British spelling — use US English');
+  }
+
+  return { pass: issues.length === 0, issues };
+}
