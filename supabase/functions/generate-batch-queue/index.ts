@@ -24,35 +24,50 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    const cronSecret = Deno.env.get("CRON_SECRET");
+    const isCron = cronSecret && authHeader === `Bearer ${cronSecret}`;
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const supabaseUser = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    if (!isCron) {
+      // Validate user auth
+      if (!authHeader?.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
 
-    const { data: claimsData, error: claimsError } = await supabaseUser.auth.getClaims(authHeader.replace("Bearer ", ""));
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const supabaseUser = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } }
+      );
+
+      const { data: claimsData, error: claimsError } = await supabaseUser.auth.getClaims(authHeader.replace("Bearer ", ""));
+      if (claimsError || !claimsData?.claims) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      const userId = claimsData.claims.sub;
+      const { data: roleData } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", userId).maybeSingle();
+      if (roleData?.role !== "admin") {
+        return new Response(JSON.stringify({ error: "Only admins can generate batch queues" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     }
 
-    const userId = claimsData.claims.sub;
-
-    // Check admin role
-    const { data: roleData } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", userId).maybeSingle();
-    if (roleData?.role !== "admin") {
-      return new Response(JSON.stringify({ error: "Only admins can generate batch queues" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // For cron: auto-detect current month/year; for manual: parse from body
+    let month: number, year: number;
+    if (isCron) {
+      const now = new Date();
+      month = now.getMonth() + 1;
+      year = now.getFullYear();
+    } else {
+      const body = await req.json();
+      month = body.month;
+      year = body.year;
     }
 
-    const { month, year } = await req.json();
     if (!month || !year) {
       return new Response(JSON.stringify({ error: "month and year are required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
