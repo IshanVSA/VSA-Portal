@@ -369,7 +369,58 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
         </motion.div>
       )}
 
-      {/* Loading skeletons */}
+      {/* Approved Posts for this month */}
+      {hasApprovedPosts && !isGenerating && generatedPosts.length === 0 && (
+        <>
+          <div className="flex items-center gap-2 mb-2">
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+            <span className="text-sm font-medium text-foreground">Approved Posts — {MONTH_NAMES[selectedMonth - 1]} {selectedYear}</span>
+            <Badge variant="secondary" className="text-[10px]">{approvedPosts!.length} posts</Badge>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {approvedPosts!.map((post, idx) => (
+              <motion.div key={post.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}>
+                <Card className="border-green-500/30 h-full">
+                  <CardHeader className="pb-2 pt-3 px-4">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-xs font-semibold flex items-center gap-1.5">
+                        <FileText className="h-3.5 w-3.5 text-green-500" />
+                        Week {post.week_number} — {post.topic}
+                      </CardTitle>
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant="outline" className="text-[10px]">{post.post_type.replace('_', ' ')}</Badge>
+                        <Badge className="bg-green-600/20 text-green-400 border-green-500/30 text-[10px]">Approved</Badge>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-4 space-y-3">
+                    <p className="text-xs leading-relaxed text-foreground/90 whitespace-pre-wrap">{post.post_content}</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {post.hook_style && <Badge variant="secondary" className="text-[10px]">{post.hook_style}</Badge>}
+                      <Badge variant="outline" className="text-[10px]">{post.primary_keyword}</Badge>
+                      {post.secondary_keywords?.map((k: string, ki: number) => (
+                        <Badge key={ki} variant="outline" className="text-[10px] opacity-70">{k}</Badge>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1 border-t border-border/30">
+                      <span>{post.word_count}w</span>
+                      {post.local_landmark_used && post.local_landmark_used !== 'none' && (
+                        <span className="flex items-center gap-0.5"><MapPin className="h-2.5 w-2.5" />{post.local_landmark_used}</span>
+                      )}
+                      {post.cta_url && (
+                        <a href={post.cta_url} target="_blank" rel="noreferrer" className="flex items-center gap-0.5 hover:text-primary transition-colors">
+                          <ExternalLink className="h-2.5 w-2.5" />{post.cta_text}
+                        </a>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </>
+      )}
+
       {isGenerating && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {[1,2,3,4].map(i => (
