@@ -3,22 +3,45 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Code, Copy, CheckCircle, Activity } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Code, Copy, CheckCircle, Activity, Save } from "lucide-react";
 import { toast } from "sonner";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface TrackingSetupCardProps {
   clinicId: string;
 }
 
 export function TrackingSetupCard({ clinicId }: TrackingSetupCardProps) {
+  const { role } = useUserRole();
+  const isAdmin = role === "admin";
   const [copied, setCopied] = useState(false);
   const [stats, setStats] = useState<{ total: number; lastEvent: string | null }>({ total: 0, lastEvent: null });
+  const [customUrl, setCustomUrl] = useState("");
+  const [savedUrl, setSavedUrl] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const snippet = `<script src="${supabaseUrl}/functions/v1/track-pageview?clinic=${clinicId}"></script>`;
+  const defaultScriptUrl = `${supabaseUrl}/functions/v1/track-pageview?clinic=${clinicId}`;
+  const displayUrl = savedUrl || defaultScriptUrl;
+  const snippet = `<script src="${displayUrl}"></script>`;
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchData = async () => {
+      // Fetch custom URL
+      const { data: clinic } = await supabase
+        .from("clinics")
+        .select("tracking_script_url")
+        .eq("id", clinicId)
+        .maybeSingle();
+
+      if (clinic?.tracking_script_url) {
+        setSavedUrl(clinic.tracking_script_url);
+        setCustomUrl(clinic.tracking_script_url);
+      }
+
+      // Fetch stats
       const { count } = await (supabase as any)
         .from("website_pageviews")
         .select("*", { count: "exact", head: true })
@@ -36,7 +59,7 @@ export function TrackingSetupCard({ clinicId }: TrackingSetupCardProps) {
         lastEvent: latest?.[0]?.created_at || null,
       });
     };
-    fetchStats();
+    fetchData();
   }, [clinicId]);
 
   const handleCopy = () => {
@@ -44,6 +67,23 @@ export function TrackingSetupCard({ clinicId }: TrackingSetupCardProps) {
     setCopied(true);
     toast.success("Tracking snippet copied!");
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSaveUrl = async () => {
+    setSaving(true);
+    const urlToSave = customUrl.trim() || null;
+    const { error } = await supabase
+      .from("clinics")
+      .update({ tracking_script_url: urlToSave })
+      .eq("id", clinicId);
+
+    if (error) {
+      toast.error("Failed to save custom URL");
+    } else {
+      setSavedUrl(urlToSave);
+      toast.success(urlToSave ? "Custom tracking URL saved" : "Reset to default URL");
+    }
+    setSaving(false);
   };
 
   return (
@@ -55,8 +95,29 @@ export function TrackingSetupCard({ clinicId }: TrackingSetupCardProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {isAdmin && (
+          <div className="space-y-2">
+            <Label className="text-xs">Custom Script URL (optional)</Label>
+            <div className="flex gap-2">
+              <Input
+                value={customUrl}
+                onChange={e => setCustomUrl(e.target.value)}
+                placeholder={`e.g. https://t.myclinic.com/track.js`}
+                className="h-8 text-xs flex-1"
+              />
+              <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={handleSaveUrl} disabled={saving}>
+                <Save className="h-3 w-3" />
+                {saving ? "Saving..." : "Save"}
+              </Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Set a custom domain URL that proxies to the Supabase tracking function. Leave empty for the default URL.
+            </p>
+          </div>
+        )}
+
         <p className="text-sm text-muted-foreground">
-          Paste this script tag before the closing <code className="text-xs bg-muted px-1 py-0.5 rounded">&lt;/body&gt;</code> tag on the clinic's website to start tracking page views.
+          Paste this script tag before the closing <code className="text-xs bg-muted px-1 py-0.5 rounded">&lt;/body&gt;</code> tag on the clinic's website.
         </p>
 
         <div className="relative">
