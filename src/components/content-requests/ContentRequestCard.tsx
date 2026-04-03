@@ -13,6 +13,8 @@ interface ContentRequest {
   intake_data: any;
   status: string;
   created_at: string;
+  sent_to_client_at?: string | null;
+  auto_approve_at?: string | null;
 }
 
 interface ContentVersion {
