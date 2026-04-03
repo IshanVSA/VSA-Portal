@@ -121,6 +121,11 @@ export function ContentRequestCard({
                   <Calendar className="h-3 w-3 mr-1 text-muted-foreground" /> {intake.selectedMonth}
                 </Badge>
               )}
+              {request.status === "admin_approved" && request.auto_approve_at && (
+                <Badge className="text-[10px] sm:text-[11px] px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-warning/15 text-warning border-0">
+                  <Clock className="h-3 w-3 mr-1" /> Auto-approves {formatDistanceToNow(new Date(request.auto_approve_at), { addSuffix: true })}
+                </Badge>
+              )}
             </div>
           </div>
 
