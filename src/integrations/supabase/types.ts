@@ -496,27 +496,33 @@ export type Database = {
       }
       content_requests: {
         Row: {
+          auto_approve_at: string | null
           clinic_id: string
           created_at: string
           created_by_concierge_id: string
           id: string
           intake_data: Json
+          sent_to_client_at: string | null
           status: string
         }
         Insert: {
+          auto_approve_at?: string | null
           clinic_id: string
           created_at?: string
           created_by_concierge_id: string
           id?: string
           intake_data?: Json
+          sent_to_client_at?: string | null
           status?: string
         }
         Update: {
+          auto_approve_at?: string | null
           clinic_id?: string
           created_at?: string
           created_by_concierge_id?: string
           id?: string
           intake_data?: Json
+          sent_to_client_at?: string | null
           status?: string
         }
         Relationships: [
