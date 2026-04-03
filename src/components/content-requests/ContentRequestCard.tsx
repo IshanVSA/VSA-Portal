@@ -1,8 +1,8 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Check, Calendar, FileText, RefreshCw, Loader2 } from "lucide-react";
-import { format } from "date-fns";
+import { Check, Calendar, FileText, RefreshCw, Loader2, Clock } from "lucide-react";
+import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { ContentVersionCard } from "./ContentVersionCard";
 
@@ -13,6 +13,8 @@ interface ContentRequest {
   intake_data: any;
   status: string;
   created_at: string;
+  sent_to_client_at?: string | null;
+  auto_approve_at?: string | null;
 }
 
 interface ContentVersion {
@@ -32,6 +34,7 @@ const statusConfig: Record<string, { label: string; color: string }> = {
   admin_approved: { label: "Sent to Client", color: "bg-success/15 text-success" },
   client_selected: { label: "Client Selected", color: "bg-primary/15 text-primary" },
   final_approved: { label: "Final Approved", color: "bg-success/15 text-success" },
+  auto_approved: { label: "Auto Approved", color: "bg-warning/15 text-warning" },
 };
 
 interface ContentRequestCardProps {
@@ -116,6 +119,11 @@ export function ContentRequestCard({
               {intake?.selectedMonth && (
                 <Badge variant="outline" className="text-[10px] sm:text-[11px] px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border-border/50 bg-muted/40 text-foreground/70">
                   <Calendar className="h-3 w-3 mr-1 text-muted-foreground" /> {intake.selectedMonth}
+                </Badge>
+              )}
+              {request.status === "admin_approved" && request.auto_approve_at && (
+                <Badge className="text-[10px] sm:text-[11px] px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-warning/15 text-warning border-0">
+                  <Clock className="h-3 w-3 mr-1" /> Auto-approves {formatDistanceToNow(new Date(request.auto_approve_at), { addSuffix: true })}
                 </Badge>
               )}
             </div>
