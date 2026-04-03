@@ -27,11 +27,9 @@ Deno.serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const cronSecret = Deno.env.get("CRON_SECRET");
 
-    // Check if this is a cron job call using the dedicated secret
     const isCronCall = cronSecret && token === cronSecret;
 
     if (!isCronCall) {
-      // Verify the caller is an authenticated admin
       const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
       const supabaseAuth = createClient(supabaseUrl, anonKey, {
         global: { headers: { Authorization: authHeader } },
@@ -60,8 +58,9 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
+    let totalApproved = 0;
 
-    // Find all post_workflow rows where stage='sent_to_client' and auto_approve_at <= now
+    // ── Part 1: Auto-approve content_posts via post_workflow ──
     const { data: expiredWorkflows, error: fetchError } = await supabase
       .from("post_workflow")
       .select("id, post_id")
@@ -70,64 +69,155 @@ Deno.serve(async (req) => {
 
     if (fetchError) {
       console.error("Error fetching expired workflows:", fetchError);
-      return new Response(
-        JSON.stringify({ error: "Failed to fetch workflows" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
     }
 
-    if (!expiredWorkflows || expiredWorkflows.length === 0) {
-      return new Response(
-        JSON.stringify({ message: "No posts to auto-approve", count: 0 }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (expiredWorkflows && expiredWorkflows.length > 0) {
+      const postIds = expiredWorkflows.map((w) => w.post_id);
+
+      await supabase
+        .from("post_workflow")
+        .update({ stage: "auto_approved", updated_at: new Date().toISOString() })
+        .in("post_id", postIds);
+
+      await supabase
+        .from("content_posts")
+        .update({ status: "scheduled", workflow_stage: "auto_approved" })
+        .in("id", postIds);
+
+      const activityLogs = postIds.map((postId) => ({
+        post_id: postId,
+        action: "auto_approved",
+        actor_id: null,
+        metadata: { reason: "5-day client review period expired" },
+      }));
+
+      await supabase.from("post_activity_log").insert(activityLogs);
+      totalApproved += postIds.length;
+      console.log(`Auto-approved ${postIds.length} posts (post_workflow)`);
     }
 
-    const postIds = expiredWorkflows.map((w) => w.post_id);
-    let approvedCount = 0;
+    // ── Part 2: Auto-approve content_requests awaiting client selection ──
+    const { data: expiredRequests, error: reqFetchError } = await supabase
+      .from("content_requests")
+      .select("id, clinic_id, intake_data")
+      .eq("status", "admin_approved")
+      .lte("auto_approve_at", new Date().toISOString());
 
-    // Batch update all post_workflow rows
-    const { error: workflowUpdateError } = await supabase
-      .from("post_workflow")
-      .update({ stage: "auto_approved", updated_at: new Date().toISOString() })
-      .in("post_id", postIds);
-
-    if (workflowUpdateError) {
-      console.error("Error updating workflows:", workflowUpdateError);
+    if (reqFetchError) {
+      console.error("Error fetching expired content_requests:", reqFetchError);
     }
 
-    // Batch update all content_posts
-    const { error: postsUpdateError } = await supabase
-      .from("content_posts")
-      .update({ status: "scheduled", workflow_stage: "auto_approved" })
-      .in("id", postIds);
+    if (expiredRequests && expiredRequests.length > 0) {
+      let requestsApproved = 0;
 
-    if (postsUpdateError) {
-      console.error("Error updating posts:", postsUpdateError);
+      for (const req of expiredRequests) {
+        try {
+          // Find the first version (auto-select it)
+          const { data: versions } = await supabase
+            .from("content_versions")
+            .select("id, generated_content")
+            .eq("content_request_id", req.id)
+            .order("created_at", { ascending: true })
+            .limit(1);
+
+          if (!versions || versions.length === 0) {
+            console.log(`No versions found for request ${req.id}, skipping`);
+            continue;
+          }
+
+          const selectedVersion = versions[0];
+          const content = selectedVersion.generated_content as any;
+          const posts = content?.posts || [];
+          const intake = req.intake_data as any;
+          const selectedMonth = intake?.selectedMonth;
+
+          // Determine month boundaries
+          let monthStart: string | null = null;
+          let monthEnd: string | null = null;
+          if (selectedMonth) {
+            try {
+              const parts = selectedMonth.split("-");
+              const year = parseInt(parts[0]);
+              const month = parseInt(parts[1]) - 1;
+              monthStart = `${year}-${String(month + 1).padStart(2, "0")}-01`;
+              const lastDay = new Date(year, month + 1, 0).getDate();
+              monthEnd = `${year}-${String(month + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+            } catch {}
+          }
+
+          // Mark the version as client_selected (auto)
+          await supabase
+            .from("content_versions")
+            .update({ client_selected: true })
+            .eq("id", selectedVersion.id);
+
+          // Create content_posts in the calendar
+          for (const post of posts) {
+            let scheduledDate = post.suggested_date || null;
+            if (scheduledDate && monthStart && monthEnd) {
+              if (scheduledDate < monthStart || scheduledDate > monthEnd) {
+                scheduledDate = null;
+              }
+            }
+
+            const { data: insertedPost } = await supabase
+              .from("content_posts")
+              .insert({
+                clinic_id: req.clinic_id,
+                title: post.hook || post.theme || "Untitled Post",
+                caption: post.caption || post.main_copy || null,
+                platform: (post.platform || "instagram").toLowerCase(),
+                content_type: (post.content_type || "IMAGE").toUpperCase(),
+                scheduled_date: scheduledDate,
+                status: "scheduled",
+                workflow_stage: "auto_approved",
+                tags: [post.goal_type, post.funnel_stage, post.service_highlighted].filter(Boolean),
+                compliance_note: post.compliance_note || null,
+                content: post.main_copy || null,
+              })
+              .select("id")
+              .single();
+
+            if (insertedPost) {
+              await supabase.from("post_workflow").insert({
+                post_id: insertedPost.id,
+                stage: "auto_approved",
+              });
+
+              await supabase.from("post_activity_log").insert({
+                post_id: insertedPost.id,
+                action: "auto_approved",
+                actor_id: null,
+                metadata: {
+                  request_id: req.id,
+                  version_id: selectedVersion.id,
+                  reason: "5-day client review period expired",
+                },
+              });
+            }
+          }
+
+          // Update request status to final_approved
+          await supabase
+            .from("content_requests")
+            .update({ status: "final_approved" })
+            .eq("id", req.id);
+
+          requestsApproved++;
+        } catch (err) {
+          console.error(`Error auto-approving request ${req.id}:`, err);
+        }
+      }
+
+      totalApproved += requestsApproved;
+      console.log(`Auto-approved ${requestsApproved} content requests`);
     }
-
-    // Log activity for each post
-    const activityLogs = postIds.map((postId) => ({
-      post_id: postId,
-      action: "auto_approved",
-      actor_id: null,
-      metadata: { reason: "5-day client review period expired" },
-    }));
-
-    const { error: logError } = await supabase
-      .from("post_activity_log")
-      .insert(activityLogs);
-
-    if (logError) {
-      console.error("Error inserting activity logs:", logError);
-    }
-
-    approvedCount = postIds.length;
-
-    console.log(`Auto-approved ${approvedCount} posts`);
 
     return new Response(
-      JSON.stringify({ message: `Auto-approved ${approvedCount} posts`, count: approvedCount }),
+      JSON.stringify({
+        message: `Auto-approved ${totalApproved} items`,
+        count: totalApproved,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

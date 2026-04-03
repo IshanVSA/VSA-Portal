@@ -32,6 +32,7 @@ const statusConfig: Record<string, { label: string; color: string }> = {
   admin_approved: { label: "Sent to Client", color: "bg-success/15 text-success" },
   client_selected: { label: "Client Selected", color: "bg-primary/15 text-primary" },
   final_approved: { label: "Final Approved", color: "bg-success/15 text-success" },
+  auto_approved: { label: "Auto Approved", color: "bg-warning/15 text-warning" },
 };
 
 interface ContentRequestCardProps {

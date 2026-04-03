@@ -117,8 +117,14 @@ export default function ContentRequestsContent({ clinicId }: { clinicId?: string
 
   const adminApprove = async (requestId: string, versionId: string) => {
     await supabase.from("content_versions").update({ admin_approved: true }).eq("id", versionId);
-    await supabase.from("content_requests").update({ status: "admin_approved" }).eq("id", requestId);
-    toast.success("Content approved! Sent to client for selection.");
+    const now = new Date();
+    const autoApproveAt = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000).toISOString();
+    await supabase.from("content_requests").update({
+      status: "admin_approved",
+      sent_to_client_at: now.toISOString(),
+      auto_approve_at: autoApproveAt,
+    } as any).eq("id", requestId);
+    toast.success("Content approved! Sent to client for selection. Auto-approves in 5 days.");
     fetchData();
   };
 
