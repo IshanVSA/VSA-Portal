@@ -332,7 +332,6 @@ export type Database = {
           social_media_enabled: boolean
           status: string
           timezone: string | null
-          tracking_script_url: string | null
           website: string | null
           website_enabled: boolean
         }
@@ -352,7 +351,6 @@ export type Database = {
           social_media_enabled?: boolean
           status?: string
           timezone?: string | null
-          tracking_script_url?: string | null
           website?: string | null
           website_enabled?: boolean
         }
@@ -372,7 +370,6 @@ export type Database = {
           social_media_enabled?: boolean
           status?: string
           timezone?: string | null
-          tracking_script_url?: string | null
           website?: string | null
           website_enabled?: boolean
         }
