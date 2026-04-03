@@ -6,16 +6,34 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
+// Common bot User-Agent patterns
+const BOT_PATTERNS = /bot|crawl|spider|slurp|mediapartners|facebookexternalhit|bingpreview|googlebot|yandex|baidu|duckduck|semrush|ahrefs|mj12bot|dotbot|rogerbot|screaming|lighthouse|pagespeed|gtmetrix|pingdom|uptimerobot|headlesschrome|phantomjs|prerender|wget|curl|python-requests|httpx|node-fetch|go-http-client|java\//i;
+
+// In-memory dedup cache (per isolate lifetime, ~5-10 min)
+const recentHits = new Map<string, number>();
+const DEDUP_WINDOW_MS = 3000; // 3 seconds
+
+function cleanDedup() {
+  const now = Date.now();
+  for (const [key, ts] of recentHits) {
+    if (now - ts > DEDUP_WINDOW_MS * 2) recentHits.delete(key);
+  }
+}
+
 const PIXEL_JS = (clinicId: string, endpoint: string) => `
 (function(){
   var sid = sessionStorage.getItem('_vsa_sid');
   if(!sid){sid=Math.random().toString(36).slice(2)+Date.now().toString(36);sessionStorage.setItem('_vsa_sid',sid);}
+  var lastPath='';
   function track(){
-    var d={clinic_id:"${clinicId}",path:location.pathname,referrer_domain:document.referrer?new URL(document.referrer).hostname:"",session_id:sid};
+    var p=location.pathname;
+    if(p===lastPath)return;
+    lastPath=p;
+    var d={clinic_id:"${clinicId}",path:p,referrer_domain:document.referrer?new URL(document.referrer).hostname:"",session_id:sid};
     if(navigator.sendBeacon){navigator.sendBeacon("${endpoint}",JSON.stringify(d));}
     else{fetch("${endpoint}",{method:"POST",body:JSON.stringify(d),keepalive:true}).catch(function(){});}
   }
-  track();
+  if(document.visibilityState==='visible'){track();}else{document.addEventListener('visibilitychange',function f(){if(document.visibilityState==='visible'){track();document.removeEventListener('visibilitychange',f);}});}
   var pushState=history.pushState;
   history.pushState=function(){pushState.apply(history,arguments);track();};
   window.addEventListener("popstate",track);
@@ -51,6 +69,14 @@ Deno.serve(async (req) => {
   // POST: record a page view
   if (req.method === "POST") {
     try {
+      // Bot filtering via User-Agent
+      const ua = req.headers.get("user-agent") || "";
+      if (!ua || BOT_PATTERNS.test(ua)) {
+        return new Response(JSON.stringify({ ok: true, filtered: "bot" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const body = await req.json();
       const { clinic_id, path, referrer_domain, session_id } = body;
 
@@ -69,6 +95,19 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      // Deduplication: same session + path within 3s window
+      const cleanPath = (path || "/").split("?")[0].slice(0, 512);
+      const dedupKey = `${session_id}:${cleanPath}`;
+      const now = Date.now();
+      cleanDedup();
+
+      if (recentHits.has(dedupKey) && now - recentHits.get(dedupKey)! < DEDUP_WINDOW_MS) {
+        return new Response(JSON.stringify({ ok: true, filtered: "dedup" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      recentHits.set(dedupKey, now);
 
       const supabase = createClient(
         Deno.env.get("SUPABASE_URL")!,
@@ -89,8 +128,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Strip query params from path to avoid capturing PII (e.g. email in ?email=)
-      const cleanPath = (path || "/").split("?")[0].slice(0, 512);
       // Only store referrer domain, never full URL (may contain PII)
       const cleanReferrer = referrer_domain ? referrer_domain.slice(0, 255) : null;
 
