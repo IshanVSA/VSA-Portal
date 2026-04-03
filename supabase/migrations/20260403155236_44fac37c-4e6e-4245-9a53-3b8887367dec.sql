@@ -1,0 +1,1 @@
+ALTER TABLE public.clinics ADD COLUMN tracking_script_url TEXT DEFAULT NULL;
