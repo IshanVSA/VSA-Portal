@@ -1,8 +1,8 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Check, Calendar, FileText, RefreshCw, Loader2 } from "lucide-react";
-import { format } from "date-fns";
+import { Check, Calendar, FileText, RefreshCw, Loader2, Clock } from "lucide-react";
+import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { ContentVersionCard } from "./ContentVersionCard";
 
