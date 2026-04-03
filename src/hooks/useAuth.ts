@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
@@ -17,10 +17,25 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+
+    // 1. Restore session from storage first
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      if (session) {
+        setSession(session);
+        setUser(session.user);
+      }
+      setLoading(false);
+    });
+
+    // 2. Listen for auth changes (sign in/out, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
+        if (!mounted) return;
+
         if (event === 'TOKEN_REFRESHED' && !session) {
-          await supabase.auth.signOut({ scope: 'local' });
+          supabase.auth.signOut({ scope: 'local' });
           forceLogout();
           return;
         }
@@ -31,32 +46,29 @@ export function useAuth() {
       }
     );
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session) {
-        const { error } = await supabase.auth.getUser();
-        if (error) {
-          await supabase.auth.signOut({ scope: 'local' });
-          forceLogout();
-          return;
-        }
+    // 3. Safety timeout – never stay loading for more than 5s
+    const timer = setTimeout(() => {
+      if (mounted && loading) {
+        setLoading(false);
       }
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    }, 5000);
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+      clearTimeout(timer);
+    };
   }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       await supabase.auth.signOut();
     } catch {
       // If server signout fails, force local cleanup
-      await supabase.auth.signOut({ scope: 'local' });
+      try { await supabase.auth.signOut({ scope: 'local' }); } catch {}
     }
     forceLogout();
-  };
+  }, []);
 
   return { user, session, loading, signOut };
 }
