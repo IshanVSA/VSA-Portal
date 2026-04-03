@@ -20,6 +20,8 @@ export function useUserRole() {
       return (data?.role as AppRole) ?? "client";
     },
     enabled: !!user,
+    retry: 1,
+    staleTime: 5 * 60 * 1000,
   });
 
   return { role: role ?? null, isLoading };
