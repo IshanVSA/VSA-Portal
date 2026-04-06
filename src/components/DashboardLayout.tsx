@@ -355,7 +355,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
             <div className="flex-1 min-w-0">
               <h1 className="font-semibold text-sm tracking-tight">
                 <span className="text-[hsl(var(--sidebar-primary))]">VSA</span>{" "}
-                <span className="text-[hsl(var(--sidebar-foreground))]/90">Vetmedia</span>
+                <span className="text-[hsl(var(--sidebar-foreground))]/90">Vet Media</span>
               </h1>
               <p className="text-[10px] text-[hsl(var(--sidebar-muted))] tracking-wide">
                 {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
