@@ -432,7 +432,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
                       {!collapsed && (
                         <>
                           {dotColor && <div className={cn("h-1.5 w-1.5 rounded-full shrink-0 transition-transform duration-200 group-hover:scale-125", dotColor)} />}
-                          <span className="flex-1">{item.label}</span>
+                          <span className="flex-1 whitespace-nowrap">{item.label}</span>
                            <div className="ml-auto flex min-w-[72px] items-center justify-end gap-2">
                              <span
                                className={cn(
