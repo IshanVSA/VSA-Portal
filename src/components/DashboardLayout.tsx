@@ -353,10 +353,10 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <h1 className="font-semibold text-sm tracking-tight flex items-center gap-1.5">
+              <h1 className="font-semibold text-sm tracking-tight flex items-center gap-1.5 whitespace-nowrap">
                 <span className="text-[hsl(var(--sidebar-primary))]">VSA</span>{" "}
                 <span className="text-[hsl(var(--sidebar-foreground))]/90">Vet Media</span>
-                <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest rounded-md bg-[hsl(var(--sidebar-primary))]/15 text-[hsl(var(--sidebar-primary))] ring-1 ring-[hsl(var(--sidebar-primary))]/25 leading-none">Beta</span>
+                <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest rounded-md bg-[hsl(var(--sidebar-primary))]/15 text-[hsl(var(--sidebar-primary))] ring-1 ring-[hsl(var(--sidebar-primary))]/25 leading-none shrink-0">Beta</span>
               </h1>
               <p className="text-[10px] text-[hsl(var(--sidebar-muted))] tracking-wide">
                 {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
@@ -432,7 +432,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
                       {!collapsed && (
                         <>
                           {dotColor && <div className={cn("h-1.5 w-1.5 rounded-full shrink-0 transition-transform duration-200 group-hover:scale-125", dotColor)} />}
-                          <span className="flex-1">{item.label}</span>
+                          <span className="flex-1 whitespace-nowrap">{item.label}</span>
                            <div className="ml-auto flex min-w-[72px] items-center justify-end gap-2">
                              <span
                                className={cn(
