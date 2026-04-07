@@ -61,45 +61,49 @@ Deno.serve(async (req) => {
     if (!placeId) {
       const query = `${clinic.clinic_name} ${clinic.address || ""}`.trim();
       
-      // Try Find Place From Text first
-      const searchUrl = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(query)}&inputtype=textquery&fields=place_id,name&key=${googleKey}`;
-      const searchRes = await fetch(searchUrl);
+      // Use Places API (New) — Text Search
+      const searchRes = await fetch("https://places.googleapis.com/v1/places:searchText", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": googleKey,
+          "X-Goog-FieldMask": "places.id,places.displayName",
+        },
+        body: JSON.stringify({ textQuery: query }),
+      });
       const searchData = await searchRes.json();
-      console.log("Find Place response:", JSON.stringify(searchData));
+      console.log("Places search response:", JSON.stringify(searchData));
 
-      if (searchData.candidates?.length > 0) {
-        placeId = searchData.candidates[0].place_id;
-      } else {
-        // Fallback: Text Search API
-        const textSearchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${googleKey}`;
-        const textRes = await fetch(textSearchUrl);
-        const textData = await textRes.json();
-        console.log("Text Search response:", JSON.stringify(textData));
-
-        if (textData.results?.length > 0) {
-          placeId = textData.results[0].place_id;
-        }
-      }
-
-      if (placeId) {
+      if (searchData.places?.length > 0) {
+        placeId = searchData.places[0].id;
         await sb.from("clinics").update({ google_place_id: placeId }).eq("id", clinic_id);
       } else {
-        return jsonRes({ error: "Could not find Google Place ID. The Google Places API may not be enabled for this API key. Please enable the Places API in Google Cloud Console or set the Place ID manually." }, 404);
+        return jsonRes({ error: "Could not find this clinic on Google Maps. Please verify the clinic name and address are correct." }, 404);
       }
     }
 
-    // Fetch reviews
-    const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=reviews,rating,user_ratings_total,name&key=${googleKey}`;
-    const detailsRes = await fetch(detailsUrl);
+    // Fetch reviews using Places API (New)
+    const detailsRes = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
+      headers: {
+        "X-Goog-Api-Key": googleKey,
+        "X-Goog-FieldMask": "displayName,rating,userRatingCount,reviews",
+      },
+    });
     const detailsData = await detailsRes.json();
+    console.log("Place details keys:", Object.keys(detailsData));
 
-    if (detailsData.status !== "OK" || !detailsData.result) {
-      return jsonRes({ error: `Google Places API error: ${detailsData.status}` }, 502);
+    if (detailsData.error) {
+      return jsonRes({ error: `Google Places API error: ${detailsData.error.message}` }, 502);
     }
 
-    const reviews = detailsData.result.reviews || [];
-    const avgRating = detailsData.result.rating || 0;
-    const totalReviews = detailsData.result.user_ratings_total || 0;
+    const rawReviews = detailsData.reviews || [];
+    const reviews = rawReviews.map((r: any) => ({
+      text: r.text?.text || r.originalText?.text || "",
+      rating: r.rating || 0,
+      author: r.authorAttribution?.displayName || "Anonymous",
+    })).filter((r: any) => r.text);
+    const avgRating = detailsData.rating || 0;
+    const totalReviews = detailsData.userRatingCount || 0;
 
     if (reviews.length === 0) {
       return jsonRes({ error: "No reviews found for this clinic on Google" }, 404);
