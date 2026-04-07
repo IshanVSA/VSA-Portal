@@ -15,10 +15,6 @@ serve(async (req) => {
     const { offerTitle, offerText, termsAndConditions, startDate, endDate, complianceBody } =
       await req.json();
 
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    if (!OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY is not configured");
-    }
 
     const systemPrompt = `You are a veterinary advertising compliance expert. You verify promotional offers against the advertising and marketing regulations of veterinary regulatory bodies.
 
