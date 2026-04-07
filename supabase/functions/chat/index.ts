@@ -7,45 +7,41 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const GATEWAY = "https://api.openai.com/v1/chat/completions";
+const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 
 const tools = [
   {
-    type: "function",
-    function: {
-      name: "create_ticket",
-      description:
-        "Create a support ticket for a department. Use when the user wants to submit a request, report an issue, or create a task for Website, SEO, Google Ads, or Social Media teams.",
-      parameters: {
-        type: "object",
-        properties: {
-          title: {
-            type: "string",
-            description: "Brief summary of the issue or request (max 200 chars)",
-          },
-          department: {
-            type: "string",
-            enum: ["website", "seo", "google_ads", "social_media"],
-            description: "Which department this ticket is for",
-          },
-          ticket_type: {
-            type: "string",
-            description:
-              "Category of the ticket. Website: Time Changes, Pop-up Offers, Theme Updates, Add/Remove Team Members, New Forms, Paper-to-Digital Conversion, Price List Updates, Tech Issues, Others. SEO: Backlinking, Ranking Reports, Keyword Research, Manual Work Reports, Search Atlas Integration, SEO Thread Updates, Others. Google Ads: Dashboard Access, Analytics Review, Monthly Performance Report, Call Volume Issues, Wrong Call Tracking, Campaign Adjustments, Others. Social Media: Content Calendar, Post Approval, Analytics, Campaign Planning, Others.",
-          },
-          priority: {
-            type: "string",
-            enum: ["regular", "urgent", "emergency"],
-            description: "Ticket priority. Default to regular unless user indicates urgency.",
-          },
-          description: {
-            type: "string",
-            description: "Detailed description of the issue or request",
-          },
+    name: "create_ticket",
+    description:
+      "Create a support ticket for a department. Use when the user wants to submit a request, report an issue, or create a task for Website, SEO, Google Ads, or Social Media teams.",
+    input_schema: {
+      type: "object",
+      properties: {
+        title: {
+          type: "string",
+          description: "Brief summary of the issue or request (max 200 chars)",
         },
-        required: ["title", "department", "ticket_type"],
-        additionalProperties: false,
+        department: {
+          type: "string",
+          enum: ["website", "seo", "google_ads", "social_media"],
+          description: "Which department this ticket is for",
+        },
+        ticket_type: {
+          type: "string",
+          description:
+            "Category of the ticket. Website: Time Changes, Pop-up Offers, Theme Updates, Add/Remove Team Members, New Forms, Paper-to-Digital Conversion, Price List Updates, Tech Issues, Others. SEO: Backlinking, Ranking Reports, Keyword Research, Manual Work Reports, Search Atlas Integration, SEO Thread Updates, Others. Google Ads: Dashboard Access, Analytics Review, Monthly Performance Report, Call Volume Issues, Wrong Call Tracking, Campaign Adjustments, Others. Social Media: Content Calendar, Post Approval, Analytics, Campaign Planning, Others.",
+        },
+        priority: {
+          type: "string",
+          enum: ["regular", "urgent", "emergency"],
+          description: "Ticket priority. Default to regular unless user indicates urgency.",
+        },
+        description: {
+          type: "string",
+          description: "Detailed description of the issue or request",
+        },
       },
+      required: ["title", "department", "ticket_type"],
     },
   },
 ];
@@ -91,13 +87,21 @@ async function executeCreateTicket(
   return { success: true, ticket: data };
 }
 
+// Convert OpenAI-style messages from client to Anthropic format
+function convertMessages(messages: { role: string; content: string }[]) {
+  return messages.filter(m => m.role !== "system").map(m => ({
+    role: m.role === "assistant" ? "assistant" : "user",
+    content: m.content,
+  }));
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const { messages } = await req.json();
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured");
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
     // Extract user ID from auth header
     const authHeader = req.headers.get("Authorization");
@@ -117,22 +121,24 @@ serve(async (req) => {
       }
     }
 
-    const gatewayHeaders = {
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
+    const anthropicHeaders = {
+      "x-api-key": ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
     };
 
-    const allMessages = [{ role: "system", content: systemPrompt }, ...messages];
+    const anthropicMessages = convertMessages(messages);
 
     // First pass: non-streaming with tools to detect tool calls
-    const r1 = await fetch(GATEWAY, {
+    const r1 = await fetch(ANTHROPIC_URL, {
       method: "POST",
-      headers: gatewayHeaders,
+      headers: anthropicHeaders,
       body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: allMessages,
+        model: "claude-opus-4-6",
+        max_tokens: 4096,
+        system: systemPrompt,
+        messages: anthropicMessages,
         tools,
-        stream: false,
       }),
     });
 
@@ -143,88 +149,70 @@ serve(async (req) => {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
       const t = await r1.text();
-      console.error("AI gateway error:", status, t);
+      console.error("Anthropic API error:", status, t);
       return new Response(JSON.stringify({ error: "AI service unavailable" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const j1 = await r1.json();
-    const choice = j1.choices?.[0];
 
-    if (!choice) {
-      return new Response(JSON.stringify({ error: "No response from AI" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Check for tool use in the response
+    const toolUseBlock = j1.content?.find((b: any) => b.type === "tool_use");
 
-    let finalMessages = allMessages;
-
-    // Handle tool calls
-    if (choice.message?.tool_calls?.length) {
-      const assistantMsg = choice.message;
-      const toolResults = [];
-
-      for (const tc of assistantMsg.tool_calls) {
-        if (tc.function.name === "create_ticket") {
-          const args = typeof tc.function.arguments === "string"
-            ? JSON.parse(tc.function.arguments)
-            : tc.function.arguments;
-
-          if (!userId) {
-            toolResults.push({
-              role: "tool",
-              tool_call_id: tc.id,
-              content: JSON.stringify({ success: false, error: "User not authenticated. Please log in to create tickets." }),
-            });
-          } else {
-            const result = await executeCreateTicket(args, userId);
-            toolResults.push({
-              role: "tool",
-              tool_call_id: tc.id,
-              content: JSON.stringify(result),
-            });
-          }
-        }
+    if (toolUseBlock && toolUseBlock.name === "create_ticket") {
+      // Execute tool
+      let toolResult: any;
+      if (!userId) {
+        toolResult = { success: false, error: "User not authenticated. Please log in to create tickets." };
+      } else {
+        toolResult = await executeCreateTicket(toolUseBlock.input, userId);
       }
 
-      finalMessages = [...allMessages, assistantMsg, ...toolResults];
-    } else if (choice.message?.content) {
-      // No tool call - include the assistant response and stream won't re-generate
-      // Just return the content directly as SSE
-      const content = choice.message.content;
-      const sseData = `data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\ndata: [DONE]\n\n`;
-      return new Response(sseData, {
-        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      // Send tool result back for final response, streaming
+      const r2 = await fetch(ANTHROPIC_URL, {
+        method: "POST",
+        headers: anthropicHeaders,
+        body: JSON.stringify({
+          model: "claude-opus-4-6",
+          max_tokens: 4096,
+          system: systemPrompt,
+          messages: [
+            ...anthropicMessages,
+            { role: "assistant", content: j1.content },
+            {
+              role: "user",
+              content: [
+                {
+                  type: "tool_result",
+                  tool_use_id: toolUseBlock.id,
+                  content: JSON.stringify(toolResult),
+                },
+              ],
+            },
+          ],
+          stream: true,
+        }),
       });
+
+      if (!r2.ok) {
+        const t = await r2.text();
+        console.error("Anthropic API error (2nd pass):", r2.status, t);
+        return new Response(JSON.stringify({ error: "AI service unavailable" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Convert Anthropic SSE stream to OpenAI-compatible SSE for the client
+      return convertAnthropicStreamToOpenAI(r2);
     }
 
-    // Stream the final response (after tool execution or if no content)
-    const r2 = await fetch(GATEWAY, {
-      method: "POST",
-      headers: gatewayHeaders,
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: finalMessages,
-        stream: true,
-      }),
-    });
-
-    if (!r2.ok) {
-      const t = await r2.text();
-      console.error("AI gateway error (2nd pass):", r2.status, t);
-      return new Response(JSON.stringify({ error: "AI service unavailable" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    return new Response(r2.body, {
+    // No tool call - extract text and return as SSE
+    const textBlock = j1.content?.find((b: any) => b.type === "text");
+    const content = textBlock?.text || "";
+    const sseData = `data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\ndata: [DONE]\n\n`;
+    return new Response(sseData, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (e) {
@@ -234,3 +222,48 @@ serve(async (req) => {
     });
   }
 });
+
+function convertAnthropicStreamToOpenAI(response: Response): Response {
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+
+  const stream = new ReadableStream({
+    async pull(controller) {
+      let buffer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
+          controller.close();
+          return;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (!jsonStr || jsonStr === "[DONE]") continue;
+
+          try {
+            const event = JSON.parse(jsonStr);
+            if (event.type === "content_block_delta" && event.delta?.type === "text_delta") {
+              const openAIChunk = {
+                choices: [{ delta: { content: event.delta.text } }],
+              };
+              controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(openAIChunk)}\n\n`));
+            }
+          } catch {
+            // skip
+          }
+        }
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+  });
+}

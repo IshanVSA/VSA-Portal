@@ -112,55 +112,52 @@ async function fetchPage(url: string): Promise<PageData | null> {
 }
 
 const extractionTool = {
-  type: "function" as const,
-  function: {
-    name: "extract_brand_dna",
-    description: "Extract brand DNA fields from veterinary clinic website content.",
-    parameters: {
-      type: "object",
-      properties: {
-        hospital_name: { type: "string", description: "Official clinic/hospital name" },
-        phone: { type: "string", description: "Primary phone number" },
-        booking_url: { type: "string", description: "Online booking URL if found" },
-        hours: { type: "string", description: "Operating hours summary" },
-        doctors: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              name: { type: "string" },
-              credentials: { type: "string", description: "DVM, DACVS, etc." },
-              role: { type: "string", description: "Owner, Associate, etc." },
-            },
-            required: ["name"],
-          },
-          description: "Veterinarians and key staff",
-        },
-        services_list: {
-          type: "array",
-          items: { type: "string" },
-          description: "Top services offered (e.g. dentistry, surgery, wellness exams)",
-        },
-        founding_year: { type: "string", description: "Year the clinic was founded" },
-        about_us_content: { type: "string", description: "Summary of the About Us / Our Story section" },
-        brand_identity: {
+  name: "extract_brand_dna",
+  description: "Extract brand DNA fields from veterinary clinic website content.",
+  input_schema: {
+    type: "object",
+    properties: {
+      hospital_name: { type: "string", description: "Official clinic/hospital name" },
+      phone: { type: "string", description: "Primary phone number" },
+      booking_url: { type: "string", description: "Online booking URL if found" },
+      hours: { type: "string", description: "Operating hours summary" },
+      doctors: {
+        type: "array",
+        items: {
           type: "object",
           properties: {
-            tagline: { type: "string", description: "Clinic tagline or slogan" },
-            tone: { type: "string", description: "Brand tone: warm, clinical, playful, professional, etc." },
-            values: { type: "array", items: { type: "string" }, description: "Core values mentioned" },
+            name: { type: "string" },
+            credentials: { type: "string", description: "DVM, DACVS, etc." },
+            role: { type: "string", description: "Owner, Associate, etc." },
           },
+          required: ["name"],
         },
-        confidence: { type: "string", enum: ["low", "medium", "high"], description: "Overall confidence in extraction" },
+        description: "Veterinarians and key staff",
       },
-      required: ["hospital_name"],
+      services_list: {
+        type: "array",
+        items: { type: "string" },
+        description: "Top services offered (e.g. dentistry, surgery, wellness exams)",
+      },
+      founding_year: { type: "string", description: "Year the clinic was founded" },
+      about_us_content: { type: "string", description: "Summary of the About Us / Our Story section" },
+      brand_identity: {
+        type: "object",
+        properties: {
+          tagline: { type: "string", description: "Clinic tagline or slogan" },
+          tone: { type: "string", description: "Brand tone: warm, clinical, playful, professional, etc." },
+          values: { type: "array", items: { type: "string" }, description: "Core values mentioned" },
+        },
+      },
+      confidence: { type: "string", enum: ["low", "medium", "high"], description: "Overall confidence in extraction" },
     },
+    required: ["hospital_name"],
   },
 };
 
 async function extractWithAi(pages: PageData[]) {
-  const apiKey = Deno.env.get("LOVABLE_API_KEY");
-  if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
+  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY not configured");
 
   const combinedPages = pages
     .map((page, i) =>
@@ -171,33 +168,32 @@ async function extractWithAi(pages: PageData[]) {
     .join("\n\n---\n\n")
     .slice(0, MAX_COMBINED_TEXT_LENGTH);
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+      model: "claude-opus-4-6",
+      max_tokens: 4096,
+      system: [
+        "You are an expert at extracting veterinary clinic brand DNA from website content.",
+        "Extract all available information about the clinic: name, phone, hours, booking URL, doctors (with credentials), services, founding year, about us content, and brand identity (tagline, tone, values).",
+        "For doctors, extract their full name, credentials (DVM, DACVS, etc.), and role (Owner, Associate, etc.).",
+        "For services, list the top/highlighted services offered.",
+        "For brand identity, identify the tagline/slogan, overall tone of the brand, and any stated values or mission.",
+        "Only include fields you can confidently extract from the content provided.",
+      ].join(" "),
       messages: [
-        {
-          role: "system",
-          content: [
-            "You are an expert at extracting veterinary clinic brand DNA from website content.",
-            "Extract all available information about the clinic: name, phone, hours, booking URL, doctors (with credentials), services, founding year, about us content, and brand identity (tagline, tone, values).",
-            "For doctors, extract their full name, credentials (DVM, DACVS, etc.), and role (Owner, Associate, etc.).",
-            "For services, list the top/highlighted services offered.",
-            "For brand identity, identify the tagline/slogan, overall tone of the brand, and any stated values or mission.",
-            "Only include fields you can confidently extract from the content provided.",
-          ].join(" "),
-        },
         {
           role: "user",
           content: `Extract brand DNA from this veterinary clinic website:\n\n${combinedPages}`,
         },
       ],
       tools: [extractionTool],
-      tool_choice: { type: "function", function: { name: "extract_brand_dna" } },
+      tool_choice: { type: "tool", name: "extract_brand_dna" },
     }),
   });
 
@@ -207,10 +203,10 @@ async function extractWithAi(pages: PageData[]) {
   }
 
   const data = await response.json();
-  const args = data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-  if (!args) throw new Error("AI extraction returned no structured result");
+  const toolBlock = data.content?.find((b: any) => b.type === "tool_use" && b.name === "extract_brand_dna");
+  if (!toolBlock?.input) throw new Error("AI extraction returned no structured result");
 
-  return JSON.parse(args);
+  return toolBlock.input;
 }
 
 Deno.serve(async (req) => {

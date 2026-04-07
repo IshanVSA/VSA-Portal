@@ -148,8 +148,6 @@ serve(async (req) => {
   }
 
   try {
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY not configured");
 
     const { transcript, formType } = await req.json();
     if (!transcript || !formType) {
@@ -167,29 +165,37 @@ serve(async (req) => {
       });
     }
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not configured");
+
+    const anthropicTool = {
+      name: toolDef.name,
+      description: toolDef.description,
+      input_schema: toolDef.parameters,
+    };
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "claude-opus-4-6",
+        max_tokens: 4096,
+        system: `You are a form field extractor. The user dictated a request for a "${formType}" ticket. Extract all relevant fields from their speech. Only include fields you can confidently extract. Use 24-hour time format (HH:MM). For dates use YYYY-MM-DD. Today's date is ${new Date().toISOString().split("T")[0]}.`,
         messages: [
-          {
-            role: "system",
-            content: `You are a form field extractor. The user dictated a request for a "${formType}" ticket. Extract all relevant fields from their speech. Only include fields you can confidently extract. Use 24-hour time format (HH:MM). For dates use YYYY-MM-DD. Today's date is ${new Date().toISOString().split("T")[0]}.`,
-          },
           { role: "user", content: transcript },
         ],
-        tools: [{ type: "function", function: toolDef }],
-        tool_choice: { type: "function", function: { name: toolDef.name } },
+        tools: [anthropicTool],
+        tool_choice: { type: "tool", name: toolDef.name },
       }),
     });
 
     if (!response.ok) {
       const text = await response.text();
-      console.error("AI gateway error:", response.status, text);
+      console.error("Anthropic API error:", response.status, text);
 
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limited. Please try again shortly." }), {
@@ -197,26 +203,20 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
 
-      throw new Error(`AI gateway error: ${response.status}`);
+      throw new Error(`AI extraction error: ${response.status}`);
     }
 
     const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    const toolBlock = data.content?.find((b: any) => b.type === "tool_use" && b.name === toolDef.name);
 
-    if (!toolCall?.function?.arguments) {
+    if (!toolBlock?.input) {
       return new Response(JSON.stringify({ fields: null }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const fields = JSON.parse(toolCall.function.arguments);
+    const fields = toolBlock.input;
 
     return new Response(JSON.stringify({ fields }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
