@@ -199,10 +199,11 @@ export function BrandDNAForm({ clinicId, onComplete }: Props) {
             <>
               <p className="text-xs text-muted-foreground italic">{QUESTIONS[step].helper}</p>
               {QUESTIONS[step].type === "textarea" ? (
-                <Textarea
+                <VoiceTextarea
                   value={answers[QUESTIONS[step].key] || ""}
                   onChange={(e) => setAnswers((prev) => ({ ...prev, [QUESTIONS[step].key]: e.target.value }))}
-                  placeholder="Type your answer here..."
+                  onValueChange={(v) => setAnswers((prev) => ({ ...prev, [QUESTIONS[step].key]: v }))}
+                  placeholder="Type or use the mic to speak your answer..."
                   rows={5}
                   className="resize-none"
                 />
