@@ -224,6 +224,7 @@ export type Database = {
           submitted_by: string | null
           synthesized_profile: Json
           updated_at: string
+          website_extracted_at: string | null
         }
         Insert: {
           additional_fields?: Json
@@ -237,6 +238,7 @@ export type Database = {
           submitted_by?: string | null
           synthesized_profile?: Json
           updated_at?: string
+          website_extracted_at?: string | null
         }
         Update: {
           additional_fields?: Json
@@ -250,6 +252,7 @@ export type Database = {
           submitted_by?: string | null
           synthesized_profile?: Json
           updated_at?: string
+          website_extracted_at?: string | null
         }
         Relationships: [
           {
