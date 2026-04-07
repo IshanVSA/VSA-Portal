@@ -63,7 +63,7 @@ export default function SocialMedia() {
 
   const visibleTabs = isClient
     ? baseTabs.filter(t => ["overview", "requests", "tickets"].includes(t.value))
-    : [...baseTabs, dnaTab, ...(isStaff ? [chatTab] : [])];
+    : [...baseTabs, generationTab, dnaTab, ...(isStaff ? [chatTab] : [])];
 
   const handleTabChange = (value: string) => {
     setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", value); return next; }, { replace: true });
