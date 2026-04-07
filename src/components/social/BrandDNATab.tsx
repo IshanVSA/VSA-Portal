@@ -8,6 +8,7 @@ import {
   Stethoscope, Building, Star, MessageSquareQuote, Fingerprint,
   TrendingUp, Sparkles, Shield, Scale, BookOpen, Target, Ban,
   Users, Camera, CalendarClock, CheckSquare, AlertTriangle,
+  MapPin, TreePine, Home, Car,
 } from "lucide-react";
 import { format } from "date-fns";
 
