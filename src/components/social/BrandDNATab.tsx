@@ -146,6 +146,9 @@ export default function BrandDNATab({ clinicId }: Props) {
       {/* Layer 2: Review Mining */}
       <ReviewMiningCard data={reviewMining} />
 
+      {/* Locality Data */}
+      <LocalityCard data={localityData} />
+
       {/* No DNA */}
       {!dna && !websiteExtraction && !reviewMining && (
         <Card>
