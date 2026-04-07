@@ -83,3 +83,6 @@ verify_jwt = false
 
 [functions.generate-sm2-content]
 verify_jwt = false
+
+[functions.locality-fetch]
+verify_jwt = false
