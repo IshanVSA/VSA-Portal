@@ -112,49 +112,46 @@ async function fetchPage(url: string): Promise<PageData | null> {
 }
 
 const extractionTool = {
-  type: "function" as const,
-  function: {
-    name: "extract_brand_dna",
-    description: "Extract brand DNA fields from veterinary clinic website content.",
-    parameters: {
-      type: "object",
-      properties: {
-        hospital_name: { type: "string", description: "Official clinic/hospital name" },
-        phone: { type: "string", description: "Primary phone number" },
-        booking_url: { type: "string", description: "Online booking URL if found" },
-        hours: { type: "string", description: "Operating hours summary" },
-        doctors: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              name: { type: "string" },
-              credentials: { type: "string", description: "DVM, DACVS, etc." },
-              role: { type: "string", description: "Owner, Associate, etc." },
-            },
-            required: ["name"],
-          },
-          description: "Veterinarians and key staff",
-        },
-        services_list: {
-          type: "array",
-          items: { type: "string" },
-          description: "Top services offered (e.g. dentistry, surgery, wellness exams)",
-        },
-        founding_year: { type: "string", description: "Year the clinic was founded" },
-        about_us_content: { type: "string", description: "Summary of the About Us / Our Story section" },
-        brand_identity: {
+  name: "extract_brand_dna",
+  description: "Extract brand DNA fields from veterinary clinic website content.",
+  input_schema: {
+    type: "object",
+    properties: {
+      hospital_name: { type: "string", description: "Official clinic/hospital name" },
+      phone: { type: "string", description: "Primary phone number" },
+      booking_url: { type: "string", description: "Online booking URL if found" },
+      hours: { type: "string", description: "Operating hours summary" },
+      doctors: {
+        type: "array",
+        items: {
           type: "object",
           properties: {
-            tagline: { type: "string", description: "Clinic tagline or slogan" },
-            tone: { type: "string", description: "Brand tone: warm, clinical, playful, professional, etc." },
-            values: { type: "array", items: { type: "string" }, description: "Core values mentioned" },
+            name: { type: "string" },
+            credentials: { type: "string", description: "DVM, DACVS, etc." },
+            role: { type: "string", description: "Owner, Associate, etc." },
           },
+          required: ["name"],
         },
-        confidence: { type: "string", enum: ["low", "medium", "high"], description: "Overall confidence in extraction" },
+        description: "Veterinarians and key staff",
       },
-      required: ["hospital_name"],
+      services_list: {
+        type: "array",
+        items: { type: "string" },
+        description: "Top services offered (e.g. dentistry, surgery, wellness exams)",
+      },
+      founding_year: { type: "string", description: "Year the clinic was founded" },
+      about_us_content: { type: "string", description: "Summary of the About Us / Our Story section" },
+      brand_identity: {
+        type: "object",
+        properties: {
+          tagline: { type: "string", description: "Clinic tagline or slogan" },
+          tone: { type: "string", description: "Brand tone: warm, clinical, playful, professional, etc." },
+          values: { type: "array", items: { type: "string" }, description: "Core values mentioned" },
+        },
+      },
+      confidence: { type: "string", enum: ["low", "medium", "high"], description: "Overall confidence in extraction" },
     },
+    required: ["hospital_name"],
   },
 };
 
