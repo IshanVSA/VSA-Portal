@@ -217,7 +217,7 @@ Deno.serve(async (req) => {
       review_count: reviews.length,
       total_reviews_on_google: totalReviews,
       avg_rating: avgRating,
-      place_name: detailsData.result.name,
+      place_name: detailsData.displayName?.text || detailsData.displayName || "",
       mined_at: new Date().toISOString(),
     };
 
