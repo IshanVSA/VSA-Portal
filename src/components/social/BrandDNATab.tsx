@@ -66,6 +66,7 @@ export default function BrandDNATab({ clinicId }: Props) {
   const answeredCount = Object.values(callNotes).filter((v) => v && typeof v === "string" && v.trim()).length;
   const websiteExtraction = additionalFields.website_extraction as Record<string, any> | undefined;
   const reviewMining = additionalFields.review_mining as Record<string, any> | undefined;
+  const localityData = additionalFields.locality as Record<string, any> | undefined;
   const synthesizedProfile = (dna?.synthesized_profile || {}) as Record<string, any>;
   const hasSynthesis = synthesizedProfile && Object.keys(synthesizedProfile).length > 0 && synthesizedProfile.voice_fingerprint;
 
