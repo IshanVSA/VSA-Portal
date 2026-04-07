@@ -60,16 +60,31 @@ Deno.serve(async (req) => {
     let placeId = clinic.google_place_id;
     if (!placeId) {
       const query = `${clinic.clinic_name} ${clinic.address || ""}`.trim();
+      
+      // Try Find Place From Text first
       const searchUrl = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(query)}&inputtype=textquery&fields=place_id,name&key=${googleKey}`;
       const searchRes = await fetch(searchUrl);
       const searchData = await searchRes.json();
+      console.log("Find Place response:", JSON.stringify(searchData));
 
       if (searchData.candidates?.length > 0) {
         placeId = searchData.candidates[0].place_id;
-        // Cache it
+      } else {
+        // Fallback: Text Search API
+        const textSearchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${googleKey}`;
+        const textRes = await fetch(textSearchUrl);
+        const textData = await textRes.json();
+        console.log("Text Search response:", JSON.stringify(textData));
+
+        if (textData.results?.length > 0) {
+          placeId = textData.results[0].place_id;
+        }
+      }
+
+      if (placeId) {
         await sb.from("clinics").update({ google_place_id: placeId }).eq("id", clinic_id);
       } else {
-        return jsonRes({ error: "Could not find Google Place ID for this clinic. Please add the clinic address or set the Place ID manually." }, 404);
+        return jsonRes({ error: "Could not find Google Place ID. The Google Places API may not be enabled for this API key. Please enable the Places API in Google Cloud Console or set the Place ID manually." }, 404);
       }
     }
 
