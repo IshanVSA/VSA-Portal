@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { toast } from "sonner";
 
 export interface BrandDNARecord {
   id: string;
@@ -14,6 +15,7 @@ export interface BrandDNARecord {
   submitted_by: string | null;
   created_at: string;
   updated_at: string;
+  website_extracted_at: string | null;
 }
 
 export function useBrandDNA(clinicId: string | undefined) {
@@ -73,7 +75,28 @@ export function useBrandDNA(clinicId: string | undefined) {
     },
   });
 
+  const extractWebsite = useMutation({
+    mutationFn: async () => {
+      if (!clinicId) throw new Error("No clinic selected");
+      const { data, error } = await supabase.functions.invoke("extract-brand-dna", {
+        body: { clinic_id: clinicId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["brand-dna", clinicId] });
+      toast.success("Website extraction complete", {
+        description: `Confidence: ${data?.extracted?.confidence || "unknown"}`,
+      });
+    },
+    onError: (error: Error) => {
+      toast.error("Website extraction failed", { description: error.message });
+    },
+  });
+
   const isCompleted = dna?.status === "completed" || dna?.status === "synthesized";
 
-  return { dna, isLoading, upsertDNA, isCompleted };
+  return { dna, isLoading, upsertDNA, isCompleted, extractWebsite };
 }
