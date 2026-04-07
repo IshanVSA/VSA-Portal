@@ -377,6 +377,7 @@ export type Database = {
           created_at: string
           email: string | null
           google_ads_enabled: boolean
+          google_place_id: string | null
           id: string
           logo_url: string | null
           owner_user_id: string | null
@@ -397,6 +398,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           google_ads_enabled?: boolean
+          google_place_id?: string | null
           id?: string
           logo_url?: string | null
           owner_user_id?: string | null
@@ -417,6 +419,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           google_ads_enabled?: boolean
+          google_place_id?: string | null
           id?: string
           logo_url?: string | null
           owner_user_id?: string | null

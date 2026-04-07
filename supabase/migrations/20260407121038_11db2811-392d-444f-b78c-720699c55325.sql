@@ -1,0 +1,1 @@
+ALTER TABLE public.clinics ADD COLUMN IF NOT EXISTS google_place_id TEXT DEFAULT NULL;

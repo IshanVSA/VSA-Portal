@@ -74,3 +74,6 @@ verify_jwt = false
 
 [functions.run-collision-check]
 verify_jwt = false
+
+[functions.mine-reviews]
+verify_jwt = false
