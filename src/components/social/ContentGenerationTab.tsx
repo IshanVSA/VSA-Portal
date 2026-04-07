@@ -174,6 +174,27 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                         <Eye className="h-4 w-4" />
                       </Button>
                     )}
+                    {gen.approval_status === "pending" && gen.html_file_path && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => sendToClient.mutate(gen.id)}
+                        disabled={sendToClient.isPending}
+                        className="gap-1.5 text-xs"
+                      >
+                        <Send className="h-3.5 w-3.5" />
+                        Send to Client
+                      </Button>
+                    )}
+                    {gen.sent_to_client_at && (
+                      <Badge variant="secondary" className="text-[10px] gap-1">
+                        <Send className="h-3 w-3" />
+                        Sent {format(new Date(gen.sent_to_client_at), "MMM d")}
+                      </Badge>
+                    )}
+                    {gen.client_feedback && (
+                      <Badge variant="destructive" className="text-[10px]">Has Feedback</Badge>
+                    )}
                   </div>
                 </CardContent>
               </Card>
