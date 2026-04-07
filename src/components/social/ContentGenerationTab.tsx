@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Sparkles, RefreshCw, FileText, Eye, AlertTriangle, CheckCircle, Clock } from "lucide-react";
+import { Sparkles, RefreshCw, FileText, Eye, AlertTriangle, CheckCircle, Clock, Send } from "lucide-react";
 import { format } from "date-fns";
 
 interface Props {
@@ -19,7 +19,7 @@ interface Props {
 export default function ContentGenerationTab({ clinicId }: Props) {
   const { dna } = useBrandDNA(clinicId);
   const { signals, upsertSignals, currentMonth } = useMonthlySignals(clinicId);
-  const { generations, currentGeneration, generate, isLoading } = useSM2Generation(clinicId);
+  const { generations, currentGeneration, generate, sendToClient, isLoading } = useSM2Generation(clinicId);
   const [preflightOpen, setPreflightOpen] = useState(false);
   const [clinicNews, setClinicNews] = useState("");
   const [fbSpecific, setFbSpecific] = useState("");
@@ -174,6 +174,27 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                         <Eye className="h-4 w-4" />
                       </Button>
                     )}
+                    {gen.approval_status === "pending" && gen.html_file_path && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => sendToClient.mutate(gen.id)}
+                        disabled={sendToClient.isPending}
+                        className="gap-1.5 text-xs"
+                      >
+                        <Send className="h-3.5 w-3.5" />
+                        Send to Client
+                      </Button>
+                    )}
+                    {gen.sent_to_client_at && (
+                      <Badge variant="secondary" className="text-[10px] gap-1">
+                        <Send className="h-3 w-3" />
+                        Sent {format(new Date(gen.sent_to_client_at), "MMM d")}
+                      </Badge>
+                    )}
+                    {gen.client_feedback && (
+                      <Badge variant="destructive" className="text-[10px]">Has Feedback</Badge>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -209,8 +230,10 @@ export default function ContentGenerationTab({ clinicId }: Props) {
 function StatusBadge({ status }: { status: string }) {
   const config: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive"; icon: typeof CheckCircle }> = {
     pending: { label: "Pending Review", variant: "outline", icon: Clock },
+    sent_to_client: { label: "Sent to Client", variant: "secondary", icon: Send },
     approved_client: { label: "Client Approved", variant: "default", icon: CheckCircle },
     approved_auto: { label: "Auto-Approved", variant: "secondary", icon: CheckCircle },
+    feedback_submitted: { label: "Client Feedback", variant: "destructive", icon: AlertTriangle },
     rejected: { label: "Rejected", variant: "destructive", icon: AlertTriangle },
   };
   const c = config[status] || config.pending;

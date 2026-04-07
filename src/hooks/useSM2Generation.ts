@@ -17,6 +17,9 @@ export interface SM2Generation {
   client_feedback: string | null;
   sent_to_client_at: string | null;
   auto_approved_at: string | null;
+  email_day0_sent: boolean | null;
+  email_day3_sent: boolean | null;
+  email_day5_sent: boolean | null;
   created_at: string;
   updated_at: string;
 }
@@ -66,10 +69,83 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
     },
   });
 
+  // Staff action: mark as sent to client
+  const sendToClient = useMutation({
+    mutationFn: async (generationId: string) => {
+      const { error } = await supabase
+        .from("sm2_generations")
+        .update({
+          approval_status: "sent_to_client",
+          sent_to_client_at: new Date().toISOString(),
+        })
+        .eq("id", generationId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sm2-generations", clinicId] });
+      toast.success("Content sent to client for review");
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to send to client", { description: error.message });
+    },
+  });
+
+  // Client action: approve
+  const approveContent = useMutation({
+    mutationFn: async (generationId: string) => {
+      const { error } = await supabase
+        .from("sm2_generations")
+        .update({
+          approval_status: "approved_client",
+          approved_at: new Date().toISOString(),
+        })
+        .eq("id", generationId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sm2-generations", clinicId] });
+      toast.success("Content approved! Your concierge will begin scheduling posts.");
+    },
+    onError: (error: Error) => {
+      toast.error("Approval failed", { description: error.message });
+    },
+  });
+
+  // Client action: submit feedback (request changes)
+  const submitFeedback = useMutation({
+    mutationFn: async ({ generationId, feedback }: { generationId: string; feedback: string }) => {
+      const { error } = await supabase
+        .from("sm2_generations")
+        .update({
+          approval_status: "feedback_submitted",
+          client_feedback: feedback,
+        })
+        .eq("id", generationId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sm2-generations", clinicId] });
+      toast.success("Feedback submitted. Your concierge will review and revise.");
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to submit feedback", { description: error.message });
+    },
+  });
+
   const getHtmlUrl = (filePath: string) => {
     const { data } = supabase.storage.from("department-files").getPublicUrl(filePath);
     return data.publicUrl;
   };
 
-  return { generations, currentGeneration, isLoading, generate, getHtmlUrl, currentMonth };
+  return {
+    generations,
+    currentGeneration,
+    isLoading,
+    generate,
+    sendToClient,
+    approveContent,
+    submitFeedback,
+    getHtmlUrl,
+    currentMonth,
+  };
 }
