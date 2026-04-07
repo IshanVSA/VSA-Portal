@@ -178,7 +178,7 @@ async function extractWithAi(pages: PageData[]) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "openai/gpt-4o-mini",
+      model: "google/gemini-3-flash-preview",
       messages: [
         {
           role: "system",
