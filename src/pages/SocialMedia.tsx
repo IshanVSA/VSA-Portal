@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Share2, LayoutDashboard, FileCheck, CalendarDays, ClipboardList, BarChart3, Ticket, Upload, MessageSquare, Dna } from "lucide-react";
+import { Share2, LayoutDashboard, FileCheck, CalendarDays, ClipboardList, BarChart3, Ticket, Upload, MessageSquare, Dna, Sparkles } from "lucide-react";
 import { SocialOverview } from "@/components/social/SocialOverview";
 import { lazy, Suspense } from "react";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
@@ -23,6 +23,7 @@ const ContentCalendarContent = lazy(() => import("@/components/social/ContentCal
 const IntakeFormsContent = lazy(() => import("@/components/social/IntakeFormsContent"));
 const AnalyticsContent = lazy(() => import("@/components/social/AnalyticsContent"));
 const BrandDNATab = lazy(() => import("@/components/social/BrandDNATab"));
+const ContentGenerationTab = lazy(() => import("@/components/social/ContentGenerationTab"));
 
 const TabFallback = () => (
   <div className="py-12 flex items-center justify-center">
@@ -43,6 +44,7 @@ const baseTabs = [
 ];
 const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
 const dnaTab = { value: "brand-dna", label: "Brand DNA", icon: Dna };
+const generationTab = { value: "generation", label: "Generate", icon: Sparkles };
 
 export default function SocialMedia() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -61,7 +63,7 @@ export default function SocialMedia() {
 
   const visibleTabs = isClient
     ? baseTabs.filter(t => ["overview", "requests", "tickets"].includes(t.value))
-    : [...baseTabs, dnaTab, ...(isStaff ? [chatTab] : [])];
+    : [...baseTabs, generationTab, dnaTab, ...(isStaff ? [chatTab] : [])];
 
   const handleTabChange = (value: string) => {
     setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", value); return next; }, { replace: true });
@@ -130,6 +132,7 @@ export default function SocialMedia() {
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="social_media" clinicId={selectedClinicId} /></TabsContent>
                 {isStaff && (
                   <>
+                    <TabsContent value="generation" className="mt-4"><Suspense fallback={<TabFallback />}><ContentGenerationTab clinicId={selectedClinicId} /></Suspense></TabsContent>
                     <TabsContent value="brand-dna" className="mt-4"><Suspense fallback={<TabFallback />}><BrandDNATab clinicId={selectedClinicId} /></Suspense></TabsContent>
                     <TabsContent value="chat" className="mt-4"><DepartmentChat department="social_media" clinicId={selectedClinicId} onVisible={markAsRead} /></TabsContent>
                   </>
