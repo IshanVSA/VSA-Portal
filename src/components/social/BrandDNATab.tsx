@@ -117,6 +117,16 @@ export default function BrandDNATab({ clinicId }: Props) {
           <Button
             variant="outline"
             size="sm"
+            onClick={() => localityFetch.mutate()}
+            disabled={localityFetch.isPending}
+            className="gap-2"
+          >
+            {localityFetch.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />}
+            {localityFetch.isPending ? "Fetching..." : localityData ? "Re-fetch" : "Fetch Locality"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => extractWebsite.mutate()}
             disabled={extractWebsite.isPending}
             className="gap-2"
