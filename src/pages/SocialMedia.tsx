@@ -23,6 +23,7 @@ const ContentCalendarContent = lazy(() => import("@/components/social/ContentCal
 const IntakeFormsContent = lazy(() => import("@/components/social/IntakeFormsContent"));
 const AnalyticsContent = lazy(() => import("@/components/social/AnalyticsContent"));
 const BrandDNATab = lazy(() => import("@/components/social/BrandDNATab"));
+const ContentGenerationTab = lazy(() => import("@/components/social/ContentGenerationTab"));
 
 const TabFallback = () => (
   <div className="py-12 flex items-center justify-center">
