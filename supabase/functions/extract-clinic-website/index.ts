@@ -249,8 +249,8 @@ async function requireAdmin(req: Request) {
 }
 
 async function extractWithAi(website: string, pages: PageData[]) {
-  const openAiApiKey = Deno.env.get("OPENAI_API_KEY");
-  if (!openAiApiKey) throw new Error("OPENAI_API_KEY not configured");
+  const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!anthropicKey) throw new Error("ANTHROPIC_API_KEY not configured");
 
   const combinedPages = pages
     .map((page, index) => {
@@ -267,32 +267,31 @@ async function extractWithAi(website: string, pages: PageData[]) {
     .join("\n\n---\n\n")
     .slice(0, MAX_COMBINED_TEXT_LENGTH);
 
-  const response = await fetch(OPENAI_URL, {
+  const response = await fetch(ANTHROPIC_URL, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${openAiApiKey}`,
-      "Content-Type": "application/json",
+      "x-api-key": anthropicKey,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
     },
     body: JSON.stringify({
-      model: "gpt-4o-mini",
+      model: "claude-opus-4-6",
+      max_tokens: 4096,
+      system: [
+        "You extract public clinic details from website content.",
+        "Return only fields you can support from the provided pages.",
+        "Infer timezone from the address using a valid IANA timezone like America/New_York.",
+        "If multiple locations exist, choose the primary/main clinic or the best-supported single location.",
+        "Use the provided website as the canonical website field unless a clearer canonical URL is shown.",
+      ].join(" "),
       messages: [
-        {
-          role: "system",
-          content: [
-            "You extract public clinic details from website content.",
-            "Return only fields you can support from the provided pages.",
-            "Infer timezone from the address using a valid IANA timezone like America/New_York.",
-            "If multiple locations exist, choose the primary/main clinic or the best-supported single location.",
-            "Use the provided website as the canonical website field unless a clearer canonical URL is shown.",
-          ].join(" "),
-        },
         {
           role: "user",
           content: `Website: ${website}\n\nWebsite pages:\n${combinedPages}`,
         },
       ],
       tools: [extractionTool],
-      tool_choice: { type: "function", function: { name: "extract_clinic_details" } },
+      tool_choice: { type: "tool", name: "extract_clinic_details" },
     }),
   });
 
@@ -304,24 +303,17 @@ async function extractWithAi(website: string, pages: PageData[]) {
       });
     }
 
-    if (response.status === 402) {
-      throw new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds." }), {
-        status: 402,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const text = await response.text();
-    throw new Error(`OpenAI extraction failed [${response.status}]: ${text}`);
+    throw new Error(`AI extraction failed [${response.status}]: ${text}`);
   }
 
   const data = await response.json();
-  const args = data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-  if (!args) {
+  const toolBlock = data.content?.find((b: any) => b.type === "tool_use" && b.name === "extract_clinic_details");
+  if (!toolBlock?.input) {
     throw new Error("AI extraction returned no structured result");
   }
 
-  const parsed = JSON.parse(args);
+  const parsed = toolBlock.input;
   const timezone = isValidTimeZone(parsed.timezone) ? parsed.timezone : null;
 
   return {
