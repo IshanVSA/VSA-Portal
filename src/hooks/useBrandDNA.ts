@@ -142,7 +142,28 @@ export function useBrandDNA(clinicId: string | undefined) {
     },
   });
 
+  const localityFetch = useMutation({
+    mutationFn: async () => {
+      if (!clinicId) throw new Error("No clinic selected");
+      const { data, error } = await supabase.functions.invoke("locality-fetch", {
+        body: { clinic_id: clinicId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["brand-dna", clinicId] });
+      toast.success("Locality fetch complete", {
+        description: `Neighbourhood: ${data?.locality?.neighbourhood || "unknown"} — ${data?.locality?.confidence || "unknown"} confidence`,
+      });
+    },
+    onError: (error: Error) => {
+      toast.error("Locality fetch failed", { description: error.message });
+    },
+  });
+
   const isCompleted = dna?.status === "completed" || dna?.status === "synthesized";
 
-  return { dna, isLoading, upsertDNA, isCompleted, extractWebsite, mineReviews, synthesizeDNA };
+  return { dna, isLoading, upsertDNA, isCompleted, extractWebsite, mineReviews, synthesizeDNA, localityFetch };
 }

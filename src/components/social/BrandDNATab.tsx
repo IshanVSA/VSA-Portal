@@ -8,6 +8,7 @@ import {
   Stethoscope, Building, Star, MessageSquareQuote, Fingerprint,
   TrendingUp, Sparkles, Shield, Scale, BookOpen, Target, Ban,
   Users, Camera, CalendarClock, CheckSquare, AlertTriangle,
+  MapPin, TreePine, Home, Car,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -49,7 +50,7 @@ interface Props {
 }
 
 export default function BrandDNATab({ clinicId }: Props) {
-  const { dna, isLoading, extractWebsite, mineReviews, synthesizeDNA } = useBrandDNA(clinicId);
+  const { dna, isLoading, extractWebsite, mineReviews, synthesizeDNA, localityFetch } = useBrandDNA(clinicId);
 
   if (isLoading) {
     return (
@@ -65,6 +66,7 @@ export default function BrandDNATab({ clinicId }: Props) {
   const answeredCount = Object.values(callNotes).filter((v) => v && typeof v === "string" && v.trim()).length;
   const websiteExtraction = additionalFields.website_extraction as Record<string, any> | undefined;
   const reviewMining = additionalFields.review_mining as Record<string, any> | undefined;
+  const localityData = additionalFields.locality as Record<string, any> | undefined;
   const synthesizedProfile = (dna?.synthesized_profile || {}) as Record<string, any>;
   const hasSynthesis = synthesizedProfile && Object.keys(synthesizedProfile).length > 0 && synthesizedProfile.voice_fingerprint;
 
@@ -115,6 +117,16 @@ export default function BrandDNATab({ clinicId }: Props) {
           <Button
             variant="outline"
             size="sm"
+            onClick={() => localityFetch.mutate()}
+            disabled={localityFetch.isPending}
+            className="gap-2"
+          >
+            {localityFetch.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />}
+            {localityFetch.isPending ? "Fetching..." : localityData ? "Re-fetch" : "Fetch Locality"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => extractWebsite.mutate()}
             disabled={extractWebsite.isPending}
             className="gap-2"
@@ -133,6 +145,9 @@ export default function BrandDNATab({ clinicId }: Props) {
 
       {/* Layer 2: Review Mining */}
       <ReviewMiningCard data={reviewMining} />
+
+      {/* Locality Data */}
+      <LocalityCard data={localityData} />
 
       {/* No DNA */}
       {!dna && !websiteExtraction && !reviewMining && (
@@ -686,6 +701,118 @@ function ReviewMiningCard({ data }: { data: Record<string, any> | undefined }) {
                 </div>
               )}
             </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ── Locality Card ── */
+function LocalityCard({ data }: { data: Record<string, any> | undefined }) {
+  if (!data) return null;
+  return (
+    <Card className="border-emerald-500/20 bg-emerald-500/5">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-emerald-600" />
+            Locality — Neighbourhood Profile
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            {data.confidence && (
+              <Badge variant={data.confidence === "high" ? "default" : data.confidence === "medium" ? "secondary" : "destructive"}>
+                {data.confidence} confidence
+              </Badge>
+            )}
+            {data.fetched_at && (
+              <span className="text-xs text-muted-foreground">
+                {format(new Date(data.fetched_at), "MMM d, yyyy h:mm a")}
+              </span>
+            )}
+          </div>
+        </div>
+        {data.neighbourhood && (
+          <p className="text-xs text-muted-foreground mt-1">
+            {data.neighbourhood}{data.formatted_address ? ` — ${data.formatted_address}` : ""}
+          </p>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-2">
+          {data.housing_character && (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Home className="h-3 w-3" /> Housing Character</p>
+              <p className="text-sm">{data.housing_character}</p>
+            </div>
+          )}
+          {data.commuter_profile && (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Car className="h-3 w-3" /> Commuter Profile</p>
+              <p className="text-sm">{data.commuter_profile}</p>
+            </div>
+          )}
+        </div>
+
+        {data.local_trails_and_parks?.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><TreePine className="h-3 w-3" /> Trails & Parks ({data.local_trails_and_parks.length})</p>
+            <div className="flex flex-wrap gap-1.5">
+              {data.local_trails_and_parks.map((p: string, i: number) => (
+                <Badge key={i} variant="secondary" className="text-xs">{p}</Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {data.wildlife_profile?.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">🦌 Local Wildlife</p>
+            <div className="flex flex-wrap gap-1.5">
+              {data.wildlife_profile.map((w: string, i: number) => (
+                <Badge key={i} variant="outline" className="text-xs">{w}</Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {data.cultural_communities?.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Users className="h-3 w-3" /> Cultural Communities</p>
+            <div className="flex flex-wrap gap-1.5">
+              {data.cultural_communities.map((c: string, i: number) => (
+                <Badge key={i} variant="outline" className="text-xs">{c}</Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {data.community_anchors?.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Building className="h-3 w-3" /> Community Anchors</p>
+            <div className="flex flex-wrap gap-1.5">
+              {data.community_anchors.map((a: string, i: number) => (
+                <Badge key={i} variant="secondary" className="text-xs">{a}</Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {data.local_landmarks?.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" /> Local Landmarks</p>
+            <div className="flex flex-wrap gap-1.5">
+              {data.local_landmarks.map((l: string, i: number) => (
+                <Badge key={i} variant="outline" className="text-xs">{l}</Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {data.seasonal_notes && (
+          <div className="space-y-1 pt-2 border-t border-border/50">
+            <p className="text-xs font-medium text-muted-foreground">🌤️ Seasonal Notes</p>
+            <p className="text-sm text-muted-foreground">{data.seasonal_notes}</p>
           </div>
         )}
       </CardContent>
