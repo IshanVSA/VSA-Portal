@@ -64,7 +64,7 @@ export default function SocialMedia() {
   const showDNAGate = isClient && !dnaLoading && !dnaCompleted && !isLocked;
 
   const visibleTabs = isClient
-    ? baseTabs.filter(t => ["overview", "requests", "tickets"].includes(t.value))
+    ? [...baseTabs.filter(t => ["overview", "requests", "tickets"].includes(t.value)), contentReviewTab]
     : [...baseTabs, generationTab, dnaTab, ...(isStaff ? [chatTab] : [])];
 
   const handleTabChange = (value: string) => {
