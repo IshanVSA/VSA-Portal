@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Share2, LayoutDashboard, FileCheck, CalendarDays, ClipboardList, BarChart3, Ticket, Upload, MessageSquare } from "lucide-react";
+import { Share2, LayoutDashboard, FileCheck, CalendarDays, ClipboardList, BarChart3, Ticket, Upload, MessageSquare, Dna } from "lucide-react";
 import { SocialOverview } from "@/components/social/SocialOverview";
 import { lazy, Suspense } from "react";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
@@ -15,11 +15,14 @@ import { useClinicServiceAccess } from "@/hooks/useClinicServiceAccess";
 import { DepartmentAccessLocked } from "@/components/department/DepartmentAccessLocked";
 import { DepartmentChat } from "@/components/department/DepartmentChat";
 import { useDepartmentChatUnread } from "@/hooks/useDepartmentChatUnread";
+import { useBrandDNA } from "@/hooks/useBrandDNA";
+import { BrandDNAForm } from "@/components/social/BrandDNAForm";
 
 const ContentRequestsContent = lazy(() => import("@/components/social/ContentRequestsContent"));
 const ContentCalendarContent = lazy(() => import("@/components/social/ContentCalendarContent"));
 const IntakeFormsContent = lazy(() => import("@/components/social/IntakeFormsContent"));
 const AnalyticsContent = lazy(() => import("@/components/social/AnalyticsContent"));
+const BrandDNATab = lazy(() => import("@/components/social/BrandDNATab"));
 
 const TabFallback = () => (
   <div className="py-12 flex items-center justify-center">
@@ -39,6 +42,7 @@ const baseTabs = [
   { value: "uploads", label: "Uploads", icon: Upload },
 ];
 const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
+const dnaTab = { value: "brand-dna", label: "Brand DNA", icon: Dna };
 
 export default function SocialMedia() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -46,10 +50,18 @@ export default function SocialMedia() {
   const { clinics, selectedClinic, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
   const currentTab = searchParams.get("tab") || "overview";
   const { isLocked, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "social_media", clinicsLoading);
+  const { dna, isLoading: dnaLoading, isCompleted: dnaCompleted } = useBrandDNA(selectedClinicId);
 
   const isStaff = role === "admin" || role === "concierge";
+  const isClient = role === "client";
   const { unreadCount, markAsRead } = useDepartmentChatUnread("social_media", selectedClinicId);
-  const visibleTabs = role === "client" ? baseTabs.filter(t => ["overview", "requests", "tickets"].includes(t.value)) : [...baseTabs, ...(isStaff ? [chatTab] : [])];
+
+  // Client gate: if DNA not completed, show the form instead
+  const showDNAGate = isClient && !dnaLoading && !dnaCompleted && !isLocked;
+
+  const visibleTabs = isClient
+    ? baseTabs.filter(t => ["overview", "requests", "tickets"].includes(t.value))
+    : [...baseTabs, dnaTab, ...(isStaff ? [chatTab] : [])];
 
   const handleTabChange = (value: string) => {
     setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", value); return next; }, { replace: true });
@@ -74,13 +86,22 @@ export default function SocialMedia() {
         </div>
 
         <AnimatePresence mode="wait">
-          {accessLoading ? (
+          {accessLoading || dnaLoading ? (
             <motion.div key="skeleton" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
               <DashboardSkeleton />
             </motion.div>
           ) : isLocked ? (
             <motion.div key="locked" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
               <DepartmentAccessLocked clinicName={selectedClinicName} departmentName="Social Media" />
+            </motion.div>
+          ) : showDNAGate ? (
+            <motion.div key="dna-gate" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+              <BrandDNAForm
+                clinicId={selectedClinicId!}
+                onComplete={() => {
+                  // DNA submitted, the query will refetch and gate will disappear
+                }}
+              />
             </motion.div>
           ) : (
             <motion.div key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
@@ -107,7 +128,12 @@ export default function SocialMedia() {
                 <TabsContent value="intake" className="mt-4"><Suspense fallback={<TabFallback />}><IntakeFormsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="analytics" className="mt-4"><Suspense fallback={<TabFallback />}><AnalyticsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="social_media" clinicId={selectedClinicId} /></TabsContent>
-                {isStaff && <TabsContent value="chat" className="mt-4"><DepartmentChat department="social_media" clinicId={selectedClinicId} onVisible={markAsRead} /></TabsContent>}
+                {isStaff && (
+                  <>
+                    <TabsContent value="brand-dna" className="mt-4"><Suspense fallback={<TabFallback />}><BrandDNATab clinicId={selectedClinicId} /></Suspense></TabsContent>
+                    <TabsContent value="chat" className="mt-4"><DepartmentChat department="social_media" clinicId={selectedClinicId} onVisible={markAsRead} /></TabsContent>
+                  </>
+                )}
               </Tabs>
             </motion.div>
           )}
