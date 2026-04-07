@@ -121,7 +121,28 @@ export function useBrandDNA(clinicId: string | undefined) {
     },
   });
 
+  const synthesizeDNA = useMutation({
+    mutationFn: async () => {
+      if (!clinicId) throw new Error("No clinic selected");
+      const { data, error } = await supabase.functions.invoke("synthesize-dna", {
+        body: { clinic_id: clinicId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["brand-dna", clinicId] });
+      toast.success("DNA Synthesis complete", {
+        description: `Completeness score: ${data?.profile?.completeness_score || 0}%`,
+      });
+    },
+    onError: (error: Error) => {
+      toast.error("DNA Synthesis failed", { description: error.message });
+    },
+  });
+
   const isCompleted = dna?.status === "completed" || dna?.status === "synthesized";
 
-  return { dna, isLoading, upsertDNA, isCompleted, extractWebsite, mineReviews };
+  return { dna, isLoading, upsertDNA, isCompleted, extractWebsite, mineReviews, synthesizeDNA };
 }

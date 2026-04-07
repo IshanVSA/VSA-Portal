@@ -3,7 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Dna, CheckCircle, AlertCircle, Clock, Globe, RefreshCw, User, Stethoscope, Building, Star, MessageSquareQuote, Fingerprint, TrendingUp } from "lucide-react";
+import {
+  Dna, CheckCircle, AlertCircle, Clock, Globe, RefreshCw, User,
+  Stethoscope, Building, Star, MessageSquareQuote, Fingerprint,
+  TrendingUp, Sparkles, Shield, Scale, BookOpen, Target, Ban,
+  Users, Camera, CalendarClock, CheckSquare, AlertTriangle,
+} from "lucide-react";
 import { format } from "date-fns";
 
 const QUESTION_LABELS: Record<string, string> = {
@@ -44,7 +49,7 @@ interface Props {
 }
 
 export default function BrandDNATab({ clinicId }: Props) {
-  const { dna, isLoading, extractWebsite, mineReviews } = useBrandDNA(clinicId);
+  const { dna, isLoading, extractWebsite, mineReviews, synthesizeDNA } = useBrandDNA(clinicId);
 
   if (isLoading) {
     return (
@@ -60,6 +65,8 @@ export default function BrandDNATab({ clinicId }: Props) {
   const answeredCount = Object.values(callNotes).filter((v) => v && typeof v === "string" && v.trim()).length;
   const websiteExtraction = additionalFields.website_extraction as Record<string, any> | undefined;
   const reviewMining = additionalFields.review_mining as Record<string, any> | undefined;
+  const synthesizedProfile = (dna?.synthesized_profile || {}) as Record<string, any>;
+  const hasSynthesis = synthesizedProfile && Object.keys(synthesizedProfile).length > 0 && synthesizedProfile.voice_fingerprint;
 
   return (
     <div className="space-y-6">
@@ -75,12 +82,26 @@ export default function BrandDNATab({ clinicId }: Props) {
               <div className="flex items-center gap-2 mt-0.5">
                 <StatusIcon status={dna.status} />
                 <span className="text-xs text-muted-foreground capitalize">{dna.status}</span>
-                <ScoreBadge score={Math.round((answeredCount / 10) * 100)} />
+                <ScoreBadge score={dna.completeness_score || Math.round((answeredCount / 10) * 100)} />
               </div>
             )}
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => synthesizeDNA.mutate()}
+            disabled={synthesizeDNA.isPending || !dna}
+            className="gap-2"
+          >
+            {synthesizeDNA.isPending ? (
+              <RefreshCw className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            {synthesizeDNA.isPending ? "Synthesizing..." : hasSynthesis ? "Re-synthesize" : "Synthesize DNA"}
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -88,12 +109,8 @@ export default function BrandDNATab({ clinicId }: Props) {
             disabled={mineReviews.isPending}
             className="gap-2"
           >
-            {mineReviews.isPending ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
-            ) : (
-              <Star className="h-4 w-4" />
-            )}
-            {mineReviews.isPending ? "Mining..." : reviewMining ? "Re-mine Reviews" : "Mine Google Reviews"}
+            {mineReviews.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Star className="h-4 w-4" />}
+            {mineReviews.isPending ? "Mining..." : reviewMining ? "Re-mine" : "Mine Reviews"}
           </Button>
           <Button
             variant="outline"
@@ -102,15 +119,14 @@ export default function BrandDNATab({ clinicId }: Props) {
             disabled={extractWebsite.isPending}
             className="gap-2"
           >
-            {extractWebsite.isPending ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
-            ) : (
-              <Globe className="h-4 w-4" />
-            )}
-            {extractWebsite.isPending ? "Extracting..." : websiteExtraction ? "Re-extract from Website" : "Extract from Website"}
+            {extractWebsite.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
+            {extractWebsite.isPending ? "Extracting..." : websiteExtraction ? "Re-extract" : "Extract Website"}
           </Button>
         </div>
       </div>
+
+      {/* Synthesized Profile */}
+      {hasSynthesis && <SynthesizedProfileCard profile={synthesizedProfile} />}
 
       {/* Layer 1: Website Extraction */}
       <WebsiteExtractionCard data={websiteExtraction} />
@@ -118,18 +134,18 @@ export default function BrandDNATab({ clinicId }: Props) {
       {/* Layer 2: Review Mining */}
       <ReviewMiningCard data={reviewMining} />
 
-      {/* No DNA and no extraction */}
+      {/* No DNA */}
       {!dna && !websiteExtraction && !reviewMining && (
         <Card>
           <CardContent className="py-12 text-center">
             <Dna className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
             <p className="text-muted-foreground">No Brand DNA has been submitted for this clinic yet.</p>
-            <p className="text-xs text-muted-foreground mt-1">Click "Extract from Website" or "Mine Google Reviews" to auto-fill Layers 1 & 2, or wait for the client to complete the questionnaire.</p>
+            <p className="text-xs text-muted-foreground mt-1">Click "Extract Website" or "Mine Reviews" to auto-fill Layers 1 & 2, or wait for the client to complete the questionnaire.</p>
           </CardContent>
         </Card>
       )}
 
-      {/* Layer 3: Q&A Cards (Collection Call) */}
+      {/* Layer 3: Q&A Cards */}
       {dna && (
         <>
           <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
@@ -151,7 +167,6 @@ export default function BrandDNATab({ clinicId }: Props) {
             ))}
           </div>
 
-          {/* Additional Fields */}
           {Object.entries(ADDITIONAL_LABELS).some(([key]) => {
             const val = additionalFields[key];
             return val && typeof val === "string" && val.trim();
@@ -179,6 +194,252 @@ export default function BrandDNATab({ clinicId }: Props) {
         </>
       )}
     </div>
+  );
+}
+
+/* ── Synthesized Profile Card ── */
+function SynthesizedProfileCard({ profile }: { profile: Record<string, any> }) {
+  const score = profile.completeness_score || 0;
+  const scoreColor = score >= 90 ? "text-green-600" : score >= 70 ? "text-amber-600" : "text-red-600";
+  const scoreLabel = score >= 90 ? "Full Generation Ready" : score >= 70 ? "Generate with Warnings" : score >= 50 ? "Limited Generation" : "Do Not Activate";
+
+  return (
+    <Card className="border-violet-500/20 bg-violet-500/5">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-violet-500" />
+            Synthesized DNA Profile
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <div className="text-right">
+              <span className={`text-lg font-bold ${scoreColor}`}>{Math.round(score)}%</span>
+              <p className="text-xs text-muted-foreground">{scoreLabel}</p>
+            </div>
+            {profile.synthesized_at && (
+              <span className="text-xs text-muted-foreground">
+                {format(new Date(profile.synthesized_at), "MMM d, yyyy h:mm a")}
+              </span>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        {/* Voice Fingerprint */}
+        {profile.voice_fingerprint?.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <Fingerprint className="h-3 w-3" /> Voice Fingerprint ({profile.voice_fingerprint.length} phrases)
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {profile.voice_fingerprint.map((phrase: string, i: number) => (
+                <Badge key={i} variant="outline" className="text-xs font-normal italic border-violet-300">"{phrase}"</Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Narrative Anchor */}
+        {profile.narrative_anchor && (
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <BookOpen className="h-3 w-3" /> Narrative Anchor
+            </p>
+            <p className="text-sm italic text-foreground bg-violet-500/5 rounded-lg p-3 border border-violet-200/30">
+              "{profile.narrative_anchor}"
+            </p>
+          </div>
+        )}
+
+        {/* Differentiator */}
+        {profile.clinic_differentiator && (
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <Target className="h-3 w-3" /> Clinic Differentiator
+              {profile.differentiator_validated !== undefined && (
+                <Badge variant={profile.differentiator_validated ? "default" : "destructive"} className="ml-1 text-[10px]">
+                  {profile.differentiator_validated ? "✓ Review-validated" : "⚠ Not validated"}
+                </Badge>
+              )}
+            </p>
+            <p className="text-sm">{profile.clinic_differentiator}</p>
+          </div>
+        )}
+
+        {/* Grid: Governing Body, Hospital Type, Stat Holiday */}
+        <div className="grid gap-4 md:grid-cols-3">
+          {profile.governing_body && (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Scale className="h-3 w-3" /> Governing Body</p>
+              <p className="text-sm">{profile.governing_body}</p>
+              {profile.jurisdiction && <p className="text-xs text-muted-foreground">{profile.jurisdiction}</p>}
+            </div>
+          )}
+          {profile.hospital_type && (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Building className="h-3 w-3" /> Hospital Type</p>
+              <Badge variant="secondary">{profile.hospital_type.replace("_", " ")}</Badge>
+              {profile.hospital_type_reasoning && <p className="text-xs text-muted-foreground">{profile.hospital_type_reasoning}</p>}
+            </div>
+          )}
+          {profile.stat_holiday_protocol && (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><CalendarClock className="h-3 w-3" /> Stat Holiday Protocol</p>
+              <Badge variant="outline">{profile.stat_holiday_protocol.replace(/_/g, " ")}</Badge>
+            </div>
+          )}
+        </div>
+
+        {/* Grid: Owner, Target, Growth, Consent */}
+        <div className="grid gap-4 md:grid-cols-2">
+          {profile.founding_story && (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground">Founding Story</p>
+              <p className="text-sm">{profile.founding_story}</p>
+            </div>
+          )}
+          {profile.doctors_voice_topic && (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground">Doctor's Voice Topic</p>
+              <p className="text-sm">{profile.doctors_voice_topic}</p>
+            </div>
+          )}
+          {profile.target_client_profile && (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Users className="h-3 w-3" /> Target Client</p>
+              <p className="text-sm">{profile.target_client_profile}</p>
+            </div>
+          )}
+          {profile.growth_priority && (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Growth Priority</p>
+              <p className="text-sm">{profile.growth_priority}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Owner Presence + Consent */}
+        <div className="grid gap-4 md:grid-cols-3">
+          {profile.owner_presence && (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground">Owner Presence</p>
+              <Badge variant="outline">{profile.owner_presence}</Badge>
+            </div>
+          )}
+          {profile.patient_consent && (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Camera className="h-3 w-3" /> Patient Consent</p>
+              <Badge variant={profile.patient_consent === "YES" ? "default" : profile.patient_consent === "CONDITIONAL" ? "secondary" : "destructive"}>
+                {profile.patient_consent}
+              </Badge>
+            </div>
+          )}
+        </div>
+
+        {/* Content Exclusions */}
+        {profile.content_exclusions?.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Ban className="h-3 w-3" /> Content Exclusions</p>
+            <div className="flex flex-wrap gap-1.5">
+              {profile.content_exclusions.map((ex: string, i: number) => (
+                <Badge key={i} variant="destructive" className="text-xs font-normal">{ex}</Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Community Connections */}
+        {profile.community_connections?.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Users className="h-3 w-3" /> Community Connections</p>
+            <div className="flex flex-wrap gap-2">
+              {profile.community_connections.map((c: any, i: number) => (
+                <Badge key={i} variant="outline" className="text-xs">{c.name}{c.relationship ? ` — ${c.relationship}` : ""}</Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Review Themes */}
+        {profile.google_review_themes?.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Star className="h-3 w-3" /> Review Themes</p>
+            <div className="flex flex-wrap gap-1.5">
+              {profile.google_review_themes.map((t: string, i: number) => (
+                <Badge key={i} variant="secondary" className="text-xs">{t}</Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Confidence Flags */}
+        {profile.confidence_flags?.length > 0 && (
+          <div className="space-y-2 pt-3 border-t border-border/50">
+            <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3 text-amber-500" /> Confidence Flags ({profile.confidence_flags.length})
+            </p>
+            <div className="space-y-2">
+              {profile.confidence_flags.map((flag: any, i: number) => (
+                <div key={i} className="rounded-lg border border-amber-200/50 bg-amber-50/30 p-3 text-sm">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge variant={flag.severity === "high" ? "destructive" : flag.severity === "medium" ? "secondary" : "outline"} className="text-[10px]">
+                      {flag.severity || "medium"}
+                    </Badge>
+                    <span className="font-medium text-xs">{flag.field}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{flag.issue}</p>
+                  <p className="text-xs text-muted-foreground mt-1">→ {flag.resolution}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Vedant Review Checklist */}
+        {profile.vedant_review_checklist?.length > 0 && (
+          <div className="space-y-2 pt-3 border-t border-border/50">
+            <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+              <CheckSquare className="h-3 w-3 text-violet-500" /> Vedant Review Checklist
+            </p>
+            <div className="space-y-1.5">
+              {profile.vedant_review_checklist.map((item: any, i: number) => (
+                <div key={i} className="flex items-start gap-2 text-sm">
+                  <Badge variant={item.priority === "critical" ? "destructive" : item.priority === "high" ? "secondary" : "outline"} className="text-[10px] mt-0.5 shrink-0">
+                    {item.priority}
+                  </Badge>
+                  <span className="text-xs">{item.item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Field Scores (collapsible summary) */}
+        {profile.field_scores?.length > 0 && (
+          <details className="pt-3 border-t border-border/50">
+            <summary className="text-xs font-semibold text-muted-foreground cursor-pointer hover:text-foreground">
+              Field-by-Field Scoring ({profile.field_scores.filter((f: any) => f.status === "captured").length}/{profile.field_scores.length} captured)
+            </summary>
+            <div className="mt-2 grid gap-1">
+              {profile.field_scores.map((f: any, i: number) => (
+                <div key={i} className="flex items-center justify-between text-xs py-1 border-b border-border/30 last:border-0">
+                  <span className="text-muted-foreground">{f.field}</span>
+                  <div className="flex items-center gap-2">
+                    {f.source && <span className="text-[10px] text-muted-foreground/60">{f.source}</span>}
+                    <Badge
+                      variant={f.status === "captured" ? "default" : f.status === "partially_captured" ? "secondary" : "destructive"}
+                      className="text-[10px]"
+                    >
+                      {f.status.replace("_", " ")} ({f.weighted_score}/{f.weight})
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -341,7 +602,6 @@ function ReviewMiningCard({ data }: { data: Record<string, any> | undefined }) {
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Top Themes */}
         {data.top_themes?.length > 0 && (
           <div className="space-y-3">
             <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
@@ -366,8 +626,6 @@ function ReviewMiningCard({ data }: { data: Record<string, any> | undefined }) {
             </div>
           </div>
         )}
-
-        {/* Voice Fingerprint Seeds */}
         {data.voice_fingerprint_seeds?.length > 0 && (
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
@@ -380,8 +638,6 @@ function ReviewMiningCard({ data }: { data: Record<string, any> | undefined }) {
             </div>
           </div>
         )}
-
-        {/* Differentiator Signals */}
         {data.differentiator_signals?.length > 0 && (
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
@@ -400,8 +656,6 @@ function ReviewMiningCard({ data }: { data: Record<string, any> | undefined }) {
             </div>
           </div>
         )}
-
-        {/* Sentiment Summary */}
         {data.sentiment_summary && (
           <div className="space-y-2 pt-2 border-t border-border/50">
             <p className="text-xs font-medium text-muted-foreground">Sentiment Breakdown</p>

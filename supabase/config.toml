@@ -77,3 +77,6 @@ verify_jwt = false
 
 [functions.mine-reviews]
 verify_jwt = false
+
+[functions.synthesize-dna]
+verify_jwt = false
