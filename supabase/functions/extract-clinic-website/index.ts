@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
+const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const MAX_PAGES = 5;
 const MAX_PAGE_TEXT_LENGTH = 6000;
 const MAX_COMBINED_TEXT_LENGTH = 18000;
