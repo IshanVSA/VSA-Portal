@@ -44,6 +44,7 @@ const baseTabs = [
 ];
 const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
 const dnaTab = { value: "brand-dna", label: "Brand DNA", icon: Dna };
+const generationTab = { value: "generation", label: "Generate", icon: Sparkles };
 
 export default function SocialMedia() {
   const [searchParams, setSearchParams] = useSearchParams();
