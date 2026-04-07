@@ -44,8 +44,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    }
-
     const binaryStr = atob(pdfBase64);
     const bytes = new Uint8Array(binaryStr.length);
     for (let i = 0; i < binaryStr.length; i++) {
