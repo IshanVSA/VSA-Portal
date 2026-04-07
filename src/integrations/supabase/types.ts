@@ -339,6 +339,136 @@ export type Database = {
           },
         ]
       }
+      clinic_monthly_signals: {
+        Row: {
+          active_promotions: Json | null
+          campaign_month_number: number | null
+          client_asset_post_count: number | null
+          client_content_preference: Json | null
+          clinic_id: string
+          clinic_news_this_month: string | null
+          community_events: Json | null
+          created_at: string
+          currency: string | null
+          facebook_specific_this_month: string | null
+          id: string
+          local_alerts: Json | null
+          local_news: Json | null
+          month_year: string
+          monthly_budget: number | null
+          seasonal_topics: Json | null
+          statutory_holidays: Json | null
+          stock_post_count: number | null
+          top_performer_last_month: Json | null
+          updated_at: string
+        }
+        Insert: {
+          active_promotions?: Json | null
+          campaign_month_number?: number | null
+          client_asset_post_count?: number | null
+          client_content_preference?: Json | null
+          clinic_id: string
+          clinic_news_this_month?: string | null
+          community_events?: Json | null
+          created_at?: string
+          currency?: string | null
+          facebook_specific_this_month?: string | null
+          id?: string
+          local_alerts?: Json | null
+          local_news?: Json | null
+          month_year: string
+          monthly_budget?: number | null
+          seasonal_topics?: Json | null
+          statutory_holidays?: Json | null
+          stock_post_count?: number | null
+          top_performer_last_month?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          active_promotions?: Json | null
+          campaign_month_number?: number | null
+          client_asset_post_count?: number | null
+          client_content_preference?: Json | null
+          clinic_id?: string
+          clinic_news_this_month?: string | null
+          community_events?: Json | null
+          created_at?: string
+          currency?: string | null
+          facebook_specific_this_month?: string | null
+          id?: string
+          local_alerts?: Json | null
+          local_news?: Json | null
+          month_year?: string
+          monthly_budget?: number | null
+          seasonal_topics?: Json | null
+          statutory_holidays?: Json | null
+          stock_post_count?: number | null
+          top_performer_last_month?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_monthly_signals_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinic_promotions: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          created_by: string | null
+          end_date: string
+          exclusions: string
+          governing_body_confirmed: boolean | null
+          id: string
+          inclusions: string
+          offer_name: string
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          created_by?: string | null
+          end_date: string
+          exclusions?: string
+          governing_body_confirmed?: boolean | null
+          id?: string
+          inclusions?: string
+          offer_name: string
+          start_date: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          created_by?: string | null
+          end_date?: string
+          exclusions?: string
+          governing_body_confirmed?: boolean | null
+          id?: string
+          inclusions?: string
+          offer_name?: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_promotions_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_team_members: {
         Row: {
           clinic_id: string
@@ -373,6 +503,7 @@ export type Database = {
           address: string | null
           ai_seo_enabled: boolean
           assigned_concierge_id: string | null
+          campaign_start_date: string | null
           clinic_name: string
           created_at: string
           email: string | null
@@ -382,6 +513,7 @@ export type Database = {
           logo_url: string | null
           owner_user_id: string | null
           phone: string | null
+          profile_status: string | null
           seo_enabled: boolean
           social_media_enabled: boolean
           status: string
@@ -394,6 +526,7 @@ export type Database = {
           address?: string | null
           ai_seo_enabled?: boolean
           assigned_concierge_id?: string | null
+          campaign_start_date?: string | null
           clinic_name: string
           created_at?: string
           email?: string | null
@@ -403,6 +536,7 @@ export type Database = {
           logo_url?: string | null
           owner_user_id?: string | null
           phone?: string | null
+          profile_status?: string | null
           seo_enabled?: boolean
           social_media_enabled?: boolean
           status?: string
@@ -415,6 +549,7 @@ export type Database = {
           address?: string | null
           ai_seo_enabled?: boolean
           assigned_concierge_id?: string | null
+          campaign_start_date?: string | null
           clinic_name?: string
           created_at?: string
           email?: string | null
@@ -424,6 +559,7 @@ export type Database = {
           logo_url?: string | null
           owner_user_id?: string | null
           phone?: string | null
+          profile_status?: string | null
           seo_enabled?: boolean
           social_media_enabled?: boolean
           status?: string
@@ -1379,6 +1515,107 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sm2_generations: {
+        Row: {
+          approval_status: string
+          approved_at: string | null
+          auto_approved_at: string | null
+          client_feedback: string | null
+          clinic_id: string
+          created_at: string
+          dna_completeness_score: number | null
+          email_day0_sent: boolean | null
+          email_day3_sent: boolean | null
+          email_day5_sent: boolean | null
+          generation_confidence_score: number | null
+          html_file_path: string | null
+          id: string
+          model_used: string | null
+          month_year: string
+          sent_to_client_at: string | null
+          token_count: number | null
+          triggered_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          auto_approved_at?: string | null
+          client_feedback?: string | null
+          clinic_id: string
+          created_at?: string
+          dna_completeness_score?: number | null
+          email_day0_sent?: boolean | null
+          email_day3_sent?: boolean | null
+          email_day5_sent?: boolean | null
+          generation_confidence_score?: number | null
+          html_file_path?: string | null
+          id?: string
+          model_used?: string | null
+          month_year: string
+          sent_to_client_at?: string | null
+          token_count?: number | null
+          triggered_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approval_status?: string
+          approved_at?: string | null
+          auto_approved_at?: string | null
+          client_feedback?: string | null
+          clinic_id?: string
+          created_at?: string
+          dna_completeness_score?: number | null
+          email_day0_sent?: boolean | null
+          email_day3_sent?: boolean | null
+          email_day5_sent?: boolean | null
+          generation_confidence_score?: number | null
+          html_file_path?: string | null
+          id?: string
+          model_used?: string | null
+          month_year?: string
+          sent_to_client_at?: string | null
+          token_count?: number | null
+          triggered_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sm2_generations_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sm2_system_prompts: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          prompt_text: string
+          version: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          prompt_text: string
+          version: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          prompt_text?: string
+          version?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
