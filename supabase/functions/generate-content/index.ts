@@ -131,27 +131,34 @@ function calculateTotalPosts(intake: any): number {
   return perWeek * 4;
 }
 
-async function callOpenAI(apiKey: string, systemPrompt: string, userPrompt: string): Promise<any> {
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+async function callAnthropic(apiKey: string, systemPrompt: string, userPrompt: string): Promise<any> {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    },
     body: JSON.stringify({
-      model: "gpt-4o-mini",
+      model: "claude-opus-4-6",
+      max_tokens: 8192,
+      system: systemPrompt,
       messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
+        { role: "user", content: userPrompt + "\n\nReturn valid JSON only, no markdown." },
       ],
-      temperature: 0.7,
-      response_format: { type: "json_object" },
     }),
   });
   if (!res.ok) {
     const txt = await res.text();
-    throw new Error(`OpenAI error ${res.status}: ${txt}`);
+    throw new Error(`Anthropic error ${res.status}: ${txt}`);
   }
   const data = await res.json();
-  const content = data.choices?.[0]?.message?.content;
-  return JSON.parse(content);
+  const textBlock = data.content?.find((b: any) => b.type === "text");
+  let raw = textBlock?.text?.trim() || "";
+  if (raw.startsWith("```")) {
+    raw = raw.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
+  }
+  return JSON.parse(raw);
 }
 
 Deno.serve(async (req) => {

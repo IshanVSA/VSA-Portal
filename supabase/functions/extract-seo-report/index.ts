@@ -139,27 +139,29 @@ EXTENDED DATA (put everything else in "extended_data" object):
 Only include fields in extended_data that have actual data in the PDF. Use 0 for missing numbers, [] for missing arrays, null for missing objects.
 Always return valid JSON only, no markdown or explanation.`;
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not configured");
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Extract ALL SEO metrics from this report:\n\n${truncated}` },
-        ],
+        model: "claude-opus-4-6",
         max_tokens: 8192,
-        temperature: 0,
-        response_format: { type: "json_object" },
+        system: systemPrompt,
+        messages: [
+          { role: "user", content: `Extract ALL SEO metrics from this report:\n\n${truncated}\n\nReturn valid JSON only, no markdown or explanation.` },
+        ],
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("OpenAI API error:", response.status, errorText);
+      console.error("Anthropic API error:", response.status, errorText);
       return new Response(
         JSON.stringify({ error: "Failed to extract data from PDF" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -167,16 +169,20 @@ Always return valid JSON only, no markdown or explanation.`;
     }
 
     const result = await response.json();
-    const content = result.choices?.[0]?.message?.content;
+    const textBlock = result.content?.find((b: any) => b.type === "text");
 
-    if (!content) {
+    if (!textBlock?.text) {
       return new Response(
         JSON.stringify({ error: "No content returned from AI" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const extracted = JSON.parse(content);
+    let rawJson = textBlock.text.trim();
+    if (rawJson.startsWith("```")) {
+      rawJson = rawJson.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
+    }
+    const extracted = JSON.parse(rawJson);
 
     return new Response(JSON.stringify(extracted), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
