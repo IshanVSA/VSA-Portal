@@ -362,6 +362,19 @@ export default function Clinics() {
     setDialogOpen(false);
     resetAddForm();
     fetchClinics();
+
+    // Auto-run Layer 1 website extraction if a website was provided
+    if (trimmedWebsite && clinicData?.id) {
+      supabase.functions.invoke("extract-brand-dna", {
+        body: { clinic_id: clinicData.id },
+      }).then(({ error: extractErr }) => {
+        if (extractErr) {
+          console.warn("Auto website extraction failed:", extractErr);
+        } else {
+          toast.success("Website Brand DNA extracted automatically");
+        }
+      });
+    }
   };
 
   const openEditDialog = (clinic: Clinic) => {
