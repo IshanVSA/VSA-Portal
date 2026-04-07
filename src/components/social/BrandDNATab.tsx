@@ -49,7 +49,7 @@ interface Props {
 }
 
 export default function BrandDNATab({ clinicId }: Props) {
-  const { dna, isLoading, extractWebsite, mineReviews, synthesizeDNA } = useBrandDNA(clinicId);
+  const { dna, isLoading, extractWebsite, mineReviews, synthesizeDNA, localityFetch } = useBrandDNA(clinicId);
 
   if (isLoading) {
     return (
