@@ -250,9 +250,9 @@ Deno.serve(async (req) => {
     const contentRequestId = requestData.id;
 
     // Call OpenAI only
-    const openaiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!openaiKey) {
-      return new Response(JSON.stringify({ error: "OpenAI API key not configured" }), {
+    const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!anthropicKey) {
+      return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -261,20 +261,20 @@ Deno.serve(async (req) => {
     const errors: { model: string; error: string }[] = [];
 
     try {
-      const content = await callOpenAI(openaiKey, systemPrompt, userPrompt);
+      const content = await callAnthropic(anthropicKey, systemPrompt, userPrompt);
       const { data: versionData } = await supabaseAdmin
         .from("content_versions")
         .insert({
           content_request_id: contentRequestId,
-          model_name: "OpenAI",
+          model_name: "Claude Opus 4.6",
           generated_content: content,
         })
         .select()
         .single();
       if (versionData) versions.push(versionData);
     } catch (err: any) {
-      console.error("OpenAI call failed:", err.message);
-      errors.push({ model: "OpenAI", error: err.message });
+      console.error("Anthropic call failed:", err.message);
+      errors.push({ model: "Claude Opus 4.6", error: err.message });
     }
 
     // Don't expose detailed error messages to clients

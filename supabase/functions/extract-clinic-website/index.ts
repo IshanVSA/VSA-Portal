@@ -16,25 +16,21 @@ const requestSchema = z.object({
 });
 
 const extractionTool = {
-  type: "function",
-  function: {
-    name: "extract_clinic_details",
-    description: "Extract the primary clinic's public contact details and timezone from website content.",
-    parameters: {
-      type: "object",
-      properties: {
-        clinic_name: { type: "string" },
-        phone: { type: "string" },
-        email: { type: "string" },
-        address: { type: "string" },
-        website: { type: "string" },
-        timezone: { type: "string", description: "IANA timezone inferred from the clinic address, like America/New_York" },
-        notes: { type: "string" },
-        confidence: { type: "string", enum: ["low", "medium", "high"] },
-      },
-      additionalProperties: false,
-      required: [],
+  name: "extract_clinic_details",
+  description: "Extract the primary clinic's public contact details and timezone from website content.",
+  input_schema: {
+    type: "object",
+    properties: {
+      clinic_name: { type: "string" },
+      phone: { type: "string" },
+      email: { type: "string" },
+      address: { type: "string" },
+      website: { type: "string" },
+      timezone: { type: "string", description: "IANA timezone inferred from the clinic address, like America/New_York" },
+      notes: { type: "string" },
+      confidence: { type: "string", enum: ["low", "medium", "high"] },
     },
+    required: [],
   },
 } as const;
 
