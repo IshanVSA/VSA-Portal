@@ -19,7 +19,7 @@ interface Props {
 export default function ContentGenerationTab({ clinicId }: Props) {
   const { dna } = useBrandDNA(clinicId);
   const { signals, upsertSignals, currentMonth } = useMonthlySignals(clinicId);
-  const { generations, currentGeneration, generate, isLoading } = useSM2Generation(clinicId);
+  const { generations, currentGeneration, generate, sendToClient, isLoading } = useSM2Generation(clinicId);
   const [preflightOpen, setPreflightOpen] = useState(false);
   const [clinicNews, setClinicNews] = useState("");
   const [fbSpecific, setFbSpecific] = useState("");
