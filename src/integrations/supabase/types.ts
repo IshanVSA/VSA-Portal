@@ -211,6 +211,56 @@ export type Database = {
           },
         ]
       }
+      clinic_brand_dna: {
+        Row: {
+          additional_fields: Json
+          call_notes: Json
+          clinic_id: string
+          completeness_score: number
+          confidence_flags: Json
+          created_at: string
+          id: string
+          status: string
+          submitted_by: string | null
+          synthesized_profile: Json
+          updated_at: string
+        }
+        Insert: {
+          additional_fields?: Json
+          call_notes?: Json
+          clinic_id: string
+          completeness_score?: number
+          confidence_flags?: Json
+          created_at?: string
+          id?: string
+          status?: string
+          submitted_by?: string | null
+          synthesized_profile?: Json
+          updated_at?: string
+        }
+        Update: {
+          additional_fields?: Json
+          call_notes?: Json
+          clinic_id?: string
+          completeness_score?: number
+          confidence_flags?: Json
+          created_at?: string
+          id?: string
+          status?: string
+          submitted_by?: string | null
+          synthesized_profile?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_brand_dna_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: true
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_gbp_config: {
         Row: {
           clinic_id: string
