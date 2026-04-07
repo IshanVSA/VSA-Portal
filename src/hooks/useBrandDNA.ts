@@ -96,7 +96,32 @@ export function useBrandDNA(clinicId: string | undefined) {
     },
   });
 
+  const mineReviews = useMutation({
+    mutationFn: async () => {
+      if (!clinicId) throw new Error("No clinic selected");
+      const { data, error } = await supabase.functions.invoke("mine-reviews", {
+        body: { clinic_id: clinicId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["brand-dna", clinicId] });
+      if (data?.skipped) {
+        toast.info("Review mining skipped", { description: data.reason });
+      } else {
+        toast.success("Review mining complete", {
+          description: `Analyzed ${data?.extracted?.review_count || 0} reviews — ${data?.extracted?.confidence || "unknown"} confidence`,
+        });
+      }
+    },
+    onError: (error: Error) => {
+      toast.error("Review mining failed", { description: error.message });
+    },
+  });
+
   const isCompleted = dna?.status === "completed" || dna?.status === "synthesized";
 
-  return { dna, isLoading, upsertDNA, isCompleted, extractWebsite };
+  return { dna, isLoading, upsertDNA, isCompleted, extractWebsite, mineReviews };
 }
