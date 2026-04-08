@@ -177,11 +177,29 @@ export default function Clinics() {
   };
 
   const fetchClinics = async () => {
-    let query = supabase.from("clinics").select("*");
-    if (role === "concierge") query = query.eq("assigned_concierge_id", user?.id);
-    if (role === "client") query = query.eq("owner_user_id", user?.id);
-    const { data } = await query.order("clinic_name", { ascending: true });
-    setClinics(data || []);
+    if (role === "concierge" && user?.id) {
+      // Fetch clinics via both legacy assigned_concierge_id AND clinic_team_members
+      const { data: teamRows } = await (supabase
+        .from("clinic_team_members" as any)
+        .select("clinic_id")
+        .eq("user_id", user.id) as any);
+      const teamClinicIds: string[] = ((teamRows || []) as { clinic_id: string }[]).map(r => r.clinic_id);
+
+      let query = supabase.from("clinics").select("*");
+      if (teamClinicIds.length > 0) {
+        query = query.or(`assigned_concierge_id.eq.${user.id},id.in.(${teamClinicIds.join(",")})`);
+      } else {
+        query = query.eq("assigned_concierge_id", user.id);
+      }
+      const { data } = await query.order("clinic_name", { ascending: true });
+      setClinics(data || []);
+    } else if (role === "client") {
+      const { data } = await supabase.from("clinics").select("*").eq("owner_user_id", user?.id).order("clinic_name", { ascending: true });
+      setClinics(data || []);
+    } else {
+      const { data } = await supabase.from("clinics").select("*").order("clinic_name", { ascending: true });
+      setClinics(data || []);
+    }
     setLoading(false);
   };
 
