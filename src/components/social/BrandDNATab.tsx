@@ -146,6 +146,28 @@ export default function BrandDNATab({ clinicId }: Props) {
       {/* Synthesized Profile */}
       {hasSynthesis && <SynthesizedProfileCard profile={synthesizedProfile} />}
 
+      {/* Admin DNA Profile Card */}
+      {hasSynthesis && (
+        <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+          <AdminDNAProfileCard clinicId={clinicId} />
+        </Suspense>
+      )}
+
+      {/* Posting Schedule */}
+      <Suspense fallback={<Skeleton className="h-32 w-full" />}>
+        <PostingSchedule clinicId={clinicId} />
+      </Suspense>
+
+      {/* Post Limit Tracker */}
+      <Suspense fallback={<Skeleton className="h-16 w-full" />}>
+        <PostLimitTracker clinicId={clinicId} />
+      </Suspense>
+
+      {/* Promotion Module */}
+      <Suspense fallback={<Skeleton className="h-32 w-full" />}>
+        <PromotionModule clinicId={clinicId} jurisdiction={synthesizedProfile?.jurisdiction} />
+      </Suspense>
+
       {/* Layer 1: Website Extraction */}
       <WebsiteExtractionCard data={websiteExtraction} />
 
