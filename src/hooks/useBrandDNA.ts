@@ -149,13 +149,15 @@ export function useBrandDNA(clinicId: string | undefined) {
         body: { clinic_id: clinicId },
       });
       if (error) throw error;
+      if (data?.ok === false) throw new Error(data.error || "Locality fetch failed");
       if (data?.error) throw new Error(data.error);
       return data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["brand-dna", clinicId] });
+      const locality = data?.locality || data;
       toast.success("Locality fetch complete", {
-        description: `Neighbourhood: ${data?.locality?.neighbourhood || "unknown"} — ${data?.locality?.confidence || "unknown"} confidence`,
+        description: `Neighbourhood: ${locality?.neighbourhood || "unknown"} — ${locality?.confidence || "unknown"} confidence`,
       });
     },
     onError: (error: Error) => {
