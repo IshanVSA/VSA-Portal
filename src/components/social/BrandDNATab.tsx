@@ -212,6 +212,80 @@ export default function BrandDNATab({ clinicId }: Props) {
   );
 }
 
+/* ── Improve Score Checklist ── */
+function ImproveScoreChecklist({ profile }: { profile: Record<string, any> }) {
+  const fieldScores: any[] = profile.field_scores || [];
+  if (fieldScores.length === 0) return null;
+
+  // Find fields that aren't fully captured, sorted by weight (biggest impact first)
+  const improvable = fieldScores
+    .filter((f: any) => f.status !== "captured" && f.weight > 0)
+    .sort((a: any, b: any) => (b.weight - b.weighted_score) - (a.weight - a.weighted_score))
+    .slice(0, 5);
+
+  if (improvable.length === 0) return null;
+
+  const actionMap: Record<string, string> = {
+    voice_fingerprint: "Schedule a deeper collection call — ask the owner for specific phrases they repeat to clients",
+    narrative_anchor: "Ask the owner to tell the founding story in their own words during the collection call",
+    clinic_differentiator: "Run Review Mining to cross-validate the owner's stated differentiator",
+    target_client: "Ask Q3 again with specifics: age, pet type, neighbourhood, income level",
+    growth_priority: "Ask the owner which single service they want to grow most this quarter",
+    content_exclusions: "Confirm content no-go topics during collection call (Q7)",
+    community_connections: "Ask about local shelters, rescues, pet stores, dog parks they partner with",
+    owner_presence: "Confirm owner presence level for social media (Q5)",
+    patient_consent: "Get explicit patient photo consent status from the clinic (Q9)",
+    stat_holiday: "Confirm statutory holiday hours protocol (Q10)",
+    google_review_themes: "Run Review Mining to extract real client sentiment themes",
+    doctors_voice_topic: "Ask the doctor: 'What myth do you bust every week?' (Q2)",
+    founding_story: "Get a richer founding story — when, why, personal motivation (Q4)",
+    founding_year: "Check website About page or ask during collection call",
+    neighbourhood: "Run Locality Fetch to auto-populate neighbourhood data",
+    cultural_communities: "Run Locality Fetch to detect nearby cultural communities",
+    local_trails: "Run Locality Fetch to find nearby trails, parks, and wildlife areas",
+    hospital_name: "Verify the official hospital name matches the website",
+    services: "Extract the full service list from the website",
+    hours: "Confirm operating hours from the website or call",
+    about_us: "Extract or write the About Us section",
+    brand_identity: "Define visual brand identity (colors, tone, style)",
+    booking_url: "Add the online booking URL to the clinic profile",
+    phone: "Confirm the main phone number",
+    doctors: "List all veterinarians with their specialties",
+    hospital_type: "Classify as TYPE_1 (24/7), TYPE_2 (emergency hours), or TYPE_3 (general)",
+    governing_body: "Verify provincial/state governing body",
+  };
+
+  return (
+    <div className="rounded-lg border border-amber-300/40 bg-amber-50/20 p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <TrendingUp className="h-4 w-4 text-amber-600" />
+        <p className="text-sm font-semibold text-amber-800">Improve Your Score — Top Actions</p>
+        <Badge variant="outline" className="text-[10px] ml-auto border-amber-300 text-amber-700">
+          +{improvable.reduce((sum: number, f: any) => sum + (f.weight - f.weighted_score), 0)} pts possible
+        </Badge>
+      </div>
+      <div className="space-y-2">
+        {improvable.map((f: any, i: number) => {
+          const gap = f.weight - f.weighted_score;
+          const action = actionMap[f.field] || `Provide missing data for "${f.field}"`;
+          return (
+            <div key={i} className="flex items-start gap-3 text-sm">
+              <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
+                <span className="text-xs font-mono font-bold text-amber-700">+{gap}</span>
+                <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
+              </div>
+              <div>
+                <span className="font-medium text-foreground">{f.field.replace(/_/g, " ")}</span>
+                <span className="text-muted-foreground"> — {action}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ── Synthesized Profile Card ── */
 function SynthesizedProfileCard({ profile }: { profile: Record<string, any> }) {
   const score = profile.completeness_score || 0;
@@ -240,6 +314,8 @@ function SynthesizedProfileCard({ profile }: { profile: Record<string, any> }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
+        {/* Improve Score Checklist */}
+        {score < 95 && <ImproveScoreChecklist profile={profile} />}
         {/* Voice Fingerprint */}
         {profile.voice_fingerprint?.length > 0 && (
           <div className="space-y-2">
