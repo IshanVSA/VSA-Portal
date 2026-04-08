@@ -288,7 +288,7 @@ Deno.serve(async (req) => {
     if (lat === undefined || lng === undefined) {
       return createJsonResponse({
         ok: false,
-        error: "Could not resolve clinic location from Google Places. Please verify the clinic address.",
+        error: `Could not resolve clinic location from Google Places. Please verify the clinic address is correct. Tried: ${diagnostics.attempts.join(", ")}. Address: "${clinic.address || "none"}", Place ID: "${clinic.google_place_id || "none"}"`,
         diagnostics,
       });
     }
