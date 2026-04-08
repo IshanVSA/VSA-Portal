@@ -6,11 +6,10 @@ import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatsCard } from "@/components/StatsCard";
-import { FileCheck, CalendarDays, BarChart3, Building2, Users, CheckCircle2, Clock, Sparkles, Inbox, AlertTriangle, Ticket } from "lucide-react";
+import { FileCheck, CalendarDays, BarChart3, Building2, Users, CheckCircle2, Clock, Sparkles, Inbox, AlertTriangle, Ticket, Megaphone, MapPin } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { format, subDays, startOfDay } from "date-fns";
-
 
 interface RequestSummary {
   generated: number;
@@ -56,6 +55,8 @@ export function SocialOverview({ clinicId }: { clinicId?: string }) {
     generated: 0, concierge_preferred: 0, admin_approved: 0, client_selected: 0, final_approved: 0,
   });
   const [ticketSummary, setTicketSummary] = useState({ open: 0, inProgress: 0, completed: 0, emergency: 0 });
+  const [activePromotions, setActivePromotions] = useState(0);
+  const [clusterClinics, setClusterClinics] = useState<{ id: string; name: string; dnaScore: number; lastGenerated: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -63,14 +64,12 @@ export function SocialOverview({ clinicId }: { clinicId?: string }) {
     const fetchAll = async () => {
       setLoading(true);
 
-      // Total posts
       const { count: postCount } = await supabase
         .from("content_posts")
         .select("*", { count: "exact", head: true })
         .eq("clinic_id", clinicId);
       setTotalPosts(postCount || 0);
 
-      // Pending review posts
       const { count: pendCount } = await supabase
         .from("content_posts")
         .select("*", { count: "exact", head: true })
@@ -78,7 +77,6 @@ export function SocialOverview({ clinicId }: { clinicId?: string }) {
         .in("status", ["draft", "pending", "flagged"]);
       setPendingReview(pendCount || 0);
 
-      // Content requests
       const { data: reqData } = await supabase
         .from("content_requests")
         .select("status")
@@ -93,11 +91,9 @@ export function SocialOverview({ clinicId }: { clinicId?: string }) {
         if (r.status in summary) summary[r.status as keyof RequestSummary]++;
       });
       setRequestSummary(summary);
-
-      // Active clinics - just show 1 since we're filtered
       setActiveClinics(1);
 
-      // Weekly post trend (last 7 days)
+      // Weekly post trend
       const days = Array.from({ length: 7 }, (_, i) => {
         const d = subDays(new Date(), 6 - i);
         return { date: format(startOfDay(d), "yyyy-MM-dd"), label: format(d, "EEE") };
@@ -113,6 +109,52 @@ export function SocialOverview({ clinicId }: { clinicId?: string }) {
         if (p.scheduled_date) countMap[p.scheduled_date] = (countMap[p.scheduled_date] || 0) + 1;
       });
       setWeeklyData(days.map(d => ({ day: d.label, posts: countMap[d.date] || 0 })));
+
+      // Active promotions count
+      const today = format(new Date(), "yyyy-MM-dd");
+      const { count: promoCount } = await supabase
+        .from("clinic_promotions")
+        .select("*", { count: "exact", head: true })
+        .eq("clinic_id", clinicId)
+        .eq("status", "active")
+        .lte("start_date", today)
+        .gte("end_date", today);
+      setActivePromotions(promoCount || 0);
+
+      // Multi-location cluster data (admin only)
+      if (role === "admin") {
+        const { data: clusters } = await supabase.from("geo_clusters").select("clinics");
+        const myCluster = clusters?.find(c => (c.clinics as string[])?.includes(clinicId));
+        if (myCluster && (myCluster.clinics as string[]).length > 1) {
+          const clusterIds = myCluster.clinics as string[];
+          const { data: clinicData } = await supabase
+            .from("clinics")
+            .select("id, clinic_name")
+            .in("id", clusterIds);
+          const { data: dnaData } = await supabase
+            .from("clinic_brand_dna")
+            .select("clinic_id, completeness_score")
+            .in("clinic_id", clusterIds);
+          const { data: genData } = await supabase
+            .from("sm2_generations")
+            .select("clinic_id, created_at")
+            .in("clinic_id", clusterIds)
+            .order("created_at", { ascending: false });
+
+          const dnaMap = new Map((dnaData || []).map(d => [d.clinic_id, d.completeness_score]));
+          const genMap = new Map<string, string>();
+          (genData || []).forEach(g => {
+            if (!genMap.has(g.clinic_id)) genMap.set(g.clinic_id, g.created_at);
+          });
+
+          setClusterClinics((clinicData || []).map(c => ({
+            id: c.id,
+            name: c.clinic_name,
+            dnaScore: dnaMap.get(c.id) || 0,
+            lastGenerated: genMap.get(c.id) || null,
+          })));
+        }
+      }
 
       setLoading(false);
     };
@@ -179,6 +221,27 @@ export function SocialOverview({ clinicId }: { clinicId?: string }) {
         <StatsCard title="Content Requests" value={totalRequests} icon={FileCheck} index={2} />
         <StatsCard title="Active Clinics" value={activeClinics} icon={Building2} index={3} />
       </div>
+
+      {/* Meta Ads Recommendation Card */}
+      {(activePromotions > 0 || (totalPosts > 5 && pendingReview > totalPosts * 0.4)) && (
+        <Card className="border-amber-500/30 bg-amber-500/5 animate-fade-in">
+          <CardContent className="py-4 flex items-start gap-3">
+            <Megaphone className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-foreground">Meta Ads Boost Recommended</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {activePromotions > 0
+                  ? `You have ${activePromotions} active promotion${activePromotions > 1 ? "s" : ""}. Consider boosting these posts via Meta Ads for increased reach.`
+                  : "Engagement appears low relative to post volume. A Meta Ads boost could improve visibility."
+                }
+              </p>
+              <Badge variant="outline" className="mt-2 text-[10px] text-amber-600 border-amber-500/30">
+                Contact your concierge to set up Meta Ads
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Services */}
       <Card className="overflow-hidden animate-fade-in" style={{ animationDelay: "160ms", animationFillMode: "both" }}>
@@ -292,7 +355,7 @@ export function SocialOverview({ clinicId }: { clinicId?: string }) {
         </Card>
       </div>
 
-      {/* Ticket Summary */}
+      {/* Ticket Summary + Multi-Location */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="overflow-hidden hover-lift animate-fade-in" style={{ animationDelay: "400ms", animationFillMode: "both" }}>
           <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
@@ -320,6 +383,35 @@ export function SocialOverview({ clinicId }: { clinicId?: string }) {
             </div>
           </CardContent>
         </Card>
+
+        {/* Multi-Location Cluster Summary (Admin only) */}
+        {role === "admin" && clusterClinics.length > 1 && (
+          <Card className="overflow-hidden hover-lift animate-fade-in" style={{ animationDelay: "500ms", animationFillMode: "both" }}>
+            <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
+              <CardTitle className="text-base flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-primary" />
+                Multi-Location Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="space-y-2.5">
+                {clusterClinics.map(c => (
+                  <div key={c.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/30">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground truncate">{c.name}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {c.lastGenerated ? `Last generated ${format(new Date(c.lastGenerated), "MMM d")}` : "No content yet"}
+                      </p>
+                    </div>
+                    <Badge variant={c.dnaScore >= 70 ? "default" : c.dnaScore >= 50 ? "secondary" : "destructive"} className="text-[10px] ml-2">
+                      DNA {c.dnaScore}%
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

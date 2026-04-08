@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSM2Generation } from "@/hooks/useSM2Generation";
 import { useMonthlySignals } from "@/hooks/useMonthlySignals";
 import { useBrandDNA } from "@/hooks/useBrandDNA";
@@ -9,11 +9,21 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Sparkles, RefreshCw, FileText, Eye, AlertTriangle, CheckCircle, Clock, Send } from "lucide-react";
+import { Sparkles, RefreshCw, FileText, Eye, AlertTriangle, CheckCircle, Clock, Send, TrendingUp, Heart, Share2, MessageCircle } from "lucide-react";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   clinicId: string | undefined;
+}
+
+interface PerformanceData {
+  post_number: number;
+  platform: string;
+  likes: number;
+  shares: number;
+  comments: number;
+  reach: number;
 }
 
 export default function ContentGenerationTab({ clinicId }: Props) {
@@ -25,12 +35,27 @@ export default function ContentGenerationTab({ clinicId }: Props) {
   const [fbSpecific, setFbSpecific] = useState("");
   const [budget, setBudget] = useState("300");
   const [viewingHtml, setViewingHtml] = useState<string | null>(null);
+  const [topPerformers, setTopPerformers] = useState<PerformanceData[]>([]);
 
   const dnaScore = dna?.completeness_score || 0;
   const canGenerate = dnaScore >= 50;
 
+  // Fetch top performers
+  useEffect(() => {
+    if (!clinicId) return;
+    const fetchPerformance = async () => {
+      const { data } = await supabase
+        .from("sm2_post_performance")
+        .select("post_number, platform, likes, shares, comments, reach")
+        .eq("clinic_id", clinicId)
+        .order("reach", { ascending: false })
+        .limit(5);
+      setTopPerformers((data as PerformanceData[]) || []);
+    };
+    fetchPerformance();
+  }, [clinicId]);
+
   const handleGenerate = async () => {
-    // Save signals first
     await upsertSignals.mutateAsync({
       clinic_news_this_month: clinicNews || "NONE",
       facebook_specific_this_month: fbSpecific || "",
@@ -71,7 +96,6 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                 <DialogTitle>Pre-Generation Setup — {monthLabel}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-2">
-                {/* DNA Score Check */}
                 <div className="flex items-center gap-2 p-3 rounded-lg border">
                   {dnaScore >= 70 ? <CheckCircle className="h-5 w-5 text-green-500" /> : <AlertTriangle className="h-5 w-5 text-amber-500" />}
                   <div>
@@ -81,27 +105,14 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                     </p>
                   </div>
                 </div>
-
                 <div className="space-y-2">
                   <Label>Clinic News This Month</Label>
-                  <Textarea
-                    placeholder="New staff, equipment, renovations, awards... Type NONE if nothing."
-                    value={clinicNews}
-                    onChange={(e) => setClinicNews(e.target.value)}
-                    rows={3}
-                  />
+                  <Textarea placeholder="New staff, equipment, renovations, awards... Type NONE if nothing." value={clinicNews} onChange={(e) => setClinicNews(e.target.value)} rows={3} />
                 </div>
-
                 <div className="space-y-2">
                   <Label>Facebook-Specific This Month</Label>
-                  <Textarea
-                    placeholder="Local community activity from Facebook groups..."
-                    value={fbSpecific}
-                    onChange={(e) => setFbSpecific(e.target.value)}
-                    rows={2}
-                  />
+                  <Textarea placeholder="Local community activity from Facebook groups..." value={fbSpecific} onChange={(e) => setFbSpecific(e.target.value)} rows={2} />
                 </div>
-
                 <div className="space-y-2">
                   <Label>Monthly Budget ({signals?.currency || "CAD"})</Label>
                   <Input type="number" value={budget} onChange={(e) => setBudget(e.target.value)} />
@@ -119,12 +130,41 @@ export default function ContentGenerationTab({ clinicId }: Props) {
         </div>
       </div>
 
-      {/* Cannot generate warning */}
       {!canGenerate && (
         <Card className="border-destructive/30 bg-destructive/5">
           <CardContent className="py-4 flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 text-destructive" />
             <p className="text-sm">DNA Completeness Score is {dnaScore}% (below 50). Complete the Brand DNA profile before generating content.</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Top Performers Card */}
+      {topPerformers.length > 0 && (
+        <Card className="overflow-hidden animate-fade-in">
+          <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
+            <CardTitle className="text-base flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              Top Performers
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="space-y-2.5">
+              {topPerformers.map((p, i) => (
+                <div key={i} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-muted-foreground w-5">#{p.post_number}</span>
+                    <Badge variant="outline" className="text-[10px]">{p.platform}</Badge>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1"><Heart className="h-3 w-3" />{p.likes}</span>
+                    <span className="flex items-center gap-1"><Share2 className="h-3 w-3" />{p.shares}</span>
+                    <span className="flex items-center gap-1"><MessageCircle className="h-3 w-3" />{p.comments}</span>
+                    <Badge variant="secondary" className="text-[10px]">{p.reach.toLocaleString()} reach</Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}
@@ -175,13 +215,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                       </Button>
                     )}
                     {gen.approval_status === "pending" && gen.html_file_path && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => sendToClient.mutate(gen.id)}
-                        disabled={sendToClient.isPending}
-                        className="gap-1.5 text-xs"
-                      >
+                      <Button variant="outline" size="sm" onClick={() => sendToClient.mutate(gen.id)} disabled={sendToClient.isPending} className="gap-1.5 text-xs">
                         <Send className="h-3.5 w-3.5" />
                         Send to Client
                       </Button>
@@ -244,6 +278,3 @@ function StatusBadge({ status }: { status: string }) {
     </Badge>
   );
 }
-
-// Need this import for the iframe URL
-import { supabase } from "@/integrations/supabase/client";

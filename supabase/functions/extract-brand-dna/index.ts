@@ -296,6 +296,14 @@ Deno.serve(async (req) => {
 
     const additionalFields = (existing?.additional_fields as Record<string, unknown>) || {};
     additionalFields.website_extraction = extracted;
+    
+    // Store brand identity fields at top level for easy access by synthesize-dna
+    const brandIdentity = extracted.brand_identity || {};
+    if (brandIdentity.primary_brand_color) additionalFields.primary_brand_color = brandIdentity.primary_brand_color;
+    if (brandIdentity.secondary_brand_color) additionalFields.secondary_brand_color = brandIdentity.secondary_brand_color;
+    if (brandIdentity.brand_font) additionalFields.brand_font = brandIdentity.brand_font;
+    if (brandIdentity.logo_url) additionalFields.logo_url = brandIdentity.logo_url;
+    if (brandIdentity.visual_tone) additionalFields.visual_style = brandIdentity.visual_tone;
 
     if (existing) {
       const { error: updateError } = await serviceClient
