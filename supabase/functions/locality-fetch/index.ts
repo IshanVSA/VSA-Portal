@@ -303,13 +303,16 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`Geocoded to: ${lat}, ${lng}`);
+    const resolvedLat = lat;
+    const resolvedLng = lng;
+
+    console.log(`Geocoded to: ${resolvedLat}, ${resolvedLng}`);
 
     // Step 2: Fetch nearby places in parallel
     const [parks, schools, shoppingMalls] = await Promise.all([
-      fetchNearbyPlaces(lat, lng, googleApiKey, "park", 10000),
-      fetchNearbyPlaces(lat, lng, googleApiKey, "school", 5000),
-      fetchNearbyPlaces(lat, lng, googleApiKey, "shopping_mall", 8000),
+      fetchNearbyPlaces(resolvedLat, resolvedLng, googleApiKey, "park", 10000),
+      fetchNearbyPlaces(resolvedLat, resolvedLng, googleApiKey, "school", 5000),
+      fetchNearbyPlaces(resolvedLat, resolvedLng, googleApiKey, "shopping_mall", 8000),
     ]);
 
     const addressComponents = resolvedPlaceDetails?.addressComponents || [];
