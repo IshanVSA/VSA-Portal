@@ -405,26 +405,13 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) throw new Error("ANTHROPIC_API_KEY not configured");
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 12000,
-        system: systemPrompt,
-        messages: [{ role: "user", content: userMessage }],
-      }),
-    });
+    // 120s timeout to fail cleanly before the 150s edge function hard limit
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 120_000);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      // Retry once
-      console.error(`SM2 generation failed [${response.status}]: ${errorText}. Retrying...`);
-      const retryResponse = await fetch("https://api.anthropic.com/v1/messages", {
+    let response: Response;
+    try {
+      response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
           "x-api-key": apiKey,
@@ -432,20 +419,26 @@ Deno.serve(async (req) => {
           "content-type": "application/json",
         },
         body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 12000,
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 8000,
           system: systemPrompt,
           messages: [{ role: "user", content: userMessage }],
         }),
+        signal: controller.signal,
       });
-
-      if (!retryResponse.ok) {
-        const retryText = await retryResponse.text();
-        throw new Error(`SM2 generation failed after retry [${retryResponse.status}]: ${retryText}`);
+    } catch (fetchErr) {
+      clearTimeout(timeout);
+      if (fetchErr instanceof DOMException && fetchErr.name === "AbortError") {
+        throw new Error("Content generation timed out after 120 seconds. Please try again.");
       }
-      
-      const retryData = await retryResponse.json();
-      return await processResponse(retryData, serviceClient, clinic, clinic_id, month_year, completenessScore, authData.user.id);
+      throw fetchErr;
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`SM2 generation failed [${response.status}]: ${errorText}`);
     }
 
     const data = await response.json();
