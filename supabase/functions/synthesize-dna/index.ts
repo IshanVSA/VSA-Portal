@@ -69,6 +69,19 @@ const FIELD_WEIGHTS: Record<string, number> = {
 
 const TOTAL_WEIGHT = Object.values(FIELD_WEIGHTS).reduce((a, b) => a + b, 0);
 
+/* Fields suppressed under CVBC jurisdiction — reduce their weight so BC clinics aren't penalised */
+const CVBC_SUPPRESSED_FIELDS: Record<string, number> = {
+  google_review_themes: 1,   // was 4 → 1 (can't mine reviews)
+  clinic_differentiator: 4,  // was 7 → 4 (can't cross-validate with reviews)
+};
+
+function getEffectiveWeights(isCVBC: boolean): { weights: Record<string, number>; total: number } {
+  if (!isCVBC) return { weights: FIELD_WEIGHTS, total: TOTAL_WEIGHT };
+  const weights = { ...FIELD_WEIGHTS, ...CVBC_SUPPRESSED_FIELDS };
+  const total = Object.values(weights).reduce((a, b) => a + b, 0);
+  return { weights, total };
+}
+
 /* ── AI synthesis tool schema ── */
 const synthesisTool = {
   name: "output_dna_profile",
@@ -413,7 +426,11 @@ IS CVBC JURISDICTION: ${isCVBC ? "YES — suppress review themes" : "NO"}`);
     }
   }
 
-  sections.push(`\n=== FIELD WEIGHTS FOR SCORING ===\n${JSON.stringify(FIELD_WEIGHTS, null, 2)}\nTOTAL POSSIBLE WEIGHT: ${TOTAL_WEIGHT}`);
+  const { weights: effectiveWeights, total: effectiveTotal } = getEffectiveWeights(isCVBC);
+  sections.push(`\n=== FIELD WEIGHTS FOR SCORING ===\n${JSON.stringify(effectiveWeights, null, 2)}\nTOTAL POSSIBLE WEIGHT: ${effectiveTotal}`);
+  if (isCVBC) {
+    sections.push("NOTE: This is a CVBC jurisdiction clinic. Weights for review-dependent fields (google_review_themes, clinic_differentiator) have been reduced since review mining is suppressed. Score against the reduced total so BC clinics are not permanently disadvantaged.");
+  }
 
   return sections.join("\n\n");
 }
