@@ -185,10 +185,13 @@ async function extractWithAi(pages: PageData[]) {
       max_tokens: 4096,
       system: [
         "You are an expert at extracting veterinary clinic brand DNA from website content.",
-        "Extract all available information about the clinic: name, phone, hours, booking URL, doctors (with credentials), services, founding year, about us content, and brand identity (tagline, tone, values).",
+        "Extract all available information about the clinic: name, phone, hours, booking URL, doctors (with credentials), services, founding year, about us content, and brand identity.",
         "For doctors, extract their full name, credentials (DVM, DACVS, etc.), and role (Owner, Associate, etc.).",
         "For services, list the top/highlighted services offered.",
-        "For brand identity, identify the tagline/slogan, overall tone of the brand, and any stated values or mission.",
+        "For brand identity, identify: tagline/slogan, overall tone, stated values/mission, PRIMARY brand color (the dominant color used in the header/logo/buttons as a hex code), secondary brand color, the primary font family, the logo image URL (look for <img> tags with 'logo' in src or alt), and visual tone (modern, rustic, clinical, whimsical, minimalist).",
+        "For colors, look at inline styles, CSS classes, header/nav background colors, button colors, and the overall color scheme. Return hex codes like #2B6CB0.",
+        "For fonts, look at font-family declarations in inline styles or common web font references.",
+        "For logo, find <img> tags where the src or alt contains 'logo'. Return the full absolute URL.",
         "Only include fields you can confidently extract from the content provided.",
       ].join(" "),
       messages: [
