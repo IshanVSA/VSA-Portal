@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSM2Generation } from "@/hooks/useSM2Generation";
 import { useMonthlySignals } from "@/hooks/useMonthlySignals";
 import { useBrandDNA } from "@/hooks/useBrandDNA";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Sparkles, RefreshCw, FileText, Eye, AlertTriangle, CheckCircle, Clock, Send, TrendingUp, Heart, Share2, MessageCircle } from "lucide-react";
+import { Sparkles, RefreshCw, FileText, Eye, AlertTriangle, CheckCircle, Clock, Send, TrendingUp, Heart, Share2, MessageCircle, CalendarDays } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -105,6 +105,25 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                     </p>
                   </div>
                 </div>
+
+                {/* Statutory Holidays Preview */}
+                {signals?.statutory_holidays && (signals.statutory_holidays as any[]).length > 0 && (
+                  <div className="p-3 rounded-lg border bg-muted/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CalendarDays className="h-4 w-4 text-primary" />
+                      <p className="text-sm font-medium">Statutory Holidays This Month</p>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(signals.statutory_holidays as any[]).map((h: any, i: number) => (
+                        <Badge key={i} variant="outline" className="text-[10px]">
+                          {h.name}{h.day ? ` (${h.day})` : ""}
+                        </Badge>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1.5">Auto-populated from clinic province. Holidays will be respected in content scheduling.</p>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label>Clinic News This Month</Label>
                   <Textarea placeholder="New staff, equipment, renovations, awards... Type NONE if nothing." value={clinicNews} onChange={(e) => setClinicNews(e.target.value)} rows={3} />
