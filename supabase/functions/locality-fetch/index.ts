@@ -303,8 +303,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    const resolvedLat = lat;
-    const resolvedLng = lng;
+    const resolvedLat = lat!;
+    const resolvedLng = lng!;
 
     console.log(`Geocoded to: ${resolvedLat}, ${resolvedLng}`);
 
@@ -335,7 +335,7 @@ Deno.serve(async (req) => {
       `Neighbourhood: ${getAddressComponentText(neighbourhoodComponent) || "Unknown"}`,
       `City: ${getAddressComponentText(cityComponent) || "Unknown"}`,
       `Province/State: ${getAddressComponentText(provinceComponent) || "Unknown"}`,
-      `Coordinates: ${lat}, ${lng}`,
+      `Coordinates: ${resolvedLat}, ${resolvedLng}`,
       "",
       `Nearby Parks (${parks.length}): ${parks.map((p: any) => p.name).join(", ") || "None found"}`,
       `Nearby Schools (${schools.length}): ${schools.map((s: any) => s.name).join(", ") || "None found"}`,
