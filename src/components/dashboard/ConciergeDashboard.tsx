@@ -28,9 +28,10 @@ export default function ConciergeDashboard() {
   useEffect(() => {
     if (!user) return;
     const fetchData = async () => {
+      // RLS now handles concierge clinic visibility (assigned_concierge_id + clinic_team_members)
       const { data: clinicData } = await supabase
         .from("clinics").select("id, clinic_name, status")
-        .eq("assigned_concierge_id", user.id);
+        .eq("status", "active");
       const assignedClinics = clinicData || [];
       setClinics(assignedClinics);
       if (assignedClinics.length > 0) {
