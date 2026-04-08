@@ -75,6 +75,48 @@ const localityTool = {
   },
 };
 
+async function safeJson(res: Response) {
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+async function searchPlacesByText(
+  query: string,
+  apiKey: string,
+  fieldMask = "places.id,places.displayName,places.formattedAddress,places.location",
+) {
+  const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": apiKey,
+      "X-Goog-FieldMask": fieldMask,
+    },
+    body: JSON.stringify({
+      textQuery: query,
+      pageSize: 5,
+    }),
+  });
+
+  const data = await safeJson(res);
+  return { ok: res.ok && !data?.error, status: res.status, data };
+}
+
+async function fetchPlaceDetails(placeId: string, apiKey: string) {
+  const res = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
+    headers: {
+      "X-Goog-Api-Key": apiKey,
+      "X-Goog-FieldMask": "id,displayName,formattedAddress,location,addressComponents",
+    },
+  });
+
+  const data = await safeJson(res);
+  return { ok: res.ok && !data?.error, status: res.status, data };
+}
+
 async function fetchNearbyPlaces(
   lat: number,
   lng: number,
@@ -82,23 +124,50 @@ async function fetchNearbyPlaces(
   type: string,
   radius = 8000,
 ) {
-  const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=${type}&key=${apiKey}`;
-  const res = await fetch(url);
-  if (!res.ok) return [];
-  const data = await res.json();
-  return (data.results || []).slice(0, 10).map((p: any) => ({
-    name: p.name,
-    types: p.types,
-    vicinity: p.vicinity,
+  const res = await fetch("https://places.googleapis.com/v1/places:searchNearby", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": apiKey,
+      "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.types",
+    },
+    body: JSON.stringify({
+      includedTypes: [type],
+      maxResultCount: 10,
+      locationRestriction: {
+        circle: {
+          center: { latitude: lat, longitude: lng },
+          radius,
+        },
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    console.log(`Nearby search failed for ${type}: ${res.status} ${text}`);
+    return [];
+  }
+
+  const data = await safeJson(res);
+  return (data?.places || []).slice(0, 10).map((p: any) => ({
+    name: p.displayName?.text || p.displayName || "",
+    types: p.types || [],
+    vicinity: p.formattedAddress || "",
   }));
 }
 
-async function reverseGeocode(lat: number, lng: number, apiKey: string) {
-  const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`;
-  const res = await fetch(url);
-  if (!res.ok) return null;
-  const data = await res.json();
-  return data.results || [];
+function getAddressComponent(
+  addressComponents: any[] | undefined,
+  types: string[],
+) {
+  return addressComponents?.find((component: any) =>
+    types.some((type) => component.types?.includes(type))
+  );
+}
+
+function getAddressComponentText(component: any) {
+  return component?.longText || component?.shortText || component?.long_name || component?.short_name || null;
 }
 
 Deno.serve(async (req) => {
@@ -156,71 +225,117 @@ Deno.serve(async (req) => {
 
     console.log(`Fetching locality for: ${clinic.clinic_name} (${clinic.address})`);
 
-    // Step 1: Get lat/lng from address or place ID
-    let lat: number, lng: number;
+    // Step 1: Resolve clinic location with Places API (New)
+    let lat: number | undefined;
+    let lng: number | undefined;
     let formattedAddress = clinic.address || "";
+    let resolvedPlaceId = clinic.google_place_id || null;
+    let resolvedPlaceDetails: any | null = null;
+    const diagnostics = {
+      attempts: [] as string[],
+      clinic_address: clinic.address || null,
+      google_place_id: clinic.google_place_id || null,
+    };
 
-    let geocoded = false;
+    if (clinic.address) {
+      diagnostics.attempts.push("address_search");
+      const addressSearch = await searchPlacesByText(clinic.address, googleApiKey);
+      const addressMatch = addressSearch.data?.places?.[0];
 
-    if (clinic.google_place_id) {
-      const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${clinic.google_place_id}&fields=geometry,formatted_address&key=${googleApiKey}`;
-      const detailsRes = await fetch(detailsUrl);
-      const detailsData = await detailsRes.json();
-      if (detailsData.result?.geometry?.location) {
-        lat = detailsData.result.geometry.location.lat;
-        lng = detailsData.result.geometry.location.lng;
-        formattedAddress = detailsData.result.formatted_address || formattedAddress;
-        geocoded = true;
+      if (addressMatch?.location) {
+        lat = addressMatch.location.latitude;
+        lng = addressMatch.location.longitude;
+        formattedAddress = addressMatch.formattedAddress || formattedAddress;
+        resolvedPlaceId = addressMatch.id || resolvedPlaceId;
+        console.log(`Address search resolved clinic to: ${formattedAddress}`);
       } else {
-        console.log("Place ID geocoding failed, falling back to address");
+        console.log(`Address search failed: ${JSON.stringify(addressSearch.data || { status: addressSearch.status })}`);
       }
     }
 
-    if (!geocoded && clinic.address) {
-      const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(clinic.address)}&key=${googleApiKey}`;
-      const geocodeRes = await fetch(geocodeUrl);
-      const geocodeData = await geocodeRes.json();
-      if (geocodeData.results?.[0]?.geometry?.location) {
-        lat = geocodeData.results[0].geometry.location.lat;
-        lng = geocodeData.results[0].geometry.location.lng;
-        formattedAddress = geocodeData.results[0].formatted_address || formattedAddress;
-        geocoded = true;
+    if ((lat === undefined || lng === undefined) && clinic.google_place_id) {
+      diagnostics.attempts.push("place_details");
+      const placeDetails = await fetchPlaceDetails(clinic.google_place_id, googleApiKey);
+
+      if (placeDetails.data?.location) {
+        lat = placeDetails.data.location.latitude;
+        lng = placeDetails.data.location.longitude;
+        formattedAddress = placeDetails.data.formattedAddress || formattedAddress;
+        resolvedPlaceId = placeDetails.data.id || resolvedPlaceId;
+        resolvedPlaceDetails = placeDetails.data;
+        console.log(`Place ID resolved clinic to: ${formattedAddress}`);
+      } else {
+        console.log(`Place details lookup failed: ${JSON.stringify(placeDetails.data || { status: placeDetails.status })}`);
       }
     }
 
-    if (!geocoded) {
-      return createJsonResponse({ error: "Could not geocode clinic from Place ID or address" }, 422);
+    if ((lat === undefined || lng === undefined) && clinic.address) {
+      diagnostics.attempts.push("name_and_address_search");
+      const businessSearch = await searchPlacesByText(`${clinic.clinic_name} ${clinic.address}`, googleApiKey);
+      const businessMatch = businessSearch.data?.places?.[0];
+
+      if (businessMatch?.location) {
+        lat = businessMatch.location.latitude;
+        lng = businessMatch.location.longitude;
+        formattedAddress = businessMatch.formattedAddress || formattedAddress;
+        resolvedPlaceId = businessMatch.id || resolvedPlaceId;
+        console.log(`Name + address search resolved clinic to: ${formattedAddress}`);
+      } else {
+        console.log(`Name + address search failed: ${JSON.stringify(businessSearch.data || { status: businessSearch.status })}`);
+      }
     }
 
-    console.log(`Geocoded to: ${lat}, ${lng}`);
+    if (lat === undefined || lng === undefined) {
+      return createJsonResponse({
+        ok: false,
+        error: "Could not resolve clinic location from Google Places. Please verify the clinic address.",
+        diagnostics,
+      });
+    }
+
+    if (!resolvedPlaceDetails && resolvedPlaceId) {
+      const detailsLookup = await fetchPlaceDetails(resolvedPlaceId, googleApiKey);
+      if (detailsLookup.data?.location) {
+        resolvedPlaceDetails = detailsLookup.data;
+        lat = detailsLookup.data.location.latitude;
+        lng = detailsLookup.data.location.longitude;
+        formattedAddress = detailsLookup.data.formattedAddress || formattedAddress;
+      }
+    }
+
+    const resolvedLat = lat!;
+    const resolvedLng = lng!;
+
+    console.log(`Geocoded to: ${resolvedLat}, ${resolvedLng}`);
 
     // Step 2: Fetch nearby places in parallel
-    const [parks, schools, shoppingMalls, reverseGeo] = await Promise.all([
-      fetchNearbyPlaces(lat!, lng!, googleApiKey, "park", 10000),
-      fetchNearbyPlaces(lat!, lng!, googleApiKey, "school", 5000),
-      fetchNearbyPlaces(lat!, lng!, googleApiKey, "shopping_mall", 8000),
-      reverseGeocode(lat!, lng!, googleApiKey),
+    const [parks, schools, shoppingMalls] = await Promise.all([
+      fetchNearbyPlaces(resolvedLat, resolvedLng, googleApiKey, "park", 10000),
+      fetchNearbyPlaces(resolvedLat, resolvedLng, googleApiKey, "school", 5000),
+      fetchNearbyPlaces(resolvedLat, resolvedLng, googleApiKey, "shopping_mall", 8000),
     ]);
 
-    // Extract neighbourhood from reverse geocode
-    const neighbourhoodComponent = reverseGeo
-      ?.flatMap((r: any) => r.address_components || [])
-      ?.find((c: any) => c.types?.includes("neighborhood") || c.types?.includes("sublocality"));
-    const cityComponent = reverseGeo
-      ?.flatMap((r: any) => r.address_components || [])
-      ?.find((c: any) => c.types?.includes("locality"));
-    const provinceComponent = reverseGeo
-      ?.flatMap((r: any) => r.address_components || [])
-      ?.find((c: any) => c.types?.includes("administrative_area_level_1"));
+    const addressComponents = resolvedPlaceDetails?.addressComponents || [];
+    const neighbourhoodComponent = getAddressComponent(addressComponents, [
+      "neighborhood",
+      "sublocality",
+      "sublocality_level_1",
+    ]);
+    const cityComponent = getAddressComponent(addressComponents, [
+      "locality",
+      "postal_town",
+      "administrative_area_level_2",
+    ]);
+    const provinceComponent = getAddressComponent(addressComponents, ["administrative_area_level_1"]);
 
     // Step 3: Use AI to synthesize locality data
     const placesContext = [
       `Clinic: ${clinic.clinic_name}`,
       `Address: ${formattedAddress}`,
-      `Neighbourhood: ${neighbourhoodComponent?.long_name || "Unknown"}`,
-      `City: ${cityComponent?.long_name || "Unknown"}`,
-      `Province/State: ${provinceComponent?.long_name || "Unknown"}`,
-      `Coordinates: ${lat}, ${lng}`,
+      `Neighbourhood: ${getAddressComponentText(neighbourhoodComponent) || "Unknown"}`,
+      `City: ${getAddressComponentText(cityComponent) || "Unknown"}`,
+      `Province/State: ${getAddressComponentText(provinceComponent) || "Unknown"}`,
+      `Coordinates: ${resolvedLat}, ${resolvedLng}`,
       "",
       `Nearby Parks (${parks.length}): ${parks.map((p: any) => p.name).join(", ") || "None found"}`,
       `Nearby Schools (${schools.length}): ${schools.map((s: any) => s.name).join(", ") || "None found"}`,
