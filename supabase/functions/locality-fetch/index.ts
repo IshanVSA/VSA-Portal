@@ -160,6 +160,8 @@ Deno.serve(async (req) => {
     let lat: number, lng: number;
     let formattedAddress = clinic.address || "";
 
+    let geocoded = false;
+
     if (clinic.google_place_id) {
       const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${clinic.google_place_id}&fields=geometry,formatted_address&key=${googleApiKey}`;
       const detailsRes = await fetch(detailsUrl);
@@ -168,20 +170,26 @@ Deno.serve(async (req) => {
         lat = detailsData.result.geometry.location.lat;
         lng = detailsData.result.geometry.location.lng;
         formattedAddress = detailsData.result.formatted_address || formattedAddress;
+        geocoded = true;
       } else {
-        return createJsonResponse({ error: "Could not geocode from Place ID" }, 422);
+        console.log("Place ID geocoding failed, falling back to address");
       }
-    } else {
-      const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(clinic.address!)}&key=${googleApiKey}`;
+    }
+
+    if (!geocoded && clinic.address) {
+      const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(clinic.address)}&key=${googleApiKey}`;
       const geocodeRes = await fetch(geocodeUrl);
       const geocodeData = await geocodeRes.json();
       if (geocodeData.results?.[0]?.geometry?.location) {
         lat = geocodeData.results[0].geometry.location.lat;
         lng = geocodeData.results[0].geometry.location.lng;
         formattedAddress = geocodeData.results[0].formatted_address || formattedAddress;
-      } else {
-        return createJsonResponse({ error: "Could not geocode clinic address" }, 422);
+        geocoded = true;
       }
+    }
+
+    if (!geocoded) {
+      return createJsonResponse({ error: "Could not geocode clinic from Place ID or address" }, 422);
     }
 
     console.log(`Geocoded to: ${lat}, ${lng}`);
