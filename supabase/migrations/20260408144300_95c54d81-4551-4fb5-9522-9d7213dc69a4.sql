@@ -1,0 +1,1 @@
+UPDATE public.clinics SET google_place_id = NULL WHERE id = '2bdf419c-6e48-4744-83d5-2df817ab9f2e' AND google_place_id = 'ChIJPSygrRpzhlQRjA1GunLrVBY';
