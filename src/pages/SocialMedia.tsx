@@ -131,6 +131,7 @@ export default function SocialMedia() {
                 <TabsContent value="requests" className="mt-4"><Suspense fallback={<TabFallback />}><ContentRequestsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="tickets" className="mt-4"><TicketsTab department="social_media" services={socialServices} clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="content-review" className="mt-4"><Suspense fallback={<TabFallback />}><ClientContentReview clinicId={selectedClinicId} /></Suspense></TabsContent>
+                <TabsContent value="preferences" className="mt-4"><Suspense fallback={<TabFallback />}><ContentThemeSliders clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="calendar" className="mt-4"><Suspense fallback={<TabFallback />}><ContentCalendarContent clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="intake" className="mt-4"><Suspense fallback={<TabFallback />}><IntakeFormsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="analytics" className="mt-4"><Suspense fallback={<TabFallback />}><AnalyticsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
