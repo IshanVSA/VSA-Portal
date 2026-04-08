@@ -389,12 +389,26 @@ IS CVBC JURISDICTION: ${isCVBC ? "YES — suppress review themes" : "NO"}`);
     sections.push("COLLECTION CALL NOT COMPLETED — no call notes available.");
   }
 
-  // Additional fields
+  // Locality profile (stored at additionalFields.locality by locality-fetch)
+  const locality = additionalFields.locality || {};
+  sections.push("\n=== LOCALITY PROFILE ===");
+  if (Object.keys(locality).length > 0) {
+    sections.push(JSON.stringify(locality, null, 2));
+  } else {
+    sections.push("LOCALITY DATA NOT AVAILABLE — locality fetch has not been run for this clinic.");
+  }
+
+  // Additional fields (check both top-level and locality nested keys)
   sections.push("\n=== ADDITIONAL FIELDS ===");
-  const addFields = ["neighbourhood_character", "voice_phrases", "local_trails_parks", "cultural_communities", "visual_style"];
-  for (const key of addFields) {
-    const val = additionalFields[key];
-    if (val && typeof val === "string" && val.trim()) {
+  const flatFields: Record<string, string | undefined> = {
+    neighbourhood_character: additionalFields.neighbourhood_character || locality.neighbourhood || locality.housing_character,
+    voice_phrases: additionalFields.voice_phrases,
+    local_trails_parks: additionalFields.local_trails_parks || (locality.local_trails_and_parks ? JSON.stringify(locality.local_trails_and_parks) : undefined),
+    cultural_communities: additionalFields.cultural_communities || (locality.cultural_communities ? JSON.stringify(locality.cultural_communities) : undefined),
+    visual_style: additionalFields.visual_style,
+  };
+  for (const [key, val] of Object.entries(flatFields)) {
+    if (val && val.trim()) {
       sections.push(`${key.toUpperCase()}: ${val}`);
     }
   }
