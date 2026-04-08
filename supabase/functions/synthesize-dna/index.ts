@@ -426,7 +426,11 @@ IS CVBC JURISDICTION: ${isCVBC ? "YES — suppress review themes" : "NO"}`);
     }
   }
 
-  sections.push(`\n=== FIELD WEIGHTS FOR SCORING ===\n${JSON.stringify(FIELD_WEIGHTS, null, 2)}\nTOTAL POSSIBLE WEIGHT: ${TOTAL_WEIGHT}`);
+  const { weights: effectiveWeights, total: effectiveTotal } = getEffectiveWeights(isCVBC);
+  sections.push(`\n=== FIELD WEIGHTS FOR SCORING ===\n${JSON.stringify(effectiveWeights, null, 2)}\nTOTAL POSSIBLE WEIGHT: ${effectiveTotal}`);
+  if (isCVBC) {
+    sections.push("NOTE: This is a CVBC jurisdiction clinic. Weights for review-dependent fields (google_review_themes, clinic_differentiator) have been reduced since review mining is suppressed. Score against the reduced total so BC clinics are not permanently disadvantaged.");
+  }
 
   return sections.join("\n\n");
 }
