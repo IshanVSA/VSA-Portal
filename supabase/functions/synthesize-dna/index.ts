@@ -411,6 +411,19 @@ IS CVBC JURISDICTION: ${isCVBC ? "YES — suppress review themes" : "NO"}`);
     sections.push("LOCALITY DATA NOT AVAILABLE — locality fetch has not been run for this clinic.");
   }
 
+  // Brand Identity (extracted from website)
+  sections.push("\n=== BRAND IDENTITY ===");
+  const brandFields: Record<string, string | undefined> = {
+    primary_brand_color: additionalFields.primary_brand_color,
+    secondary_brand_color: additionalFields.secondary_brand_color,
+    brand_font: additionalFields.brand_font,
+    logo_url: additionalFields.logo_url,
+    visual_tone: additionalFields.visual_style,
+  };
+  for (const [key, val] of Object.entries(brandFields)) {
+    sections.push(`${key.toUpperCase()}: ${val?.trim() || "NOT FETCHED"}`);
+  }
+
   // Additional fields (check both top-level and locality nested keys)
   sections.push("\n=== ADDITIONAL FIELDS ===");
   const flatFields: Record<string, string | undefined> = {
@@ -418,7 +431,6 @@ IS CVBC JURISDICTION: ${isCVBC ? "YES — suppress review themes" : "NO"}`);
     voice_phrases: additionalFields.voice_phrases,
     local_trails_parks: additionalFields.local_trails_parks || (locality.local_trails_and_parks ? JSON.stringify(locality.local_trails_and_parks) : undefined),
     cultural_communities: additionalFields.cultural_communities || (locality.cultural_communities ? JSON.stringify(locality.cultural_communities) : undefined),
-    visual_style: additionalFields.visual_style,
   };
   for (const [key, val] of Object.entries(flatFields)) {
     if (val && val.trim()) {

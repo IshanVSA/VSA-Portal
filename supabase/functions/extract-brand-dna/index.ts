@@ -147,6 +147,11 @@ const extractionTool = {
           tagline: { type: "string", description: "Clinic tagline or slogan" },
           tone: { type: "string", description: "Brand tone: warm, clinical, playful, professional, etc." },
           values: { type: "array", items: { type: "string" }, description: "Core values mentioned" },
+          primary_brand_color: { type: "string", description: "Primary brand color as hex code (e.g. #2B6CB0) extracted from the website's dominant color scheme, logo, or header" },
+          secondary_brand_color: { type: "string", description: "Secondary brand color as hex code" },
+          brand_font: { type: "string", description: "Primary font family used on the website (e.g. Montserrat, Open Sans)" },
+          logo_url: { type: "string", description: "URL of the clinic logo image found on the website" },
+          visual_tone: { type: "string", description: "Visual style: modern, rustic, clinical, whimsical, minimalist, etc." },
         },
       },
       confidence: { type: "string", enum: ["low", "medium", "high"], description: "Overall confidence in extraction" },
@@ -180,10 +185,13 @@ async function extractWithAi(pages: PageData[]) {
       max_tokens: 4096,
       system: [
         "You are an expert at extracting veterinary clinic brand DNA from website content.",
-        "Extract all available information about the clinic: name, phone, hours, booking URL, doctors (with credentials), services, founding year, about us content, and brand identity (tagline, tone, values).",
+        "Extract all available information about the clinic: name, phone, hours, booking URL, doctors (with credentials), services, founding year, about us content, and brand identity.",
         "For doctors, extract their full name, credentials (DVM, DACVS, etc.), and role (Owner, Associate, etc.).",
         "For services, list the top/highlighted services offered.",
-        "For brand identity, identify the tagline/slogan, overall tone of the brand, and any stated values or mission.",
+        "For brand identity, identify: tagline/slogan, overall tone, stated values/mission, PRIMARY brand color (the dominant color used in the header/logo/buttons as a hex code), secondary brand color, the primary font family, the logo image URL (look for <img> tags with 'logo' in src or alt), and visual tone (modern, rustic, clinical, whimsical, minimalist).",
+        "For colors, look at inline styles, CSS classes, header/nav background colors, button colors, and the overall color scheme. Return hex codes like #2B6CB0.",
+        "For fonts, look at font-family declarations in inline styles or common web font references.",
+        "For logo, find <img> tags where the src or alt contains 'logo'. Return the full absolute URL.",
         "Only include fields you can confidently extract from the content provided.",
       ].join(" "),
       messages: [
@@ -288,6 +296,14 @@ Deno.serve(async (req) => {
 
     const additionalFields = (existing?.additional_fields as Record<string, unknown>) || {};
     additionalFields.website_extraction = extracted;
+    
+    // Store brand identity fields at top level for easy access by synthesize-dna
+    const brandIdentity = extracted.brand_identity || {};
+    if (brandIdentity.primary_brand_color) additionalFields.primary_brand_color = brandIdentity.primary_brand_color;
+    if (brandIdentity.secondary_brand_color) additionalFields.secondary_brand_color = brandIdentity.secondary_brand_color;
+    if (brandIdentity.brand_font) additionalFields.brand_font = brandIdentity.brand_font;
+    if (brandIdentity.logo_url) additionalFields.logo_url = brandIdentity.logo_url;
+    if (brandIdentity.visual_tone) additionalFields.visual_style = brandIdentity.visual_tone;
 
     if (existing) {
       const { error: updateError } = await serviceClient

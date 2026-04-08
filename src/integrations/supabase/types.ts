@@ -1590,6 +1590,63 @@ export type Database = {
           },
         ]
       }
+      sm2_post_performance: {
+        Row: {
+          clinic_id: string
+          comments: number
+          created_at: string
+          generation_id: string
+          id: string
+          likes: number
+          platform: string
+          post_number: number
+          reach: number
+          recorded_at: string
+          shares: number
+        }
+        Insert: {
+          clinic_id: string
+          comments?: number
+          created_at?: string
+          generation_id: string
+          id?: string
+          likes?: number
+          platform?: string
+          post_number?: number
+          reach?: number
+          recorded_at?: string
+          shares?: number
+        }
+        Update: {
+          clinic_id?: string
+          comments?: number
+          created_at?: string
+          generation_id?: string
+          id?: string
+          likes?: number
+          platform?: string
+          post_number?: number
+          reach?: number
+          recorded_at?: string
+          shares?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sm2_post_performance_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sm2_post_performance_generation_id_fkey"
+            columns: ["generation_id"]
+            isOneToOne: false
+            referencedRelation: "sm2_generations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sm2_system_prompts: {
         Row: {
           created_at: string
@@ -1614,6 +1671,36 @@ export type Database = {
           notes?: string | null
           prompt_text?: string
           version?: string
+        }
+        Relationships: []
+      }
+      statutory_holidays_reference: {
+        Row: {
+          created_at: string
+          day_of_month: number | null
+          day_rule: string | null
+          holiday_name: string
+          id: string
+          month: number
+          province: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_month?: number | null
+          day_rule?: string | null
+          holiday_name: string
+          id?: string
+          month: number
+          province: string
+        }
+        Update: {
+          created_at?: string
+          day_of_month?: number | null
+          day_rule?: string | null
+          holiday_name?: string
+          id?: string
+          month?: number
+          province?: string
         }
         Relationships: []
       }
@@ -1692,6 +1779,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      populate_monthly_holidays: {
+        Args: { _clinic_id: string; _month: number; _province: string }
+        Returns: undefined
       }
     }
     Enums: {
