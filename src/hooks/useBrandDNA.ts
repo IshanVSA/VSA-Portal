@@ -48,11 +48,20 @@ export function useBrandDNA(clinicId: string | undefined) {
 
       const existing = dna;
       if (existing) {
+        // Merge with existing data so extraction/review/locality data isn't wiped
+        const mergedCallNotes = {
+          ...(existing.call_notes as Record<string, any>),
+          ...payload.call_notes,
+        };
+        const mergedAdditional = {
+          ...(existing.additional_fields as Record<string, any>),
+          ...payload.additional_fields,
+        };
         const { error } = await supabase
           .from("clinic_brand_dna")
           .update({
-            call_notes: payload.call_notes as any,
-            additional_fields: payload.additional_fields as any,
+            call_notes: mergedCallNotes as any,
+            additional_fields: mergedAdditional as any,
             status: payload.status,
           })
           .eq("clinic_id", clinicId);
