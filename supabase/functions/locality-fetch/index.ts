@@ -429,6 +429,6 @@ Deno.serve(async (req) => {
     return createJsonResponse({ success: true, locality });
   } catch (error) {
     console.error("locality-fetch error:", error);
-    return createJsonResponse({ error: error instanceof Error ? error.message : "Unknown error" }, 500);
+    return createJsonResponse({ ok: false, error: error instanceof Error ? error.message : "Unknown error" });
   }
 });
