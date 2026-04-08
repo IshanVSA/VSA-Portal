@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Share2, LayoutDashboard, FileCheck, CalendarDays, ClipboardList, BarChart3, Ticket, Upload, MessageSquare, Dna, Sparkles, Eye } from "lucide-react";
+import { Share2, LayoutDashboard, FileCheck, CalendarDays, ClipboardList, BarChart3, Ticket, Upload, MessageSquare, Dna, Sparkles, Eye, SlidersHorizontal } from "lucide-react";
 import { SocialOverview } from "@/components/social/SocialOverview";
 import { lazy, Suspense } from "react";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
@@ -25,6 +25,7 @@ const AnalyticsContent = lazy(() => import("@/components/social/AnalyticsContent
 const BrandDNATab = lazy(() => import("@/components/social/BrandDNATab"));
 const ContentGenerationTab = lazy(() => import("@/components/social/ContentGenerationTab"));
 const ClientContentReview = lazy(() => import("@/components/social/ClientContentReview"));
+const ContentThemeSliders = lazy(() => import("@/components/social/ContentThemeSliders"));
 
 const TabFallback = () => (
   <div className="py-12 flex items-center justify-center">
@@ -47,6 +48,7 @@ const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
 const dnaTab = { value: "brand-dna", label: "Brand DNA", icon: Dna };
 const generationTab = { value: "generation", label: "Generate", icon: Sparkles };
 const contentReviewTab = { value: "content-review", label: "My Content", icon: Eye };
+const themeSlidersTab = { value: "preferences", label: "Preferences", icon: SlidersHorizontal };
 
 export default function SocialMedia() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -64,7 +66,7 @@ export default function SocialMedia() {
   const showDNAGate = isClient && !dnaLoading && !dnaCompleted && !isLocked;
 
   const visibleTabs = isClient
-    ? [...baseTabs.filter(t => ["overview", "requests", "tickets"].includes(t.value)), contentReviewTab]
+    ? [...baseTabs.filter(t => ["overview", "requests", "tickets"].includes(t.value)), contentReviewTab, themeSlidersTab]
     : [...baseTabs, generationTab, dnaTab, ...(isStaff ? [chatTab] : [])];
 
   const handleTabChange = (value: string) => {
@@ -129,6 +131,7 @@ export default function SocialMedia() {
                 <TabsContent value="requests" className="mt-4"><Suspense fallback={<TabFallback />}><ContentRequestsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="tickets" className="mt-4"><TicketsTab department="social_media" services={socialServices} clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="content-review" className="mt-4"><Suspense fallback={<TabFallback />}><ClientContentReview clinicId={selectedClinicId} /></Suspense></TabsContent>
+                <TabsContent value="preferences" className="mt-4"><Suspense fallback={<TabFallback />}><ContentThemeSliders clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="calendar" className="mt-4"><Suspense fallback={<TabFallback />}><ContentCalendarContent clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="intake" className="mt-4"><Suspense fallback={<TabFallback />}><IntakeFormsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="analytics" className="mt-4"><Suspense fallback={<TabFallback />}><AnalyticsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
