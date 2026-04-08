@@ -18,6 +18,67 @@ function jsonRes(body: unknown, status = 200) {
   });
 }
 
+// ── Name-match validation ──────────────────────────────────────────
+const STOP_WORDS = new Set([
+  "the", "and", "of", "a", "an", "in", "at", "on", "for", "to", "is",
+  "ltd", "llc", "inc", "corp", "co", "&",
+]);
+
+function tokenize(name: string): Set<string> {
+  return new Set(
+    name.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/)
+      .filter(w => w.length > 1 && !STOP_WORDS.has(w))
+  );
+}
+
+function namesMatch(clinicName: string, googleName: string): boolean {
+  const clinicTokens = tokenize(clinicName);
+  const googleTokens = tokenize(googleName);
+  let overlap = 0;
+  for (const t of clinicTokens) {
+    if (googleTokens.has(t)) overlap++;
+  }
+  return overlap >= 1;
+}
+
+// ── Places API helpers ─────────────────────────────────────────────
+async function searchVetPlace(clinicName: string, address: string, apiKey: string) {
+  // Build a query that emphasizes veterinary context
+  const queries = [
+    `${clinicName} veterinary ${address}`.trim(),
+    `${clinicName} animal hospital ${address}`.trim(),
+    `${clinicName} ${address}`.trim(),
+  ];
+
+  for (const query of queries) {
+    console.log(`Searching Places: "${query}"`);
+    const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": apiKey,
+        "X-Goog-FieldMask": "places.id,places.displayName",
+      },
+      body: JSON.stringify({ textQuery: query }),
+    });
+    const data = await res.json();
+    if (data.places?.length > 0) {
+      const place = data.places[0];
+      const displayName = place.displayName?.text || place.displayName || "";
+      console.log(`Found: "${displayName}" (id: ${place.id})`);
+      // Check if the result is plausibly a vet clinic
+      const vetKeywords = ["animal", "vet", "veterinary", "pet", "clinic"];
+      const nameTokens = tokenize(displayName);
+      const isVet = vetKeywords.some(k => nameTokens.has(k)) || namesMatch(clinicName, displayName);
+      if (isVet) {
+        return { placeId: place.id, displayName };
+      }
+      console.log(`Skipping "${displayName}" — doesn't match "${clinicName}"`);
+    }
+  }
+  return null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -56,29 +117,41 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Resolve Place ID
+    // ── Resolve Place ID with validation ───────────────────────────
     let placeId = clinic.google_place_id;
-    if (!placeId) {
-      const query = `${clinic.clinic_name} ${clinic.address || ""}`.trim();
-      
-      // Use Places API (New) — Text Search
-      const searchRes = await fetch("https://places.googleapis.com/v1/places:searchText", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Goog-Api-Key": googleKey,
-          "X-Goog-FieldMask": "places.id,places.displayName",
-        },
-        body: JSON.stringify({ textQuery: query }),
-      });
-      const searchData = await searchRes.json();
-      console.log("Places search response:", JSON.stringify(searchData));
+    let needsSearch = !placeId;
 
-      if (searchData.places?.length > 0) {
-        placeId = searchData.places[0].id;
+    // If we have a stored Place ID, validate it matches the clinic
+    if (placeId) {
+      const detailsRes = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
+        headers: {
+          "X-Goog-Api-Key": googleKey,
+          "X-Goog-FieldMask": "displayName",
+        },
+      });
+      const detailsData = await detailsRes.json();
+      const storedName = detailsData.displayName?.text || detailsData.displayName || "";
+      console.log(`Stored Place ID "${placeId}" resolves to: "${storedName}"`);
+
+      if (!namesMatch(clinic.clinic_name, storedName)) {
+        console.log(`Name mismatch! Clinic: "${clinic.clinic_name}" vs Google: "${storedName}". Will re-search.`);
+        placeId = null;
+        needsSearch = true;
+      }
+    }
+
+    // Search for the correct Place ID
+    if (needsSearch) {
+      const result = await searchVetPlace(clinic.clinic_name, clinic.address || "", googleKey);
+      if (result) {
+        placeId = result.placeId;
+        // Persist corrected Place ID
         await sb.from("clinics").update({ google_place_id: placeId }).eq("id", clinic_id);
+        console.log(`Updated google_place_id to "${placeId}" (${result.displayName})`);
       } else {
-        return jsonRes({ error: "Could not find this clinic on Google Maps. Please verify the clinic name and address are correct." }, 404);
+        return jsonRes({
+          error: "Could not find this clinic on Google Maps. Please verify the clinic name and address are correct.",
+        }, 404);
       }
     }
 
@@ -212,12 +285,13 @@ Deno.serve(async (req) => {
     }
 
     const extracted = toolBlock.input;
+    const placeName = detailsData.displayName?.text || detailsData.displayName || "";
     const miningResult = {
       ...extracted,
       review_count: reviews.length,
       total_reviews_on_google: totalReviews,
       avg_rating: avgRating,
-      place_name: detailsData.displayName?.text || detailsData.displayName || "",
+      place_name: placeName,
       mined_at: new Date().toISOString(),
     };
 
@@ -246,6 +320,6 @@ Deno.serve(async (req) => {
     return jsonRes({ success: true, extracted: miningResult });
   } catch (err) {
     console.error("mine-reviews error:", err);
-    return jsonRes({ error: err.message || "Internal error" }, 500);
+    return jsonRes({ error: (err as Error).message || "Internal error" }, 500);
   }
 });

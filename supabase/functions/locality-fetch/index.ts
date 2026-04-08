@@ -170,6 +170,29 @@ function getAddressComponentText(component: any) {
   return component?.longText || component?.shortText || component?.long_name || component?.short_name || null;
 }
 
+// ── Name-match validation ──────────────────────────────────────────
+const STOP_WORDS = new Set([
+  "the", "and", "of", "a", "an", "in", "at", "on", "for", "to", "is",
+  "ltd", "llc", "inc", "corp", "co", "&",
+]);
+
+function tokenize(name: string): Set<string> {
+  return new Set(
+    name.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/)
+      .filter(w => w.length > 1 && !STOP_WORDS.has(w))
+  );
+}
+
+function namesMatch(clinicName: string, googleName: string): boolean {
+  const clinicTokens = tokenize(clinicName);
+  const googleTokens = tokenize(googleName);
+  let overlap = 0;
+  for (const t of clinicTokens) {
+    if (googleTokens.has(t)) overlap++;
+  }
+  return overlap >= 1;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -258,12 +281,17 @@ Deno.serve(async (req) => {
       const placeDetails = await fetchPlaceDetails(clinic.google_place_id, googleApiKey);
 
       if (placeDetails.data?.location) {
-        lat = placeDetails.data.location.latitude;
-        lng = placeDetails.data.location.longitude;
-        formattedAddress = placeDetails.data.formattedAddress || formattedAddress;
-        resolvedPlaceId = placeDetails.data.id || resolvedPlaceId;
-        resolvedPlaceDetails = placeDetails.data;
-        console.log(`Place ID resolved clinic to: ${formattedAddress}`);
+        const placeName = placeDetails.data.displayName?.text || placeDetails.data.displayName || "";
+        if (namesMatch(clinic.clinic_name, placeName)) {
+          lat = placeDetails.data.location.latitude;
+          lng = placeDetails.data.location.longitude;
+          formattedAddress = placeDetails.data.formattedAddress || formattedAddress;
+          resolvedPlaceId = placeDetails.data.id || resolvedPlaceId;
+          resolvedPlaceDetails = placeDetails.data;
+          console.log(`Place ID resolved clinic to: ${formattedAddress}`);
+        } else {
+          console.log(`Place ID name mismatch: "${placeName}" vs "${clinic.clinic_name}". Skipping stale ID.`);
+        }
       } else {
         console.log(`Place details lookup failed: ${JSON.stringify(placeDetails.data || { status: placeDetails.status })}`);
       }
