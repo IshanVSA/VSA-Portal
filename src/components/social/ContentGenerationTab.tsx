@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSM2Generation } from "@/hooks/useSM2Generation";
 import { useMonthlySignals } from "@/hooks/useMonthlySignals";
 import { useBrandDNA } from "@/hooks/useBrandDNA";
