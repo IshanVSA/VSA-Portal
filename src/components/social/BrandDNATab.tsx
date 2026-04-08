@@ -11,6 +11,12 @@ import {
   MapPin, TreePine, Home, Car,
 } from "lucide-react";
 import { format } from "date-fns";
+import { lazy, Suspense } from "react";
+
+const AdminDNAProfileCard = lazy(() => import("@/components/social/AdminDNAProfileCard"));
+const PromotionModule = lazy(() => import("@/components/social/PromotionModule"));
+const PostLimitTracker = lazy(() => import("@/components/social/PostLimitTracker"));
+const PostingSchedule = lazy(() => import("@/components/social/PostingSchedule"));
 
 const QUESTION_LABELS: Record<string, string> = {
   q1_differentiator: "Real Differentiator",
