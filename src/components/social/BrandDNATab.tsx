@@ -240,6 +240,8 @@ function SynthesizedProfileCard({ profile }: { profile: Record<string, any> }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
+        {/* Improve Score Checklist */}
+        {score < 95 && <ImproveScoreChecklist profile={profile} />}
         {/* Voice Fingerprint */}
         {profile.voice_fingerprint?.length > 0 && (
           <div className="space-y-2">
