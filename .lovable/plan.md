@@ -1,32 +1,63 @@
 
 
-## Plan: Fix Locality Data Not Reaching Synthesis Engine
+## Plan: Complete Remaining Social Media Department Features
 
-### Root Cause
+Based on the earlier gap analysis and current codebase review, here are the remaining items grouped into implementation batches.
 
-The `locality-fetch` edge function stores its results at `additional_fields.locality` (a nested object with keys like `neighbourhood`, `local_trails_and_parks`, `cultural_communities`, `wildlife_profile`, etc.).
+### Batch 1 — Brand Identity Auto-Fetch (Phase 1c)
 
-However, the `synthesize-dna` function (lines 393-400) looks for flat top-level keys in `additionalFields`:
-- `neighbourhood_character`
-- `local_trails_parks`
-- `cultural_communities`
+Currently the SM2 prompt references `primary_brand_color`, `secondary_brand_color`, `brand_font`, `logo_url`, and `visual_tone` but they're always "NOT FETCHED". The `extract-clinic-website` edge function already scrapes clinic websites — extend it to also extract brand colors (from CSS/meta tags), fonts, and logo URLs during Layer 1 extraction, storing them in `brand_dna.additional_fields`.
 
-These keys don't exist at the top level — the data lives under `additionalFields.locality.neighbourhood`, `additionalFields.locality.local_trails_and_parks`, etc. So the synthesis engine never sees the locality data and the AI scores those fields as empty.
+**Files:**
+- `supabase/functions/extract-clinic-website/index.ts` — Add brand identity extraction (dominant colors from inline styles/CSS variables, logo from `<img>` tags with "logo" in src/alt, font families from computed styles)
+- `supabase/functions/synthesize-dna/index.ts` — Read brand identity from `additional_fields` into the prompt (already partially wired)
 
-### Fix
+### Batch 2 — Meta Ads Handoff Trigger (Phase 4b)
 
-**File: `supabase/functions/synthesize-dna/index.ts`** — Update `buildUserMessage` to read locality data from `additionalFields.locality` and include it as a dedicated section in the AI prompt. Specifically:
+When a clinic's monthly engagement drops below a threshold or a promotion is active, surface an alert card in the Social Overview suggesting a Meta Ads boost. This is a UI-only feature reading existing analytics data.
 
-1. Add a `=== LOCALITY PROFILE ===` section to the user message that dumps the full locality object (neighbourhood, trails/parks, wildlife, cultural communities, housing character, seasonal notes, community anchors, commuter profile).
+**Files:**
+- `src/components/social/SocialOverview.tsx` — Add a "Meta Ads Recommendation" card that checks if active promotions exist or engagement is low, linking to the Google Ads / Meta department
 
-2. Update the "ADDITIONAL FIELDS" section (lines 393-400) to also pull from `additionalFields.locality` for the specific keys the scoring needs (`neighbourhood`, `cultural_communities`, `local_trails_and_parks`).
+### Batch 3 — Performance Intelligence: Engagement Capture (Phase 5)
 
-This way the AI will have the full locality context for synthesis, and the scoring fields will be populated correctly.
+Add a `sm2_post_performance` table to track per-post engagement metrics (likes, shares, comments, reach) and display a simple performance card in the Generation tab so concierges can see which post types perform best.
 
-### Impact
+**Files:**
+- **Migration** — Create `sm2_post_performance` table (generation_id, post_number, platform, likes, shares, comments, reach, recorded_at)
+- `src/components/social/ContentGenerationTab.tsx` — Add a "Top Performers" summary card below generation history
 
-After this fix, re-running "Synthesize DNA" for Alma will incorporate all the locality data (Pacific Spirit Park, coyote warnings, Dunbar Village, cultural communities, etc.) and the completeness score should increase by ~4 points (neighbourhood: 2, cultural_communities: 1, local_trails: 1).
+### Batch 4 — Notification System for Social Media (Phase 6)
 
-### Files
-- **`supabase/functions/synthesize-dna/index.ts`** — Update `buildUserMessage` to read from `additionalFields.locality`
+Wire social-media-specific events into the existing `NotificationBell` system. Events: content generated, content sent to client, client approved, client submitted feedback, auto-approved.
+
+**Files:**
+- **Migration** — Insert notification triggers: after UPDATE on `sm2_generations` when `approval_status` changes, insert into existing notifications table
+- `src/components/notifications/NotificationBell.tsx` — Ensure social media notification types render with appropriate icons/labels
+
+### Batch 5 — Statutory Holiday Calendar (Phase 7)
+
+Auto-populate `statutory_holidays` in `clinic_monthly_signals` based on the clinic's province. Create a reference table of Canadian statutory holidays and a DB function that fills them monthly.
+
+**Files:**
+- **Migration** — Create `statutory_holidays_reference` table (province, holiday_name, month, day_rule) with seed data for all Canadian provinces
+- **Migration** — Create a DB function `populate_monthly_holidays` that auto-fills `clinic_monthly_signals.statutory_holidays` based on clinic province
+
+### Batch 6 — Multi-Location Cluster Management (Phase 7b)
+
+For clinic groups with multiple locations, add a "Cluster View" in the Social Overview that shows all locations' DNA scores, generation status, and posting schedules side by side. This leverages the existing `clinic_selector` and `geo_clusters` infrastructure.
+
+**Files:**
+- `src/components/social/SocialOverview.tsx` — Add a "Multi-Location Summary" card for admin users showing all clinics' social media status in a compact table
+
+### Technical Notes
+
+- Brand identity extraction will use regex on the scraped HTML (already fetched by `extract-clinic-website`) — no additional API calls needed.
+- The statutory holiday reference table will be seeded with ~80 rows covering all 13 provinces/territories.
+- Notification triggers will use Postgres trigger functions inserting into the existing `notifications` table.
+- All new tables get RLS policies scoped to authenticated users with clinic access.
+
+### Recommended Order
+
+Start with **Batch 1** (brand identity auto-fetch) since it immediately improves DNA completeness scores, then **Batch 4** (notifications) for operational visibility, then **Batch 5** (holidays) for content accuracy.
 
