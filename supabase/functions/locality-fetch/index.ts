@@ -281,12 +281,17 @@ Deno.serve(async (req) => {
       const placeDetails = await fetchPlaceDetails(clinic.google_place_id, googleApiKey);
 
       if (placeDetails.data?.location) {
-        lat = placeDetails.data.location.latitude;
-        lng = placeDetails.data.location.longitude;
-        formattedAddress = placeDetails.data.formattedAddress || formattedAddress;
-        resolvedPlaceId = placeDetails.data.id || resolvedPlaceId;
-        resolvedPlaceDetails = placeDetails.data;
-        console.log(`Place ID resolved clinic to: ${formattedAddress}`);
+        const placeName = placeDetails.data.displayName?.text || placeDetails.data.displayName || "";
+        if (namesMatch(clinic.clinic_name, placeName)) {
+          lat = placeDetails.data.location.latitude;
+          lng = placeDetails.data.location.longitude;
+          formattedAddress = placeDetails.data.formattedAddress || formattedAddress;
+          resolvedPlaceId = placeDetails.data.id || resolvedPlaceId;
+          resolvedPlaceDetails = placeDetails.data;
+          console.log(`Place ID resolved clinic to: ${formattedAddress}`);
+        } else {
+          console.log(`Place ID name mismatch: "${placeName}" vs "${clinic.clinic_name}". Skipping stale ID.`);
+        }
       } else {
         console.log(`Place details lookup failed: ${JSON.stringify(placeDetails.data || { status: placeDetails.status })}`);
       }
