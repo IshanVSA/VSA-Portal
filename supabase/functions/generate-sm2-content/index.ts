@@ -511,7 +511,7 @@ async function processResponse(
       html_file_path: filePath,
       generation_confidence_score: confidenceScore,
       dna_completeness_score: completenessScore,
-      model_used: "claude-sonnet-4-6",
+      model_used: "claude-sonnet-4-20250514",
       token_count: tokenCount,
       triggered_by: userId,
       approval_status: "pending",
