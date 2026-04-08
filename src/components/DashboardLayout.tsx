@@ -157,17 +157,37 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
   }, [user]);
 
   // Fetch department assignments for concierge users
+  // Falls back to team_role mapping when department_members is empty
+  const teamRoleToDepartments: Record<string, string[]> = {
+    "Developer": ["website"],
+    "Maintenance": ["website"],
+    "SEO Lead": ["seo"],
+    "Ads Strategist": ["google_ads"],
+    "Ads Analyst": ["google_ads"],
+    "Social & Concierge": ["social_media"],
+  };
+
   useEffect(() => {
     if (!user || role !== "concierge") return;
-    supabase
-      .from("department_members")
-      .select("department")
-      .eq("user_id", user.id)
-      .then(({ data }) => {
-        if (data) {
-          setUserDepartments(data.map(d => d.department));
-        }
-      });
+    const load = async () => {
+      const { data } = await supabase
+        .from("department_members")
+        .select("department")
+        .eq("user_id", user.id);
+      if (data && data.length > 0) {
+        setUserDepartments(data.map(d => d.department));
+      } else {
+        // Fallback: infer from team_role in profile
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("team_role")
+          .eq("id", user.id)
+          .maybeSingle();
+        const inferred = prof?.team_role ? (teamRoleToDepartments[prof.team_role] || []) : [];
+        setUserDepartments(inferred);
+      }
+    };
+    load();
   }, [user, role]);
 
 
