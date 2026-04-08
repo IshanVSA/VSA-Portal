@@ -48,6 +48,7 @@ const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
 const dnaTab = { value: "brand-dna", label: "Brand DNA", icon: Dna };
 const generationTab = { value: "generation", label: "Generate", icon: Sparkles };
 const contentReviewTab = { value: "content-review", label: "My Content", icon: Eye };
+const themeSlidersTab = { value: "preferences", label: "Preferences", icon: SlidersHorizontal };
 
 export default function SocialMedia() {
   const [searchParams, setSearchParams] = useSearchParams();
