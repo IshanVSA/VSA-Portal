@@ -241,7 +241,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                           </Button>
                         </>
                       )}
-                      {gen.approval_status === "feedback_submitted" && (
+                      {(gen.approval_status === "feedback_submitted" || gen.client_feedback) && (
                         <Button variant="outline" size="sm" onClick={() => { setPreflightOpen(true); }} className="gap-1.5 text-xs">
                           <RefreshCw className="h-3.5 w-3.5" />
                           Regenerate
