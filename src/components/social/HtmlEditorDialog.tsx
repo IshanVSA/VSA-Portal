@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { RefreshCw, Save, Eye, Code } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -16,7 +16,8 @@ export default function HtmlEditorDialog({ filePath, onClose }: Props) {
   const [htmlContent, setHtmlContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<"code" | "preview">("code");
+  const [activeTab, setActiveTab] = useState<"visual" | "code">("visual");
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -36,10 +37,63 @@ export default function HtmlEditorDialog({ filePath, onClose }: Props) {
     fetchHtml();
   }, [filePath]);
 
+  // Sync iframe content back to state when switching away from visual mode
+  const syncFromIframe = useCallback(() => {
+    try {
+      const doc = iframeRef.current?.contentDocument;
+      if (doc) {
+        setHtmlContent("<!DOCTYPE html>" + doc.documentElement.outerHTML);
+      }
+    } catch {
+      // cross-origin safety
+    }
+  }, []);
+
+  const handleTabSwitch = (tab: "visual" | "code") => {
+    if (activeTab === "visual" && tab === "code") {
+      syncFromIframe();
+    }
+    setActiveTab(tab);
+  };
+
+  // Inject contentEditable into the iframe body when it loads
+  const handleIframeLoad = () => {
+    try {
+      const doc = iframeRef.current?.contentDocument;
+      if (doc?.body) {
+        doc.body.contentEditable = "true";
+        doc.body.style.outline = "none";
+        doc.body.style.cursor = "text";
+        // Add a subtle editing indicator border
+        doc.body.style.minHeight = "100%";
+      }
+    } catch {
+      // cross-origin safety
+    }
+  };
+
   const handleSave = async () => {
+    // Sync latest from iframe if in visual mode
+    if (activeTab === "visual") {
+      syncFromIframe();
+      // Small delay to let state update
+      await new Promise(r => setTimeout(r, 50));
+    }
+
     setSaving(true);
     try {
-      const blob = new Blob([htmlContent], { type: "text/html" });
+      // Get the latest content
+      let contentToSave = htmlContent;
+      if (activeTab === "visual") {
+        try {
+          const doc = iframeRef.current?.contentDocument;
+          if (doc) {
+            contentToSave = "<!DOCTYPE html>" + doc.documentElement.outerHTML;
+          }
+        } catch { /* ignore */ }
+      }
+
+      const blob = new Blob([contentToSave], { type: "text/html" });
       const { error } = await supabase.storage
         .from("department-files")
         .upload(filePath, blob, { upsert: true });
@@ -63,20 +117,20 @@ export default function HtmlEditorDialog({ filePath, onClose }: Props) {
             <DialogTitle>Edit Content</DialogTitle>
             <div className="flex gap-1 border rounded-lg p-0.5">
               <Button
+                variant={activeTab === "visual" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => handleTabSwitch("visual")}
+                className="gap-1.5 h-7 text-xs"
+              >
+                <Eye className="h-3.5 w-3.5" /> Visual
+              </Button>
+              <Button
                 variant={activeTab === "code" ? "default" : "ghost"}
                 size="sm"
-                onClick={() => setActiveTab("code")}
+                onClick={() => handleTabSwitch("code")}
                 className="gap-1.5 h-7 text-xs"
               >
                 <Code className="h-3.5 w-3.5" /> Code
-              </Button>
-              <Button
-                variant={activeTab === "preview" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setActiveTab("preview")}
-                className="gap-1.5 h-7 text-xs"
-              >
-                <Eye className="h-3.5 w-3.5" /> Preview
               </Button>
             </div>
           </div>
@@ -88,25 +142,30 @@ export default function HtmlEditorDialog({ filePath, onClose }: Props) {
           </div>
         ) : (
           <div className="flex-1 min-h-0">
-            {activeTab === "code" ? (
+            {activeTab === "visual" ? (
+              <iframe
+                ref={iframeRef}
+                srcDoc={htmlContent}
+                className="w-full h-full rounded-lg border bg-white"
+                sandbox="allow-same-origin allow-scripts"
+                title="Visual Editor"
+                onLoad={handleIframeLoad}
+              />
+            ) : (
               <Textarea
                 value={htmlContent}
                 onChange={(e) => setHtmlContent(e.target.value)}
                 className="w-full h-full font-mono text-xs resize-none"
                 style={{ minHeight: "100%", height: "100%" }}
               />
-            ) : (
-              <iframe
-                srcDoc={htmlContent}
-                className="w-full h-full rounded-lg border bg-white"
-                sandbox="allow-same-origin allow-scripts"
-                title="Content Preview"
-              />
             )}
           </div>
         )}
 
         <DialogFooter className="flex-shrink-0">
+          <p className="text-xs text-muted-foreground mr-auto">
+            {activeTab === "visual" ? "Click on any text to edit it directly" : "Edit raw HTML code"}
+          </p>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={handleSave} disabled={saving || loading} className="gap-2">
             {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}

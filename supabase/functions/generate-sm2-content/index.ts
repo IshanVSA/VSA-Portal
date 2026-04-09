@@ -397,7 +397,8 @@ async function backgroundGenerate(
     if (confidenceMatch) confidenceScore = parseInt(confidenceMatch[3]);
 
     const clinicSlug = clinic.clinic_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-    const filePath = `sm2/${clinicSlug}-${month_year}-social.html`;
+    const timestamp = Date.now();
+    const filePath = `sm2/${clinicSlug}-${month_year}-v${timestamp}-social.html`;
 
     await serviceClient.storage
       .from("department-files")
@@ -505,41 +506,19 @@ Deno.serve(async (req) => {
 
     console.log(`Generating SM2 content for ${clinic.clinic_name}, month: ${month_year}, DNA score: ${completenessScore}`);
 
-    const { data: existingGen } = await serviceClient
+    // Always create a new generation row (each click = separate history entry)
+    const { data: newGen } = await serviceClient
       .from("sm2_generations")
+      .insert({
+        clinic_id,
+        month_year,
+        approval_status: "processing",
+        triggered_by: authData.user.id,
+        dna_completeness_score: completenessScore,
+      })
       .select("id")
-      .eq("clinic_id", clinic_id)
-      .eq("month_year", month_year)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    let generationId: string;
-    if (existingGen?.id) {
-      await serviceClient
-        .from("sm2_generations")
-        .update({
-          approval_status: "processing",
-          updated_at: new Date().toISOString(),
-          triggered_by: authData.user.id,
-          dna_completeness_score: completenessScore,
-        })
-        .eq("id", existingGen.id);
-      generationId = existingGen.id;
-    } else {
-      const { data: newGen } = await serviceClient
-        .from("sm2_generations")
-        .insert({
-          clinic_id,
-          month_year,
-          approval_status: "processing",
-          triggered_by: authData.user.id,
-          dna_completeness_score: completenessScore,
-        })
-        .select("id")
-        .single();
-      generationId = newGen!.id;
-    }
+      .single();
+    const generationId = newGen!.id;
 
     (globalThis as any).EdgeRuntime?.waitUntil?.(
       backgroundGenerate(
