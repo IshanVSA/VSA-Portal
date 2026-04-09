@@ -1,34 +1,40 @@
 
 
-## Plan: Fix SM2 Content Generation Timeout
+## Plan: Fix Supabase Storage Access for SM2 Content
 
-### Root Cause
+### Problem
 
-The edge function timed out at 153 seconds (Supabase limit ~150s). Two issues:
+Content generation is actually **working** — there's already a successful generation for Alma Animal Hospital (April 2026, confidence score 100%, HTML file stored). However, the frontend can't display it because:
 
-1. **Invalid model name**: `claude-sonnet-4-6` is not a valid Anthropic model ID. The correct ID is `claude-sonnet-4-20250514` (or `claude-3-5-sonnet-20241022` for 3.5 Sonnet).
-2. **Retry doubles the timeout**: If the first call fails (likely due to invalid model), the retry makes a second identical call, guaranteeing a timeout.
-3. **12,000 max_tokens is very large**: The full HTML deliverable generation is ambitious for a single call within edge function time limits.
+1. The `department-files` bucket is **private**
+2. The code uses `getPublicUrl()` which only works on public buckets
+3. The iframe gets a URL that returns an auth error
 
 ### Fix
 
-**File: `supabase/functions/generate-sm2-content/index.ts`**
+**Two changes needed:**
 
-1. **Fix the model name** to `claude-sonnet-4-20250514` (Claude Sonnet 4, the fast model suitable for this task).
-2. **Remove the retry logic** — retrying the same large generation within the same edge function guarantees a timeout. If the first call fails, return the error immediately.
-3. **Reduce max_tokens to 8000** — the HTML output can be trimmed. 12k tokens with the massive system prompt pushes generation time past limits.
-4. **Add an AbortController with a 120-second timeout** on the fetch call so it fails cleanly before the edge function hard-kills at 150s.
+#### 1. Migration: Make the bucket public
 
-### Technical Details
+Create a migration to update the `department-files` bucket to public. This is safe because the bucket already has RLS policies controlling who can upload/delete, and the files stored here (generated HTML previews, chat attachments, ticket files) are internal staff/client content that needs to be viewable via direct URL (especially in iframes).
 
-```
-Model:  "claude-sonnet-4-6"  →  "claude-sonnet-4-20250514"
-Tokens: 12000  →  8000
-Retry:  removed (single attempt only)
-Timeout: 120s AbortController on fetch
+```sql
+UPDATE storage.buckets SET public = true WHERE id = 'department-files';
 ```
 
-### Impact
+#### 2. Update ContentGenerationTab.tsx — use `getPublicUrl` correctly
 
-Content generation should complete in ~60-90 seconds with the correct model, producing the full HTML deliverable successfully.
+With the bucket set to public, `getPublicUrl()` will work as-is. No code change needed for this file.
+
+However, `useSM2Generation.ts` also uses `getPublicUrl` — both will work once the bucket is public.
+
+#### 3. Verify other storage consumers still work
+
+The `DepartmentChat.tsx` and `UploadsTab.tsx` use `createSignedUrl()` which works on both public and private buckets, so no changes needed there.
+
+### Summary
+
+- One migration: flip `department-files` bucket to public
+- No frontend code changes required
+- Content is already generated — it will display immediately after the migration
 
