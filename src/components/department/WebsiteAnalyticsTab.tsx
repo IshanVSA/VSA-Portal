@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar } from "recharts";
-import { Eye, Users, TrendingUp, FileText, Globe, Clock, Layers3 } from "lucide-react";
+import { Eye, Users, TrendingUp, FileText, Globe, Clock, Layers3, MapPin } from "lucide-react";
+import { Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
 import { StatsCard } from "@/components/StatsCard";
 import { DateRangeFilter } from "@/components/department/DateRangeFilter";
 import {

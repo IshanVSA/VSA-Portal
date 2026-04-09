@@ -20,6 +20,46 @@ function cleanDedup() {
   }
 }
 
+// Simple in-memory geo cache to avoid repeated lookups for the same IP
+const geoCache = new Map<string, { country_code: string | null; region: string | null; ts: number }>();
+const GEO_CACHE_TTL_MS = 600_000; // 10 minutes
+
+async function lookupGeo(ip: string): Promise<{ country_code: string | null; region: string | null }> {
+  if (!ip || ip === "127.0.0.1" || ip === "::1") return { country_code: null, region: null };
+
+  const cached = geoCache.get(ip);
+  if (cached && Date.now() - cached.ts < GEO_CACHE_TTL_MS) {
+    return { country_code: cached.country_code, region: cached.region };
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2000);
+    const res = await fetch(`http://ip-api.com/json/${ip}?fields=status,countryCode,regionName`, {
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (res.ok) {
+      const json = await res.json();
+      if (json.status === "success") {
+        const result = { country_code: json.countryCode || null, region: json.regionName || null };
+        geoCache.set(ip, { ...result, ts: Date.now() });
+        // Prune cache if too large
+        if (geoCache.size > 500) {
+          const oldest = geoCache.keys().next().value;
+          if (oldest) geoCache.delete(oldest);
+        }
+        return result;
+      }
+    }
+    await res.text(); // consume body
+  } catch {
+    // Non-blocking: geo lookup failure is fine
+  }
+  return { country_code: null, region: null };
+}
+
 const PIXEL_JS = (clinicId: string, endpoint: string) => `
 (function(){
   var sid = sessionStorage.getItem('_vsa_sid');
@@ -109,6 +149,17 @@ Deno.serve(async (req) => {
       }
       recentHits.set(dedupKey, now);
 
+      // Extract visitor IP for geolocation
+      const visitorIp = (
+        req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+        req.headers.get("cf-connecting-ip") ||
+        req.headers.get("x-real-ip") ||
+        ""
+      );
+
+      // Non-blocking geo lookup (with 2s timeout)
+      const geo = await lookupGeo(visitorIp);
+
       const supabase = createClient(
         Deno.env.get("SUPABASE_URL")!,
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -136,6 +187,8 @@ Deno.serve(async (req) => {
         path: cleanPath,
         referrer: cleanReferrer,
         session_id: session_id.slice(0, 128),
+        country_code: geo.country_code,
+        region: geo.region,
       });
 
       if (error) {
