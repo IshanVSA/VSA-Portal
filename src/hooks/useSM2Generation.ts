@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useCallback } from "react";
 
 export interface SM2Generation {
   id: string;
@@ -48,6 +49,38 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
 
   const currentGeneration = generations?.find(g => g.month_year === currentMonth) || null;
 
+  // Poll for completion when a generation is "processing"
+  const pollForCompletion = useCallback(async (generationId: string) => {
+    const maxAttempts = 60; // 5 minutes max (every 5s)
+    for (let i = 0; i < maxAttempts; i++) {
+      await new Promise(r => setTimeout(r, 5000));
+      const { data } = await supabase
+        .from("sm2_generations")
+        .select("approval_status, generation_confidence_score, dna_completeness_score")
+        .eq("id", generationId)
+        .single();
+      
+      if (!data) continue;
+      
+      if (data.approval_status === "pending") {
+        // Generation complete!
+        queryClient.invalidateQueries({ queryKey: ["sm2-generations", clinicId] });
+        toast.success("Content generated successfully", {
+          description: `Confidence: ${data.generation_confidence_score || 0}% | DNA Score: ${data.dna_completeness_score || 0}%`,
+        });
+        return true;
+      }
+      if (data.approval_status === "generation_failed") {
+        queryClient.invalidateQueries({ queryKey: ["sm2-generations", clinicId] });
+        toast.error("Content generation failed", { description: "Please try again." });
+        return false;
+      }
+      // Still processing, continue polling
+    }
+    toast.error("Generation timed out. Check back later.");
+    return false;
+  }, [clinicId, queryClient]);
+
   const generate = useMutation({
     mutationFn: async (month: string) => {
       if (!clinicId) throw new Error("No clinic selected");
@@ -59,10 +92,17 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
       return data;
     },
     onSuccess: (data) => {
+      // The function now returns 202 with a generation_id
       queryClient.invalidateQueries({ queryKey: ["sm2-generations", clinicId] });
-      toast.success("Content generated successfully", {
-        description: `Confidence: ${data?.confidence_score || 0}% | DNA Score: ${data?.dna_score || 0}%`,
-      });
+      if (data?.status === "processing" && data?.generation_id) {
+        toast.info("Content generation started", {
+          description: "This takes 1-3 minutes. You'll be notified when ready.",
+        });
+        // Start polling in background
+        pollForCompletion(data.generation_id);
+      } else {
+        toast.success("Content generated successfully");
+      }
     },
     onError: (error: Error) => {
       toast.error("Content generation failed", { description: error.message });
@@ -147,5 +187,6 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
     submitFeedback,
     getHtmlUrl,
     currentMonth,
+    pollForCompletion,
   };
 }
