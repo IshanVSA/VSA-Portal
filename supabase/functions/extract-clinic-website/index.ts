@@ -304,6 +304,9 @@ async function extractWithAi(website: string, pages: PageData[]) {
     }
 
     const text = await response.text();
+    if (response.status === 400 && text.includes("credit balance is too low")) {
+      throw new Error("Anthropic API credit balance is too low. Please top up your Anthropic account at https://console.anthropic.com to continue using AI features.");
+    }
     throw new Error(`AI extraction failed [${response.status}]: ${text}`);
   }
 
