@@ -192,11 +192,14 @@ export function computeWebsiteMetrics(
   const engagedSessions = sessionList.filter((session) => session.length > 1).length;
   const pagesPerSession = totalSessions > 0 ? Math.round((totalViews / totalSessions) * 10) / 10 : 0;
 
+  const MAX_SESSION_DURATION_SECONDS = 30 * 60; // 30-minute cap for idle tabs
+
   const durations = sessionList
     .filter((session) => session.length > 1)
     .map((session) => {
       const times = session.map((view) => new Date(view.created_at).getTime());
-      return (Math.max(...times) - Math.min(...times)) / 1000;
+      const raw = (Math.max(...times) - Math.min(...times)) / 1000;
+      return Math.min(raw, MAX_SESSION_DURATION_SECONDS);
     });
 
   const avgDuration = durations.length > 0
