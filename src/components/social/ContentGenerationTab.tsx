@@ -258,23 +258,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
 
       {/* HTML Viewer Dialog */}
       {viewingHtml && (
-        <Dialog open={!!viewingHtml} onOpenChange={() => setViewingHtml(null)}>
-          <DialogContent className="max-w-5xl h-[85vh]">
-            <DialogHeader>
-              <DialogTitle>Generated Content Preview</DialogTitle>
-            </DialogHeader>
-            <iframe
-              src={(() => {
-                const { data } = supabase.storage.from("department-files").getPublicUrl(viewingHtml);
-                return data.publicUrl;
-              })()}
-              className="w-full flex-1 rounded-lg border"
-              style={{ height: "calc(85vh - 80px)" }}
-              sandbox="allow-same-origin"
-              title="SM2 Content Preview"
-            />
-          </DialogContent>
-        </Dialog>
+        <HtmlPreviewDialog filePath={viewingHtml} onClose={() => setViewingHtml(null)} />
       )}
     </div>
   );
