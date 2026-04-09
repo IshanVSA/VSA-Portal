@@ -363,11 +363,23 @@ function ClientHtmlPreview({
         const res = await fetch(data.publicUrl);
         if (!res.ok) throw new Error("Failed to fetch");
         let text = await res.text();
-        // Inject fallback tab-switching script if missing
-        if (text.includes('switchTab') && !text.includes('function switchTab')) {
-          const fallbackScript = `<script>function switchTab(tab){document.getElementById('client-view').style.display=tab==='client'?'block':'none';document.getElementById('qa-view').style.display=tab==='qa'?'block':'none';document.querySelectorAll('.tab-button').forEach(function(b){b.classList.remove('active')});event.target.classList.add('active');}</script>`;
-          text = text.replace('</body>', fallbackScript + '</body>');
-        }
+        // Always inject a robust tab-switching script
+        const robustScript = `<script>
+(function(){
+  window.switchTab = function(tab) {
+    var clientIds = ['client-view','clientView','client_view'];
+    var qaIds = ['qa-view','qaView','qa_view','team-qa-view','teamQaView','team-qa'];
+    function show(ids) { for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el){el.style.display='block';return true;}} return false; }
+    function hide(ids) { for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el){el.style.display='none';}} }
+    if(tab==='client'){show(clientIds);hide(qaIds);}
+    else{hide(clientIds);show(qaIds);}
+    var buttons = document.querySelectorAll('.tab-button,[onclick*="switchTab"]');
+    buttons.forEach(function(b){b.classList.remove('active');});
+    if(event&&event.target)event.target.classList.add('active');
+  };
+})();
+</script>`;
+        text = text.replace('</body>', robustScript + '</body>');
         setHtmlContent(text);
       } catch (err) {
         console.error("Failed to load HTML preview:", err);
