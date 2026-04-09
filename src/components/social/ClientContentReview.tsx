@@ -362,7 +362,12 @@ function ClientHtmlPreview({
         const { data } = supabase.storage.from("department-files").getPublicUrl(filePath);
         const res = await fetch(data.publicUrl);
         if (!res.ok) throw new Error("Failed to fetch");
-        const text = await res.text();
+        let text = await res.text();
+        // Inject fallback tab-switching script if missing
+        if (text.includes('switchTab') && !text.includes('function switchTab')) {
+          const fallbackScript = `<script>function switchTab(tab){document.getElementById('client-view').style.display=tab==='client'?'block':'none';document.getElementById('qa-view').style.display=tab==='qa'?'block':'none';document.querySelectorAll('.tab-button').forEach(function(b){b.classList.remove('active')});event.target.classList.add('active');}</script>`;
+          text = text.replace('</body>', fallbackScript + '</body>');
+        }
         setHtmlContent(text);
       } catch (err) {
         console.error("Failed to load HTML preview:", err);
