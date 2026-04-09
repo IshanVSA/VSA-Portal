@@ -22,7 +22,6 @@ function json(body: unknown, status = 200) {
   });
 }
 
-/* ── SM2 v1.4 SYSTEM PROMPT (complete, fixed — never changes between clinics) ── */
 const SM2_SYSTEM_PROMPT = `You are the VSA Vet Media SM2 DNA-Aware Social Media Generation Engine v1.4.
 
 Read the complete Clinic DNA Profile and Monthly Signal Layer in the user message before generating any content. Every field exists for a reason. Use all of it.
@@ -243,7 +242,6 @@ HAZARD: "Note: This content is for educational and informational purposes only. 
 MYTH: Same as educational.
 NO DISCLAIMER on: Hours, Community Recognition, Local Humor, Conversation Starter, Behind the Scenes.`;
 
-/* ── Build User Message (Part B) from DNA + monthly signals ── */
 function buildUserMessage(
   clinic: any,
   dna: any,
@@ -258,7 +256,6 @@ function buildUserMessage(
 
   const sections: string[] = [];
 
-  // --- PERMANENT DNA PROFILE ---
   sections.push(`=== CLINIC DNA PROFILE ===
 HOSPITAL_NAME: ${clinic.clinic_name || "NOT AVAILABLE"}
 LIVE_SITE_URL: ${clinic.website || "NOT AVAILABLE"}
@@ -305,7 +302,6 @@ ASSIGNED_CONCIERGE: ${signals?.assigned_concierge || "NOT ASSIGNED"}
 DOCTORS: ${JSON.stringify(websiteExtraction.doctors || [])}
 SERVICES: ${JSON.stringify(websiteExtraction.services_list || [])}`);
 
-  // --- MONTHLY SIGNAL LAYER ---
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const monthNum = signals?.month_year ? parseInt(signals.month_year.split("-")[1]) : new Date().getMonth() + 1;
   const year = signals?.month_year ? parseInt(signals.month_year.split("-")[0]) : new Date().getFullYear();
@@ -329,6 +325,116 @@ CLINIC_NEWS_THIS_MONTH: ${signals?.clinic_news_this_month || "NONE"}
 FACEBOOK_SPECIFIC_THIS_MONTH: ${signals?.facebook_specific_this_month || "NONE"}`);
 
   return sections.join("\n\n");
+}
+
+async function backgroundGenerate(
+  serviceClient: any,
+  clinic: any,
+  clinic_id: string,
+  month_year: string,
+  completenessScore: number,
+  userId: string,
+  monthlySignals: any,
+  gbpConfig: any,
+  dna: any,
+  generationId: string,
+) {
+  try {
+    const userMessage = buildUserMessage(clinic, dna, monthlySignals, gbpConfig);
+
+    let systemPrompt = SM2_SYSTEM_PROMPT;
+    const { data: storedPrompt } = await serviceClient
+      .from("sm2_system_prompts")
+      .select("prompt_text")
+      .eq("is_active", true)
+      .maybeSingle();
+    if (storedPrompt?.prompt_text) {
+      systemPrompt = storedPrompt.prompt_text;
+    }
+
+    const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!apiKey) throw new Error("ANTHROPIC_API_KEY not configured");
+
+    console.log(`[BG] Calling Anthropic for ${clinic.clinic_name}, month: ${month_year}`);
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: SM2_MODEL,
+        max_tokens: SM2_MAX_TOKENS,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userMessage }],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Anthropic API error [${response.status}]: ${errorText}`);
+    }
+
+    const data = await response.json();
+
+    const textBlock = data.content?.find((b: any) => b.type === "text");
+    if (!textBlock?.text) throw new Error("SM2 generation returned no content");
+
+    let htmlContent = textBlock.text;
+    const htmlMatch = htmlContent.match(/```html\s*([\s\S]*?)```/);
+    if (htmlMatch) htmlContent = htmlMatch[1];
+
+    if (!htmlContent.includes("<!DOCTYPE") && !htmlContent.includes("<html")) {
+      htmlContent = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${clinic.clinic_name} - ${month_year} Social Media Content</title></head><body>${htmlContent}</body></html>`;
+    }
+
+    const tokenCount = data.usage?.output_tokens || 0;
+
+    let confidenceScore = 0;
+    const confidenceMatch = htmlContent.match(/passed\s+(\d+)\s+of\s+(\d+)\s+.*?(\d+)%/i);
+    if (confidenceMatch) confidenceScore = parseInt(confidenceMatch[3]);
+
+    const clinicSlug = clinic.clinic_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const filePath = `sm2/${clinicSlug}-${month_year}-social.html`;
+
+    await serviceClient.storage
+      .from("department-files")
+      .upload(filePath, new Blob([htmlContent], { type: "text/html" }), {
+        contentType: "text/html",
+        upsert: true,
+      });
+
+    await serviceClient
+      .from("sm2_generations")
+      .update({
+        approval_status: "pending",
+        html_file_path: filePath,
+        generation_confidence_score: confidenceScore,
+        model_used: SM2_MODEL,
+        token_count: tokenCount,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", generationId);
+
+    await serviceClient
+      .from("clinic_monthly_signals")
+      .update({ stock_post_count: 10 })
+      .eq("clinic_id", clinic_id)
+      .eq("month_year", month_year);
+
+    console.log(`[BG] SM2 generation complete. Confidence: ${confidenceScore}%, Tokens: ${tokenCount}, File: ${filePath}`);
+  } catch (error: any) {
+    console.error(`[BG] SM2 generation failed:`, error);
+    await serviceClient
+      .from("sm2_generations")
+      .update({
+        approval_status: "generation_failed",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", generationId);
+  }
 }
 
 Deno.serve(async (req) => {
@@ -356,7 +462,6 @@ Deno.serve(async (req) => {
     if (!parsed.success) return json({ error: parsed.error.issues[0]?.message ?? "Invalid request" }, 400);
     const { clinic_id, month_year } = parsed.data;
 
-    // Fetch all required data in parallel
     const [clinicRes, dnaRes, signalsRes, gbpRes] = await Promise.all([
       serviceClient.from("clinics").select("*").eq("id", clinic_id).maybeSingle(),
       serviceClient.from("clinic_brand_dna").select("*").eq("clinic_id", clinic_id).maybeSingle(),
@@ -372,7 +477,6 @@ Deno.serve(async (req) => {
     if (!clinic) return json({ error: "Clinic not found" }, 404);
     if (!dna) return json({ error: "No Brand DNA record. Complete the DNA profile first." }, 422);
 
-    // Check DNA completeness
     const completenessScore = dna.completeness_score || 0;
     if (completenessScore < 50) {
       return json({ 
@@ -381,10 +485,8 @@ Deno.serve(async (req) => {
       }, 422);
     }
 
-    // Create or get monthly signals record
     let monthlySignals = signals;
     if (!monthlySignals) {
-      // Auto-create signals record
       const campaignMonthNumber = clinic.campaign_start_date 
         ? Math.max(1, Math.ceil((new Date(`${month_year}-01`).getTime() - new Date(clinic.campaign_start_date).getTime()) / (30.44 * 24 * 60 * 60 * 1000)))
         : 1;
@@ -401,184 +503,61 @@ Deno.serve(async (req) => {
       monthlySignals = created;
     }
 
-    // Build user message
-    const userMessage = buildUserMessage(clinic, dna, monthlySignals, gbpConfig);
-
     console.log(`Generating SM2 content for ${clinic.clinic_name}, month: ${month_year}, DNA score: ${completenessScore}`);
 
-    // Fetch active system prompt (or use embedded)
-    let systemPrompt = SM2_SYSTEM_PROMPT;
-    const { data: storedPrompt } = await serviceClient
-      .from("sm2_system_prompts")
-      .select("prompt_text")
-      .eq("is_active", true)
+    const { data: existingGen } = await serviceClient
+      .from("sm2_generations")
+      .select("id")
+      .eq("clinic_id", clinic_id)
+      .eq("month_year", month_year)
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
-    if (storedPrompt?.prompt_text) {
-      systemPrompt = storedPrompt.prompt_text;
+
+    let generationId: string;
+    if (existingGen?.id) {
+      await serviceClient
+        .from("sm2_generations")
+        .update({
+          approval_status: "processing",
+          updated_at: new Date().toISOString(),
+          triggered_by: authData.user.id,
+          dna_completeness_score: completenessScore,
+        })
+        .eq("id", existingGen.id);
+      generationId = existingGen.id;
+    } else {
+      const { data: newGen } = await serviceClient
+        .from("sm2_generations")
+        .insert({
+          clinic_id,
+          month_year,
+          approval_status: "processing",
+          triggered_by: authData.user.id,
+          dna_completeness_score: completenessScore,
+        })
+        .select("id")
+        .single();
+      generationId = newGen!.id;
     }
 
-    // Call Anthropic API
-    const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!apiKey) throw new Error("ANTHROPIC_API_KEY not configured");
+    (globalThis as any).EdgeRuntime?.waitUntil?.(
+      backgroundGenerate(
+        serviceClient, clinic, clinic_id, month_year,
+        completenessScore, authData.user.id,
+        monthlySignals, gbpConfig, dna, generationId,
+      )
+    );
 
-    // 120s timeout to fail cleanly before the 150s edge function hard limit
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 120_000);
+    return json({
+      success: true,
+      status: "processing",
+      generation_id: generationId,
+      message: "Content generation started. It will be ready in 1-3 minutes.",
+    }, 202);
 
-    let response: Response;
-    try {
-      response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          model: SM2_MODEL,
-          max_tokens: SM2_MAX_TOKENS,
-          system: systemPrompt,
-          messages: [{ role: "user", content: userMessage }],
-        }),
-        signal: controller.signal,
-      });
-    } catch (fetchErr) {
-      clearTimeout(timeout);
-      if (fetchErr instanceof DOMException && fetchErr.name === "AbortError") {
-        throw new Error("Content generation timed out after 120 seconds. Please try again.");
-      }
-      throw fetchErr;
-    } finally {
-      clearTimeout(timeout);
-    }
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`SM2 generation failed [${response.status}]: ${errorText}`);
-    }
-
-    const data = await response.json();
-    return await processResponse(data, serviceClient, clinic, clinic_id, month_year, completenessScore, authData.user.id);
   } catch (error) {
     console.error("generate-sm2-content error:", error);
     return json({ error: error instanceof Error ? error.message : "Unknown error" }, 500);
   }
 });
-
-async function processResponse(
-  data: any,
-  serviceClient: any,
-  clinic: any,
-  clinic_id: string,
-  month_year: string,
-  completenessScore: number,
-  userId: string,
-) {
-  // Extract HTML content from response
-  const textBlock = data.content?.find((b: any) => b.type === "text");
-  if (!textBlock?.text) throw new Error("SM2 generation returned no content");
-
-  let htmlContent = textBlock.text;
-  
-  // If the response starts with ```html, extract the content
-  const htmlMatch = htmlContent.match(/```html\s*([\s\S]*?)```/);
-  if (htmlMatch) {
-    htmlContent = htmlMatch[1];
-  }
-  
-  // Ensure it's valid HTML
-  if (!htmlContent.includes("<!DOCTYPE") && !htmlContent.includes("<html")) {
-    // Wrap in basic HTML structure
-    htmlContent = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${clinic.clinic_name} - ${month_year} Social Media Content</title></head><body>${htmlContent}</body></html>`;
-  }
-
-  const tokenCount = data.usage?.output_tokens || 0;
-
-  // Extract confidence score from HTML
-  let confidenceScore = 0;
-  const confidenceMatch = htmlContent.match(/passed\s+(\d+)\s+of\s+(\d+)\s+.*?(\d+)%/i);
-  if (confidenceMatch) {
-    confidenceScore = parseInt(confidenceMatch[3]);
-  }
-
-  // Generate file path
-  const clinicSlug = clinic.clinic_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  const filePath = `sm2/${clinicSlug}-${month_year}-social.html`;
-
-  // Upload to Supabase Storage
-  const { error: uploadError } = await serviceClient.storage
-    .from("department-files")
-    .upload(filePath, new Blob([htmlContent], { type: "text/html" }), {
-      contentType: "text/html",
-      upsert: true,
-    });
-
-  if (uploadError) {
-    console.error("Storage upload error:", uploadError);
-    // Continue even if storage fails — save to DB
-  }
-
-  // Save generation record without relying on a DB unique constraint that may not exist
-  const generationPayload = {
-    clinic_id,
-    month_year,
-    html_file_path: filePath,
-    generation_confidence_score: confidenceScore,
-    dna_completeness_score: completenessScore,
-    model_used: SM2_MODEL,
-    token_count: tokenCount,
-    triggered_by: userId,
-    approval_status: "pending",
-    updated_at: new Date().toISOString(),
-  };
-
-  const { data: existingGeneration, error: existingGenerationError } = await serviceClient
-    .from("sm2_generations")
-    .select("id")
-    .eq("clinic_id", clinic_id)
-    .eq("month_year", month_year)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (existingGenerationError) {
-    console.error("Existing generation lookup error:", existingGenerationError);
-    throw new Error(`Failed to look up existing generation: ${existingGenerationError.message}`);
-  }
-
-  const generationWrite = existingGeneration?.id
-    ? serviceClient
-        .from("sm2_generations")
-        .update(generationPayload)
-        .eq("id", existingGeneration.id)
-    : serviceClient
-        .from("sm2_generations")
-        .insert(generationPayload);
-
-  const { data: genRecord, error: genError } = await generationWrite
-    .select()
-    .maybeSingle();
-
-  if (genError) {
-    console.error("Generation record save error:", genError);
-    throw new Error(`Failed to save generated content: ${genError.message}`);
-  }
-
-  // Update stock post count
-  await serviceClient
-    .from("clinic_monthly_signals")
-    .update({ stock_post_count: 10 })
-    .eq("clinic_id", clinic_id)
-    .eq("month_year", month_year);
-
-  console.log(`SM2 generation complete. Confidence: ${confidenceScore}%, Tokens: ${tokenCount}, File: ${filePath}`);
-
-  return json({
-    success: true,
-    file_path: filePath,
-    confidence_score: confidenceScore,
-    dna_score: completenessScore,
-    token_count: tokenCount,
-    generation_id: genRecord?.id,
-  });
-}
