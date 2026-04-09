@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { CollisionCheckResult } from "@/lib/gbp/types";
+import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 
 export interface GBPBatchRow {
@@ -28,27 +29,6 @@ function isBlockedCollisionCheckResponse(result: RunCollisionCheckResponse): res
   return typeof result === "object" && result !== null && "status" in result && result.status === "blocked";
 }
 
-async function getEdgeFunctionErrorMessage(error: unknown, fallback: string) {
-  const maybeResponse = (error as { context?: { json?: () => Promise<unknown> } })?.context;
-
-  if (maybeResponse && typeof maybeResponse.json === "function") {
-    try {
-      const payload = await maybeResponse.json() as { error?: string; message?: string };
-      if (payload?.error || payload?.message) {
-        return payload.error || payload.message || fallback;
-      }
-    } catch {
-      // Fall through to generic error handling.
-    }
-  }
-
-  if (error instanceof Error && error.message) {
-    return error.message;
-  }
-
-  return fallback;
-}
-
 export function useGBPBatches() {
   const queryClient = useQueryClient();
 
@@ -72,7 +52,7 @@ export function useGBPBatches() {
       const { data, error } = await supabase.functions.invoke("generate-batch-queue", {
         body: {},
       });
-      if (error) throw new Error(await getEdgeFunctionErrorMessage(error, "Failed to generate batch queue"));
+      if (error) throw new Error(await extractEdgeFunctionError(error, data, "Failed to generate batch queue"));
       if (data?.error) throw new Error(data.error);
       return data;
     },
@@ -92,7 +72,7 @@ export function useGBPBatches() {
       });
 
       if (error) {
-        throw new Error(await getEdgeFunctionErrorMessage(error, "Collision check failed"));
+        throw new Error(await extractEdgeFunctionError(error, data, "Collision check failed"));
       }
 
       if (!data) {

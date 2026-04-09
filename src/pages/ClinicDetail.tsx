@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { format } from "date-fns";
+import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 import { MetaConnectionCard } from "@/components/clinic-detail/MetaConnectionCard";
 import { PageSelectionDialog } from "@/components/clinic-detail/PageSelectionDialog";
@@ -189,7 +190,8 @@ export default function ClinicDetail() {
       });
       if (error || !data) {
         console.error("Failed to retrieve OAuth data:", error);
-        toast.error("Failed to retrieve OAuth data. The link may have expired.");
+        const msg = error ? await extractEdgeFunctionError(error, data, "Failed to retrieve OAuth data") : "Failed to retrieve OAuth data. The link may have expired.";
+        toast.error(msg);
         return null;
       }
       return data;

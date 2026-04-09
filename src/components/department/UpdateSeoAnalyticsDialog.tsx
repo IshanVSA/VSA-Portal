@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Plus, Trash2, Upload, Loader2, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import type { SeoKeyword, UpsertSeoPayload, SeoExtendedData } from "@/hooks/useSeoAnalytics";
 
 interface Props {
@@ -82,7 +83,7 @@ export function UpdateSeoAnalyticsDialog({ open, onOpenChange, clinicId, onSubmi
         body: { pdfBase64: base64 },
       });
 
-      if (error) throw error;
+      if (error) throw new Error(await extractEdgeFunctionError(error, data, "Failed to extract SEO report"));
 
       if (data.month) setMonth(data.month);
       if (data.domain_authority != null) setDa(String(data.domain_authority));
@@ -101,9 +102,9 @@ export function UpdateSeoAnalyticsDialog({ open, onOpenChange, clinicId, onSubmi
       }
 
       toast.success("Data extracted from PDF! Please review and save.");
-    } catch (err) {
+    } catch (err: any) {
       console.error("PDF extraction error:", err);
-      toast.error("Failed to extract data from PDF. You can fill in the fields manually.");
+      toast.error(err?.message || "Failed to extract data from PDF. You can fill in the fields manually.");
     } finally {
       setIsExtracting(false);
     }

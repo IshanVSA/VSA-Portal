@@ -8,6 +8,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar } from "rec
 import { Button } from "@/components/ui/button";
 import { StatsCard } from "@/components/StatsCard";
 import { DollarSign, MousePointerClick, Eye, Percent, Megaphone, RefreshCw, TrendingUp } from "lucide-react";
+import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 import { DateRangeFilter, type DateRange } from "@/components/department/DateRangeFilter";
 
@@ -94,7 +95,7 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
       });
 
       if (res.error) {
-        toast.error("Sync failed: " + (res.error.message || "Unknown error"));
+        toast.error(await extractEdgeFunctionError(res.error, res.data, "Google Ads sync failed"));
       } else {
         toast.success("Google Ads data synced successfully");
         await fetchAnalytics();

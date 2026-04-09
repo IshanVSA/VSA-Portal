@@ -7,6 +7,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { RefreshCw, Smartphone, Monitor, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { format } from "date-fns";
+import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 
 interface WebsiteHealthTabProps {
@@ -162,7 +163,11 @@ export function WebsiteHealthTab({ clinicId }: WebsiteHealthTabProps) {
 
       const failed = results.filter((r) => r.status === "rejected" || (r.status === "fulfilled" && r.value.error));
       if (failed.length > 0) {
-        toast.error("Some tests failed. Check the logs.");
+        const firstFailed = failed[0];
+        const errMsg = firstFailed.status === "fulfilled" && firstFailed.value.error
+          ? await extractEdgeFunctionError(firstFailed.value.error, firstFailed.value.data, "PageSpeed test failed")
+          : "PageSpeed test failed";
+        toast.error(errMsg);
       } else {
         toast.success("PageSpeed test completed!");
       }

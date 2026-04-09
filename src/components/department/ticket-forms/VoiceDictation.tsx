@@ -5,6 +5,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
+import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 
 interface VoiceDictationProps {
@@ -105,10 +106,10 @@ export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationPr
 
     try {
       const { data, error } = await supabase.functions.invoke("extract-ticket-fields", {
-        body: { transcript: editableTranscript.trim(), formType },
+        body: { transcript: editableTranscript.trim(), formType } as Record<string, unknown>,
       });
 
-      if (error) throw error;
+      if (error) throw new Error(await extractEdgeFunctionError(error, data, "Failed to extract fields"));
       if (data?.fields) {
         onFieldsExtracted(data.fields);
         toast.success("Form fields autofilled from your dictation!");
@@ -117,9 +118,9 @@ export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationPr
       } else {
         toast.error("Could not extract fields. Try again with more detail.");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Extraction error:", err);
-      toast.error("Failed to extract fields. Please try again.");
+      toast.error(err?.message || "Failed to extract fields. Please try again.");
     } finally {
       setExtracting(false);
     }

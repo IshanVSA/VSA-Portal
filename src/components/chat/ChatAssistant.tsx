@@ -225,9 +225,9 @@ export function ChatAssistant() {
           }
         }
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error("Chat error:", e);
-      toast.error("Failed to get a response. Please try again.");
+      toast.error(e?.message || "Failed to get a response. Please try again.");
     } finally {
       setIsLoading(false);
     }

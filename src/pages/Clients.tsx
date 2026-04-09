@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 import { Plus, Trash2, UserCheck } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -66,7 +67,7 @@ export default function ClientsPage() {
     const { data, error } = await supabase.functions.invoke("delete-user", {
       body: { user_id: deleteTarget.id },
     });
-    if (error || data?.error) { toast.error(data?.error || error.message); setDeleteTarget(null); return; }
+    if (error || data?.error) { toast.error(await extractEdgeFunctionError(error, data, "Failed to delete user")); setDeleteTarget(null); return; }
     toast.success(`"${deleteTarget.name}" removed`);
     setDeleteTarget(null);
     await fetchData();
@@ -106,7 +107,7 @@ export default function ClientsPage() {
                     setCreating(true);
                     const { data, error } = await supabase.functions.invoke("create-team-member", { body: { ...form, role: "client" } });
                     setCreating(false);
-                    if (error || data?.error) { toast.error(data?.error || error.message); return; }
+                    if (error || data?.error) { toast.error(await extractEdgeFunctionError(error, data, "Failed to create client")); return; }
                     toast.success("Client created");
                     setForm({ full_name: "", email: "", password: "" });
                     setDialogOpen(false);

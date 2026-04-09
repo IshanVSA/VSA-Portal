@@ -16,6 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { COMMON_TIMEZONES, getSafeTimeZone } from "@/lib/website-analytics";
 import { isHttpsClinicWebsiteUrl, normalizeClinicWebsiteUrl } from "@/lib/clinic-website";
 import { Plus, Search, Eye, Trash2, Pencil, Building2, Users, X, Loader2, Sparkles, Lock, ShieldCheck } from "lucide-react";
+import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 
 interface Clinic {
@@ -280,7 +281,7 @@ export default function Clinics() {
       });
 
       if (error) {
-        toast.error(error.message);
+        toast.error(await extractEdgeFunctionError(error, data, "Failed to extract clinic details"));
         return;
       }
 

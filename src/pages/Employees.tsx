@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 import { Plus, Trash2, Users, Search, X, Pencil, AlertTriangle } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -164,7 +165,7 @@ export default function Employees() {
     const { data, error } = await supabase.functions.invoke("delete-user", {
       body: { user_id: deleteTarget.id },
     });
-    if (error || data?.error) { toast.error(data?.error || error.message); setDeleteTarget(null); return; }
+    if (error || data?.error) { toast.error(await extractEdgeFunctionError(error, data, "Failed to delete user")); setDeleteTarget(null); return; }
     toast.success(`"${deleteTarget.name}" removed`);
     setDeleteTarget(null);
     await fetchData();
@@ -230,7 +231,7 @@ export default function Employees() {
                       body: { ...form, team_role: form.team_role || null },
                     });
                     setCreating(false);
-                    if (error || data?.error) { toast.error(data?.error || error.message); return; }
+                    if (error || data?.error) { toast.error(await extractEdgeFunctionError(error, data, "Failed to create team member")); return; }
                     toast.success("Team member created");
                     setForm({ full_name: "", email: "", password: "", role: "concierge", team_role: "" });
                     setDialogOpen(false);

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 import { useCallback } from "react";
 
@@ -88,7 +89,7 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
       const { data, error } = await supabase.functions.invoke("generate-sm2-content", {
         body: { clinic_id: clinicId, month_year: month },
       });
-      if (error) throw error;
+      if (error) throw new Error(await extractEdgeFunctionError(error, data, "Content generation failed"));
       if (data?.error) throw new Error(data.error);
       return data;
     },
