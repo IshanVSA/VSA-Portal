@@ -66,7 +66,7 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
         supabase.from("clinics").select("timezone").eq("id", clinicId).maybeSingle(),
         supabase
           .from("website_pageviews")
-          .select("session_id, path, referrer, created_at")
+          .select("session_id, path, referrer, created_at, country_code, region")
           .eq("clinic_id", clinicId)
           .gte("created_at", bufferedRange.from.toISOString())
           .lte("created_at", bufferedRange.to.toISOString())
