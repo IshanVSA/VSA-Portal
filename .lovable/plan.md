@@ -1,52 +1,69 @@
 
 
-## Plan: Auto-Fill GBP DNA Profile From Brand DNA + Backfill All Clinics
+## Plan: Surface Actual Error Messages Project-Wide
 
 ### Problem
-- 46 clinics in `clinic_gbp_config` have empty v2.0 DNA fields (country, governing_body, city, voice_fingerprint, etc.)
-- Only Alma Animal Hospital (b82b1dac) was manually populated
-- When Brand DNA synthesis completes, the GBP config isn't automatically updated
+When edge functions fail (e.g., "API credit balance depleted"), the frontend shows vague messages like "Failed to generate" or "Something went wrong" because:
+1. The Supabase SDK wraps edge function errors, hiding the actual message in `error.context`
+2. Most call sites use hardcoded fallback strings without attempting to extract the real error
+3. Only `useGBPBatches.ts` has a proper error extraction helper — everywhere else ignores the response body
 
-### Two-Part Solution
+### Solution
 
-**Part 1 — Backfill existing clinics using address parsing**
+**1. Create a shared error extraction utility** (`src/lib/edge-function-error.ts`)
 
-Write a database migration that updates all 46 clinics with `country IS NULL` by parsing their `address` and `jurisdiction` fields:
+Move and improve the `getEdgeFunctionErrorMessage` helper from `useGBPBatches.ts` into a shared utility. This function will:
+- Try to read `error.context.json()` (Supabase SDK pattern)
+- Fall back to `error.message`
+- Return the actual server error string (e.g., "Anthropic API credit balance is too low...")
 
-- **country**: `jurisdiction = 'BC'` or `'CA-OTHER'` → `'CA'`, `jurisdiction = 'US'` → `'US'`
-- **governing_body**: `jurisdiction = 'BC'` → `'CVBC'`, Alberta clinics → `'ABVMA'`, US clinics → mapped per state
-- **state_or_province**: Parse from address (BC, AB, CA, WA, CO, etc.)
-- **city**: Parse from address (Vancouver, Surrey, Calgary, etc.)
-- **stat_holiday_protocol**: Default `'CONFIRM ANNUALLY'`
+**2. Update all edge function call sites** (~20 files) to use this utility
 
-For the 3 clinics with synthesized Brand DNA, also populate:
-- `voice_fingerprint` from `synthesized_profile->>'voice_fingerprint'`
-- `narrative_anchor` from `synthesized_profile->>'narrative_anchor'`
-- `clinic_differentiator` from `synthesized_profile->>'clinic_differentiator'`
-- `founding_story` from `synthesized_profile->>'founding_story'`
-- `content_exclusions` from `synthesized_profile->'content_exclusions'`
-- `species_treated` from website extraction or call notes
-- `after_hours_referral` from `synthesized_profile->>'after_hours_referral'`
+Every file that calls `supabase.functions.invoke()` and shows a toast on error will be updated to extract and display the real error message. Key files:
 
-**Part 2 — Auto-sync GBP config when Brand DNA is synthesized**
-
-Modify the `synthesize-dna` edge function to automatically push relevant synthesized profile fields into `clinic_gbp_config` after a successful synthesis. After saving the synthesized profile to `clinic_brand_dna`, add an upsert to `clinic_gbp_config` that maps:
-
-| Brand DNA synthesized_profile field | → clinic_gbp_config column |
+| File | Current error message |
 |---|---|
-| voice_fingerprint (joined array) | voice_fingerprint |
-| narrative_anchor | narrative_anchor |
-| clinic_differentiator | clinic_differentiator |
-| founding_story | founding_story |
-| content_exclusions | content_exclusions |
-| governing_body | governing_body |
-| hospital_type | hospital_type (mapped to 1/2/3) |
-| stat_holiday_protocol | stat_holiday_protocol |
-| jurisdiction (parsed) | country, state_or_province, city |
+| `useSM2Generation.ts` | "Generation failed" |
+| `useGBPPosts.ts` | "Failed to generate posts" |
+| `useGBPBatches.ts` | Already has helper (will import shared one) |
+| `BrandDNATab.tsx` | "Extraction failed" / "Synthesis failed" |
+| `ContentRequestsContent.tsx` | "Generation failed" |
+| `GoogleAdsAnalyticsTab.tsx` | "Sync failed" |
+| `WebsiteHealthTab.tsx` | "PageSpeed check failed" |
+| `MetaConnectionCard.tsx` | "Sync failed" |
+| `GoogleAdsConnectionCard.tsx` | "Sync failed" |
+| `Clinics.tsx` | "Failed to extract" |
+| `Employees.tsx` / `Clients.tsx` | "Failed to create/delete" |
+| `ChatAssistant.tsx` | "Failed to get a response" |
+| `DepartmentChat.tsx` | generic errors |
+| `VoiceDictation.tsx` | "Transcription failed" |
+| `UpdateSeoAnalyticsDialog.tsx` | "Extraction failed" |
 
-This only sets fields that are currently NULL in GBP config (won't overwrite manual edits). Also parse the clinic's address to fill country/state_or_province/city if not already set.
+The pattern at each call site changes from:
+```typescript
+// Before
+if (error) toast.error("Generation failed");
+
+// After
+if (error) toast.error(await extractErrorMessage(error, data, "Generation failed"));
+```
+
+Also check `data?.error` (many edge functions return `{ error: "..." }` in the body with status 200).
+
+**3. Update edge functions for consistent error format**
+
+Several edge functions already return `{ error: "descriptive message" }`. Verify all edge functions follow this pattern — the ones already fixed (extract-brand-dna, mine-reviews, locality-fetch, extract-clinic-website) serve as the template. Remaining functions to audit:
+- `generate-sm2-content`
+- `generate-gbp-posts`
+- `generate-content`
+- `synthesize-dna`
+- `generate-batch-queue`
+- `chat`
+- `transcribe-audio`
 
 ### Files Changed
-1. New migration SQL — backfill country, governing_body, state_or_province, city for all 46 clinics + DNA fields for 3 synthesized clinics
-2. `supabase/functions/synthesize-dna/index.ts` — add auto-sync to `clinic_gbp_config` after successful synthesis
+1. **New**: `src/lib/edge-function-error.ts` — shared error extraction utility
+2. **Edit**: ~15-20 frontend files — replace vague error strings with extracted messages
+3. **Edit**: ~5-7 edge functions — ensure all return `{ error: "descriptive reason" }` on failure
+4. **Edit**: `src/hooks/useGBPBatches.ts` — import from shared utility instead of local function
 
