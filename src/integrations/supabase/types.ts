@@ -1728,26 +1728,32 @@ export type Database = {
       website_pageviews: {
         Row: {
           clinic_id: string
+          country_code: string | null
           created_at: string
           id: string
           path: string
           referrer: string | null
+          region: string | null
           session_id: string
         }
         Insert: {
           clinic_id: string
+          country_code?: string | null
           created_at?: string
           id?: string
           path?: string
           referrer?: string | null
+          region?: string | null
           session_id: string
         }
         Update: {
           clinic_id?: string
+          country_code?: string | null
           created_at?: string
           id?: string
           path?: string
           referrer?: string | null
+          region?: string | null
           session_id?: string
         }
         Relationships: [

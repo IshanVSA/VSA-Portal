@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar } from "recharts";
-import { Eye, Users, TrendingUp, FileText, Globe, Clock, Layers3 } from "lucide-react";
+import { Eye, Users, TrendingUp, FileText, Globe, Clock, Layers3, MapPin } from "lucide-react";
+import { Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
 import { StatsCard } from "@/components/StatsCard";
 import { DateRangeFilter } from "@/components/department/DateRangeFilter";
 import {
@@ -65,7 +66,7 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
         supabase.from("clinics").select("timezone").eq("id", clinicId).maybeSingle(),
         supabase
           .from("website_pageviews")
-          .select("session_id, path, referrer, created_at")
+          .select("session_id, path, referrer, created_at, country_code, region")
           .eq("clinic_id", clinicId)
           .gte("created_at", bufferedRange.from.toISOString())
           .lte("created_at", bufferedRange.to.toISOString())
@@ -106,6 +107,34 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
       sessionDepthMix: fullPeriod.sessionDepthMix,
       hourly: fullPeriod.hourly,
     };
+  }, [pageviews, selectedDateKeys, timeZone]);
+
+  const geoData = useMemo(() => {
+    const filteredViews = pageviews.filter(
+      (pv) => pv.country_code && selectedDateKeys.includes(getZonedDateKey(pv.created_at, timeZone))
+    );
+    const countryMap = new Map<string, { country: string; regions: Map<string, number>; count: number }>();
+    for (const pv of filteredViews) {
+      const cc = pv.country_code as string;
+      if (!countryMap.has(cc)) countryMap.set(cc, { country: cc, regions: new Map(), count: 0 });
+      const entry = countryMap.get(cc)!;
+      entry.count++;
+      const r = (pv.region as string) || "Unknown";
+      entry.regions.set(r, (entry.regions.get(r) || 0) + 1);
+    }
+    const total = filteredViews.length;
+    const countries = Array.from(countryMap.values())
+      .sort((a, b) => b.count - a.count)
+      .map((c) => ({
+        country: c.country,
+        visitors: c.count,
+        pct: total > 0 ? Math.round((c.count / total) * 1000) / 10 : 0,
+        topRegions: Array.from(c.regions.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([name, cnt]) => ({ name, count: cnt })),
+      }));
+    return { countries, total, hasData: total > 0 };
   }, [pageviews, selectedDateKeys, timeZone]);
 
   if (loading) {
@@ -274,6 +303,62 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
           </ChartContainer>
         </CardContent>
       </Card>
+
+      {/* Visitor Geography */}
+      {geoData.hasData && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <MapPin className="h-4 w-4" /> Visitor Geography
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Country</TableHead>
+                    <TableHead className="text-xs">Top Regions</TableHead>
+                    <TableHead className="text-xs text-right">Visitors</TableHead>
+                    <TableHead className="text-xs text-right">Share</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {geoData.countries.slice(0, 15).map((c) => (
+                    <TableRow key={c.country}>
+                      <TableCell className="text-xs font-medium">{c.country}</TableCell>
+                      <TableCell className="text-[10px] text-muted-foreground">
+                        {c.topRegions.map((r) => r.name).join(", ")}
+                      </TableCell>
+                      <TableCell className="text-xs text-right tabular-nums">{c.visitors}</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums">{c.pct}%</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Globe className="h-4 w-4" /> Top Countries
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={{ visitors: { label: "Visitors", color: "hsl(var(--chart-2))" } }} className="h-[260px] w-full">
+                <BarChart data={geoData.countries.slice(0, 10)} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                  <XAxis type="number" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                  <YAxis type="category" dataKey="country" tick={{ fontSize: 11 }} width={40} className="text-muted-foreground" />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="visitors" fill="hsl(var(--chart-2))" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
