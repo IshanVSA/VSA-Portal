@@ -201,9 +201,22 @@ Two tabbed views: Client View and Team QA View.
 
 PAGE HEADER: VSA logo placeholder, Hospital name, city, province/state, month/year, tab toggle buttons.
 
-CLIENT VIEW: Only shows the 10 posts with captions, visual directions, format, and CTA. Clean, professional. No internal data.
+CLIENT VIEW (div id="client-view"): Only shows the 10 posts with captions, visual directions, format, and CTA. Clean, professional. No internal data.
 
-TEAM QA VIEW: Shows everything — Neighborhood Intelligence Brief, Generation Audit Report, Confirmation Summary, all posts with full compliance/sensitivity sweep results, Concierge Action Guide, Meta Ads details, budget summary.
+TEAM QA VIEW (div id="qa-view"): Shows everything — Neighborhood Intelligence Brief, Generation Audit Report, Confirmation Summary, all posts with full compliance/sensitivity sweep results, Concierge Action Guide, Meta Ads details, budget summary.
+
+CRITICAL: You MUST include this exact JavaScript in a <script> tag just before </body>:
+<script>
+function switchTab(tab) {
+  document.getElementById('client-view').style.display = tab === 'client' ? 'block' : 'none';
+  document.getElementById('qa-view').style.display = tab === 'qa' ? 'block' : 'none';
+  document.querySelectorAll('.tab-button').forEach(function(btn) {
+    btn.classList.remove('active');
+  });
+  event.target.classList.add('active');
+}
+</script>
+Without this script the tab buttons will not work. Never omit it.
 
 VISUAL CONSISTENCY CONFIRMATION after all 10 posts.
 
