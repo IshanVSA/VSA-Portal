@@ -32,7 +32,6 @@ export default function ContentGenerationTab({ clinicId }: Props) {
   const { signals, upsertSignals, currentMonth } = useMonthlySignals(clinicId);
   const { generations, currentGeneration, generate, sendToClient, isLoading, pollForCompletion } = useSM2Generation(clinicId);
   const [preflightOpen, setPreflightOpen] = useState(false);
-  const [isPolling, setIsPolling] = useState(false);
   const [clinicNews, setClinicNews] = useState("");
   const [fbSpecific, setFbSpecific] = useState("");
   const [budget, setBudget] = useState("300");
