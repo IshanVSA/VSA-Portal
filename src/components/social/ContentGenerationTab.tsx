@@ -294,11 +294,13 @@ export default function ContentGenerationTab({ clinicId }: Props) {
 
 function StatusBadge({ status }: { status: string }) {
   const config: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive"; icon: typeof CheckCircle }> = {
+    processing: { label: "Generating...", variant: "secondary", icon: RefreshCw },
     pending: { label: "Pending Review", variant: "outline", icon: Clock },
     sent_to_client: { label: "Sent to Client", variant: "secondary", icon: Send },
     approved_client: { label: "Client Approved", variant: "default", icon: CheckCircle },
     approved_auto: { label: "Auto-Approved", variant: "secondary", icon: CheckCircle },
     feedback_submitted: { label: "Client Feedback", variant: "destructive", icon: AlertTriangle },
+    generation_failed: { label: "Generation Failed", variant: "destructive", icon: AlertTriangle },
     rejected: { label: "Rejected", variant: "destructive", icon: AlertTriangle },
   };
   const c = config[status] || config.pending;
