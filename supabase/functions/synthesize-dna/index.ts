@@ -331,6 +331,103 @@ Deno.serve(async (req) => {
 
     if (updateError) throw updateError;
 
+    // ── Auto-sync synthesized DNA fields into clinic_gbp_config ──
+    try {
+      const voiceFingerprint = Array.isArray(profile.voice_fingerprint)
+        ? profile.voice_fingerprint.join('; ')
+        : profile.voice_fingerprint || null;
+
+      const hospitalTypeMap: Record<string, number> = { TYPE_1: 1, TYPE_2: 2, TYPE_3: 3 };
+      const hospitalType = hospitalTypeMap[profile.hospital_type] || null;
+
+      // Parse country/state/city from clinic address
+      let country: string | null = null;
+      let stateOrProvince: string | null = null;
+      let city: string | null = null;
+
+      const addr = (clinic.address || '').toLowerCase();
+      if (addr.includes(', bc') || addr.includes('british columbia')) {
+        country = 'CA'; stateOrProvince = 'BC';
+      } else if (addr.includes(', ab') || addr.includes('alberta')) {
+        country = 'CA'; stateOrProvince = 'AB';
+      } else if (addr.includes(', on') || addr.includes('ontario')) {
+        country = 'CA'; stateOrProvince = 'ON';
+      } else if (addr.includes(', mb') || addr.includes('manitoba')) {
+        country = 'CA'; stateOrProvince = 'MB';
+      } else if (addr.includes(', sk') || addr.includes('saskatchewan')) {
+        country = 'CA'; stateOrProvince = 'SK';
+      } else if (addr.includes('canada')) {
+        country = 'CA';
+      } else if (addr.includes('united states') || addr.match(/, [a-z]{2} \d{5}/)) {
+        country = 'US';
+      }
+
+      // Extract city from address (take text before first comma or second comma)
+      const addrParts = (clinic.address || '').split(',').map((s: string) => s.trim());
+      if (addrParts.length >= 2) {
+        // If first part looks like a unit/street number, city is the second part
+        const first = addrParts[0];
+        if (/^\d|^#|^unit/i.test(first)) {
+          city = addrParts.length >= 3 ? addrParts[1] : null;
+        } else {
+          city = addrParts[0];
+        }
+      }
+
+      // Build update object — only set fields that are currently NULL
+      const gbpUpdate: Record<string, any> = {};
+
+      // These fields use COALESCE logic — only set if target is NULL
+      const fieldsToSync: Array<{ key: string; value: any }> = [
+        { key: 'voice_fingerprint', value: voiceFingerprint },
+        { key: 'narrative_anchor', value: profile.narrative_anchor || null },
+        { key: 'clinic_differentiator', value: profile.clinic_differentiator || null },
+        { key: 'founding_story', value: profile.founding_story || null },
+        { key: 'governing_body', value: profile.governing_body || null },
+        { key: 'stat_holiday_protocol', value: profile.stat_holiday_protocol || 'CONFIRM ANNUALLY' },
+        { key: 'country', value: country },
+        { key: 'state_or_province', value: stateOrProvince },
+        { key: 'city', value: city },
+      ];
+
+      if (hospitalType) fieldsToSync.push({ key: 'hospital_type', value: hospitalType });
+
+      if (Array.isArray(profile.content_exclusions) && profile.content_exclusions.length > 0) {
+        fieldsToSync.push({ key: 'content_exclusions', value: profile.content_exclusions });
+      }
+
+      // Fetch existing GBP config to check which fields are NULL
+      const { data: existingGbp } = await serviceClient
+        .from('clinic_gbp_config')
+        .select('*')
+        .eq('clinic_id', clinic_id)
+        .maybeSingle();
+
+      if (existingGbp) {
+        for (const { key, value } of fieldsToSync) {
+          if (value != null && (existingGbp as any)[key] == null) {
+            gbpUpdate[key] = value;
+          }
+        }
+
+        if (Object.keys(gbpUpdate).length > 0) {
+          gbpUpdate.updated_at = new Date().toISOString();
+          const { error: gbpError } = await serviceClient
+            .from('clinic_gbp_config')
+            .update(gbpUpdate)
+            .eq('clinic_id', clinic_id);
+
+          if (gbpError) {
+            console.warn('Failed to auto-sync GBP config:', gbpError.message);
+          } else {
+            console.log(`Auto-synced ${Object.keys(gbpUpdate).length} GBP config fields for ${clinic.clinic_name}`);
+          }
+        }
+      }
+    } catch (syncErr) {
+      console.warn('GBP config auto-sync error (non-fatal):', syncErr);
+    }
+
     console.log(`Synthesis complete. Score: ${profile.completeness_score}`);
 
     return json({ success: true, profile });
