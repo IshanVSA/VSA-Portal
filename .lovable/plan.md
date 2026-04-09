@@ -1,40 +1,39 @@
 
 
-## Plan: Fix Supabase Storage Access for SM2 Content
+## Explanation: Client View vs Team QA View
 
-### Problem
+The generated HTML file contains **two built-in tabs** created by the AI engine:
 
-Content generation is actually **working** — there's already a successful generation for Alma Animal Hospital (April 2026, confidence score 100%, HTML file stored). However, the frontend can't display it because:
+- **Client View** — A clean, professional view showing only the 10 posts with captions, visual directions, format, and CTA. No internal data. This is what gets shown to the clinic client for approval.
 
-1. The `department-files` bucket is **private**
-2. The code uses `getPublicUrl()` which only works on public buckets
-3. The iframe gets a URL that returns an auth error
+- **Team QA View** — The full internal view for staff (concierges/admins). It includes everything: Neighborhood Intelligence Brief, Generation Audit Report, Confirmation Summary, all posts with compliance/sensitivity sweep results, Concierge Action Guide, Meta Ads details, and budget summary.
+
+### Why the tabs aren't clickable
+
+The tab switching relies on inline JavaScript inside the generated HTML. The iframe currently has `sandbox="allow-same-origin allow-scripts"`, which should allow scripts. However, there are two likely causes:
+
+1. The AI model may have generated broken or missing JavaScript for the tab toggle (the model sometimes omits or malforms the JS).
+2. The `srcDoc` injection may be stripping or breaking the script execution context.
 
 ### Fix
 
-**Two changes needed:**
+1. **Verify the generated HTML** — Fetch the stored HTML file from Supabase storage and inspect whether the tab-toggle JavaScript is actually present and correct.
+2. **If JS is missing/broken in the generated HTML** — Update the system prompt in `generate-sm2-content/index.ts` to include an explicit JavaScript snippet for tab switching (rather than leaving it to the model to generate).
+3. **If JS is present but not executing** — The sandbox attribute may need adjustment, or the `srcDoc` approach may need a small tweak to ensure scripts run.
 
-#### 1. Migration: Make the bucket public
+### Implementation
 
-Create a migration to update the `department-files` bucket to public. This is safe because the bucket already has RLS policies controlling who can upload/delete, and the files stored here (generated HTML previews, chat attachments, ticket files) are internal staff/client content that needs to be viewable via direct URL (especially in iframes).
+**Step 1**: Query the stored HTML file to diagnose whether the JavaScript is present.
 
-```sql
-UPDATE storage.buckets SET public = true WHERE id = 'department-files';
+**Step 2**: Add an explicit tab-toggle JavaScript template to the system prompt's Step 16, e.g.:
+```html
+<script>
+function switchTab(tab) {
+  document.getElementById('client-view').style.display = tab === 'client' ? 'block' : 'none';
+  document.getElementById('team-qa-view').style.display = tab === 'team' ? 'block' : 'none';
+}
+</script>
 ```
 
-#### 2. Update ContentGenerationTab.tsx — use `getPublicUrl` correctly
-
-With the bucket set to public, `getPublicUrl()` will work as-is. No code change needed for this file.
-
-However, `useSM2Generation.ts` also uses `getPublicUrl` — both will work once the bucket is public.
-
-#### 3. Verify other storage consumers still work
-
-The `DepartmentChat.tsx` and `UploadsTab.tsx` use `createSignedUrl()` which works on both public and private buckets, so no changes needed there.
-
-### Summary
-
-- One migration: flip `department-files` bucket to public
-- No frontend code changes required
-- Content is already generated — it will display immediately after the migration
+**Step 3**: Redeploy the edge function. Existing HTML files won't be affected — only new generations will include the fix. Optionally, re-generate for Alma Animal Hospital to verify.
 
