@@ -204,51 +204,61 @@ export default function ContentGenerationTab({ clinicId }: Props) {
           <div className="grid gap-3">
             {generations.map((gen) => (
               <Card key={gen.id} className="border-border/60">
-                <CardContent className="py-3 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <FileText className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">
-                        {format(new Date(gen.month_year + "-01"), "MMMM yyyy")}
-                      </p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <Badge variant={gen.generation_confidence_score >= 90 ? "default" : gen.generation_confidence_score >= 70 ? "secondary" : "destructive"} className="text-[10px]">
-                          {gen.generation_confidence_score}% confidence
-                        </Badge>
-                        <Badge variant="outline" className="text-[10px]">
-                          DNA {gen.dna_completeness_score}%
-                        </Badge>
-                        <StatusBadge status={gen.approval_status} />
+                <CardContent className="py-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <FileText className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">
+                          {format(new Date(gen.month_year + "-01"), "MMMM yyyy")}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <Badge variant={gen.generation_confidence_score >= 90 ? "default" : gen.generation_confidence_score >= 70 ? "secondary" : "destructive"} className="text-[10px]">
+                            {gen.generation_confidence_score}% confidence
+                          </Badge>
+                          <Badge variant="outline" className="text-[10px]">
+                            DNA {gen.dna_completeness_score}%
+                          </Badge>
+                          <StatusBadge status={gen.approval_status} />
+                        </div>
                       </div>
                     </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date(gen.created_at), "MMM d, h:mm a")}
+                      </span>
+                      {gen.html_file_path && (
+                        <Button variant="ghost" size="sm" onClick={() => setViewingHtml(gen.html_file_path)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {gen.approval_status === "pending" && gen.html_file_path && (
+                        <Button variant="outline" size="sm" onClick={() => sendToClient.mutate(gen.id)} disabled={sendToClient.isPending} className="gap-1.5 text-xs">
+                          <Send className="h-3.5 w-3.5" />
+                          Send to Client
+                        </Button>
+                      )}
+                      {gen.sent_to_client_at && (
+                        <Badge variant="secondary" className="text-[10px] gap-1">
+                          <Send className="h-3 w-3" />
+                          Sent {format(new Date(gen.sent_to_client_at), "MMM d")}
+                        </Badge>
+                      )}
+                      {gen.client_feedback && (
+                        <Badge variant="destructive" className="text-[10px]">Has Feedback</Badge>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">
-                      {format(new Date(gen.created_at), "MMM d, h:mm a")}
-                    </span>
-                    {gen.html_file_path && (
-                      <Button variant="ghost" size="sm" onClick={() => setViewingHtml(gen.html_file_path)}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {gen.approval_status === "pending" && gen.html_file_path && (
-                      <Button variant="outline" size="sm" onClick={() => sendToClient.mutate(gen.id)} disabled={sendToClient.isPending} className="gap-1.5 text-xs">
-                        <Send className="h-3.5 w-3.5" />
-                        Send to Client
-                      </Button>
-                    )}
-                    {gen.sent_to_client_at && (
-                      <Badge variant="secondary" className="text-[10px] gap-1">
-                        <Send className="h-3 w-3" />
-                        Sent {format(new Date(gen.sent_to_client_at), "MMM d")}
-                      </Badge>
-                    )}
-                    {gen.client_feedback && (
-                      <Badge variant="destructive" className="text-[10px]">Has Feedback</Badge>
-                    )}
-                  </div>
+                  {gen.client_feedback && (
+                    <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 ml-12">
+                      <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                        <MessageCircle className="h-3 w-3" /> Client Feedback
+                      </p>
+                      <p className="text-sm">{gen.client_feedback}</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
