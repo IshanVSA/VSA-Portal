@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Sparkles, RefreshCw, FileText, Eye, AlertTriangle, CheckCircle, Clock, Send, TrendingUp, Heart, Share2, MessageCircle, CalendarDays } from "lucide-react";
+import { Sparkles, RefreshCw, FileText, Eye, AlertTriangle, CheckCircle, Clock, Send, TrendingUp, Heart, Share2, MessageCircle, CalendarDays, Pencil } from "lucide-react";
+import HtmlEditorDialog from "./HtmlEditorDialog";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -35,6 +36,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
   const [fbSpecific, setFbSpecific] = useState("");
   const [budget, setBudget] = useState("300");
   const [viewingHtml, setViewingHtml] = useState<string | null>(null);
+  const [editingHtml, setEditingHtml] = useState<string | null>(null);
   const [topPerformers, setTopPerformers] = useState<PerformanceData[]>([]);
 
   const dnaScore = dna?.completeness_score || 0;
@@ -230,8 +232,19 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                         {format(new Date(gen.created_at), "MMM d, h:mm a")}
                       </span>
                       {gen.html_file_path && (
-                        <Button variant="ghost" size="sm" onClick={() => setViewingHtml(gen.html_file_path)}>
-                          <Eye className="h-4 w-4" />
+                        <>
+                          <Button variant="ghost" size="sm" onClick={() => setViewingHtml(gen.html_file_path)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setEditingHtml(gen.html_file_path)} title="Edit Content">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                      {gen.approval_status === "feedback_submitted" && (
+                        <Button variant="outline" size="sm" onClick={() => { setPreflightOpen(true); }} className="gap-1.5 text-xs">
+                          <RefreshCw className="h-3.5 w-3.5" />
+                          Regenerate
                         </Button>
                       )}
                       {gen.approval_status === "pending" && gen.html_file_path && (
@@ -269,6 +282,11 @@ export default function ContentGenerationTab({ clinicId }: Props) {
       {/* HTML Viewer Dialog */}
       {viewingHtml && (
         <HtmlPreviewDialog filePath={viewingHtml} onClose={() => setViewingHtml(null)} />
+      )}
+
+      {/* HTML Editor Dialog */}
+      {editingHtml && (
+        <HtmlEditorDialog filePath={editingHtml} onClose={() => setEditingHtml(null)} />
       )}
     </div>
   );
