@@ -39,6 +39,8 @@ serve(async (req) => {
       // Cluster + SM2 alignment
       cluster_neighbors, cluster_gbp_topics_this_month, sm2_calendar_this_month,
       seasonal_topics_this_month,
+      // Brand DNA from clinic_brand_dna
+      brand_dna_profile, brand_dna_call_notes, brand_dna_completeness,
       // Fix mode fields
       fix_mode, existing_posts, issues_to_fix
     } = body;
@@ -408,6 +410,10 @@ ACCREDITATIONS: ${accreditations?.join(', ') || 'None confirmed'}
 FOUNDING_STORY: ${founding_story || 'Not provided'}
 STAT_HOLIDAY_PROTOCOL: ${stat_holiday_protocol || 'CONFIRM ANNUALLY'}
 TOP_SERVICES: ${top_services?.join(', ') || 'General veterinary services'}
+
+=== BRAND DNA SYNTHESIZED PROFILE (completeness: ${brand_dna_completeness || 0}%) ===
+${brand_dna_profile ? JSON.stringify(brand_dna_profile, null, 2) : 'Not yet synthesized — use GBP config fields above.'}
+${brand_dna_call_notes ? `\n=== BRAND DNA CALL NOTES (owner-provided context) ===\n${JSON.stringify(brand_dna_call_notes, null, 2)}` : ''}
 
 ${clusterNeighborSection}
 ${clusterGbpSection}
