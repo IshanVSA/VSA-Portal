@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Share2, LayoutDashboard, FileCheck, CalendarDays, ClipboardList, BarChart3, Ticket, Upload, MessageSquare, Dna, Sparkles, Eye, SlidersHorizontal, MapPin } from "lucide-react";
+import { Share2, LayoutDashboard, FileCheck, CalendarDays, BarChart3, Ticket, Upload, MessageSquare, Dna, Sparkles, Eye, SlidersHorizontal, MapPin } from "lucide-react";
 import { GBPPostsTab } from "@/components/seo/gbp/GBPPostsTab";
 import { SocialOverview } from "@/components/social/SocialOverview";
 import { lazy, Suspense } from "react";
@@ -21,7 +21,7 @@ import { BrandDNAForm } from "@/components/social/BrandDNAForm";
 
 const ContentRequestsContent = lazy(() => import("@/components/social/ContentRequestsContent"));
 const ContentCalendarContent = lazy(() => import("@/components/social/ContentCalendarContent"));
-const IntakeFormsContent = lazy(() => import("@/components/social/IntakeFormsContent"));
+
 const AnalyticsContent = lazy(() => import("@/components/social/AnalyticsContent"));
 const BrandDNATab = lazy(() => import("@/components/social/BrandDNATab"));
 const ContentGenerationTab = lazy(() => import("@/components/social/ContentGenerationTab"));
@@ -41,7 +41,7 @@ const baseTabs = [
   { value: "requests", label: "Content Requests", icon: FileCheck },
   { value: "tickets", label: "Tickets", icon: Ticket },
   { value: "calendar", label: "Calendar", icon: CalendarDays },
-  { value: "intake", label: "Intake", icon: ClipboardList },
+  
   { value: "analytics", label: "Analytics", icon: BarChart3 },
   { value: "uploads", label: "Uploads", icon: Upload },
 ];
@@ -135,7 +135,7 @@ export default function SocialMedia() {
                 <TabsContent value="content-review" className="mt-4"><Suspense fallback={<TabFallback />}><ClientContentReview clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="preferences" className="mt-4"><Suspense fallback={<TabFallback />}><ContentThemeSliders clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="calendar" className="mt-4"><Suspense fallback={<TabFallback />}><ContentCalendarContent clinicId={selectedClinicId} /></Suspense></TabsContent>
-                <TabsContent value="intake" className="mt-4"><Suspense fallback={<TabFallback />}><IntakeFormsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
+                
                 <TabsContent value="analytics" className="mt-4"><Suspense fallback={<TabFallback />}><AnalyticsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="social_media" clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="gbp-posts" className="mt-4"><GBPPostsTab clinicId={selectedClinicId} /></TabsContent>
