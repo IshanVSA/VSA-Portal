@@ -1,39 +1,39 @@
 
 
-## Explanation: Client View vs Team QA View
+## Plan: Add Regenerate After Feedback + Manual HTML Editor
 
-The generated HTML file contains **two built-in tabs** created by the AI engine:
+### What Changes
 
-- **Client View** — A clean, professional view showing only the 10 posts with captions, visual directions, format, and CTA. No internal data. This is what gets shown to the clinic client for approval.
+**1. Regenerate button when feedback is submitted**
 
-- **Team QA View** — The full internal view for staff (concierges/admins). It includes everything: Neighborhood Intelligence Brief, Generation Audit Report, Confirmation Summary, all posts with compliance/sensitivity sweep results, Concierge Action Guide, Meta Ads details, and budget summary.
+In `ContentGenerationTab.tsx`, add a "Regenerate" button next to any generation with `approval_status === "feedback_submitted"`. Clicking it opens the same pre-generation dialog and triggers a new generation for that month (the edge function already handles overwriting the same month).
 
-### Why the tabs aren't clickable
+**2. Manual HTML editor for admin/concierge**
 
-The tab switching relies on inline JavaScript inside the generated HTML. The iframe currently has `sandbox="allow-same-origin allow-scripts"`, which should allow scripts. However, there are two likely causes:
+Add an "Edit Content" button (next to "View Content") that opens a full-screen dialog with a code editor (`<textarea>`) pre-loaded with the fetched HTML. On save, it uploads the modified HTML back to the same storage path, overwriting the previous version. This gives staff full manual control over the final output.
 
-1. The AI model may have generated broken or missing JavaScript for the tab toggle (the model sometimes omits or malforms the JS).
-2. The `srcDoc` injection may be stripping or breaking the script execution context.
+### Technical Details
 
-### Fix
+**File: `src/components/social/ContentGenerationTab.tsx`**
 
-1. **Verify the generated HTML** — Fetch the stored HTML file from Supabase storage and inspect whether the tab-toggle JavaScript is actually present and correct.
-2. **If JS is missing/broken in the generated HTML** — Update the system prompt in `generate-sm2-content/index.ts` to include an explicit JavaScript snippet for tab switching (rather than leaving it to the model to generate).
-3. **If JS is present but not executing** — The sandbox attribute may need adjustment, or the `srcDoc` approach may need a small tweak to ensure scripts run.
+- In the generation history card, after the feedback display block, add a "Regenerate" button when `gen.approval_status === "feedback_submitted"`. This button opens the preflight dialog and calls `generate.mutate(gen.month_year)`.
+- Add an "Edit Content" button (pencil icon) next to the Eye button for any generation with `html_file_path`. This opens a new `HtmlEditorDialog` component.
 
-### Implementation
+**New component: `HtmlEditorDialog` (inline in same file)**
 
-**Step 1**: Query the stored HTML file to diagnose whether the JavaScript is present.
+- Fetches HTML from storage, displays in a `<textarea>` (monospace, full height).
+- Side-by-side or tabbed layout: edit on left, live preview iframe on right.
+- "Save" button uploads the edited HTML to the same `filePath` in `department-files` bucket using `supabase.storage.from("department-files").upload(filePath, blob, { upsert: true })`.
+- After save, invalidates the SM2 generations query and shows a success toast.
 
-**Step 2**: Add an explicit tab-toggle JavaScript template to the system prompt's Step 16, e.g.:
-```html
-<script>
-function switchTab(tab) {
-  document.getElementById('client-view').style.display = tab === 'client' ? 'block' : 'none';
-  document.getElementById('team-qa-view').style.display = tab === 'team' ? 'block' : 'none';
-}
-</script>
-```
+**File: `src/hooks/useSM2Generation.ts`**
 
-**Step 3**: Redeploy the edge function. Existing HTML files won't be affected — only new generations will include the fix. Optionally, re-generate for Alma Animal Hospital to verify.
+- No changes needed. The `generate` mutation already accepts any month string, so re-generating after feedback works with existing logic.
+
+**Edge function**: No changes. The `generate-sm2-content` function already handles re-generation for an existing month by overwriting the storage file and updating the database row.
+
+### Summary
+
+- 2 UI additions in `ContentGenerationTab.tsx`: Regenerate button + Edit Content dialog
+- No backend/database changes required
 
