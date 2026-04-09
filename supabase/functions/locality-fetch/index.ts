@@ -401,6 +401,9 @@ Deno.serve(async (req) => {
 
     if (!aiResponse.ok) {
       const text = await aiResponse.text();
+      if (aiResponse.status === 400 && text.includes("credit balance is too low")) {
+        throw new Error("Anthropic API credit balance is too low. Please top up your Anthropic account at https://console.anthropic.com to continue using AI features.");
+      }
       throw new Error(`AI locality extraction failed [${aiResponse.status}]: ${text}`);
     }
 
