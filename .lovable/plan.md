@@ -1,39 +1,47 @@
 
 
-## Plan: Add Regenerate After Feedback + Manual HTML Editor
+## Plan: Add Geographic Demographics to Website Analytics
 
-### What Changes
+### Problem
+The current tracking pixel collects only `path`, `referrer`, `session_id`, and `clinic_id`. No geographic data is captured, so there's no way to show where visitors come from.
 
-**1. Regenerate button when feedback is submitted**
-
-In `ContentGenerationTab.tsx`, add a "Regenerate" button next to any generation with `approval_status === "feedback_submitted"`. Clicking it opens the same pre-generation dialog and triggers a new generation for that month (the edge function already handles overwriting the same month).
-
-**2. Manual HTML editor for admin/concierge**
-
-Add an "Edit Content" button (next to "View Content") that opens a full-screen dialog with a code editor (`<textarea>`) pre-loaded with the fetched HTML. On save, it uploads the modified HTML back to the same storage path, overwriting the previous version. This gives staff full manual control over the final output.
+### Approach
+Use **server-side IP geolocation** in the `track-pageview` edge function. When a pageview POST arrives, extract the visitor's IP from request headers and resolve it to country/region using a free geolocation API. Store the result in new columns on `website_pageviews`. Display a geographic breakdown in the Website Analytics tab.
 
 ### Technical Details
 
-**File: `src/components/social/ContentGenerationTab.tsx`**
+**Step 1 — Database migration**: Add two columns to `website_pageviews`:
+```sql
+ALTER TABLE public.website_pageviews
+  ADD COLUMN IF NOT EXISTS country_code text,
+  ADD COLUMN IF NOT EXISTS region text;
+```
 
-- In the generation history card, after the feedback display block, add a "Regenerate" button when `gen.approval_status === "feedback_submitted"`. This button opens the preflight dialog and calls `generate.mutate(gen.month_year)`.
-- Add an "Edit Content" button (pencil icon) next to the Eye button for any generation with `html_file_path`. This opens a new `HtmlEditorDialog` component.
+**Step 2 — Update `track-pageview` edge function**:
+- Extract visitor IP from `x-forwarded-for` or `cf-connecting-ip` header (Supabase edge functions run behind a proxy that sets these).
+- Call a free geo-IP service (e.g., `https://ipapi.co/{ip}/json/` — no API key needed for moderate volume, or `ip-api.com`). Use a simple fetch with a short timeout so it doesn't slow down tracking.
+- If geo lookup fails, still insert the pageview with `null` country/region (non-blocking).
+- Store `country_code` (e.g., "US") and `region` (e.g., "California") on the insert.
 
-**New component: `HtmlEditorDialog` (inline in same file)**
+**Step 3 — Update `WebsiteAnalyticsTab.tsx`**:
+- Fetch the new columns in the existing pageview query.
+- Add a "Visitor Geography" card showing:
+  - A table with country, region, visitor count, and percentage.
+  - Sorted by visitor count descending.
+- Use a horizontal bar chart (recharts `BarChart`) for top 10 countries.
+- Filter by the same date range already in use.
 
-- Fetches HTML from storage, displays in a `<textarea>` (monospace, full height).
-- Side-by-side or tabbed layout: edit on left, live preview iframe on right.
-- "Save" button uploads the edited HTML to the same `filePath` in `department-files` bucket using `supabase.storage.from("department-files").upload(filePath, blob, { upsert: true })`.
-- After save, invalidates the SM2 generations query and shows a success toast.
+**Step 4 — Update `useWebsiteKPIs.ts`** (optional): Add a top-countries summary to the dashboard KPI cards if desired.
 
-**File: `src/hooks/useSM2Generation.ts`**
+### Privacy Note
+Only country and region are stored — no precise coordinates or raw IP addresses. This keeps it GDPR-friendly and consistent with the existing anonymous tracking approach.
 
-- No changes needed. The `generate` mutation already accepts any month string, so re-generating after feedback works with existing logic.
+### Limitations
+- Free geo-IP APIs have rate limits (~1000/day for ip-api.com free tier, ~30k/month for ipapi.co). For higher volume clinics, a paid plan or a bulk lookup service would be needed.
+- Existing historical pageviews won't have geographic data — only new visits going forward.
 
-**Edge function**: No changes. The `generate-sm2-content` function already handles re-generation for an existing month by overwriting the storage file and updating the database row.
-
-### Summary
-
-- 2 UI additions in `ContentGenerationTab.tsx`: Regenerate button + Edit Content dialog
-- No backend/database changes required
+### Files Changed
+1. New migration SQL — add `country_code`, `region` columns
+2. `supabase/functions/track-pageview/index.ts` — geo lookup on POST
+3. `src/components/department/WebsiteAnalyticsTab.tsx` — geography card + chart
 
