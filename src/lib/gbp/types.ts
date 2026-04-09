@@ -36,6 +36,23 @@ export interface ClinicGBPConfig {
   neighbourhood: string | null;
   top_services: string[];
   website_url: string | null;
+  // v2.0 DNA fields
+  booking_url: string | null;
+  hours: Record<string, any> | null;
+  after_hours_referral: string | null;
+  species_treated: string[];
+  governing_body: string | null;
+  accreditations: string[];
+  content_exclusions: string[];
+  voice_fingerprint: string | null;
+  narrative_anchor: string | null;
+  clinic_differentiator: string | null;
+  neighbourhood_character: string | null;
+  founding_story: string | null;
+  stat_holiday_protocol: string | null;
+  country: string | null;
+  state_or_province: string | null;
+  city: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -186,6 +203,27 @@ export interface GenerateGBPPostsRequest {
     recent_blogs: Array<{ title: string; primary_keyword: string }>;
     recent_p2_pages: Array<{ service_name: string }>;
   };
+  // v2.0 DNA fields
+  booking_url?: string;
+  hours?: Record<string, any>;
+  after_hours_referral?: string;
+  species_treated?: string[];
+  governing_body?: string;
+  accreditations?: string[];
+  content_exclusions?: string[];
+  voice_fingerprint?: string;
+  narrative_anchor?: string;
+  clinic_differentiator?: string;
+  neighbourhood_character?: string;
+  founding_story?: string;
+  stat_holiday_protocol?: string;
+  country?: string;
+  state_or_province?: string;
+  city?: string;
+  cluster_neighbors?: string[];
+  cluster_gbp_topics_this_month?: any;
+  sm2_calendar_this_month?: any;
+  seasonal_topics_this_month?: string;
 }
 
 export interface GeneratedPost {

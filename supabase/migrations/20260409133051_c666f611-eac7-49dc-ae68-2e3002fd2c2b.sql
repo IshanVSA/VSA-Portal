@@ -1,0 +1,17 @@
+ALTER TABLE public.clinic_gbp_config
+  ADD COLUMN IF NOT EXISTS booking_url text,
+  ADD COLUMN IF NOT EXISTS hours jsonb DEFAULT '{}'::jsonb,
+  ADD COLUMN IF NOT EXISTS after_hours_referral text,
+  ADD COLUMN IF NOT EXISTS species_treated text[] DEFAULT '{}'::text[],
+  ADD COLUMN IF NOT EXISTS governing_body text,
+  ADD COLUMN IF NOT EXISTS accreditations text[] DEFAULT '{}'::text[],
+  ADD COLUMN IF NOT EXISTS content_exclusions text[] DEFAULT '{}'::text[],
+  ADD COLUMN IF NOT EXISTS voice_fingerprint text,
+  ADD COLUMN IF NOT EXISTS narrative_anchor text,
+  ADD COLUMN IF NOT EXISTS clinic_differentiator text,
+  ADD COLUMN IF NOT EXISTS neighbourhood_character text,
+  ADD COLUMN IF NOT EXISTS founding_story text,
+  ADD COLUMN IF NOT EXISTS stat_holiday_protocol text DEFAULT 'CONFIRM ANNUALLY',
+  ADD COLUMN IF NOT EXISTS country text,
+  ADD COLUMN IF NOT EXISTS state_or_province text,
+  ADD COLUMN IF NOT EXISTS city text;

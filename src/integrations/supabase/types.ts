@@ -266,60 +266,108 @@ export type Database = {
       }
       clinic_gbp_config: {
         Row: {
+          accreditations: string[] | null
+          after_hours_referral: string | null
+          booking_url: string | null
+          city: string | null
+          clinic_differentiator: string | null
           clinic_id: string
           cluster_id: string | null
           cluster_position: string | null
+          content_exclusions: string[] | null
+          country: string | null
           created_at: string | null
+          founding_story: string | null
           geo_radius_km: number | null
+          governing_body: string | null
           hook_style_current: string | null
           hospital_type: number | null
+          hours: Json | null
           id: string
           jurisdiction: string | null
           last_variant_used: string | null
           local_landmarks: string[] | null
+          narrative_anchor: string | null
           neighbourhood: string | null
+          neighbourhood_character: string | null
           phone_number: string | null
+          species_treated: string[] | null
+          stat_holiday_protocol: string | null
+          state_or_province: string | null
           top_services: string[] | null
           topic_variant_current: string | null
           updated_at: string | null
+          voice_fingerprint: string | null
           website_url: string | null
         }
         Insert: {
+          accreditations?: string[] | null
+          after_hours_referral?: string | null
+          booking_url?: string | null
+          city?: string | null
+          clinic_differentiator?: string | null
           clinic_id: string
           cluster_id?: string | null
           cluster_position?: string | null
+          content_exclusions?: string[] | null
+          country?: string | null
           created_at?: string | null
+          founding_story?: string | null
           geo_radius_km?: number | null
+          governing_body?: string | null
           hook_style_current?: string | null
           hospital_type?: number | null
+          hours?: Json | null
           id?: string
           jurisdiction?: string | null
           last_variant_used?: string | null
           local_landmarks?: string[] | null
+          narrative_anchor?: string | null
           neighbourhood?: string | null
+          neighbourhood_character?: string | null
           phone_number?: string | null
+          species_treated?: string[] | null
+          stat_holiday_protocol?: string | null
+          state_or_province?: string | null
           top_services?: string[] | null
           topic_variant_current?: string | null
           updated_at?: string | null
+          voice_fingerprint?: string | null
           website_url?: string | null
         }
         Update: {
+          accreditations?: string[] | null
+          after_hours_referral?: string | null
+          booking_url?: string | null
+          city?: string | null
+          clinic_differentiator?: string | null
           clinic_id?: string
           cluster_id?: string | null
           cluster_position?: string | null
+          content_exclusions?: string[] | null
+          country?: string | null
           created_at?: string | null
+          founding_story?: string | null
           geo_radius_km?: number | null
+          governing_body?: string | null
           hook_style_current?: string | null
           hospital_type?: number | null
+          hours?: Json | null
           id?: string
           jurisdiction?: string | null
           last_variant_used?: string | null
           local_landmarks?: string[] | null
+          narrative_anchor?: string | null
           neighbourhood?: string | null
+          neighbourhood_character?: string | null
           phone_number?: string | null
+          species_treated?: string[] | null
+          stat_holiday_protocol?: string | null
+          state_or_province?: string | null
           top_services?: string[] | null
           topic_variant_current?: string | null
           updated_at?: string | null
+          voice_fingerprint?: string | null
           website_url?: string | null
         }
         Relationships: [

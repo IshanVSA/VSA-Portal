@@ -255,6 +255,78 @@ export function ClinicGBPConfigForm({ clusters }: Props) {
               />
             </div>
 
+            {/* v2.0 DNA Profile Fields */}
+            <div className="border-t border-border/40 pt-4 mt-4">
+              <p className="text-xs font-semibold text-muted-foreground mb-3">v2.0 DNA Profile</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Country</Label>
+                  <Select value={(formData as any).country ?? ""} onValueChange={v => updateField("country", v)}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CA">Canada</SelectItem>
+                      <SelectItem value="US">United States</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Province / State</Label>
+                  <Input value={(formData as any).state_or_province ?? ""} onChange={e => updateField("state_or_province", e.target.value)} className="h-8 text-xs" placeholder="e.g. BC, ON, CA" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">City</Label>
+                  <Input value={(formData as any).city ?? ""} onChange={e => updateField("city", e.target.value)} className="h-8 text-xs" placeholder="e.g. Vancouver" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Booking URL</Label>
+                  <Input value={(formData as any).booking_url ?? ""} onChange={e => updateField("booking_url", e.target.value)} className="h-8 text-xs" placeholder="https://..." />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Governing Body</Label>
+                  <Input value={(formData as any).governing_body ?? ""} onChange={e => updateField("governing_body", e.target.value)} className="h-8 text-xs" placeholder="e.g. CVBC, CVO, ABVMA" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">After-Hours Referral</Label>
+                  <Input value={(formData as any).after_hours_referral ?? ""} onChange={e => updateField("after_hours_referral", e.target.value)} className="h-8 text-xs" placeholder="e.g. Canada West Vet ER" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Species Treated (comma-separated)</Label>
+                  <Input value={(formData as any).species_treated?.join(", ") ?? ""} onChange={e => updateField("species_treated", e.target.value.split(",").map((s: string) => s.trim()).filter(Boolean))} className="h-8 text-xs" placeholder="e.g. Dogs, Cats, Rabbits" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Accreditations (comma-separated)</Label>
+                  <Input value={(formData as any).accreditations?.join(", ") ?? ""} onChange={e => updateField("accreditations", e.target.value.split(",").map((s: string) => s.trim()).filter(Boolean))} className="h-8 text-xs" placeholder="e.g. AAHA, Fear Free" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Content Exclusions (comma-separated)</Label>
+                  <Input value={(formData as any).content_exclusions?.join(", ") ?? ""} onChange={e => updateField("content_exclusions", e.target.value.split(",").map((s: string) => s.trim()).filter(Boolean))} className="h-8 text-xs" placeholder="e.g. euthanasia, exotics" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Voice Fingerprint</Label>
+                  <Input value={(formData as any).voice_fingerprint ?? ""} onChange={e => updateField("voice_fingerprint", e.target.value)} className="h-8 text-xs" placeholder="e.g. warm, clinical-professional, community-focused" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Narrative Anchor</Label>
+                  <Input value={(formData as any).narrative_anchor ?? ""} onChange={e => updateField("narrative_anchor", e.target.value)} className="h-8 text-xs" placeholder="1-2 sentence core narrative" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Clinic Differentiator</Label>
+                  <Input value={(formData as any).clinic_differentiator ?? ""} onChange={e => updateField("clinic_differentiator", e.target.value)} className="h-8 text-xs" placeholder="What makes this clinic unique" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Neighbourhood Character</Label>
+                  <Input value={(formData as any).neighbourhood_character ?? ""} onChange={e => updateField("neighbourhood_character", e.target.value)} className="h-8 text-xs" placeholder="Local area character description" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Founding Story</Label>
+                  <Input value={(formData as any).founding_story ?? ""} onChange={e => updateField("founding_story", e.target.value)} className="h-8 text-xs" placeholder="Brief founding story" />
+                </div>
+              </div>
+            </div>
+
             {isAdmin && (
               <Button size="sm" className="gap-1.5 text-xs" onClick={handleSave} disabled={upsertConfig.isPending}>
                 <Save className="h-3 w-3" />
