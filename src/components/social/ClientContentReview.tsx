@@ -337,3 +337,78 @@ function AutoApprovalNotice({ sentAt }: { sentAt: string }) {
     </div>
   );
 }
+
+function ClientHtmlPreview({
+  filePath,
+  monthYear,
+  approvalStatus,
+  onClose,
+  onRequestChanges,
+  onApprove,
+}: {
+  filePath: string;
+  monthYear: string;
+  approvalStatus: string;
+  onClose: () => void;
+  onRequestChanges: () => void;
+  onApprove: () => void;
+}) {
+  const [htmlContent, setHtmlContent] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchHtml = async () => {
+      try {
+        const { data } = supabase.storage.from("department-files").getPublicUrl(filePath);
+        const res = await fetch(data.publicUrl);
+        if (!res.ok) throw new Error("Failed to fetch");
+        const text = await res.text();
+        setHtmlContent(text);
+      } catch (err) {
+        console.error("Failed to load HTML preview:", err);
+        setHtmlContent("<html><body><p>Failed to load content preview.</p></body></html>");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHtml();
+  }, [filePath]);
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-5xl h-[85vh]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4" />
+            {format(new Date(monthYear + "-01"), "MMMM yyyy")} — Content Preview
+          </DialogTitle>
+        </DialogHeader>
+        {loading ? (
+          <div className="flex items-center justify-center flex-1 text-muted-foreground">Loading preview...</div>
+        ) : (
+          <iframe
+            srcDoc={htmlContent || ""}
+            className="w-full flex-1 rounded-lg border bg-white"
+            style={{ height: "calc(85vh - 120px)" }}
+            sandbox="allow-same-origin allow-scripts"
+            title="Content Preview"
+          />
+        )}
+        <DialogFooter>
+          {approvalStatus === "sent_to_client" && (
+            <div className="flex gap-2 w-full justify-end">
+              <Button variant="outline" onClick={onRequestChanges} className="gap-2">
+                <MessageSquare className="h-4 w-4" />
+                Request Changes
+              </Button>
+              <Button onClick={onApprove} className="gap-2">
+                <ThumbsUp className="h-4 w-4" />
+                Approve Content
+              </Button>
+            </div>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
