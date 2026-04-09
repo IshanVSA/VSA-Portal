@@ -428,10 +428,22 @@ async function backgroundGenerate(
     console.log(`[BG] SM2 generation complete. Confidence: ${confidenceScore}%, Tokens: ${tokenCount}, File: ${filePath}`);
   } catch (error: any) {
     console.error(`[BG] SM2 generation failed:`, error);
+    // Extract a human-readable failure reason
+    let failureReason = error?.message || "Unknown error";
+    if (failureReason.includes("credit balance is too low")) {
+      failureReason = "Anthropic API credits exhausted. Please top up your Anthropic account at console.anthropic.com → Plans & Billing.";
+    } else if (failureReason.includes("ANTHROPIC_API_KEY not configured")) {
+      failureReason = "Anthropic API key is not configured. Please add it in Supabase Edge Function secrets.";
+    } else if (failureReason.includes("rate_limit")) {
+      failureReason = "Anthropic API rate limit reached. Please wait a few minutes and try again.";
+    } else if (failureReason.includes("overloaded")) {
+      failureReason = "Anthropic API is currently overloaded. Please try again in a few minutes.";
+    }
     await serviceClient
       .from("sm2_generations")
       .update({
         approval_status: "generation_failed",
+        failure_reason: failureReason,
         updated_at: new Date().toISOString(),
       })
       .eq("id", generationId);
