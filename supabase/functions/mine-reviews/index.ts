@@ -275,6 +275,9 @@ Deno.serve(async (req) => {
     if (!aiRes.ok) {
       const errText = await aiRes.text();
       console.error("AI error:", errText);
+      if (aiRes.status === 400 && errText.includes("credit balance is too low")) {
+        return jsonRes({ error: "Anthropic API credit balance is too low. Please top up your Anthropic account at https://console.anthropic.com to continue using AI features." }, 402);
+      }
       return jsonRes({ error: `AI extraction failed [${aiRes.status}]: ${errText}` }, 500);
     }
 
