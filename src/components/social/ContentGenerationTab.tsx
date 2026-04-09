@@ -281,3 +281,49 @@ function StatusBadge({ status }: { status: string }) {
     </Badge>
   );
 }
+
+function HtmlPreviewDialog({ filePath, onClose }: { filePath: string; onClose: () => void }) {
+  const [htmlContent, setHtmlContent] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchHtml = async () => {
+      try {
+        const { data } = supabase.storage.from("department-files").getPublicUrl(filePath);
+        const res = await fetch(data.publicUrl);
+        if (!res.ok) throw new Error("Failed to fetch");
+        const text = await res.text();
+        setHtmlContent(text);
+      } catch (err) {
+        console.error("Failed to load HTML preview:", err);
+        setHtmlContent("<html><body><p>Failed to load content preview.</p></body></html>");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHtml();
+  }, [filePath]);
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-5xl h-[85vh]">
+        <DialogHeader>
+          <DialogTitle>Generated Content Preview</DialogTitle>
+        </DialogHeader>
+        {loading ? (
+          <div className="flex items-center justify-center flex-1">
+            <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <iframe
+            srcDoc={htmlContent || ""}
+            className="w-full flex-1 rounded-lg border bg-white"
+            style={{ height: "calc(85vh - 80px)" }}
+            sandbox="allow-same-origin allow-scripts"
+            title="SM2 Content Preview"
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
