@@ -192,7 +192,7 @@ export function computeWebsiteMetrics(
   const engagedSessions = sessionList.filter((session) => session.length > 1).length;
   const pagesPerSession = totalSessions > 0 ? Math.round((totalViews / totalSessions) * 10) / 10 : 0;
 
-  const MAX_SESSION_DURATION_SECONDS = 30 * 60; // 30-minute cap for idle tabs
+  const MAX_SESSION_DURATION_SECONDS = 15 * 60; // 15-minute cap for idle tabs
 
   const durations = sessionList
     .filter((session) => session.length > 1)
