@@ -1528,6 +1528,7 @@ export type Database = {
           email_day0_sent: boolean | null
           email_day3_sent: boolean | null
           email_day5_sent: boolean | null
+          failure_reason: string | null
           generation_confidence_score: number | null
           html_file_path: string | null
           id: string
@@ -1549,6 +1550,7 @@ export type Database = {
           email_day0_sent?: boolean | null
           email_day3_sent?: boolean | null
           email_day5_sent?: boolean | null
+          failure_reason?: string | null
           generation_confidence_score?: number | null
           html_file_path?: string | null
           id?: string
@@ -1570,6 +1572,7 @@ export type Database = {
           email_day0_sent?: boolean | null
           email_day3_sent?: boolean | null
           email_day5_sent?: boolean | null
+          failure_reason?: string | null
           generation_confidence_score?: number | null
           html_file_path?: string | null
           id?: string

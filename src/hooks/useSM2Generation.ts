@@ -21,6 +21,7 @@ export interface SM2Generation {
   email_day0_sent: boolean | null;
   email_day3_sent: boolean | null;
   email_day5_sent: boolean | null;
+  failure_reason: string | null;
   created_at: string;
   updated_at: string;
 }

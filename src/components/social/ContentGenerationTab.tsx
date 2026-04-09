@@ -264,6 +264,14 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                       )}
                     </div>
                   </div>
+                  {gen.approval_status === "generation_failed" && (gen as any).failure_reason && (
+                    <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 ml-12">
+                      <p className="text-xs font-medium text-destructive mb-1 flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" /> Failure Reason
+                      </p>
+                      <p className="text-sm">{(gen as any).failure_reason}</p>
+                    </div>
+                  )}
                   {gen.client_feedback && (
                     <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 ml-12">
                       <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
