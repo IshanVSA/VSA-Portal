@@ -36,6 +36,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
   const [fbSpecific, setFbSpecific] = useState("");
   const [budget, setBudget] = useState("300");
   const [viewingHtml, setViewingHtml] = useState<string | null>(null);
+  const [editingHtml, setEditingHtml] = useState<string | null>(null);
   const [topPerformers, setTopPerformers] = useState<PerformanceData[]>([]);
 
   const dnaScore = dna?.completeness_score || 0;
@@ -231,8 +232,15 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                         {format(new Date(gen.created_at), "MMM d, h:mm a")}
                       </span>
                       {gen.html_file_path && (
-                        <Button variant="ghost" size="sm" onClick={() => setViewingHtml(gen.html_file_path)}>
-                          <Eye className="h-4 w-4" />
+                        <>
+                          <Button variant="ghost" size="sm" onClick={() => setViewingHtml(gen.html_file_path)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setEditingHtml(gen.html_file_path)} title="Edit Content">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
                         </Button>
                       )}
                       {gen.approval_status === "pending" && gen.html_file_path && (
