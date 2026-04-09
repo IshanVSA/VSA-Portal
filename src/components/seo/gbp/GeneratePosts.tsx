@@ -136,6 +136,23 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
             week_4: topics.week_4_topic,
           },
           recent_content_context: { last_month_gbp: [], recent_blogs: [], recent_p2_pages: [] },
+          // v2.0 DNA fields
+          booking_url: (selectedConfig as any).booking_url || '',
+          hours: (selectedConfig as any).hours || null,
+          after_hours_referral: (selectedConfig as any).after_hours_referral || '',
+          species_treated: (selectedConfig as any).species_treated || [],
+          governing_body: (selectedConfig as any).governing_body || '',
+          accreditations: (selectedConfig as any).accreditations || [],
+          content_exclusions: (selectedConfig as any).content_exclusions || [],
+          voice_fingerprint: (selectedConfig as any).voice_fingerprint || '',
+          narrative_anchor: (selectedConfig as any).narrative_anchor || '',
+          clinic_differentiator: (selectedConfig as any).clinic_differentiator || '',
+          neighbourhood_character: (selectedConfig as any).neighbourhood_character || '',
+          founding_story: (selectedConfig as any).founding_story || '',
+          stat_holiday_protocol: (selectedConfig as any).stat_holiday_protocol || 'CONFIRM ANNUALLY',
+          country: (selectedConfig as any).country || '',
+          state_or_province: (selectedConfig as any).state_or_province || '',
+          city: (selectedConfig as any).city || '',
         },
       });
       clearTimeout(timeoutId);
