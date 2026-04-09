@@ -109,6 +109,34 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
     };
   }, [pageviews, selectedDateKeys, timeZone]);
 
+  const geoData = useMemo(() => {
+    const filteredViews = pageviews.filter(
+      (pv) => pv.country_code && selectedDateKeys.includes(getZonedDateKey(pv.created_at, timeZone))
+    );
+    const countryMap = new Map<string, { country: string; regions: Map<string, number>; count: number }>();
+    for (const pv of filteredViews) {
+      const cc = pv.country_code as string;
+      if (!countryMap.has(cc)) countryMap.set(cc, { country: cc, regions: new Map(), count: 0 });
+      const entry = countryMap.get(cc)!;
+      entry.count++;
+      const r = (pv.region as string) || "Unknown";
+      entry.regions.set(r, (entry.regions.get(r) || 0) + 1);
+    }
+    const total = filteredViews.length;
+    const countries = Array.from(countryMap.values())
+      .sort((a, b) => b.count - a.count)
+      .map((c) => ({
+        country: c.country,
+        visitors: c.count,
+        pct: total > 0 ? Math.round((c.count / total) * 1000) / 10 : 0,
+        topRegions: Array.from(c.regions.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([name, cnt]) => ({ name, count: cnt })),
+      }));
+    return { countries, total, hasData: total > 0 };
+  }, [pageviews, selectedDateKeys, timeZone]);
+
   if (loading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
