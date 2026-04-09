@@ -44,6 +44,22 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
 
   const { savePosts } = useGBPPosts(selectedClinicId);
 
+  // Fetch Brand DNA synthesized profile to enrich GBP generation
+  const { data: brandDNA } = useQuery({
+    queryKey: ["brand-dna-for-gbp", selectedClinicId],
+    enabled: !!selectedClinicId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clinic_brand_dna")
+        .select("synthesized_profile, call_notes, additional_fields, completeness_score, status")
+        .eq("clinic_id", selectedClinicId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 120_000,
+  });
+
   // Fetch approved posts for this clinic/month/year
   const { data: approvedPosts, isLoading: approvedLoading } = useQuery({
     queryKey: ['gbp-approved-posts', selectedClinicId, selectedMonth, selectedYear],
@@ -153,6 +169,10 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
           country: (selectedConfig as any).country || '',
           state_or_province: (selectedConfig as any).state_or_province || '',
           city: (selectedConfig as any).city || '',
+          // Brand DNA synthesized profile
+          brand_dna_profile: brandDNA?.synthesized_profile || null,
+          brand_dna_call_notes: brandDNA?.call_notes || null,
+          brand_dna_completeness: brandDNA?.completeness_score || 0,
         },
       });
       clearTimeout(timeoutId);
@@ -209,6 +229,9 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
           fix_mode: true,
           existing_posts: generatedPosts,
           issues_to_fix: issues,
+          brand_dna_profile: brandDNA?.synthesized_profile || null,
+          brand_dna_call_notes: brandDNA?.call_notes || null,
+          brand_dna_completeness: brandDNA?.completeness_score || 0,
         },
       });
       clearTimeout(timeoutId);
