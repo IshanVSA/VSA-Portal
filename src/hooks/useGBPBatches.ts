@@ -4,6 +4,31 @@ import type { CollisionCheckResult } from "@/lib/gbp/types";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 
+export interface GBPBatchRow {
+  id: string;
+  batch_number: number;
+  cluster_id: string | null;
+  clinics: string[];
+  status: string;
+  collision_check: CollisionCheckResult | null;
+  created_at: string;
+  updated_at: string;
+}
+
+type BlockedCollisionCheckResponse = {
+  status: "blocked";
+  reason: "missing_posts";
+  message: string;
+  missing_clinic_ids?: string[];
+  missing_clinics?: string[];
+};
+
+type RunCollisionCheckResponse = CollisionCheckResult | BlockedCollisionCheckResponse;
+
+function isBlockedCollisionCheckResponse(result: RunCollisionCheckResponse): result is BlockedCollisionCheckResponse {
+  return typeof result === "object" && result !== null && "status" in result && result.status === "blocked";
+}
+
 export function useGBPBatches() {
   const queryClient = useQueryClient();
 
