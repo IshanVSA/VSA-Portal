@@ -12,7 +12,7 @@ const requestSchema = z.object({
   month_year: z.string().regex(/^\d{4}-\d{2}$/),
 });
 
-const SM2_MODEL = "claude-opus-4-6";
+const SM2_MODEL = "claude-sonnet-4-20250514";
 const SM2_MAX_TOKENS = 8000;
 
 function json(body: unknown, status = 200) {
