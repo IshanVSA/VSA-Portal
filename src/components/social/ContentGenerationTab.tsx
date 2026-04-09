@@ -283,6 +283,11 @@ export default function ContentGenerationTab({ clinicId }: Props) {
       {viewingHtml && (
         <HtmlPreviewDialog filePath={viewingHtml} onClose={() => setViewingHtml(null)} />
       )}
+
+      {/* HTML Editor Dialog */}
+      {editingHtml && (
+        <HtmlEditorDialog filePath={editingHtml} onClose={() => setEditingHtml(null)} />
+      )}
     </div>
   );
 }
