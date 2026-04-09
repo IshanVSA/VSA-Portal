@@ -303,6 +303,62 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
           </ChartContainer>
         </CardContent>
       </Card>
+
+      {/* Visitor Geography */}
+      {geoData.hasData && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <MapPin className="h-4 w-4" /> Visitor Geography
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Country</TableHead>
+                    <TableHead className="text-xs">Top Regions</TableHead>
+                    <TableHead className="text-xs text-right">Visitors</TableHead>
+                    <TableHead className="text-xs text-right">Share</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {geoData.countries.slice(0, 15).map((c) => (
+                    <TableRow key={c.country}>
+                      <TableCell className="text-xs font-medium">{c.country}</TableCell>
+                      <TableCell className="text-[10px] text-muted-foreground">
+                        {c.topRegions.map((r) => r.name).join(", ")}
+                      </TableCell>
+                      <TableCell className="text-xs text-right tabular-nums">{c.visitors}</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums">{c.pct}%</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Globe className="h-4 w-4" /> Top Countries
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={{ visitors: { label: "Visitors", color: "hsl(var(--chart-2))" } }} className="h-[260px] w-full">
+                <BarChart data={geoData.countries.slice(0, 10)} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                  <XAxis type="number" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                  <YAxis type="category" dataKey="country" tick={{ fontSize: 11 }} width={40} className="text-muted-foreground" />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="visitors" fill="hsl(var(--chart-2))" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
