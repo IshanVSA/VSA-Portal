@@ -122,52 +122,21 @@ export default function ClientContentReview({ clinicId }: Props) {
 
       {/* HTML Preview Dialog */}
       {viewingGen?.html_file_path && (
-        <Dialog open={!!viewingGen} onOpenChange={() => setViewingGen(null)}>
-          <DialogContent className="max-w-5xl h-[85vh]">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4" />
-                {format(new Date(viewingGen.month_year + "-01"), "MMMM yyyy")} — Content
-                Preview
-              </DialogTitle>
-            </DialogHeader>
-            <iframe
-              src={getHtmlUrl(viewingGen.html_file_path)}
-              className="w-full flex-1 rounded-lg border"
-              style={{ height: "calc(85vh - 120px)" }}
-              sandbox="allow-same-origin"
-              title="Content Preview"
-            />
-            <DialogFooter>
-              {viewingGen.approval_status === "sent_to_client" && (
-                <div className="flex gap-2 w-full justify-end">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setViewingGen(null);
-                      setFeedbackGen(viewingGen);
-                      setFeedbackText(viewingGen.client_feedback || "");
-                    }}
-                    className="gap-2"
-                  >
-                    <MessageSquare className="h-4 w-4" />
-                    Request Changes
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setViewingGen(null);
-                      setApproveConfirm(viewingGen);
-                    }}
-                    className="gap-2"
-                  >
-                    <ThumbsUp className="h-4 w-4" />
-                    Approve Content
-                  </Button>
-                </div>
-              )}
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <ClientHtmlPreview
+          filePath={viewingGen.html_file_path}
+          monthYear={viewingGen.month_year}
+          approvalStatus={viewingGen.approval_status}
+          onClose={() => setViewingGen(null)}
+          onRequestChanges={() => {
+            setViewingGen(null);
+            setFeedbackGen(viewingGen);
+            setFeedbackText(viewingGen.client_feedback || "");
+          }}
+          onApprove={() => {
+            setViewingGen(null);
+            setApproveConfirm(viewingGen);
+          }}
+        />
       )}
 
       {/* Feedback Dialog */}
