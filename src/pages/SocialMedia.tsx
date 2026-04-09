@@ -3,7 +3,8 @@ import { useSearchParams } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Share2, LayoutDashboard, FileCheck, CalendarDays, ClipboardList, BarChart3, Ticket, Upload, MessageSquare, Dna, Sparkles, Eye, SlidersHorizontal } from "lucide-react";
+import { Share2, LayoutDashboard, FileCheck, CalendarDays, ClipboardList, BarChart3, Ticket, Upload, MessageSquare, Dna, Sparkles, Eye, SlidersHorizontal, MapPin } from "lucide-react";
+import { GBPPostsTab } from "@/components/seo/gbp/GBPPostsTab";
 import { SocialOverview } from "@/components/social/SocialOverview";
 import { lazy, Suspense } from "react";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
@@ -47,6 +48,7 @@ const baseTabs = [
 const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
 const dnaTab = { value: "brand-dna", label: "Brand DNA", icon: Dna };
 const generationTab = { value: "generation", label: "Generate", icon: Sparkles };
+const gbpPostsTab = { value: "gbp-posts", label: "GBP Posts", icon: MapPin };
 const contentReviewTab = { value: "content-review", label: "My Content", icon: Eye };
 const themeSlidersTab = { value: "preferences", label: "Preferences", icon: SlidersHorizontal };
 
@@ -67,7 +69,7 @@ export default function SocialMedia() {
 
   const visibleTabs = isClient
     ? [...baseTabs.filter(t => ["overview", "requests", "tickets"].includes(t.value)), contentReviewTab, themeSlidersTab]
-    : [...baseTabs, generationTab, dnaTab, ...(isStaff ? [chatTab] : [])];
+    : [...baseTabs, generationTab, gbpPostsTab, dnaTab, ...(isStaff ? [chatTab] : [])];
 
   const handleTabChange = (value: string) => {
     setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", value); return next; }, { replace: true });
@@ -136,6 +138,7 @@ export default function SocialMedia() {
                 <TabsContent value="intake" className="mt-4"><Suspense fallback={<TabFallback />}><IntakeFormsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="analytics" className="mt-4"><Suspense fallback={<TabFallback />}><AnalyticsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="social_media" clinicId={selectedClinicId} /></TabsContent>
+                <TabsContent value="gbp-posts" className="mt-4"><GBPPostsTab clinicId={selectedClinicId} /></TabsContent>
                 {isStaff && (
                   <>
                     <TabsContent value="generation" className="mt-4"><Suspense fallback={<TabFallback />}><ContentGenerationTab clinicId={selectedClinicId} /></Suspense></TabsContent>
