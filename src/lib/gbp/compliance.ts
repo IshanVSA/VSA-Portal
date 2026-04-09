@@ -1,18 +1,36 @@
 import type { ComplianceScan, GeneratedPost, HospitalType, Jurisdiction } from './types';
 
 // ── Tier 1: VSA Core flagged terms ──
-// Superlative / misleading claims
 const FLAGGED_TERMS = [
   'best', 'top', 'leading', 'premier', 'superior', '#1', 'number one',
   'guaranteed', 'cure', 'miracle', 'revolutionary', 'breakthrough',
   'risk-free', 'no side effects', 'proven cure', 'instant results',
   'world-class', 'unmatched', 'exclusive', 'only clinic',
-  // v2.0 additions from doc — cross-pipeline risk terms
   'narcotic', 'sedation', 'anesthesia', 'steroid', 'antibiotic',
-  'euthanasia', 'fur baby',
+  'euthanasia', 'fur baby', 'furbaby', 'fur-baby',
+  // v2.0 flagged terms table additions
+  'pharmacy', 'dispensary', 'medication', 'drug',
+  'treatment', 'therapy', 'diagnosis', 'laser therapy',
 ];
 
-// "surgery" is context-dependent per doc — flag only standalone use
+// v2.0 flagged terms with replacements (for display)
+export const FLAGGED_TERMS_REPLACEMENTS: Record<string, string> = {
+  'prescription': 'veterinary products',
+  'pharmacy': 'on-site veterinary products',
+  'dispensary': 'on-site veterinary products',
+  'medication': 'veterinary products',
+  'drug': 'veterinary products',
+  'treatment': 'care / veterinary care / supportive care',
+  'therapy': 'care / care plan',
+  'diagnosis': 'assessment / evaluation',
+  'cure': 'REMOVE ENTIRELY',
+  'guaranteed': 'REMOVE ENTIRELY',
+  'laser therapy': 'laser care',
+  'fur baby': 'your pet / their pet',
+  'furbaby': 'your pet / their pet',
+  'fur-baby': 'your pet / their pet',
+};
+
 const SURGERY_REGEX = /\bsurgery\b/i;
 
 const SPECIALIST_TERMS = [
@@ -31,28 +49,22 @@ const DRUG_BRAND_NAMES = [
 const PRESCRIPTION_TERMS = [
   'prescription', 'rx only', 'controlled substance', 'schedule ii',
   'schedule iii', 'schedule iv', 'narcotic',
-  // v2.0 additions from doc
   'sedation', 'anesthesia', 'antibiotic', 'steroid',
 ];
 
 const SENSITIVE_TERMS = [
   'euthanasia', 'put down', 'put to sleep', 'death', 'dying', 'terminal',
   'cancer treatment', 'chemotherapy', 'radiation therapy',
-  // v2.0 additions from doc — medical practice claim triggers
   'diagnose', 'treat', 'prescribe',
 ];
 
 const LANDING_PAGE_RISK_TERMS = [
   'buy now', 'order online', 'purchase', 'add to cart', 'shop now',
   'free trial', 'discount code', 'promo code',
-  // v2.0 additions — before/after and transformation language
   'before and after', 'transformation', 'guaranteed transformation',
 ];
 
-// ── Hospital Type Language Rules (aligned with VSA 3-Type Framework per doc) ──
-// TYPE 1: 24/7 Emergency Hospital — nothing restricted
-// TYPE 2: Dedicated Emergency (overnight/weekend) — can't say "24/7" unless truly continuous
-// TYPE 3: General Practice — can't say emergency hospital/clinic, 24-hour, after-hours emergency
+// ── Hospital Type Language Rules (v2.0) ──
 const HOSPITAL_TYPE_RULES: Record<number, { allowed: string[]; forbidden: string[] }> = {
   1: {
     allowed: ['emergency', 'after-hours', '24-hour', 'emergency hospital', 'overnight emergency'],
@@ -90,26 +102,29 @@ function hasUsEnglishIssue(text: string): boolean {
 }
 
 /**
- * Emoji compliance per doc: max 1-2 per post, only at start or end (no mid-sentence).
- * Returns true if the post VIOLATES emoji rules.
+ * v2.0: Zero emoji rule for GBP posts.
+ * Returns true if the post VIOLATES emoji rules (any emoji = violation).
  */
 function hasEmojiViolation(text: string): boolean {
   const emojiRegex = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu;
   const matches = text.match(emojiRegex);
-  if (!matches) return false;
+  // v2.0: Zero emojis allowed in GBP posts
+  return matches !== null && matches.length > 0;
+}
 
-  // More than 2 emojis = violation
-  if (matches.length > 2) return true;
+/**
+ * v2.0: Check for URLs in post body text (Trigger 1)
+ */
+function hasUrlInBody(text: string): boolean {
+  return /https?:\/\//i.test(text) || /www\./i.test(text);
+}
 
-  // Check mid-sentence placement: emojis should only be in first or last 20 chars
-  const trimmed = text.trim();
-  const startZone = trimmed.substring(0, 20);
-  const endZone = trimmed.substring(Math.max(0, trimmed.length - 20));
-  const midSection = trimmed.substring(20, Math.max(0, trimmed.length - 20));
-  const midEmojis = midSection.match(emojiRegex);
-  if (midEmojis && midEmojis.length > 0) return true;
-
-  return false;
+/**
+ * v2.0: Check for ALL CAPS text (Trigger 4)
+ */
+function hasAllCaps(text: string): boolean {
+  // Check for words of 3+ letters that are all caps
+  return /\b[A-Z]{3,}\b/.test(text.replace(/\b(CTA|URL|GBP|VSA|AAHA|BC|AB|ON|CA|US|UK)\b/g, ''));
 }
 
 export function runComplianceScan(
@@ -126,7 +141,6 @@ export function runComplianceScan(
 
   // ── TIER 1: VSA Core ──
   const flaggedTerms = countMatches(allContent, FLAGGED_TERMS);
-  // Also check context-dependent "surgery"
   if (SURGERY_REGEX.test(allContent)) {
     flaggedTerms.found += 1;
     flaggedTerms.details.push('surgery');
@@ -145,7 +159,6 @@ export function runComplianceScan(
   const specialistClaims = countMatches(allContent, SPECIALIST_TERMS).found > 0 ? 'FAIL' as const : 'PASS' as const;
   if (specialistClaims === 'FAIL') issuesCount++;
 
-  // Hospital type language check
   const typeRules = HOSPITAL_TYPE_RULES[hospitalType] || HOSPITAL_TYPE_RULES[3];
   const forbiddenUsed = typeRules.forbidden.filter(t => allContent.toLowerCase().includes(t.toLowerCase()));
   const hospitalTypeLanguage = forbiddenUsed.length > 0 ? 'FAIL' as const : 'PASS' as const;
@@ -154,8 +167,17 @@ export function runComplianceScan(
   const guaranteedOutcomes = /guarante/i.test(allContent) ? 'FAIL' as const : 'PASS' as const;
   if (guaranteedOutcomes === 'FAIL') issuesCount++;
 
+  // v2.0: Zero emoji rule
   const emojiCompliance = posts.some(p => hasEmojiViolation(p.post_content)) ? 'FAIL' as const : 'PASS' as const;
   if (emojiCompliance === 'FAIL') issuesCount++;
+
+  // v2.0: URL in body check
+  const urlInBody = posts.some(p => hasUrlInBody(p.post_content));
+  if (urlInBody) issuesCount++;
+
+  // v2.0: ALL CAPS check
+  const allCapsViolation = posts.some(p => hasAllCaps(p.post_content));
+  if (allCapsViolation) issuesCount++;
 
   // ── TIER 2: Google Ads Healthcare ──
   const prescriptionDrugTerms = countMatches(allContent, PRESCRIPTION_TERMS);
@@ -167,7 +189,6 @@ export function runComplianceScan(
   const directHealthTargeting = /your\s+(illness|disease|condition|diagnosis|symptoms)/i.test(allContent) ? 'FAIL' as const : 'PASS' as const;
   if (directHealthTargeting === 'FAIL') issuesCount++;
 
-  // v2.0: expanded outcome guarantee to include cure/heal/fix per doc
   const outcomeGuarantee = /100%|guaranteed\s+(cure|results|recovery)|(?:^|\s)(cure|heal|fix)(?:\s|$)/im.test(allContent) ? 'FAIL' as const : 'PASS' as const;
   if (outcomeGuarantee === 'FAIL') issuesCount++;
 
@@ -202,7 +223,6 @@ export function runComplianceScan(
     geoKeywordFirst100[key] = lower_neighbourhood ? first100.includes(lower_neighbourhood) : true;
     if (!geoKeywordFirst100[key]) issuesCount++;
 
-    // Hook strength: first sentence should be compelling (has ? or stat or action verb)
     const firstSentence = post.post_content.split(/[.!?]/)[0] || '';
     hookStrength[key] = firstSentence.includes('?') || /\d+%|\d+ out of/i.test(firstSentence) || firstSentence.length > 15;
     if (!hookStrength[key]) issuesCount++;
@@ -274,7 +294,6 @@ export function runComplianceScan(
 }
 
 // ── Topic Title Compliance Scanner ──
-// Lightweight check for topic names in the Topic Library
 export interface TopicTitleScanResult {
   pass: boolean;
   issues: string[];
@@ -284,52 +303,44 @@ export function scanTopicTitle(title: string): TopicTitleScanResult {
   const issues: string[] = [];
   const lower = title.toLowerCase();
 
-  // Tier 1: Flagged terms
   for (const term of FLAGGED_TERMS) {
     if (lower.includes(term.toLowerCase())) {
       issues.push(`Flagged term: "${term}"`);
     }
   }
 
-  // Tier 1: Specialist claims
   for (const term of SPECIALIST_TERMS) {
     if (lower.includes(term.toLowerCase())) {
       issues.push(`Specialist claim: "${term}"`);
     }
   }
 
-  // Tier 1: Surgery (standalone)
   if (SURGERY_REGEX.test(title)) {
     issues.push('Contains "surgery" — context-dependent, review needed');
   }
 
-  // Tier 2: Drug brand names
   for (const drug of DRUG_BRAND_NAMES) {
     if (lower.includes(drug.toLowerCase())) {
       issues.push(`Drug brand name: "${drug}"`);
     }
   }
 
-  // Tier 2: Prescription terms
   for (const term of PRESCRIPTION_TERMS) {
     if (lower.includes(term.toLowerCase())) {
       issues.push(`Prescription term: "${term}"`);
     }
   }
 
-  // Tier 2: Sensitive terms
   for (const term of SENSITIVE_TERMS) {
     if (lower.includes(term.toLowerCase())) {
       issues.push(`Sensitive term: "${term}"`);
     }
   }
 
-  // Tier 1: Em-dash
   if (hasEmDash(title)) {
     issues.push('Contains em-dash (—) — use hyphens instead');
   }
 
-  // Tier 1: British spelling
   if (hasUsEnglishIssue(title)) {
     issues.push('Contains British spelling — use US English');
   }
