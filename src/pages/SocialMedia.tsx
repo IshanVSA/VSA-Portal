@@ -21,7 +21,7 @@ import { BrandDNAForm } from "@/components/social/BrandDNAForm";
 
 const ContentRequestsContent = lazy(() => import("@/components/social/ContentRequestsContent"));
 const ContentCalendarContent = lazy(() => import("@/components/social/ContentCalendarContent"));
-const IntakeFormsContent = lazy(() => import("@/components/social/IntakeFormsContent"));
+
 const AnalyticsContent = lazy(() => import("@/components/social/AnalyticsContent"));
 const BrandDNATab = lazy(() => import("@/components/social/BrandDNATab"));
 const ContentGenerationTab = lazy(() => import("@/components/social/ContentGenerationTab"));
