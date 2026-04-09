@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { GBPPostHistory, GeneratedPost, GenerateGBPPostsRequest, ComplianceScan } from "@/lib/gbp/types";
 import { runComplianceScan } from "@/lib/gbp/compliance";
+import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 
 export function useGBPPosts(clinicId: string | null) {
@@ -46,7 +47,7 @@ export function useGBPPosts(clinicId: string | null) {
         body: request,
       });
       clearTimeout(timeoutId);
-      if (error) throw error;
+      if (error) throw new Error(await extractEdgeFunctionError(error, data, "Failed to generate posts"));
       if (data?.error) throw new Error(data.error);
       return data as { posts: GeneratedPost[] };
     },

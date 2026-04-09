@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 import { Sparkles, FileText, ClipboardList, ChevronsUpDown } from "lucide-react";
 import { format } from "date-fns";
@@ -200,7 +201,7 @@ export default function IntakeFormsContent({ clinicId }: { clinicId?: string }) 
       const { data, error } = await supabase.functions.invoke("generate-content", {
         body: { clinic_id: selectedClinicId, intake_data: intakeData },
       });
-      if (error) throw error;
+      if (error) throw new Error(await extractEdgeFunctionError(error, data, "Content generation failed"));
       const errorList = data?.errors || [];
       if (errorList.length > 0 && (!data?.versions || data.versions.length === 0)) {
         toast.error("AI generation failed: " + errorList.map((e: any) => `${e.model}: ${e.error}`).join("; "));

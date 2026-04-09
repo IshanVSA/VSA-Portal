@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
+import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { cn } from "@/lib/utils";
 import { format, parse } from "date-fns";
 import { Shield, ShieldCheck, ShieldAlert, Loader2, AlertTriangle, Lightbulb, CalendarIcon } from "lucide-react";
@@ -140,7 +141,7 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
           complianceBody,
         },
       });
-      if (error) throw error;
+      if (error) throw new Error(await extractEdgeFunctionError(error, data, "Verification failed"));
       setVerificationResult(data);
       setVerified(data.compliant === true);
     } catch (err) {

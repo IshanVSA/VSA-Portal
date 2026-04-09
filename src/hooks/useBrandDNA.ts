@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 
 export interface BrandDNARecord {
@@ -90,7 +91,7 @@ export function useBrandDNA(clinicId: string | undefined) {
       const { data, error } = await supabase.functions.invoke("extract-brand-dna", {
         body: { clinic_id: clinicId },
       });
-      if (error) throw error;
+      if (error) throw new Error(await extractEdgeFunctionError(error, data, "Website extraction failed"));
       if (data?.error) throw new Error(data.error);
       return data;
     },
@@ -111,7 +112,7 @@ export function useBrandDNA(clinicId: string | undefined) {
       const { data, error } = await supabase.functions.invoke("mine-reviews", {
         body: { clinic_id: clinicId },
       });
-      if (error) throw error;
+      if (error) throw new Error(await extractEdgeFunctionError(error, data, "Review mining failed"));
       if (data?.error) throw new Error(data.error);
       return data;
     },
@@ -136,7 +137,7 @@ export function useBrandDNA(clinicId: string | undefined) {
       const { data, error } = await supabase.functions.invoke("synthesize-dna", {
         body: { clinic_id: clinicId },
       });
-      if (error) throw error;
+      if (error) throw new Error(await extractEdgeFunctionError(error, data, "DNA synthesis failed"));
       if (data?.error) throw new Error(data.error);
       return data;
     },
@@ -157,7 +158,7 @@ export function useBrandDNA(clinicId: string | undefined) {
       const { data, error } = await supabase.functions.invoke("locality-fetch", {
         body: { clinic_id: clinicId },
       });
-      if (error) throw error;
+      if (error) throw new Error(await extractEdgeFunctionError(error, data, "Locality fetch failed"));
       if (data?.ok === false) throw new Error(data.error || "Locality fetch failed");
       if (data?.error) throw new Error(data.error);
       return data;

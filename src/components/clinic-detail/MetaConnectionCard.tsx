@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, XCircle, RefreshCw, Loader2, Unlink } from "lucide-react";
+import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 
 interface MetaConnectionCardProps {
@@ -40,11 +41,11 @@ export function MetaConnectionCard({
         body: { clinic_id: clinicId },
         headers: { Authorization: `Bearer ${session?.access_token}` },
       });
-      if (res.error) throw res.error;
+      if (res.error) throw new Error(await extractEdgeFunctionError(res.error, res.data, "Analytics sync failed"));
       toast.success("Analytics synced successfully!");
       onRefresh();
     } catch (e: any) {
-      toast.error("Sync failed: " + (e.message || "Unknown error"));
+      toast.error(e.message || "Sync failed");
     } finally {
       setSyncing(false);
     }
