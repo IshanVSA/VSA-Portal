@@ -12,6 +12,9 @@ const requestSchema = z.object({
   month_year: z.string().regex(/^\d{4}-\d{2}$/),
 });
 
+const SM2_MODEL = "claude-opus-4-6";
+const SM2_MAX_TOKENS = 8000;
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -419,8 +422,8 @@ Deno.serve(async (req) => {
           "content-type": "application/json",
         },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 8000,
+          model: SM2_MODEL,
+          max_tokens: SM2_MAX_TOKENS,
           system: systemPrompt,
           messages: [{ role: "user", content: userMessage }],
         }),
@@ -502,24 +505,51 @@ async function processResponse(
     // Continue even if storage fails — save to DB
   }
 
-  // Save generation record
-  const { data: genRecord, error: genError } = await serviceClient
+  // Save generation record without relying on a DB unique constraint that may not exist
+  const generationPayload = {
+    clinic_id,
+    month_year,
+    html_file_path: filePath,
+    generation_confidence_score: confidenceScore,
+    dna_completeness_score: completenessScore,
+    model_used: SM2_MODEL,
+    token_count: tokenCount,
+    triggered_by: userId,
+    approval_status: "pending",
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data: existingGeneration, error: existingGenerationError } = await serviceClient
     .from("sm2_generations")
-    .upsert({
-      clinic_id,
-      month_year,
-      html_file_path: filePath,
-      generation_confidence_score: confidenceScore,
-      dna_completeness_score: completenessScore,
-      model_used: "claude-sonnet-4-20250514",
-      token_count: tokenCount,
-      triggered_by: userId,
-      approval_status: "pending",
-    }, { onConflict: "clinic_id,month_year" })
+    .select("id")
+    .eq("clinic_id", clinic_id)
+    .eq("month_year", month_year)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existingGenerationError) {
+    console.error("Existing generation lookup error:", existingGenerationError);
+    throw new Error(`Failed to look up existing generation: ${existingGenerationError.message}`);
+  }
+
+  const generationWrite = existingGeneration?.id
+    ? serviceClient
+        .from("sm2_generations")
+        .update(generationPayload)
+        .eq("id", existingGeneration.id)
+    : serviceClient
+        .from("sm2_generations")
+        .insert(generationPayload);
+
+  const { data: genRecord, error: genError } = await generationWrite
     .select()
     .maybeSingle();
 
-  if (genError) console.error("Generation record save error:", genError);
+  if (genError) {
+    console.error("Generation record save error:", genError);
+    throw new Error(`Failed to save generated content: ${genError.message}`);
+  }
 
   // Update stock post count
   await serviceClient
