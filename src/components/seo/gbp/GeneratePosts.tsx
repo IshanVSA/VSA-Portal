@@ -229,6 +229,9 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
           fix_mode: true,
           existing_posts: generatedPosts,
           issues_to_fix: issues,
+          brand_dna_profile: brandDNA?.synthesized_profile || null,
+          brand_dna_call_notes: brandDNA?.call_notes || null,
+          brand_dna_completeness: brandDNA?.completeness_score || 0,
         },
       });
       clearTimeout(timeoutId);
