@@ -6,6 +6,52 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+const ANTHROPIC_RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504, 529]);
+const ANTHROPIC_MAX_ATTEMPTS = 4;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function callAnthropicWithRetry(systemPrompt: string, userMessage: string) {
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= ANTHROPIC_MAX_ATTEMPTS; attempt += 1) {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 10000,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userMessage }],
+      }),
+    });
+
+    if (response.ok) {
+      return await response.json();
+    }
+
+    const status = response.status;
+    const errText = await response.text();
+    const requestId = response.headers.get("request-id");
+    const errorMessage = `Anthropic API error: ${status} - ${errText}${requestId ? ` (request_id: ${requestId})` : ""}`;
+
+    if (ANTHROPIC_RETRYABLE_STATUSES.has(status) && attempt < ANTHROPIC_MAX_ATTEMPTS) {
+      const delayMs = 1500 * 2 ** (attempt - 1);
+      console.warn(`Transient Anthropic error ${status}; retrying attempt ${attempt + 1}/${ANTHROPIC_MAX_ATTEMPTS}`, requestId ?? "no_request_id");
+      await sleep(delayMs);
+      continue;
+    }
+
+    lastError = new Error(errorMessage);
+    break;
+  }
+
+  throw lastError ?? new Error("Anthropic API request failed");
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -93,7 +139,7 @@ Deno.serve(async (req) => {
         const synthesized = dna?.synthesized_profile || {};
 
         // Build user message with all 16 SaaS-injected fields
-        const last3Slugs = Array.isArray(publishedSlugs) 
+        const last3Slugs = Array.isArray(publishedSlugs)
           ? publishedSlugs.slice(-9).map((s: any) => typeof s === "string" ? s : s.slug || "").join(", ")
           : "NONE";
 
@@ -116,28 +162,7 @@ BRAND_RESTRICTIONS: NONE
 
 ${clinic.website || "https://example.com"}`;
 
-        // Call Anthropic
-        const response = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": ANTHROPIC_API_KEY,
-            "anthropic-version": "2023-06-01",
-          },
-          body: JSON.stringify({
-            model: "claude-sonnet-4-20250514",
-            max_tokens: 10000,
-            system: prompt.prompt_text,
-            messages: [{ role: "user", content: userMessage }],
-          }),
-        });
-
-        if (!response.ok) {
-          const errText = await response.text();
-          throw new Error(`Anthropic API error: ${response.status} - ${errText}`);
-        }
-
-        const result = await response.json();
+        const result = await callAnthropicWithRetry(prompt.prompt_text, userMessage);
         const outputText = result.content?.[0]?.text || "";
         const inputTokens = result.usage?.input_tokens || 0;
         const outputTokens = result.usage?.output_tokens || 0;
