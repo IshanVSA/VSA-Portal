@@ -34,9 +34,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Pre-gen check: blog_package_active
-    if (!clinic.blog_package_active) {
-      return new Response(JSON.stringify({ error: "Blog package not active for this clinic" }), {
+    // Pre-gen check: SEO must be enabled
+    if (!clinic.seo_enabled) {
+      return new Response(JSON.stringify({ error: "SEO is not enabled for this clinic" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

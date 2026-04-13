@@ -47,7 +47,7 @@ interface ClinicCredentials {
   last_google_sync_at: string | null;
 }
 
-type ClinicAccessKey = "website_enabled" | "seo_enabled" | "google_ads_enabled" | "ai_seo_enabled" | "social_media_enabled" | "blog_package_active";
+type ClinicAccessKey = "website_enabled" | "seo_enabled" | "google_ads_enabled" | "ai_seo_enabled" | "social_media_enabled";
 
 const clinicAccessRows: Array<{ key: ClinicAccessKey; label: string; description: string }> = [
   { key: "website_enabled", label: "Website", description: "Enable the Website workspace for this clinic" },
@@ -55,7 +55,6 @@ const clinicAccessRows: Array<{ key: ClinicAccessKey; label: string; description
   { key: "google_ads_enabled", label: "Google Ads", description: "Enable Google Ads dashboards, analytics, and tickets" },
   { key: "ai_seo_enabled", label: "AI SEO", description: "Enable AI SEO workspace access" },
   { key: "social_media_enabled", label: "Social Media", description: "Enable content, requests, calendar, and uploads" },
-  { key: "blog_package_active", label: "Blog Package", description: "Enable monthly AI blog generation for this clinic" },
 ];
 
 function TimezoneField({ clinicId, currentTimezone, onSaved }: { clinicId: string; currentTimezone: string | null; onSaved: (timezone: string) => void }) {
