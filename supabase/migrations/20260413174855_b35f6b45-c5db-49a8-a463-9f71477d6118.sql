@@ -1,0 +1,1 @@
+UPDATE public.clinics SET blog_package_active = true WHERE id = 'b82b1dac-e3bc-447e-be0d-b93e10e44399';
