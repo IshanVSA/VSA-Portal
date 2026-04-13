@@ -391,6 +391,7 @@ export function BlogTab({ clinicId }: { clinicId: string | undefined }) {
   const isClient = role === "client";
   const isAdmin = role === "admin";
   const { blogPosts, latestPost, tracker, promptVersions, currentPrompt, isLoading, generate, hasActiveJob } = useBlogPosts(clinicId);
+  const queryClient = useQueryClient();
   const [subTab, setSubTab] = useState(isClient ? "my-blogs" : "overview");
   const [emergencyTopic, setEmergencyTopic] = useState("");
 
