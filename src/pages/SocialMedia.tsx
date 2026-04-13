@@ -19,7 +19,7 @@ import { useDepartmentChatUnread } from "@/hooks/useDepartmentChatUnread";
 import { useBrandDNA } from "@/hooks/useBrandDNA";
 import { BrandDNAForm } from "@/components/social/BrandDNAForm";
 
-const ContentRequestsContent = lazy(() => import("@/components/social/ContentRequestsContent"));
+
 const ContentCalendarContent = lazy(() => import("@/components/social/ContentCalendarContent"));
 
 const AnalyticsContent = lazy(() => import("@/components/social/AnalyticsContent"));
@@ -38,7 +38,7 @@ const socialServices = ["Content Creation", "Post Scheduling", "Engagement Manag
 
 const baseTabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
-  { value: "requests", label: "Content Requests", icon: FileCheck },
+  
   { value: "tickets", label: "Tickets", icon: Ticket },
   { value: "calendar", label: "Calendar", icon: CalendarDays },
   
@@ -68,7 +68,7 @@ export default function SocialMedia() {
   const showDNAGate = isClient && !dnaLoading && !dnaCompleted && !isLocked;
 
   const visibleTabs = isClient
-    ? [...baseTabs.filter(t => ["overview", "requests", "tickets"].includes(t.value)), contentReviewTab, themeSlidersTab]
+    ? [...baseTabs.filter(t => ["overview", "tickets"].includes(t.value)), contentReviewTab, themeSlidersTab]
     : [...baseTabs, generationTab, gbpPostsTab, dnaTab, ...(isStaff ? [chatTab] : [])];
 
   const handleTabChange = (value: string) => {
@@ -130,7 +130,7 @@ export default function SocialMedia() {
                 </TabsList>
 
                 <TabsContent value="overview" className="mt-4"><SocialOverview clinicId={selectedClinicId} /></TabsContent>
-                <TabsContent value="requests" className="mt-4"><Suspense fallback={<TabFallback />}><ContentRequestsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
+                
                 <TabsContent value="tickets" className="mt-4"><TicketsTab department="social_media" services={socialServices} clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="content-review" className="mt-4"><Suspense fallback={<TabFallback />}><ClientContentReview clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="preferences" className="mt-4"><Suspense fallback={<TabFallback />}><ContentThemeSliders clinicId={selectedClinicId} /></Suspense></TabsContent>
