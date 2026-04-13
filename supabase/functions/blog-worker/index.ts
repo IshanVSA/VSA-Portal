@@ -269,7 +269,7 @@ Deno.serve(async (req) => {
 
   try {
     // Pick up jobs that are pending or retrying and due
-    const { data: jobs, error } = await supabase
+    const { data: job, error } = await supabase
       .from("blog_posts")
       .select("*")
       .in("generation_status", ["pending", "processing", "retrying"])
