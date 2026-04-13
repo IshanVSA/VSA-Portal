@@ -55,6 +55,334 @@ export type Database = {
           },
         ]
       }
+      blog_client_submissions: {
+        Row: {
+          approved_by: string | null
+          approved_date: string | null
+          clinic_id: string
+          compliance_scan_result: Json | null
+          content_text: string
+          created_at: string
+          fed_into_generation: boolean
+          id: string
+          submission_month: number | null
+          submission_type: string
+          submission_year: number | null
+          updated_at: string
+        }
+        Insert: {
+          approved_by?: string | null
+          approved_date?: string | null
+          clinic_id: string
+          compliance_scan_result?: Json | null
+          content_text: string
+          created_at?: string
+          fed_into_generation?: boolean
+          id?: string
+          submission_month?: number | null
+          submission_type?: string
+          submission_year?: number | null
+          updated_at?: string
+        }
+        Update: {
+          approved_by?: string | null
+          approved_date?: string | null
+          clinic_id?: string
+          compliance_scan_result?: Json | null
+          content_text?: string
+          created_at?: string
+          fed_into_generation?: boolean
+          id?: string
+          submission_month?: number | null
+          submission_type?: string
+          submission_year?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_client_submissions_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      blog_posts: {
+        Row: {
+          active_hazards: Json | null
+          approval_timestamp: string | null
+          approval_type: string | null
+          blog_1_confirmed: boolean
+          blog_1_slot: string | null
+          blog_1_slug: string | null
+          blog_1_status: string
+          blog_1_topic: string | null
+          blog_1_type: string | null
+          blog_1_url: string | null
+          blog_2_confirmed: boolean
+          blog_2_slot: string | null
+          blog_2_slug: string | null
+          blog_2_status: string
+          blog_2_topic: string | null
+          blog_2_type: string | null
+          blog_2_url: string | null
+          blog_3_confirmed: boolean
+          blog_3_slot: string | null
+          blog_3_slug: string | null
+          blog_3_status: string
+          blog_3_topic: string | null
+          blog_3_type: string | null
+          blog_3_url: string | null
+          blog_month_count: number
+          clinic_id: string
+          created_at: string
+          duplicate_risk_flagged: boolean
+          emergency_topic: string | null
+          generation_date: string
+          generation_status: string
+          generation_type: string
+          governing_body_applied: string | null
+          high_alert_hazards: Json | null
+          hospital_type_detected: string | null
+          id: string
+          image_filename_1: string | null
+          image_filename_2: string | null
+          image_filename_3: string | null
+          jurisdiction_detected: string | null
+          marked_published_at: string | null
+          marked_published_by: string | null
+          prompt_version_id: string | null
+          publish_date_1: string | null
+          publish_date_2: string | null
+          publish_date_3: string | null
+          qa_issues: Json | null
+          qa_status: string
+          raw_output_text: string | null
+          remark_round: number
+          sitemap_ping_sent: boolean
+          spelling_mode: string | null
+          token_count_input: number | null
+          token_count_output: number | null
+          type_mismatch_flagged: boolean
+          unverified_fields: Json | null
+          updated_at: string
+          verification_complete: boolean
+        }
+        Insert: {
+          active_hazards?: Json | null
+          approval_timestamp?: string | null
+          approval_type?: string | null
+          blog_1_confirmed?: boolean
+          blog_1_slot?: string | null
+          blog_1_slug?: string | null
+          blog_1_status?: string
+          blog_1_topic?: string | null
+          blog_1_type?: string | null
+          blog_1_url?: string | null
+          blog_2_confirmed?: boolean
+          blog_2_slot?: string | null
+          blog_2_slug?: string | null
+          blog_2_status?: string
+          blog_2_topic?: string | null
+          blog_2_type?: string | null
+          blog_2_url?: string | null
+          blog_3_confirmed?: boolean
+          blog_3_slot?: string | null
+          blog_3_slug?: string | null
+          blog_3_status?: string
+          blog_3_topic?: string | null
+          blog_3_type?: string | null
+          blog_3_url?: string | null
+          blog_month_count?: number
+          clinic_id: string
+          created_at?: string
+          duplicate_risk_flagged?: boolean
+          emergency_topic?: string | null
+          generation_date?: string
+          generation_status?: string
+          generation_type?: string
+          governing_body_applied?: string | null
+          high_alert_hazards?: Json | null
+          hospital_type_detected?: string | null
+          id?: string
+          image_filename_1?: string | null
+          image_filename_2?: string | null
+          image_filename_3?: string | null
+          jurisdiction_detected?: string | null
+          marked_published_at?: string | null
+          marked_published_by?: string | null
+          prompt_version_id?: string | null
+          publish_date_1?: string | null
+          publish_date_2?: string | null
+          publish_date_3?: string | null
+          qa_issues?: Json | null
+          qa_status?: string
+          raw_output_text?: string | null
+          remark_round?: number
+          sitemap_ping_sent?: boolean
+          spelling_mode?: string | null
+          token_count_input?: number | null
+          token_count_output?: number | null
+          type_mismatch_flagged?: boolean
+          unverified_fields?: Json | null
+          updated_at?: string
+          verification_complete?: boolean
+        }
+        Update: {
+          active_hazards?: Json | null
+          approval_timestamp?: string | null
+          approval_type?: string | null
+          blog_1_confirmed?: boolean
+          blog_1_slot?: string | null
+          blog_1_slug?: string | null
+          blog_1_status?: string
+          blog_1_topic?: string | null
+          blog_1_type?: string | null
+          blog_1_url?: string | null
+          blog_2_confirmed?: boolean
+          blog_2_slot?: string | null
+          blog_2_slug?: string | null
+          blog_2_status?: string
+          blog_2_topic?: string | null
+          blog_2_type?: string | null
+          blog_2_url?: string | null
+          blog_3_confirmed?: boolean
+          blog_3_slot?: string | null
+          blog_3_slug?: string | null
+          blog_3_status?: string
+          blog_3_topic?: string | null
+          blog_3_type?: string | null
+          blog_3_url?: string | null
+          blog_month_count?: number
+          clinic_id?: string
+          created_at?: string
+          duplicate_risk_flagged?: boolean
+          emergency_topic?: string | null
+          generation_date?: string
+          generation_status?: string
+          generation_type?: string
+          governing_body_applied?: string | null
+          high_alert_hazards?: Json | null
+          hospital_type_detected?: string | null
+          id?: string
+          image_filename_1?: string | null
+          image_filename_2?: string | null
+          image_filename_3?: string | null
+          jurisdiction_detected?: string | null
+          marked_published_at?: string | null
+          marked_published_by?: string | null
+          prompt_version_id?: string | null
+          publish_date_1?: string | null
+          publish_date_2?: string | null
+          publish_date_3?: string | null
+          qa_issues?: Json | null
+          qa_status?: string
+          raw_output_text?: string | null
+          remark_round?: number
+          sitemap_ping_sent?: boolean
+          spelling_mode?: string | null
+          token_count_input?: number | null
+          token_count_output?: number | null
+          type_mismatch_flagged?: boolean
+          unverified_fields?: Json | null
+          updated_at?: string
+          verification_complete?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_posts_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blog_posts_prompt_version_id_fkey"
+            columns: ["prompt_version_id"]
+            isOneToOne: false
+            referencedRelation: "blog_prompt_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      blog_prompt_versions: {
+        Row: {
+          approved_by: string | null
+          approved_date: string | null
+          change_notes: string | null
+          created_at: string
+          generation_count: number
+          id: string
+          is_current: boolean
+          prompt_text: string
+          updated_at: string
+          version_label: string
+        }
+        Insert: {
+          approved_by?: string | null
+          approved_date?: string | null
+          change_notes?: string | null
+          created_at?: string
+          generation_count?: number
+          id?: string
+          is_current?: boolean
+          prompt_text: string
+          updated_at?: string
+          version_label: string
+        }
+        Update: {
+          approved_by?: string | null
+          approved_date?: string | null
+          change_notes?: string | null
+          created_at?: string
+          generation_count?: number
+          id?: string
+          is_current?: boolean
+          prompt_text?: string
+          updated_at?: string
+          version_label?: string
+        }
+        Relationships: []
+      }
+      blog_tracker: {
+        Row: {
+          clinic_id: string
+          cluster_data: Json
+          created_at: string
+          id: string
+          last_updated: string
+          month_count: number
+          published_slugs: Json
+        }
+        Insert: {
+          clinic_id: string
+          cluster_data?: Json
+          created_at?: string
+          id?: string
+          last_updated?: string
+          month_count?: number
+          published_slugs?: Json
+        }
+        Update: {
+          clinic_id?: string
+          cluster_data?: Json
+          created_at?: string
+          id?: string
+          last_updated?: string
+          month_count?: number
+          published_slugs?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_tracker_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: true
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calendar_submissions: {
         Row: {
           admin_notes: string | null
@@ -551,6 +879,7 @@ export type Database = {
           address: string | null
           ai_seo_enabled: boolean
           assigned_concierge_id: string | null
+          blog_package_active: boolean
           campaign_start_date: string | null
           clinic_name: string
           content_settings: Json
@@ -575,6 +904,7 @@ export type Database = {
           address?: string | null
           ai_seo_enabled?: boolean
           assigned_concierge_id?: string | null
+          blog_package_active?: boolean
           campaign_start_date?: string | null
           clinic_name: string
           content_settings?: Json
@@ -599,6 +929,7 @@ export type Database = {
           address?: string | null
           ai_seo_enabled?: boolean
           assigned_concierge_id?: string | null
+          blog_package_active?: boolean
           campaign_start_date?: string | null
           clinic_name?: string
           content_settings?: Json

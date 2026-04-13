@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { SearchCode, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Globe, Link2, Hash, TrendingUp, MessageSquare } from "lucide-react";
+import { SearchCode, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Globe, Link2, Hash, TrendingUp, MessageSquare, BookOpen } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { SeoAnalyticsTab } from "@/components/department/SeoAnalyticsTab";
@@ -26,6 +26,7 @@ import { useClinicServiceAccess } from "@/hooks/useClinicServiceAccess";
 import { DepartmentAccessLocked } from "@/components/department/DepartmentAccessLocked";
 import { DepartmentChat } from "@/components/department/DepartmentChat";
 import { useDepartmentChatUnread } from "@/hooks/useDepartmentChatUnread";
+import { BlogTab } from "@/components/seo/blog/BlogTab";
 
 const staffOnlyTabs = [
   { value: "tickets", label: "Tickets", icon: Ticket },
@@ -39,6 +40,7 @@ const commonTabs = [
   { value: "uploads", label: "Uploads", icon: Upload },
 ];
 const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
+const blogTab = { value: "blog", label: "Blog", icon: BookOpen };
 
 const services = ["Backlinking", "Ranking Reports", "Keyword Research", "Manual Work Reports", "Search Atlas Integration", "SEO Thread Updates", "Others"];
 
@@ -127,7 +129,7 @@ export default function SeoDepartment() {
   const isClient = role === "client";
   const isStaff = !isClient;
   const { unreadCount, markAsRead } = useDepartmentChatUnread("seo", selectedClinicId);
-  const tabs = isStaff ? [...commonTabs.slice(0, 1), ...staffOnlyTabs, ...commonTabs.slice(1), chatTab] : commonTabs;
+  const tabs = isStaff ? [...commonTabs.slice(0, 1), ...staffOnlyTabs, ...commonTabs.slice(1), blogTab, chatTab] : [...commonTabs, blogTab];
   const [seoDialogOpen, setSeoDialogOpen] = useState(false);
 
   const selectedClinicName = selectedClinic?.clinic_name;
@@ -202,6 +204,7 @@ export default function SeoDepartment() {
                 <TabsContent value="reports" className="mt-4"><SeoReportsTab clinicId={selectedClinicId} /></TabsContent>
                 
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="seo" clinicId={selectedClinicId} /></TabsContent>
+                <TabsContent value="blog" className="mt-4"><BlogTab clinicId={selectedClinicId} /></TabsContent>
                 {isStaff && <TabsContent value="chat" className="mt-4"><DepartmentChat department="seo" clinicId={selectedClinicId} onVisible={markAsRead} /></TabsContent>}
               </Tabs>
             </motion.div>
