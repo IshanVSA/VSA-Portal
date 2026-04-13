@@ -390,7 +390,7 @@ export function BlogTab({ clinicId }: { clinicId: string | undefined }) {
   const { role } = useUserRole();
   const isClient = role === "client";
   const isAdmin = role === "admin";
-  const { blogPosts, latestPost, tracker, promptVersions, currentPrompt, isLoading, generate } = useBlogPosts(clinicId);
+  const { blogPosts, latestPost, tracker, promptVersions, currentPrompt, isLoading, generate, hasActiveJob } = useBlogPosts(clinicId);
   const [subTab, setSubTab] = useState(isClient ? "my-blogs" : "overview");
   const [emergencyTopic, setEmergencyTopic] = useState("");
 
@@ -457,21 +457,42 @@ export function BlogTab({ clinicId }: { clinicId: string | undefined }) {
                   <AlertTriangle className="h-3.5 w-3.5" /> No blog prompt uploaded. Go to Prompts tab first.
                 </div>
               )}
-              <Button size="sm" onClick={() => generate.mutate({})} disabled={generate.isPending || !currentPrompt}>
+              {hasActiveJob && (
+                <div className="flex items-center gap-2 text-blue-600 text-xs p-2 rounded bg-blue-50 dark:bg-blue-950/30">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <div>
+                    <span className="font-medium">Blog generation in progress.</span>
+                    {blogPosts?.find(p => p.generation_status === "retrying") && (
+                      <span className="ml-1">{blogPosts.find(p => p.generation_status === "retrying")?.failure_reason || "Auto-retrying..."}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+              <Button size="sm" onClick={() => generate.mutate({})} disabled={generate.isPending || !currentPrompt || hasActiveJob}>
                 {generate.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
                 Generate Monthly Blogs (3 posts)
               </Button>
               {isAdmin && (
                 <div className="flex gap-2 pt-2 border-t border-border/40">
                   <Input className="h-8 text-xs flex-1" placeholder="Emergency topic (Admin only)..." value={emergencyTopic} onChange={e => setEmergencyTopic(e.target.value)} />
-                  <Button size="sm" variant="outline" disabled={!emergencyTopic || generate.isPending} onClick={() => generate.mutate({ emergencyTopic })}>
+                  <Button size="sm" variant="outline" disabled={!emergencyTopic || generate.isPending || hasActiveJob} onClick={() => generate.mutate({ emergencyTopic })}>
                     Emergency Blog
                   </Button>
                 </div>
               )}
               {latestPost && (
                 <div className="text-xs text-muted-foreground pt-2">
-                  Last generation: {new Date(latestPost.generation_date).toLocaleDateString()} · Status: {latestPost.generation_status} · QA: {latestPost.qa_status}
+                  <span>Last generation: {new Date(latestPost.generation_date).toLocaleDateString()} · Status: </span>
+                  <Badge variant="outline" className={`text-[10px] ${
+                    latestPost.generation_status === "completed" ? "bg-green-500/10 text-green-700" :
+                    latestPost.generation_status === "failed" ? "bg-red-500/10 text-red-700" :
+                    latestPost.generation_status === "retrying" ? "bg-amber-500/10 text-amber-700" :
+                    "bg-blue-500/10 text-blue-700"
+                  }`}>{latestPost.generation_status}</Badge>
+                  <span> · QA: {latestPost.qa_status}</span>
+                  {latestPost.failure_reason && latestPost.generation_status === "failed" && (
+                    <p className="text-destructive mt-1">{latestPost.failure_reason}</p>
+                  )}
                 </div>
               )}
             </CardContent>

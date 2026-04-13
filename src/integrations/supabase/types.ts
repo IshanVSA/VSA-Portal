@@ -139,6 +139,7 @@ export type Database = {
           created_at: string
           duplicate_risk_flagged: boolean
           emergency_topic: string | null
+          failure_reason: string | null
           generation_date: string
           generation_status: string
           generation_type: string
@@ -150,8 +151,10 @@ export type Database = {
           image_filename_2: string | null
           image_filename_3: string | null
           jurisdiction_detected: string | null
+          last_attempt_at: string | null
           marked_published_at: string | null
           marked_published_by: string | null
+          next_retry_at: string | null
           prompt_version_id: string | null
           publish_date_1: string | null
           publish_date_2: string | null
@@ -160,6 +163,7 @@ export type Database = {
           qa_status: string
           raw_output_text: string | null
           remark_round: number
+          retry_count: number
           sitemap_ping_sent: boolean
           spelling_mode: string | null
           token_count_input: number | null
@@ -199,6 +203,7 @@ export type Database = {
           created_at?: string
           duplicate_risk_flagged?: boolean
           emergency_topic?: string | null
+          failure_reason?: string | null
           generation_date?: string
           generation_status?: string
           generation_type?: string
@@ -210,8 +215,10 @@ export type Database = {
           image_filename_2?: string | null
           image_filename_3?: string | null
           jurisdiction_detected?: string | null
+          last_attempt_at?: string | null
           marked_published_at?: string | null
           marked_published_by?: string | null
+          next_retry_at?: string | null
           prompt_version_id?: string | null
           publish_date_1?: string | null
           publish_date_2?: string | null
@@ -220,6 +227,7 @@ export type Database = {
           qa_status?: string
           raw_output_text?: string | null
           remark_round?: number
+          retry_count?: number
           sitemap_ping_sent?: boolean
           spelling_mode?: string | null
           token_count_input?: number | null
@@ -259,6 +267,7 @@ export type Database = {
           created_at?: string
           duplicate_risk_flagged?: boolean
           emergency_topic?: string | null
+          failure_reason?: string | null
           generation_date?: string
           generation_status?: string
           generation_type?: string
@@ -270,8 +279,10 @@ export type Database = {
           image_filename_2?: string | null
           image_filename_3?: string | null
           jurisdiction_detected?: string | null
+          last_attempt_at?: string | null
           marked_published_at?: string | null
           marked_published_by?: string | null
+          next_retry_at?: string | null
           prompt_version_id?: string | null
           publish_date_1?: string | null
           publish_date_2?: string | null
@@ -280,6 +291,7 @@ export type Database = {
           qa_status?: string
           raw_output_text?: string | null
           remark_round?: number
+          retry_count?: number
           sitemap_ping_sent?: boolean
           spelling_mode?: string | null
           token_count_input?: number | null

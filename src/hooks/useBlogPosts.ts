@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
-import { useCallback } from "react";
 
 export interface BlogPost {
   id: string;
@@ -43,6 +42,10 @@ export interface BlogPost {
   type_mismatch_flagged: boolean;
   duplicate_risk_flagged: boolean;
   generation_status: string;
+  failure_reason: string | null;
+  retry_count: number;
+  next_retry_at: string | null;
+  last_attempt_at: string | null;
   remark_round: number;
   approval_type: string | null;
   approval_timestamp: string | null;
@@ -100,6 +103,14 @@ export function useBlogPosts(clinicId: string | undefined) {
     },
     enabled: !!clinicId,
     staleTime: 30_000,
+    // Auto-refresh when there are active jobs
+    refetchInterval: (query) => {
+      const posts = query.state.data as BlogPost[] | undefined;
+      const hasActive = posts?.some(p => 
+        ["pending", "processing", "retrying"].includes(p.generation_status)
+      );
+      return hasActive ? 10_000 : false;
+    },
   });
 
   const { data: tracker } = useQuery({
@@ -132,35 +143,10 @@ export function useBlogPosts(clinicId: string | undefined) {
   const currentPrompt = promptVersions?.find((p) => p.is_current) || null;
   const latestPost = blogPosts?.[0] || null;
 
-  const pollForCompletion = useCallback(
-    async (postId: string) => {
-      const maxAttempts = 60;
-      for (let i = 0; i < maxAttempts; i++) {
-        await new Promise((r) => setTimeout(r, 5000));
-        const { data } = await supabase
-          .from("blog_posts")
-          .select("generation_status, qa_status")
-          .eq("id", postId)
-          .single();
-        if (!data) continue;
-        if (data.generation_status === "completed") {
-          queryClient.invalidateQueries({ queryKey: ["blog-posts", clinicId] });
-          toast.success("Blog content generated successfully", {
-            description: `QA Status: ${data.qa_status}`,
-          });
-          return true;
-        }
-        if (data.generation_status === "failed") {
-          queryClient.invalidateQueries({ queryKey: ["blog-posts", clinicId] });
-          toast.error("Blog generation failed");
-          return false;
-        }
-      }
-      toast.error("Blog generation timed out");
-      return false;
-    },
-    [clinicId, queryClient]
-  );
+  // Check if there's an active job blocking new generations
+  const hasActiveJob = blogPosts?.some(p =>
+    ["pending", "processing", "retrying"].includes(p.generation_status)
+  ) ?? false;
 
   const generate = useMutation({
     mutationFn: async (params: { emergencyTopic?: string }) => {
@@ -174,14 +160,9 @@ export function useBlogPosts(clinicId: string | undefined) {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["blog-posts", clinicId] });
-      if (data?.status === "processing" && data?.post_id) {
-        toast.info("Blog generation started", {
-          description: "This takes 2-5 minutes. You'll be notified when ready.",
-        });
-        pollForCompletion(data.post_id);
-      } else {
-        toast.success("Blog content generated");
-      }
+      toast.info("Blog generation queued", {
+        description: "The AI will process this shortly. Status updates will appear automatically.",
+      });
     },
     onError: (error: Error) => {
       toast.error("Blog generation failed", { description: error.message });
@@ -196,5 +177,6 @@ export function useBlogPosts(clinicId: string | undefined) {
     currentPrompt,
     isLoading,
     generate,
+    hasActiveJob,
   };
 }
