@@ -553,6 +553,7 @@ export type Database = {
           assigned_concierge_id: string | null
           campaign_start_date: string | null
           clinic_name: string
+          content_settings: Json
           created_at: string
           email: string | null
           google_ads_enabled: boolean
@@ -576,6 +577,7 @@ export type Database = {
           assigned_concierge_id?: string | null
           campaign_start_date?: string | null
           clinic_name: string
+          content_settings?: Json
           created_at?: string
           email?: string | null
           google_ads_enabled?: boolean
@@ -599,6 +601,7 @@ export type Database = {
           assigned_concierge_id?: string | null
           campaign_start_date?: string | null
           clinic_name?: string
+          content_settings?: Json
           created_at?: string
           email?: string | null
           google_ads_enabled?: boolean

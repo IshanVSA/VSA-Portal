@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Sparkles, RefreshCw, FileText, Eye, AlertTriangle, CheckCircle, Clock, Send, TrendingUp, Heart, Share2, MessageCircle, CalendarDays, Pencil } from "lucide-react";
+import { Sparkles, RefreshCw, FileText, Eye, AlertTriangle, CheckCircle, Clock, Send, TrendingUp, Heart, Share2, MessageCircle, CalendarDays, Pencil, ShieldAlert, ShieldCheck } from "lucide-react";
 import HtmlEditorDialog from "./HtmlEditorDialog";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +27,24 @@ interface PerformanceData {
   reach: number;
 }
 
+interface ContentSettings {
+  promotion_requested: boolean;
+  team_spotlight_requested: boolean;
+  pricing_on_website: boolean;
+  pricing_in_posts: string;
+  patient_consent: string;
+  end_of_life_content: string;
+}
+
+const DEFAULT_SETTINGS: ContentSettings = {
+  promotion_requested: false,
+  team_spotlight_requested: false,
+  pricing_on_website: false,
+  pricing_in_posts: "not_requested",
+  patient_consent: "NOT_CONFIRMED",
+  end_of_life_content: "not_requested",
+};
+
 export default function ContentGenerationTab({ clinicId }: Props) {
   const { dna } = useBrandDNA(clinicId);
   const { signals, upsertSignals, currentMonth } = useMonthlySignals(clinicId);
@@ -38,23 +56,34 @@ export default function ContentGenerationTab({ clinicId }: Props) {
   const [viewingHtml, setViewingHtml] = useState<string | null>(null);
   const [editingHtml, setEditingHtml] = useState<string | null>(null);
   const [topPerformers, setTopPerformers] = useState<PerformanceData[]>([]);
+  const [contentSettings, setContentSettings] = useState<ContentSettings>(DEFAULT_SETTINGS);
 
   const dnaScore = dna?.completeness_score || 0;
   const canGenerate = dnaScore >= 50;
 
-  // Fetch top performers
+  // Fetch top performers and content settings
   useEffect(() => {
     if (!clinicId) return;
-    const fetchPerformance = async () => {
-      const { data } = await supabase
-        .from("sm2_post_performance")
-        .select("post_number, platform, likes, shares, comments, reach")
-        .eq("clinic_id", clinicId)
-        .order("reach", { ascending: false })
-        .limit(5);
-      setTopPerformers((data as PerformanceData[]) || []);
+    const fetchData = async () => {
+      const [perfRes, clinicRes] = await Promise.all([
+        supabase
+          .from("sm2_post_performance")
+          .select("post_number, platform, likes, shares, comments, reach")
+          .eq("clinic_id", clinicId)
+          .order("reach", { ascending: false })
+          .limit(5),
+        supabase
+          .from("clinics")
+          .select("content_settings")
+          .eq("id", clinicId)
+          .maybeSingle(),
+      ]);
+      setTopPerformers((perfRes.data as PerformanceData[]) || []);
+      if (clinicRes.data?.content_settings) {
+        setContentSettings(clinicRes.data.content_settings as any);
+      }
     };
-    fetchPerformance();
+    fetchData();
   }, [clinicId]);
 
   const handleGenerate = async () => {
@@ -72,13 +101,21 @@ export default function ContentGenerationTab({ clinicId }: Props) {
     return format(new Date(parseInt(y), parseInt(m) - 1), "MMMM yyyy");
   })();
 
+  const activeGates = [
+    { label: "Promotions", active: contentSettings.promotion_requested },
+    { label: "Team Spotlights", active: contentSettings.team_spotlight_requested },
+    { label: "Patient Content", active: contentSettings.patient_consent === "CONFIRMED" },
+    { label: "Pricing", active: contentSettings.pricing_on_website && contentSettings.pricing_in_posts === "requested" },
+    { label: "End-of-Life", active: contentSettings.end_of_life_content === "requested" },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-semibold">Content Generation</h2>
-          <p className="text-xs text-muted-foreground">SM2 DNA-Aware Engine &middot; {monthLabel}</p>
+          <p className="text-xs text-muted-foreground">SM2 v2.1 — 8-Agent Pipeline &middot; {monthLabel}</p>
         </div>
         <div className="flex gap-2">
           {currentGeneration?.html_file_path && (
@@ -93,11 +130,12 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                 {generate.isPending ? "Generating..." : "Generate Content"}
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-lg">
               <DialogHeader>
                 <DialogTitle>Pre-Generation Setup — {monthLabel}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-2">
+                {/* DNA Score */}
                 <div className="flex items-center gap-2 p-3 rounded-lg border">
                   {dnaScore >= 70 ? <CheckCircle className="h-5 w-5 text-green-500" /> : <AlertTriangle className="h-5 w-5 text-amber-500" />}
                   <div>
@@ -106,6 +144,27 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                       {dnaScore >= 90 ? "Full generation ready" : dnaScore >= 70 ? "Generate with warnings" : dnaScore >= 50 ? "Limited generation" : "Cannot generate"}
                     </p>
                   </div>
+                </div>
+
+                {/* Hard Gates Status */}
+                <div className="p-3 rounded-lg border bg-muted/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <ShieldAlert className="h-4 w-4 text-destructive" />
+                    <p className="text-sm font-medium">Content Safety Hard Gates</p>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {activeGates.map((gate) => (
+                      <Badge
+                        key={gate.label}
+                        variant={gate.active ? "default" : "destructive"}
+                        className="text-[10px] gap-1"
+                      >
+                        {gate.active ? <ShieldCheck className="h-3 w-3" /> : <ShieldAlert className="h-3 w-3" />}
+                        {gate.label}: {gate.active ? "ON" : "BLOCKED"}
+                      </Badge>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1.5">Blocked gates = zero content of that type. Manage in Preferences tab.</p>
                 </div>
 
                 {/* Statutory Holidays Preview */}
@@ -122,7 +181,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                         </Badge>
                       ))}
                     </div>
-                    <p className="text-[10px] text-muted-foreground mt-1.5">Auto-populated from clinic province. Holidays will be respected in content scheduling.</p>
+                    <p className="text-[10px] text-muted-foreground mt-1.5">Auto-populated from clinic province.</p>
                   </div>
                 )}
 
@@ -302,7 +361,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
 
 function StatusBadge({ status }: { status: string }) {
   const config: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive"; icon: typeof CheckCircle }> = {
-    processing: { label: "Generating...", variant: "secondary", icon: RefreshCw },
+    processing: { label: "Pipeline Running...", variant: "secondary", icon: RefreshCw },
     pending: { label: "Pending Review", variant: "outline", icon: Clock },
     sent_to_client: { label: "Sent to Client", variant: "secondary", icon: Send },
     approved_client: { label: "Client Approved", variant: "default", icon: CheckCircle },
@@ -330,27 +389,7 @@ function HtmlPreviewDialog({ filePath, onClose }: { filePath: string; onClose: (
         const { data } = supabase.storage.from("department-files").getPublicUrl(filePath);
         const res = await fetch(data.publicUrl);
         if (!res.ok) throw new Error("Failed to fetch");
-        let text = await res.text();
-        // Always inject a robust tab-switching script at the end
-        const robustScript = `<script>
-(function(){
-  // Override any existing switchTab with a robust version
-  window.switchTab = function(tab) {
-    // Try multiple possible ID patterns
-    var clientIds = ['client-view','clientView','client_view'];
-    var qaIds = ['qa-view','qaView','qa_view','team-qa-view','teamQaView','team-qa'];
-    function show(ids) { for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el){el.style.display='block';return true;}} return false; }
-    function hide(ids) { for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el){el.style.display='none';}} }
-    if(tab==='client'){show(clientIds);hide(qaIds);}
-    else{hide(clientIds);show(qaIds);}
-    // Update active classes on tab buttons
-    var buttons = document.querySelectorAll('.tab-button,[onclick*="switchTab"]');
-    buttons.forEach(function(b){b.classList.remove('active');});
-    if(event&&event.target)event.target.classList.add('active');
-  };
-})();
-</script>`;
-        text = text.replace('</body>', robustScript + '</body>');
+        const text = await res.text();
         setHtmlContent(text);
       } catch (err) {
         console.error("Failed to load HTML preview:", err);
