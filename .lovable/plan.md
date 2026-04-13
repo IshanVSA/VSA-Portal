@@ -1,21 +1,27 @@
 
 
-## Plan: Add Blog Package Toggle to Clinic Service Access
+## Plan: Remove Blog Package Toggle, Gate on SEO Enabled
 
 ### What Changes
 
-Add a "Blog Package" toggle to the existing **Service Access** card on the Clinic Detail settings page (`/clinics/:id` → Settings tab). This follows the exact same pattern as the 5 existing service toggles (Website, SEO, Google Ads, AI SEO, Social Media).
+Remove the separate `blog_package_active` flag entirely. Blog generation will be allowed whenever SEO is enabled (`seo_enabled = true`) for a clinic.
 
 ### Implementation
 
-**File: `src/pages/ClinicDetail.tsx`**
+**1. `src/pages/ClinicDetail.tsx`**
+- Remove `"blog_package_active"` from the `ClinicAccessKey` type
+- Remove the Blog Package entry from the `clinicAccessRows` array
 
-1. Add `blog_package_active` to the `ClinicAccessKey` type
-2. Add a new entry to the `clinicAccessRows` array:
-   ```
-   { key: "blog_package_active", label: "Blog Package", description: "Enable monthly AI blog generation for this clinic" }
-   ```
-3. Adjust the default value logic so `blog_package_active` defaults to `false` (like `ai_seo_enabled`)
+**2. `supabase/functions/generate-blog-batch/index.ts`**
+- Replace the `blog_package_active` check (lines 37-43) with a `seo_enabled` check:
+  ```typescript
+  if (!clinic.seo_enabled) {
+    return new Response(JSON.stringify({ error: "SEO is not enabled for this clinic" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  ```
 
-That's the only file change needed — the existing `updateClinicAccess` function and Switch component handle the rest automatically.
+No database migration needed — the column can remain unused without harm, and removing it would be a breaking schema change for no benefit.
 
