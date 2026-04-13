@@ -1,0 +1,1 @@
+ALTER TABLE public.clinics ADD COLUMN IF NOT EXISTS content_settings jsonb NOT NULL DEFAULT '{"promotion_requested": false, "promotion_details": null, "team_spotlight_requested": false, "team_spotlight_member": null, "pricing_on_website": false, "pricing_in_posts": "not_requested", "patient_consent": "NOT_CONFIRMED", "end_of_life_content": "not_requested"}'::jsonb;
