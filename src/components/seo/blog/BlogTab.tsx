@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BookOpen, FileText, BarChart3, Settings, Copy, Check, AlertTriangle, Clock, ExternalLink, Loader2, Star, ChevronDown, ChevronUp } from "lucide-react";
+import { BookOpen, FileText, BarChart3, Settings, Copy, Check, AlertTriangle, Clock, ExternalLink, Loader2, Star, ChevronDown, ChevronUp, XCircle } from "lucide-react";
 import { useBlogPosts, type BlogPost } from "@/hooks/useBlogPosts";
 import { useUserRole } from "@/hooks/useUserRole";
 import { preprocessBlogHtml, parseGenerationHeader, parseBlogFromOutput, parseSchemaBlocks, parseQAReport } from "@/lib/blog-html-preprocessor";
@@ -457,17 +457,41 @@ export function BlogTab({ clinicId }: { clinicId: string | undefined }) {
                   <AlertTriangle className="h-3.5 w-3.5" /> No blog prompt uploaded. Go to Prompts tab first.
                 </div>
               )}
-              {hasActiveJob && (
-                <div className="flex items-center gap-2 text-blue-600 text-xs p-2 rounded bg-blue-50 dark:bg-blue-950/30">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  <div>
-                    <span className="font-medium">Blog generation in progress.</span>
-                    {blogPosts?.find(p => p.generation_status === "retrying") && (
-                      <span className="ml-1">{blogPosts.find(p => p.generation_status === "retrying")?.failure_reason || "Auto-retrying..."}</span>
+              {hasActiveJob && (() => {
+                const retryingPost = blogPosts?.find(p => p.generation_status === "retrying");
+                const activePost = retryingPost || blogPosts?.find(p => ["pending", "processing"].includes(p.generation_status));
+                return (
+                  <div className="flex items-center justify-between gap-2 text-blue-600 text-xs p-2 rounded bg-blue-50 dark:bg-blue-950/30">
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                      <div>
+                        <span className="font-medium">Blog generation in progress.</span>
+                        {retryingPost && (
+                          <span className="ml-1">{retryingPost.failure_reason || "Auto-retrying..."}</span>
+                        )}
+                      </div>
+                    </div>
+                    {activePost && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-[10px] text-destructive hover:text-destructive shrink-0"
+                        onClick={async () => {
+                          await supabase.from("blog_posts").update({
+                            generation_status: "failed",
+                            failure_reason: "Cancelled by user.",
+                            next_retry_at: null,
+                          } as any).eq("id", activePost.id);
+                          queryClient.invalidateQueries({ queryKey: ["blog-posts", clinicId] });
+                          toast.success("Blog generation cancelled");
+                        }}
+                      >
+                        <XCircle className="h-3 w-3 mr-1" /> Cancel
+                      </Button>
                     )}
                   </div>
-                </div>
-              )}
+                );
+              })()}
               <Button size="sm" onClick={() => generate.mutate({})} disabled={generate.isPending || !currentPrompt || hasActiveJob}>
                 {generate.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
                 Generate Monthly Blogs (3 posts)
