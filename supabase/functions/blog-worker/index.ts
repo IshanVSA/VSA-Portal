@@ -275,74 +275,71 @@ Deno.serve(async (req) => {
       .in("generation_status", ["pending", "processing", "retrying"])
       .or(`next_retry_at.is.null,next_retry_at.lte.${new Date().toISOString()}`)
       .order("created_at", { ascending: true })
-      .limit(3);
+      .limit(1)
+      .maybeSingle();
 
     if (error) throw error;
-    if (!jobs || jobs.length === 0) {
+    if (!job) {
       return new Response(JSON.stringify({ processed: 0 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    let processed = 0;
-    let failed = 0;
+    // Mark as processing
+    await supabase
+      .from("blog_posts")
+      .update({ generation_status: "processing", last_attempt_at: new Date().toISOString() })
+      .eq("id", job.id);
 
-    for (const job of jobs) {
-      // Mark as processing
-      await supabase
-        .from("blog_posts")
-        .update({ generation_status: "processing", last_attempt_at: new Date().toISOString() })
-        .eq("id", job.id);
+    try {
+      await processJob(job);
+      return new Response(JSON.stringify({ processed: 1 }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    } catch (err: any) {
+      const errorMsg = err.message || "Unknown error";
+      const isRetryable = /429|500|502|503|504|529|overloaded|rate.limit|timeout/i.test(errorMsg);
+      const newRetryCount = (job.retry_count || 0) + 1;
 
-      try {
-        await processJob(job);
-        processed++;
-      } catch (err: any) {
-        const errorMsg = err.message || "Unknown error";
-        const isRetryable = /429|500|502|503|504|529|overloaded|rate.limit|timeout/i.test(errorMsg);
-        const newRetryCount = (job.retry_count || 0) + 1;
+      if (isRetryable && newRetryCount < MAX_RETRIES) {
+        const delayMs = getRetryDelay(newRetryCount);
+        const nextRetry = new Date(Date.now() + delayMs).toISOString();
+        const reason = /529|overloaded/i.test(errorMsg)
+          ? "AI provider is temporarily overloaded. Auto-retrying."
+          : /429|rate.limit/i.test(errorMsg)
+          ? "Rate limited by AI provider. Auto-retrying."
+          : "Temporary AI provider error. Auto-retrying.";
 
-        if (isRetryable && newRetryCount < MAX_RETRIES) {
-          const delayMs = getRetryDelay(newRetryCount);
-          const nextRetry = new Date(Date.now() + delayMs).toISOString();
-          const reason = /529|overloaded/i.test(errorMsg)
-            ? "AI provider is temporarily overloaded. Auto-retrying."
-            : /429|rate.limit/i.test(errorMsg)
-            ? "Rate limited by AI provider. Auto-retrying."
-            : "Temporary AI provider error. Auto-retrying.";
+        console.warn(`Blog job ${job.id} retryable error (attempt ${newRetryCount}/${MAX_RETRIES}): ${errorMsg}`);
 
-          console.warn(`Blog job ${job.id} retryable error (attempt ${newRetryCount}/${MAX_RETRIES}): ${errorMsg}`);
-
-          await supabase
-            .from("blog_posts")
-            .update({
-              generation_status: "retrying",
-              failure_reason: reason,
-              retry_count: newRetryCount,
-              next_retry_at: nextRetry,
-              last_attempt_at: new Date().toISOString(),
-            })
-            .eq("id", job.id);
-        } else {
-          console.error(`Blog job ${job.id} permanently failed: ${errorMsg}`);
-          await supabase
-            .from("blog_posts")
-            .update({
-              generation_status: "failed",
-              failure_reason: errorMsg.substring(0, 500),
-              retry_count: newRetryCount,
-              next_retry_at: null,
-              last_attempt_at: new Date().toISOString(),
-            })
-            .eq("id", job.id);
-          failed++;
-        }
+        await supabase
+          .from("blog_posts")
+          .update({
+            generation_status: "retrying",
+            failure_reason: reason,
+            retry_count: newRetryCount,
+            next_retry_at: nextRetry,
+            last_attempt_at: new Date().toISOString(),
+          })
+          .eq("id", job.id);
+      } else {
+        console.error(`Blog job ${job.id} permanently failed: ${errorMsg}`);
+        await supabase
+          .from("blog_posts")
+          .update({
+            generation_status: "failed",
+            failure_reason: errorMsg.substring(0, 500),
+            retry_count: newRetryCount,
+            next_retry_at: null,
+            last_attempt_at: new Date().toISOString(),
+          })
+          .eq("id", job.id);
       }
-    }
 
-    return new Response(JSON.stringify({ processed, failed, total: jobs.length }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+      return new Response(JSON.stringify({ processed: 0, failed: 1 }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
   } catch (err: any) {
     console.error("blog-worker error:", err);
     return new Response(JSON.stringify({ error: err.message }), {

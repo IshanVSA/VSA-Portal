@@ -86,3 +86,9 @@ verify_jwt = false
 
 [functions.locality-fetch]
 verify_jwt = false
+
+[functions.blog-worker]
+verify_jwt = false
+
+[functions.generate-blog-batch]
+verify_jwt = false
