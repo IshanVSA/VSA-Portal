@@ -1,120 +1,123 @@
 
 
-## Plan: Implement SM2 v2.1 Multi-Agent Pipeline with Hard Gates
+## Plan: Build Blog Section in SEO Department (Module 11 — Sprint 1 Core)
 
-This is a major overhaul of the content generation system, transitioning from a single monolithic AI call to an 8-agent sequential pipeline with 20 Content Safety Rules, 5 Hard Gates, and output matching the Homer Hard Gates reference format.
+This is a large feature based on 4 detailed specification documents. The implementation follows the Sprint 1 priority items from the Dev Workflow document, building the core blog generation pipeline, publishing panel, client portal view, and tracker within the SEO department.
 
-### What Changes
+### What Gets Built
 
-**Current state:** One edge function (`generate-sm2-content`) makes a single Anthropic API call with a ~14K token system prompt that does everything — planning, writing, compliance, art direction — in one shot. No `content_settings` concept exists anywhere in the database.
-
-**Target state:** 8 sequential agent calls (each under 4K tokens), with a `content_settings` JSONB column on the `clinics` table, Hard Gate enforcement at the planner/fact-checker/SaaS-backstop levels, and output HTML matching the Homer reference (per-post: Hook A/B, caption, hashtags, alt text, image gen prompt with hex/font/layout/negatives, Stories sequence, concierge checklists, engagement playbook, QA tab with 12-criteria review).
+A new "Blog" tab appears in the SEO department (`/seo?tab=blog`) with sub-tabs for different views (admin/concierge vs client). The system generates 3 blog posts per clinic per month using the OneURL Blog Prompt v1.7 via Anthropic API, with QA parsing, client review, and a structured publishing panel.
 
 ---
 
-### Part 1: Database Migration
+### Part 1: Database Tables (Migration)
 
-Add `content_settings` JSONB column to the `clinics` table with default restrictive values:
+Create all P1 tables per the Module 11 spec:
 
-```json
-{
-  "promotion_requested": false,
-  "promotion_details": null,
-  "team_spotlight_requested": false,
-  "team_spotlight_member": null,
-  "pricing_on_website": false,
-  "pricing_in_posts": "not_requested",
-  "patient_consent": "NOT_CONFIRMED",
-  "end_of_life_content": "not_requested"
-}
-```
+**blog_prompt_versions** — Versioned prompt storage
+- id, version_label, prompt_text (TEXT), is_current (BOOLEAN), approved_by, approved_date, change_notes, generation_count
 
-All existing clinics get this default (all gates blocked = safest). Backfill using `ALTER TABLE clinics ADD COLUMN content_settings jsonb NOT NULL DEFAULT '{...}'::jsonb`.
+**blog_posts** — One record per monthly generation run per clinic
+- id, clinic_id (FK clinics), generation_type (SCHEDULED/EMERGENCY), generation_date, blog_month_count, prompt_version_id (FK blog_prompt_versions), token_count_input, token_count_output, hospital_type_detected, jurisdiction_detected, governing_body_applied, spelling_mode, blog_1_type, blog_1/2/3_slot, blog_1/2/3_topic, blog_1/2/3_slug, blog_1/2/3_url, blog_1/2/3_status, blog_1/2/3_confirmed, qa_status, qa_issues, type_mismatch_flagged, duplicate_risk_flagged, active_hazards, high_alert_hazards, unverified_fields, generation_status, remark_round, approval_type, approval_timestamp, verification_complete, image_filename_1/2/3, publish_date_1/2/3, raw_output_text (TEXT — stores the full output), marked_published_by, marked_published_at, sitemap_ping_sent, emergency_topic
 
----
+**blog_tracker** — One record per clinic, running history
+- id, clinic_id (UNIQUE FK clinics), month_count, published_slugs (JSONB), cluster_data (JSONB), last_updated
 
-### Part 2: Content Settings UI (Client Preferences Tab)
+**blog_client_submissions** — Client topic/content submissions
+- id, clinic_id, submission_type, submission_month, submission_year, content_text, compliance_scan_result, approved_by, approved_date, fed_into_generation
 
-Update `ContentThemeSliders.tsx` (the client "Preferences" tab) to include the 5 Hard Gate toggles alongside the existing theme sliders. Staff see all toggles; clients see theme sliders only (Hard Gates are staff-controlled since they involve consent/compliance decisions).
+Also add `blog_package_active BOOLEAN DEFAULT FALSE` to the clinics table.
 
-Also create a staff-facing "Content Settings" section in the Generation tab's preflight dialog showing the current Hard Gate states before generation.
+RLS policies: Admin/concierge full access. Client read-only on their own clinic's blog_posts (filtered fields — no meta/schema/slug).
 
 ---
 
-### Part 3: Rewrite Edge Function — 8-Agent Pipeline
+### Part 2: Edge Function — `generate-blog-batch`
 
-Completely rewrite `supabase/functions/generate-sm2-content/index.ts` to implement the 8-agent sequential pipeline:
+New edge function (separate from SM2 `generate-sm2-content`). This is the core blog generation pipeline:
 
-| Agent | Role | Token Budget | Key Responsibility |
-|---|---|---|---|
-| Step 0 | SaaS DNA Assembly | 0 (code) | Pre-resolve all lookup data from DB. Build DNA payload including `content_settings`. |
-| Agent 1 | The Researcher | ~2.5K | Trending topics, formats, local seasonal context. |
-| Agent 2 | The Planner | ~3.5K | Plan 10 post slots as JSON. Apply Hard Gates FIRST. Content Safety Layer (20 rules). |
-| Agent 3 | The Writer | ~3.5K | Write Hook A/B, full captions, hashtags, disclaimers, alt text. |
-| Agent 3B | Art Director v2 | ~2K | Typography-first image gen prompts with hex codes, font names, layout %, negative instructions. |
-| Agent 3C | Stories Planner | ~2K | 3-5 frame Stories sequences per post. |
-| Agent 4 | Concierge Briefer | ~2.5K | Before/during/after checklists + engagement playbook. |
-| Agent 5 | Fact Checker | ~2K | Verify against DNA + 20 safety rules. FAIL triggers rewrite flag. |
-| Agent 6 | Reviewer | ~2K | Batch 12-criteria review. PASS/CONDITIONAL/FAIL verdict. |
-
-Each agent is a separate Anthropic API call with a focused system prompt. Agent outputs chain into the next agent's user message.
-
-**Hard Gate Logic (injected into Agents 2, 3, 3B, 5, 6):**
-- Read `content_settings` from DNA payload
-- `promotion_requested=false` → zero promo posts
-- `team_spotlight_requested=false` → zero team features (references OK)
-- `patient_consent≠CONFIRMED` → zero patient content
-- `pricing_in_posts≠requested OR pricing_on_website=false` → zero pricing
-- `end_of_life_content≠requested` → zero EOL content
-
-**SaaS Backstop Validation** runs after Agent 6, scanning all text for keyword violations before storing.
-
-**Model:** `claude-sonnet-4-20250514` for all agents (consistent with current).
-
-**Async pattern:** Keep the existing `EdgeRuntime.waitUntil` background pattern. The 8 calls run sequentially within the background task (~30-60 seconds total).
+1. **Pre-generation checks** (7 checks): blog_package_active, DNA completeness, hospital_type set, governing_body confirmed, live site accessible, profile active, duplicate content baseline
+2. **User message construction** — All 16 fields per spec (BLOG_MONTH_COUNT, PUBLISHED_SLUGS, CLUSTER data, PROMO, GSC queries, SM2/GBP alignment, VOICE/DNA fields, LIVE_SITE_URL)
+3. **Anthropic API call** — System prompt from `blog_prompt_versions` where `is_current = true`. Model: `claude-sonnet-4-20250514`. Max tokens: 10000.
+4. **Output validation** — Check word count >= 1500, QA report markers present, all 3 blogs present, generation header present
+5. **QA report parser** — Extract between `--- TWO-PASS QA REPORT ---` markers. Route ALL PASS to portal, hold ISSUES FOUND
+6. **Generation header parser** — Extract hospital_type_detected, jurisdiction, spelling_mode, slots, hazards. Flag type mismatches.
+7. **Save** — Store full output text, metadata, token counts to blog_posts. Initialize blog_tracker if needed.
 
 ---
 
-### Part 4: HTML Output Template
+### Part 3: SEO Department Blog Tab UI
 
-The final HTML assembly (after all agents complete) produces output matching the Homer Hard Gates reference:
+Add a "Blog" tab to `SeoDepartment.tsx` with sub-tabs based on role:
 
-- **Header:** Clinic name, month, location, governing body, hospital type, Hard Gate status pills
-- **Posts tab:** 10 posts with sidebar navigation. Each post shows:
-  - Pillar pill, format, date, boost suggestion, fact-check status
-  - Hook A + Hook B cards
-  - Expandable sections: Caption, Before Posting, While Posting, After Posting, Art Director v2 (with concept/layout/type/colour/texture/neg), Stories frames, Alt Text
-- **Hard Gates tab:** Shows all 5 flags and what they blocked
-- **Engagement tab:** 10+ trigger-response pairs with rule references
-- **QA tab:** Hard Gate verification, 12-criteria review, batch verdict
+**Admin/Concierge sub-tabs:**
+- **Overview** — Blog stats: total published this month, pending approval, generation status per clinic. Pillar calendar timeline.
+- **Generate** — Manual trigger for emergency blog generation (Admin only). Shows pre-generation check status. Prompt version display.
+- **Publishing Panel** — The core concierge workflow:
+  - 3 blog cards per clinic per month, each with own status (PENDING/IN_PROGRESS/PUBLISHED)
+  - Verification gate (phone, booking URL, hours) — copy buttons locked until all confirmed
+  - Field copy panel: Post Title, SEO Title, Meta Description, Focus Keyword, URL Slug, Category, Alt Text, Getty Search Terms, Blog Body HTML (pre-processed), Schema (3 blocks), Publish Date (clinic local + IST)
+  - Image filename input with [IMAGE_FILENAME] auto-replace in schema
+  - Mark as Published workflow with URL input
+- **Tracker** — Blog tracker per clinic showing month_count, published slugs, pillar rotation calendar
+- **Prompt Manager** — Version list, upload new version, set current, rollback (Admin only)
 
-This HTML is assembled in TypeScript code (not by the AI) using the structured JSON outputs from all agents, guaranteeing consistent formatting.
-
----
-
-### Part 5: Update `buildUserMessage` to Include `content_settings`
-
-Add the `content_settings` block from the clinic's new column into the DNA payload sent to all agents, so Hard Gates are visible to every agent in the chain.
-
----
-
-### Part 6: Frontend Updates
-
-- **ContentGenerationTab.tsx:** Show Hard Gate states in preflight dialog. Display pipeline progress (which agent is running).
-- **ContentThemeSliders.tsx / new ContentSettingsCard:** Staff UI to toggle the 5 Hard Gate flags per clinic.
-- **HtmlPreviewDialog:** Already handles tab switching — no changes needed since the new HTML uses the same `switchTab` pattern.
+**Client sub-tabs:**
+- **My Blogs** — Current month's 3 blogs showing topic (H1), posting date, blog type label, full content as clean HTML. NO meta/schema/slug/generation data visible. Status timeline. Approve All button. Per-blog remark field.
+- **Blog History** — Archive of all previously published blogs with publish date, title, live URL, blog type
 
 ---
 
-### Files Changed
+### Part 4: Client Remark System
 
-1. **Migration SQL** — Add `content_settings` JSONB to `clinics` table
-2. **`supabase/functions/generate-sm2-content/index.ts`** — Complete rewrite with 8-agent pipeline, Hard Gate enforcement, SaaS backstop, structured HTML assembly
-3. **`src/components/social/ContentGenerationTab.tsx`** — Show Hard Gate states, pipeline progress
-4. **`src/components/social/ContentThemeSliders.tsx`** — Add Hard Gate toggles for staff
-5. **`src/hooks/useSM2Generation.ts`** — Minor: update polling to handle multi-step progress if needed
+- Per-blog remark field with validity gate: blog selector, remark type dropdown (Remove/Add/Change wording/Factual correction/Topic change), detail text (min 20 chars)
+- On submission: separate Anthropic API call for AI adjustment (max_tokens 5000)
+- Post-adjustment compliance re-scan (max_tokens 1000)
+- Round tracking: max 2 rounds, then lock and resume auto-approve
+- New edge function `adjust-blog-remark` handling adjustment + compliance re-scan
 
-### Cost Impact
+---
 
-~8 API calls x ~2-3.5K tokens each = ~20K total tokens per clinic/month ≈ $0.30/clinic. Down from ~14K in a single call but split across focused agents for dramatically better output quality.
+### Part 5: Blog Body HTML Pre-processor
+
+TypeScript utility (runs in the publishing panel render):
+1. Strip H1:/H2:/Q:/A: labels and output markers
+2. Wrap H1 in `<h1>` tags, H2 in `<h2>` tags
+3. Wrap paragraphs in `<p>` tags
+4. Convert `**bold keywords**` to `<strong>` tags (or `<a><strong>` when slug map exists)
+5. Format FAQ Q: as bold paragraphs, A: as normal paragraphs
+6. Format author line and disclaimer as `<em>` paragraphs
+7. Output valid pasteable HTML for WordPress Code Editor
+
+---
+
+### Part 6: Prompt Storage
+
+Insert the full OneURL Blog Prompt v1.7 (Section 01 from the uploaded document) into blog_prompt_versions as the initial current version. This is the system prompt IP — stored exactly as written, never modified without Admin approval and a new version record.
+
+---
+
+### Files Created/Modified
+
+1. **Migration SQL** — Create blog_prompt_versions, blog_posts, blog_tracker, blog_client_submissions tables + add blog_package_active to clinics + RLS policies
+2. **`supabase/functions/generate-blog-batch/index.ts`** — New edge function for blog generation
+3. **`supabase/functions/adjust-blog-remark/index.ts`** — New edge function for remark adjustment + compliance re-scan
+4. **`src/components/seo/blog/BlogTab.tsx`** — Main blog tab container with sub-tabs
+5. **`src/components/seo/blog/BlogOverview.tsx`** — Stats and pillar calendar
+6. **`src/components/seo/blog/PublishingPanel.tsx`** — Full publishing workflow (verification gate, copy fields, mark published)
+7. **`src/components/seo/blog/BlogTracker.tsx`** — Tracker view
+8. **`src/components/seo/blog/PromptManager.tsx`** — Prompt version management (Admin)
+9. **`src/components/seo/blog/ClientBlogView.tsx`** — Client-facing blog review with remark system
+10. **`src/components/seo/blog/BlogHistory.tsx`** — Client blog archive
+11. **`src/components/seo/blog/BlogGeneratePanel.tsx`** — Manual/emergency generation trigger
+12. **`src/lib/blog-html-preprocessor.ts`** — HTML pre-processing utility
+13. **`src/hooks/useBlogPosts.ts`** — React Query hook for blog data
+14. **`src/pages/SeoDepartment.tsx`** — Add Blog tab to tab list
+15. **`src/integrations/supabase/types.ts`** — Auto-updated after migration
+
+### Scope Notes
+
+- Sprint 1 focus: generation, QA, client portal, basic publishing panel, tracker, prompt manager
+- Email sequence (SendGrid), WordPress credential management, GSC/GA4 integration, URL confirmation pings, spot checks, and policy monitoring are deferred to later sprints per the Dev Workflow document
+- Slack notifications deferred (no Slack integration exists yet)
 
