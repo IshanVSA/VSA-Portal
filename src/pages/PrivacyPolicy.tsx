@@ -1,101 +1,185 @@
 export default function PrivacyPolicy() {
   return (
     <div className="min-h-screen bg-background text-foreground px-6 py-12 max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold mb-2">Privacy Policy</h1>
-      <p className="text-sm text-muted-foreground mb-8">Last Updated: February 2026</p>
+      <h1 className="text-3xl font-bold mb-1">Privacy Policy</h1>
+      <p className="text-sm text-muted-foreground mb-8">Version 1.0 — Effective Date: April 13, 2026</p>
 
       <div className="space-y-6 text-sm leading-relaxed text-foreground/90">
+
         <section>
-          <h2 className="text-lg font-semibold mb-2">Introduction</h2>
-          <p>VSA Vet Media ("we," "us," or "our") is committed to protecting the privacy and personal information of our website visitors, clients, and prospective clients. This Privacy Policy explains how we collect, use, disclose, and safeguard your personal information when you visit our website at vsavetmedia.ca or engage with our veterinary digital marketing services.</p>
-          <p className="mt-2">This policy is designed to comply with Canada's Personal Information Protection and Electronic Documents Act (PIPEDA) and British Columbia's Personal Information Protection Act (PIPA). By using our website or engaging our services, you consent to the practices described in this policy.</p>
-          <p className="mt-2">If you have any questions about this Privacy Policy or how we handle your personal information, please contact our Privacy Officer using the details provided at the bottom of this page.</p>
+          <h2 className="text-lg font-semibold mb-2">1. Who We Are</h2>
+          <p>VSA Vet Media Inc. ("VSA," "we," "us," or "our") is a veterinary-exclusive digital marketing agency incorporated under the laws of British Columbia, Canada, with its principal place of business in Vancouver, British Columbia. We provide digital marketing services exclusively to licensed veterinary practices and veterinary practice groups through our proprietary SaaS platform ("Platform").</p>
+          <p className="mt-2">This Privacy Policy governs how VSA collects, uses, discloses, retains, and protects information processed through the Platform. It applies solely to licensed veterinary clinics and veterinary practice groups ("Clients" or "you") who have an active service relationship with VSA. It does not apply to the general public, to end patients of Client practices, or to any individual who has not entered into a service relationship with VSA.</p>
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold mb-2">1. Information We Collect</h2>
-          <p>We collect personal information in the following ways:</p>
-
-          <h3 className="font-semibold mt-3 mb-1">Information You Provide Directly</h3>
-          <p>When you interact with us through our website, email, phone, or in person, you may provide us with personal information including: your name, email address, phone number, business or clinic name, details about your veterinary practice and marketing needs, and any other information you choose to include in messages or forms submitted through our website.</p>
-
-          <h3 className="font-semibold mt-3 mb-1">Information Collected Automatically</h3>
-          <p>When you visit vsavetmedia.ca, certain information may be collected automatically through cookies and similar technologies, including: your IP address, browser type and version, operating system, pages visited and time spent on each page, referring website or source, device type (desktop, mobile, tablet), and general geographic location (city or region level, not precise location).</p>
-
-          <h3 className="font-semibold mt-3 mb-1">Information from Third Parties</h3>
-          <p>We may receive limited information about you from third-party platforms if you interact with our social media profiles (such as Instagram) or if you are referred to us by another business or veterinary professional.</p>
+          <h2 className="text-lg font-semibold mb-2">2. Scope and Applicability</h2>
+          <p>This Policy applies to all data processed by VSA through the Platform in connection with the delivery of contracted services to Clients across all Canadian provinces and territories and all fifty United States of America.</p>
+          <p className="mt-2">This Policy does not govern the independent data practices of third-party platforms and services integrated into or connected to the Platform.</p>
+          <h3 className="font-semibold mt-3 mb-1">Governing Privacy Frameworks</h3>
+          <ul className="list-disc ml-6 space-y-1">
+            <li>Personal Information Protection and Electronic Documents Act (PIPEDA) — Federal Canada</li>
+            <li>Personal Information Protection Act (PIPA) — British Columbia</li>
+            <li>California Consumer Privacy Act as amended by the California Privacy Rights Act (CCPA/CPRA) — California</li>
+            <li>Applicable privacy statutes in all other US states where Clients operate</li>
+          </ul>
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold mb-2">2. How We Use Your Information</h2>
-          <p>We collect and use personal information only for the purposes identified at or before the time of collection. These purposes include: responding to inquiries submitted through our website contact form or email, scheduling and conducting consultations about our veterinary marketing services, providing, managing, and delivering the marketing services you have engaged us for, communicating with you about project updates, deliverables, and account-related matters, sending you information about our services, events, or industry insights (only with your consent), improving our website, user experience, and service offerings, analyzing website traffic and usage patterns to better understand how visitors use our site, and meeting legal and regulatory obligations.</p>
-          <p className="mt-2">We will not use your personal information for any purpose other than those stated above without obtaining your further consent.</p>
+          <h2 className="text-lg font-semibold mb-2">3. Information We Collect</h2>
+          <h3 className="font-semibold mt-3 mb-1">3.1 Third-Party Integration Data</h3>
+          <p>VSA integrates with third-party platforms and APIs to deliver its services. Through these integrations VSA may collect and process website traffic metrics, advertising campaign performance data, tag and tracking configurations, SEO performance data, and content performance data.</p>
+
+          <h3 className="font-semibold mt-3 mb-1">3.2 AI-Generated Content Data</h3>
+          <p>Data processed includes content prompts, generated outputs, editorial calendars, and content performance records.</p>
+
+          <h3 className="font-semibold mt-3 mb-1">3.3 Client-Uploaded Materials</h3>
+          <p>Clients may upload clinic photographs, team member photos and biographical information, brand assets, and other visual or written content stored within VSA's CRM infrastructure.</p>
+
+          <h3 className="font-semibold mt-3 mb-1">3.4 Platform Usage Data</h3>
+          <ul className="list-disc ml-6 space-y-1">
+            <li>Login activity, session timestamps, feature usage logs, and access records</li>
+            <li>Device type, browser type, and general location data</li>
+            <li>Support communications and in-platform activity logs</li>
+            <li>Terms acceptance records including timestamp, IP address, account identifier, and version number accepted</li>
+          </ul>
+
+          <h3 className="font-semibold mt-3 mb-1">3.5 Business and Account Information</h3>
+          <p>Clinic legal name, operating name, business address, phone number, website URL, authorized contact names, email addresses, account credentials, and billing contact information.</p>
+
+          <h3 className="font-semibold mt-3 mb-1">3.6 Communication Data</h3>
+          <p>Communications through third-party messaging platforms are subject to those platforms' data practices. VSA recommends formal approvals be submitted through the Platform.</p>
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold mb-2">3. Consent</h2>
-          <p>We rely on your consent to collect, use, and disclose your personal information. Consent may be expressed or implied depending on the context.</p>
-          <p className="mt-2">Expressed consent is given when you actively submit a contact form, send us an email, sign a service agreement, or opt in to receive communications from us. Implied consent may apply when you voluntarily provide personal information for an obvious purpose, such as providing your email address so we can respond to your inquiry.</p>
-          <p className="mt-2">You may withdraw your consent at any time by contacting us using the details at the bottom of this policy. Please note that withdrawing consent may affect our ability to provide certain services to you. We will explain the implications of withdrawal when you make your request.</p>
+          <h2 className="text-lg font-semibold mb-2">4. How We Use Your Information</h2>
+          <p>VSA uses information solely for delivering contracted services including:</p>
+          <ul className="list-disc ml-6 mt-2 space-y-1">
+            <li>Generating and delivering performance reports</li>
+            <li>Creating, reviewing, and scheduling AI-assisted content</li>
+            <li>Managing advertising campaigns and optimizing spend</li>
+            <li>Monitoring SEO performance and executing strategies</li>
+            <li>Developing jurisdiction-compliant social media content</li>
+            <li>Maintaining Platform security and improving functionality</li>
+            <li>Processing payments and managing billing records</li>
+            <li>Recording Terms acceptance logs for legal and compliance purposes</li>
+          </ul>
+          <p className="mt-2 font-semibold">VSA does not use Client data for advertising, third-party profiling, data brokerage, or any purpose other than the delivery of contracted services. VSA does not sell, rent, trade, or otherwise transfer Client data to any third party for commercial purposes under any circumstances.</p>
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold mb-2">4. Cookies and Tracking Technologies</h2>
-          <p>Our website uses cookies and similar tracking technologies to improve your browsing experience and help us understand how our site is being used.</p>
-          <p className="mt-2">Types of cookies we may use: Strictly necessary cookies (required for the basic operation of our website), Analytics cookies (used to collect anonymous data about how visitors use our site — we may use tools such as Google Analytics for this purpose), and Marketing cookies (if enabled, these may be used to track the effectiveness of our advertising campaigns or to serve relevant content).</p>
-          <p className="mt-2">Most web browsers allow you to manage your cookie preferences through browser settings. You can choose to block or delete cookies, though this may affect the functionality of certain parts of our website. If we use Google Analytics, the data collected is aggregated and anonymous. You can opt out of Google Analytics tracking by installing the Google Analytics Opt-Out Browser Add-on.</p>
+          <h2 className="text-lg font-semibold mb-2">5. AI and Automated Content Generation</h2>
+          <h3 className="font-semibold mt-3 mb-1">5.1 AI-Powered Service Delivery</h3>
+          <p>VSA utilizes AI-powered tools and large language models to support content generation, compliance checking, and service delivery functions.</p>
+
+          <h3 className="font-semibold mt-3 mb-1">5.2 VSA's Compliance Framework</h3>
+          <p>VSA maintains a proprietary AI compliance framework aligned with veterinary marketing standards across all Canadian provinces and US states.</p>
+
+          <h3 className="font-semibold mt-3 mb-1">5.3 Limitations and Client Responsibility</h3>
+          <ul className="list-disc ml-6 space-y-1">
+            <li>AI-generated content is an assistive tool — not a guarantee of compliance</li>
+            <li>All content is subject to human review by VSA's editorial team</li>
+            <li>AI-generated content does not constitute legal or regulatory advice</li>
+            <li>Final compliance responsibility rests solely with the Client</li>
+          </ul>
+
+          <h3 className="font-semibold mt-3 mb-1">5.4 Third-Party AI Providers</h3>
+          <p>AI features may involve processing through third-party providers with their own privacy policies.</p>
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold mb-2">5. How We Share Your Information</h2>
-          <p>We do not sell, rent, or trade your personal information to any third party.</p>
-          <p className="mt-2">We may share your personal information in the following limited circumstances: with trusted third-party service providers who assist us in operating our website, delivering our services, or conducting our business (these providers are contractually required to protect your information and use it only for the purposes we specify), if required to do so by law, regulation, legal process, or governmental request, and in the event of a merger, acquisition, or sale of all or a portion of our business (personal information may be transferred to the acquiring organization, subject to the same privacy protections described in this policy).</p>
-          <p className="mt-2">We do not share your personal information with any third party for their own marketing purposes.</p>
+          <h2 className="text-lg font-semibold mb-2">6. Third-Party Service Integrations</h2>
+          <p>Integration categories include: analytics, advertising, SEO, AI content generation, CRM, payment processing, and internal communication platforms. Each maintains its own privacy practices.</p>
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold mb-2">6. Data Retention</h2>
-          <p>We retain personal information only for as long as necessary to fulfill the purposes for which it was collected, or as required by law. Contact form inquiries (if you do not become a client) are retained for up to 12 months to allow for follow-up, after which they are securely deleted. Client information is retained for the duration of the business relationship and for a reasonable period afterward to meet legal, accounting, or contractual obligations. Anonymized analytics data may be retained indefinitely for trend analysis and website improvement.</p>
-          <p className="mt-2">When personal information is no longer needed, we will securely delete or anonymize it.</p>
+          <h2 className="text-lg font-semibold mb-2">7. Analytics and Tracking Infrastructure</h2>
+          <p>Analytics data collected through VSA-managed properties is accessible to and retained by VSA as part of its service delivery infrastructure.</p>
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold mb-2">7. Data Security</h2>
-          <p>We take the protection of your personal information seriously and implement appropriate technical and organizational safeguards to prevent unauthorized access, disclosure, alteration, or destruction. These measures include: secure, encrypted connections (SSL/TLS) on our website, restricted access to personal information within our team on a need-to-know basis, password-protected systems and devices, and regular review of our data handling and security practices.</p>
-          <p className="mt-2">While we take reasonable steps to protect your information, no method of transmission over the internet or electronic storage is 100% secure. We cannot guarantee absolute security but are committed to maintaining industry-standard protections.</p>
+          <h2 className="text-lg font-semibold mb-2">8. Personnel and Extended Service Team</h2>
+          <p>VSA's team may include authorized personnel outside Canada and the US, operating within VSA's systems under confidentiality obligations.</p>
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold mb-2">8. Your Rights Under PIPEDA</h2>
-          <p>Under Canada's Personal Information Protection and Electronic Documents Act, you have the following rights regarding your personal information: the right to access (you may request access to the personal information we hold about you — we will respond within 30 days), the right to correction (if you believe any personal information we hold is inaccurate or incomplete, you may request that we correct it), the right to withdraw consent (you may withdraw your consent for us to collect, use, or disclose your personal information at any time, subject to legal or contractual restrictions), and the right to complain (if you believe we have not handled your personal information in accordance with this policy or PIPEDA, you have the right to file a complaint with us — if you are not satisfied with our response, you may contact the Office of the Privacy Commissioner of Canada).</p>
-          <p className="mt-2">To exercise any of these rights, please contact us using the information provided below.</p>
+          <h2 className="text-lg font-semibold mb-2">9. Visual Content and Imagery</h2>
+          <p>VSA may use client-provided photographs, AI-generated imagery, and licensed stock imagery. Clients receive limited usage rights subject to applicable licensing.</p>
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold mb-2">9. Third-Party Links</h2>
-          <p>Our website may contain links to third-party websites, including social media platforms such as Instagram. This Privacy Policy applies only to vsavetmedia.ca. We are not responsible for the privacy practices or content of any third-party websites. We encourage you to review the privacy policies of any external sites you visit.</p>
+          <h2 className="text-lg font-semibold mb-2">10. Data Retention</h2>
+          <h3 className="font-semibold mt-3 mb-1">10.1 During Active Subscription</h3>
+          <p>VSA retains Client data for the full duration of the active service relationship.</p>
+          <h3 className="font-semibold mt-3 mb-1">10.2 Upon Termination</h3>
+          <ul className="list-disc ml-6 space-y-1">
+            <li>Client-uploaded materials retained 30 days then securely deleted</li>
+            <li>Platform-stored content retained as VSA IP</li>
+            <li>Published social media content remains on those platforms</li>
+            <li>Analytics data retained by VSA</li>
+            <li>Terms acceptance logs retained permanently</li>
+            <li>Billing records retained as required by law</li>
+          </ul>
+          <h3 className="font-semibold mt-3 mb-1">10.3 Aggregated Data</h3>
+          <p>VSA may retain aggregated, de-identified data indefinitely for benchmarking and improvement purposes.</p>
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold mb-2">10. Children's Privacy</h2>
-          <p>Our website and services are not directed at individuals under the age of 18. We do not knowingly collect personal information from children. If we become aware that we have collected personal information from a child without appropriate consent, we will take steps to delete that information promptly.</p>
+          <h2 className="text-lg font-semibold mb-2">11. Evolving Platform and Integrations</h2>
+          <p>VSA may add new tools and integrations at any time. Material additions to data processing will be notified through the Platform.</p>
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold mb-2">11. Changes to This Privacy Policy</h2>
-          <p>We may update this Privacy Policy from time to time to reflect changes in our practices, technology, legal requirements, or other factors. When we make changes, we will update the "Last Updated" date at the top of this page. We encourage you to review this policy periodically.</p>
-          <p className="mt-2">If we make significant changes that affect how we handle your personal information, we will make reasonable efforts to notify you, such as posting a notice on our website.</p>
+          <h2 className="text-lg font-semibold mb-2">12. Data Security</h2>
+          <p>Security measures include: role-based access controls, encryption in transit, segregated client environments, confidentiality obligations, periodic access reviews, and append-only terms acceptance logs.</p>
+          <p className="mt-2">In the event of a confirmed data breach, affected Clients will be notified within 72 hours of confirmation.</p>
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold mb-2">12. Contact Us</h2>
-          <p>If you have any questions, concerns, or requests regarding this Privacy Policy or our handling of your personal information, please contact us:</p>
-          <div className="mt-2 space-y-1">
-            <p><strong>VSA Vet Media</strong>, Privacy Officer</p>
-            <p>Email: <a href="mailto:business@vsavetmedia.ca" className="text-primary underline">business@vsavetmedia.ca</a></p>
-            <p>Phone: <a href="tel:+16046001431" className="text-primary underline">+1 (604) 600-1431</a></p>
-          </div>
+          <h2 className="text-lg font-semibold mb-2">13. Team Member Information and Removal</h2>
+          <p><strong>Pathway One — Clinic Request:</strong> Submit through the Platform dashboard. Actioned within 5 business days.</p>
+          <p className="mt-2"><strong>Pathway Two — Individual Request:</strong> Contact privacy@vsavetmedia.ca directly. Actioned within 5 business days regardless of clinic authorization.</p>
         </section>
+
+        <section>
+          <h2 className="text-lg font-semibold mb-2">14. Privacy Rights</h2>
+          <h3 className="font-semibold mt-3 mb-1">14.1 Canadian Clients</h3>
+          <p>Rights under PIPEDA and PIPA: access, correction, withdrawal of consent, and complaint to the Privacy Commissioner.</p>
+          <h3 className="font-semibold mt-3 mb-1">14.2 US Clients</h3>
+          <p>Rights may include: right to know, delete, correct, opt-out of sale (VSA does not sell data), and non-discrimination.</p>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold mb-2">15. Cross-Border Data Transfers</h2>
+          <p>Client data may be transferred to jurisdictions outside Canada. VSA ensures compliance with applicable privacy law.</p>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold mb-2">16. CASL Compliance</h2>
+          <p>Canadian Clients consent to receiving commercial electronic messages from VSA. Consent may be withdrawn at any time by providing written notice.</p>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold mb-2">17. Changes to This Privacy Policy</h2>
+          <ul className="list-disc ml-6 space-y-1">
+            <li><strong>Material amendments:</strong> 14 days advance notice</li>
+            <li><strong>Non-material amendments:</strong> 7 days advance notice</li>
+            <li><strong>Legal/regulatory amendments:</strong> effective immediately</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold mb-2">18. Contact and Privacy Inquiries</h2>
+          <p><strong>VSA Vet Media Inc.</strong><br />Privacy and Compliance Team<br />Vancouver, British Columbia, Canada</p>
+          <p className="mt-2">Email: <a href="mailto:privacy@vsavetmedia.ca" className="text-primary underline hover:text-primary/80">privacy@vsavetmedia.ca</a></p>
+          <p>Website: <a href="https://vsavetmedia.ca" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80">vsavetmedia.ca</a></p>
+          <p>Platform: portal.vsavetmedia.com</p>
+          <p className="mt-2">VSA will respond to all privacy inquiries within 30 days of receipt or within the timeframe required by applicable law, whichever is shorter.</p>
+        </section>
+
+        <p className="text-xs text-muted-foreground mt-8 pt-4 border-t">
+          VSA Vet Media Inc. | Privacy Policy | Version 1.0 | Effective Date: April 13, 2026 | Confidential — Authorized Clients Only
+        </p>
       </div>
     </div>
   );
