@@ -1,4 +1,7 @@
-import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.49.1/dist/module/lib/cors-headers.js";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const ZOHO_ACCOUNTS_URL = "https://accounts.zoho.com/oauth/v2/token";
