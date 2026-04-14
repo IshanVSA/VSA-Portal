@@ -2101,6 +2101,106 @@ export type Database = {
         }
         Relationships: []
       }
+      terms_acceptance_log: {
+        Row: {
+          acceptance_type: string
+          accepted_at: string
+          casl_consent_given: boolean
+          id: string
+          ip_address: string | null
+          terms_version: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          acceptance_type?: string
+          accepted_at?: string
+          casl_consent_given?: boolean
+          id?: string
+          ip_address?: string | null
+          terms_version: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          acceptance_type?: string
+          accepted_at?: string
+          casl_consent_given?: boolean
+          id?: string
+          ip_address?: string | null
+          terms_version?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "terms_acceptance_log_terms_version_fkey"
+            columns: ["terms_version"]
+            isOneToOne: false
+            referencedRelation: "terms_versions"
+            referencedColumns: ["version"]
+          },
+        ]
+      }
+      terms_decline_log: {
+        Row: {
+          declined_at: string
+          id: string
+          resolution: string | null
+          resolved_at: string | null
+          terms_version: string
+          user_id: string
+        }
+        Insert: {
+          declined_at?: string
+          id?: string
+          resolution?: string | null
+          resolved_at?: string | null
+          terms_version: string
+          user_id: string
+        }
+        Update: {
+          declined_at?: string
+          id?: string
+          resolution?: string | null
+          resolved_at?: string | null
+          terms_version?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "terms_decline_log_terms_version_fkey"
+            columns: ["terms_version"]
+            isOneToOne: false
+            referencedRelation: "terms_versions"
+            referencedColumns: ["version"]
+          },
+        ]
+      }
+      terms_versions: {
+        Row: {
+          amendment_type: string
+          created_at: string
+          effective_at: string
+          is_active: boolean
+          version: string
+        }
+        Insert: {
+          amendment_type?: string
+          created_at?: string
+          effective_at: string
+          is_active?: boolean
+          version: string
+        }
+        Update: {
+          amendment_type?: string
+          created_at?: string
+          effective_at?: string
+          is_active?: boolean
+          version?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -2172,6 +2272,10 @@ export type Database = {
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_accepted_current_terms: {
+        Args: { p_user_id: string }
+        Returns: boolean
       }
       has_role: {
         Args: {
