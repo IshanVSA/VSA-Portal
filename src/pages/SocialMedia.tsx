@@ -69,7 +69,7 @@ export default function SocialMedia() {
 
   const visibleTabs = isClient
     ? [...baseTabs.filter(t => ["overview", "tickets"].includes(t.value)), contentReviewTab, themeSlidersTab]
-    : [...baseTabs, generationTab, gbpPostsTab, dnaTab, ...(isStaff ? [chatTab] : [])];
+    : [...baseTabs, generationTab, gbpPostsTab, dnaTab, themeSlidersTab, ...(isStaff ? [chatTab] : [])];
 
   const handleTabChange = (value: string) => {
     setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", value); return next; }, { replace: true });
