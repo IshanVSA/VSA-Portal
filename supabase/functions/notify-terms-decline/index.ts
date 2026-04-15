@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
       </div>
     `;
 
-    const toAddress = adminEmails.map((e) => ({ address: e }));
+    const toAddress = adminEmails.join(",");
 
     const mailRes = await fetch(`${ZOHO_MAIL_API}/${zohoAccountId}/messages`, {
       method: "POST",
