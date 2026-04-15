@@ -10,6 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Save, RefreshCw, SlidersHorizontal, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { lazy, Suspense } from "react";
+
+const MonthlySignalsForm = lazy(() => import("@/components/social/MonthlySignalsForm"));
 
 interface Props {
   clinicId: string | undefined;
@@ -189,6 +192,13 @@ export default function ContentThemeSliders({ clinicId }: Props) {
           </Button>
         </CardContent>
       </Card>
+
+      {/* Monthly Signals — Staff Only */}
+      {isStaff && (
+        <Suspense fallback={<div className="py-6 flex justify-center"><RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
+          <MonthlySignalsForm clinicId={clinicId} />
+        </Suspense>
+      )}
 
       {/* Hard Gates Card — Staff Only */}
       {isStaff && (
