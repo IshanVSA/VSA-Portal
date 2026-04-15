@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         fromAddress: "support@vsavetmedia.ca",
-        toAddress: JSON.stringify(toAddress),
+        toAddress: toAddress,
         subject,
         content: htmlBody,
         mailFormat: "html",
