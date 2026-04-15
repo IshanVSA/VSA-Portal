@@ -4,8 +4,8 @@ const corsHeaders = {
 };
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
-const ZOHO_ACCOUNTS_URL = "https://accounts.zoho.com/oauth/v2/token";
-const ZOHO_MAIL_API = "https://mail.zoho.com/api/accounts";
+const ZOHO_ACCOUNTS_URL = "https://accounts.zohocloud.ca/oauth/v2/token";
+const ZOHO_MAIL_API = "https://mail.zoho.ca/api/accounts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
