@@ -5,7 +5,7 @@ const corsHeaders = {
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const ZOHO_ACCOUNTS_URL = "https://accounts.zohocloud.ca/oauth/v2/token";
-const ZOHO_MAIL_API = "https://mail.zoho.ca/api/accounts";
+const ZOHO_MAIL_API = "https://mail.zohocloud.ca/api/accounts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
     const zohoClientId = Deno.env.get("ZOHO_CLIENT_ID");
     const zohoClientSecret = Deno.env.get("ZOHO_CLIENT_SECRET");
     const zohoRefreshToken = Deno.env.get("ZOHO_REFRESH_TOKEN");
-    const zohoAccountId = Deno.env.get("ZOHO_ACCOUNT_ID");
+    const zohoAccountId = Deno.env.get("ZOHO_ACCOUNT_ID")?.trim();
 
     if (!zohoClientId || !zohoClientSecret || !zohoRefreshToken || !zohoAccountId) {
       console.error("Zoho credentials not configured — skipping email");
