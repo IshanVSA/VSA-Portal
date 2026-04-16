@@ -1,48 +1,34 @@
 
 
-## Problem
+## Store Client IP on Terms Accept/Decline
 
-The "Preferences" tab (containing Theme Sliders and Hard Gates) is only visible to **client** users. Staff/concierge users cannot see or access it. Additionally, there is no dedicated Monthly Signals form for concierges to fill in campaign goals, budget, seasonal topics, and clinic news.
+### Current State
+- `terms_acceptance_log` has an `ip_address` column (already exists, always NULL)
+- `terms_decline_log` has NO `ip_address` column
+- Neither the accept nor decline code captures IP -- the browser cannot reliably determine the user's public IP
 
-This means Phase 4 of the workflow is partially broken for staff:
-- Theme Sliders: inaccessible to staff (tab hidden)
-- Hard Gates: inaccessible to staff (tab hidden)
-- Monthly Signals: no comprehensive editing UI exists (only partial data in preflight/overview)
+### Approach
+Use a lightweight public IP lookup from the client side before inserting the record. This avoids needing a custom edge function.
 
-## Plan
+### Step 1: Add `ip_address` column to `terms_decline_log`
+Migration: `ALTER TABLE terms_decline_log ADD COLUMN ip_address text;`
 
-### Step 1: Add "Preferences" tab to staff tab bar
+### Step 2: Create a helper to fetch the client's public IP
+Create `src/lib/get-client-ip.ts` that calls a free, privacy-safe IP echo service (`https://api.ipify.org?format=json`) and returns the IP string. Cache for the session so it only fetches once. Falls back to `null` on failure (non-blocking).
 
-In `SocialMedia.tsx`, add `themeSlidersTab` to the staff `visibleTabs` array so concierges and admins can access the Theme Sliders and Hard Gates UI.
+### Step 3: Update `TermsAcceptanceModal.tsx`
+- In `handleAccept`, fetch IP and include `ip_address` in the insert to `terms_acceptance_log`
+- In `handleDecline`, fetch IP and include `ip_address` in the insert to `terms_decline_log`
 
-### Step 2: Build a Monthly Signals form
+### Step 4: Update `StaffAcknowledgmentModal.tsx`
+- In `handleAcknowledge`, fetch IP and include `ip_address` in the insert to `terms_acceptance_log`
 
-Create a new component `src/components/social/MonthlySignalsForm.tsx` that provides a full editing interface for all monthly signal fields:
-- Campaign month number
-- Monthly budget and currency
-- Seasonal topics (tag input)
-- Community events (tag input)
-- Local alerts and local news (text areas)
-- Clinic news this month (text area)
-- Facebook-specific notes (text area)
-- Active promotions (pulled from clinic_promotions table)
-- Statutory holidays (auto-populated, with manual override)
-
-This form will use the existing `useMonthlySignals` hook for read/write.
-
-### Step 3: Add Monthly Signals form to the Preferences tab
-
-Embed the new `MonthlySignalsForm` inside `ContentThemeSliders.tsx` (or rename it to a wrapper component) so all Phase 4 configuration lives in one tab -- visible to both staff and clients (with staff-only sections gated by role).
-
-Layout order on the Preferences tab:
-1. Theme Sliders (all users)
-2. Monthly Signals form (staff only)
-3. Hard Gates (staff only)
+### Privacy Note
+Storing IP at the moment of legal consent/decline is standard practice under PIPEDA for establishing proof of agreement. The IP is only captured at the specific consent event, not during general browsing (consistent with the platform's existing privacy-compliant anonymous analytics).
 
 ### Technical Details
-
-- **Files modified**: `src/pages/SocialMedia.tsx`, `src/components/social/ContentThemeSliders.tsx`
-- **Files created**: `src/components/social/MonthlySignalsForm.tsx`
-- **Hook reused**: `useMonthlySignals` (no changes needed)
-- **No database changes** -- all fields already exist in `clinic_monthly_signals` table
+- **Migration**: 1 SQL statement (add column)
+- **New file**: `src/lib/get-client-ip.ts`
+- **Modified files**: `TermsAcceptanceModal.tsx`, `StaffAcknowledgmentModal.tsx`
+- No RLS changes needed -- existing insert policies already cover these tables
 
