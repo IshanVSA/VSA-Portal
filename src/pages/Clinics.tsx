@@ -446,8 +446,10 @@ export default function Clinics() {
     fetchTeamAssignments();
   };
 
-  const deleteClinic = async (clinicId: string) => {
+  const deleteClinic = async (clinicId: string, clinicName: string) => {
     if (!clinicId) return;
+    const confirmed = window.confirm(`Are you sure you want to delete "${clinicName}"? This will permanently remove all associated data including team members, content, analytics, and tickets.`);
+    if (!confirmed) return;
     const { error } = await supabase
       .from("clinics")
       .delete()
