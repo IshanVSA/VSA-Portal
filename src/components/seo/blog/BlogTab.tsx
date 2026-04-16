@@ -554,7 +554,7 @@ export function BlogTab({ clinicId }: { clinicId: string | undefined }) {
                   </div>
                   {latestPost.type_mismatch_flagged && (
                     <div className="text-xs text-destructive flex items-center gap-1">
-                      <AlertTriangle className="h-3 w-3" /> Hospital type mismatch detected — review before publishing
+                      <AlertTriangle className="h-3 w-3" /> Hospital type mismatch detected - review before publishing
                     </div>
                   )}
                 </CardContent>

@@ -45,7 +45,7 @@ export default function SplashScreen({ children }: { children: React.ReactNode }
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.5 }}
             >
-              Digital Marketing — Simplified.
+              Digital Marketing - Simplified.
             </motion.p>
             <motion.div
               className="mt-8 flex items-center gap-2"

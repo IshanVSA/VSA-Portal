@@ -273,7 +273,7 @@ export function WebsiteReportsTab({ clinicId }: Props) {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" /> Report Preview — {periodLabels[period]}
+                <BarChart3 className="h-4 w-4" /> Report Preview - {periodLabels[period]}
               </CardTitle>
               <span className="text-[10px] text-muted-foreground">
                 {timeZone} · vs {format(prevRange.from, "MMM d")} – {format(prevRange.to, "MMM d")}

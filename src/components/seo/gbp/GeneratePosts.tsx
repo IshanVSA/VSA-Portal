@@ -478,7 +478,7 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
         <>
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle2 className="h-4 w-4 text-green-500" />
-            <span className="text-sm font-medium text-foreground">Approved Posts — {MONTH_NAMES[selectedMonth - 1]} {selectedYear}</span>
+            <span className="text-sm font-medium text-foreground">Approved Posts - {MONTH_NAMES[selectedMonth - 1]} {selectedYear}</span>
             <Badge variant="secondary" className="text-[10px]">{approvedPosts!.length} posts</Badge>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -489,7 +489,7 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-xs font-semibold flex items-center gap-1.5">
                         <FileText className="h-3.5 w-3.5 text-green-500" />
-                        Week {post.week_number} — {post.topic}
+                        Week {post.week_number} - {post.topic}
                       </CardTitle>
                       <div className="flex items-center gap-1.5">
                         <Badge variant="outline" className="text-[10px]">{post.post_type.replace('_', ' ')}</Badge>
@@ -550,7 +550,7 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-xs font-semibold flex items-center gap-1.5">
                         <FileText className="h-3.5 w-3.5 text-primary" />
-                        Week {post.week_number} — {post.topic}
+                        Week {post.week_number} - {post.topic}
                       </CardTitle>
                       <Badge variant="outline" className="text-[10px]">{post.post_type.replace('_', ' ')}</Badge>
                     </div>

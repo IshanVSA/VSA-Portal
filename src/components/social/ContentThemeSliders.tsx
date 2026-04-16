@@ -182,7 +182,7 @@ export default function ContentThemeSliders({ clinicId }: Props) {
 
           {!isBalanced && (
             <p className="text-xs text-destructive flex items-center gap-1">
-              ⚠ Sliders total {total}% — adjust to reach exactly 100%
+              ⚠ Sliders total {total}% - adjust to reach exactly 100%
             </p>
           )}
 
@@ -193,14 +193,14 @@ export default function ContentThemeSliders({ clinicId }: Props) {
         </CardContent>
       </Card>
 
-      {/* Monthly Signals — Staff Only */}
+      {/* Monthly Signals - Staff Only */}
       {isStaff && (
         <Suspense fallback={<div className="py-6 flex justify-center"><RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
           <MonthlySignalsForm clinicId={clinicId} />
         </Suspense>
       )}
 
-      {/* Hard Gates Card — Staff Only */}
+      {/* Hard Gates Card - Staff Only */}
       {isStaff && (
         <Card className="border-destructive/20">
           <CardHeader className="pb-3">
@@ -234,7 +234,7 @@ export default function ContentThemeSliders({ clinicId }: Props) {
               </div>
             ))}
 
-            {/* Pricing in Posts — only if pricing_on_website is true */}
+            {/* Pricing in Posts - only if pricing_on_website is true */}
             {gateValues.pricing_on_website && (
               <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/20">
                 <div className="flex-1">

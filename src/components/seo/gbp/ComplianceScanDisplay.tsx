@@ -46,56 +46,56 @@ export function extractIssueDescriptions(scan: ComplianceScan): string[] {
 
   // Tier 1
   if (scan.tier_1.flagged_terms.found > 0)
-    issues.push(`Tier 1 — Flagged terms found: ${scan.tier_1.flagged_terms.details.join(', ')}. Replace with compliant alternatives.`);
+    issues.push(`Tier 1 - Flagged terms found: ${scan.tier_1.flagged_terms.details.join(', ')}. Replace with compliant alternatives.`);
   if (scan.tier_1.em_dashes.found > 0)
-    issues.push(`Tier 1 — Em dashes (—) found in ${scan.tier_1.em_dashes.details.join(', ')}. Replace with hyphens (-).`);
+    issues.push(`Tier 1 - Em dashes (—) found in ${scan.tier_1.em_dashes.details.join(', ')}. Replace with hyphens (-).`);
   if (scan.tier_1.us_english === 'FAIL')
-    issues.push('Tier 1 — British spelling detected. Convert all spelling to US English (e.g., "behaviour" → "behavior", "centre" → "center").');
+    issues.push('Tier 1 - British spelling detected. Convert all spelling to US English (e.g., "behaviour" → "behavior", "centre" → "center").');
   if (scan.tier_1.specialist_claims === 'FAIL')
-    issues.push('Tier 1 — Specialist claims detected. Remove any "specialist", "board-certified specialist" language.');
+    issues.push('Tier 1 - Specialist claims detected. Remove any "specialist", "board-certified specialist" language.');
   if (scan.tier_1.hospital_type_language.result === 'FAIL')
-    issues.push(`Tier 1 — Hospital Type ${scan.tier_1.hospital_type_language.type} language violation. Remove forbidden emergency/24-hour terms for this hospital type.`);
+    issues.push(`Tier 1 - Hospital Type ${scan.tier_1.hospital_type_language.type} language violation. Remove forbidden emergency/24-hour terms for this hospital type.`);
   if (scan.tier_1.guaranteed_outcomes === 'FAIL')
-    issues.push('Tier 1 — Guaranteed outcome language detected. Remove "guarantee" and similar outcome-promising words.');
+    issues.push('Tier 1 - Guaranteed outcome language detected. Remove "guarantee" and similar outcome-promising words.');
   if (scan.tier_1.emoji_compliance === 'FAIL')
-    issues.push('Tier 1 — Emoji violation: emojis must only appear at the very start or end of a post, max 2 per post.');
+    issues.push('Tier 1 - Emoji violation: emojis must only appear at the very start or end of a post, max 2 per post.');
 
   // Tier 2
   if (scan.tier_2.prescription_drug_terms.found > 0)
-    issues.push(`Tier 2 — Prescription drug terms found: ${scan.tier_2.prescription_drug_terms.details.join(', ')}. Replace with "comfort care", "supportive care", "wellness support".`);
+    issues.push(`Tier 2 - Prescription drug terms found: ${scan.tier_2.prescription_drug_terms.details.join(', ')}. Replace with "comfort care", "supportive care", "wellness support".`);
   if (scan.tier_2.drug_brand_names.found > 0)
-    issues.push(`Tier 2 — Drug brand names found: ${scan.tier_2.drug_brand_names.details.join(', ')}. Replace with generic terms like "preventive care products", "parasite prevention".`);
+    issues.push(`Tier 2 - Drug brand names found: ${scan.tier_2.drug_brand_names.details.join(', ')}. Replace with generic terms like "preventive care products", "parasite prevention".`);
   if (scan.tier_2.direct_health_targeting === 'FAIL')
-    issues.push('Tier 2 — Direct health targeting language detected ("your condition/symptoms"). Use "signs you may notice in your pet" instead.');
+    issues.push('Tier 2 - Direct health targeting language detected ("your condition/symptoms"). Use "signs you may notice in your pet" instead.');
   if (scan.tier_2.outcome_guarantee === 'FAIL')
-    issues.push('Tier 2 — Outcome guarantee words (cure/heal/fix/100%) detected. Use "manage", "support", "help with" instead.');
+    issues.push('Tier 2 - Outcome guarantee words (cure/heal/fix/100%) detected. Use "manage", "support", "help with" instead.');
   if (scan.tier_2.sensitive_terms.found > 0)
-    issues.push(`Tier 2 — Sensitive terms found: ${scan.tier_2.sensitive_terms.details.join(', ')}. Use compliant alternatives (e.g., "end-of-life support", "assess", "evaluate").`);
+    issues.push(`Tier 2 - Sensitive terms found: ${scan.tier_2.sensitive_terms.details.join(', ')}. Use compliant alternatives (e.g., "end-of-life support", "assess", "evaluate").`);
   if (scan.tier_2.landing_page_risk_terms.found > 0)
-    issues.push(`Tier 2 — Landing page risk terms found: ${scan.tier_2.landing_page_risk_terms.details.join(', ')}. Remove commercial/transactional language.`);
+    issues.push(`Tier 2 - Landing page risk terms found: ${scan.tier_2.landing_page_risk_terms.details.join(', ')}. Remove commercial/transactional language.`);
 
   // Tier 3
   for (let i = 1; i <= 4; i++) {
     const key = `post_${i}` as keyof typeof scan.tier_3.geo_keyword_first_100;
     if (!scan.tier_3.geo_keyword_first_100[key])
-      issues.push(`Tier 3 — Post ${i}: neighbourhood/geo keyword missing from first 100 characters. Add it near the beginning of the post.`);
+      issues.push(`Tier 3 - Post ${i}: neighbourhood/geo keyword missing from first 100 characters. Add it near the beginning of the post.`);
   }
   if (scan.tier_3.service_keyword === 'FAIL')
-    issues.push('Tier 3 — Service keyword not found in post content. Ensure at least one post contains its primary keyword in the body text.');
+    issues.push('Tier 3 - Service keyword not found in post content. Ensure at least one post contains its primary keyword in the body text.');
   for (let i = 1; i <= 4; i++) {
     const key = `post_${i}` as keyof typeof scan.tier_3.word_count;
     const wc = scan.tier_3.word_count[key];
-    if (wc < 80) issues.push(`Tier 3 — Post ${i}: word count is ${wc} (minimum 80). Add more content.`);
-    if (wc > 120) issues.push(`Tier 3 — Post ${i}: word count is ${wc} (maximum 120). Trim the post.`);
+    if (wc < 80) issues.push(`Tier 3 - Post ${i}: word count is ${wc} (minimum 80). Add more content.`);
+    if (wc > 120) issues.push(`Tier 3 - Post ${i}: word count is ${wc} (maximum 120). Trim the post.`);
   }
   if (scan.tier_3.phone_in_2_plus === 'FAIL')
-    issues.push('Tier 3 — Phone number must appear in at least 2 of the 4 posts. Add the clinic phone number to more posts.');
+    issues.push('Tier 3 - Phone number must appear in at least 2 of the 4 posts. Add the clinic phone number to more posts.');
   if (scan.tier_3.keyword_diversity === 'FAIL')
-    issues.push('Tier 3 — Keyword diversity failed. Each post must have a unique primary keyword — no overlap allowed.');
+    issues.push('Tier 3 - Keyword diversity failed. Each post must have a unique primary keyword - no overlap allowed.');
   if (scan.tier_3.cta_service_page === 'FAIL')
-    issues.push('Tier 3 — CTA links to homepage or is missing. Each post CTA must link to a specific service page.');
+    issues.push('Tier 3 - CTA links to homepage or is missing. Each post CTA must link to a specific service page.');
   if (scan.tier_3.neighbourhood_in_all === 'FAIL')
-    issues.push('Tier 3 — Neighbourhood name missing from one or more posts. Every post must mention the neighbourhood.');
+    issues.push('Tier 3 - Neighbourhood name missing from one or more posts. Every post must mention the neighbourhood.');
 
   return issues;
 }
@@ -155,7 +155,7 @@ export function ComplianceScanDisplay({ scan, onFixIssues, isFixing }: Props) {
         {/* Tier 1: VSA Core */}
         <Collapsible open={openTiers.tier1} onOpenChange={() => toggle('tier1')}>
           <CollapsibleTrigger className="flex items-center justify-between w-full py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors">
-            <span className="text-xs font-medium">Tier 1 — VSA Core</span>
+            <span className="text-xs font-medium">Tier 1 - VSA Core</span>
             <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${openTiers.tier1 ? 'rotate-180' : ''}`} />
           </CollapsibleTrigger>
           <CollapsibleContent className="px-2 space-y-0.5">
@@ -172,7 +172,7 @@ export function ComplianceScanDisplay({ scan, onFixIssues, isFixing }: Props) {
         {/* Tier 2: Google Ads Healthcare */}
         <Collapsible open={openTiers.tier2} onOpenChange={() => toggle('tier2')}>
           <CollapsibleTrigger className="flex items-center justify-between w-full py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors">
-            <span className="text-xs font-medium">Tier 2 — Google Ads Healthcare</span>
+            <span className="text-xs font-medium">Tier 2 - Google Ads Healthcare</span>
             <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${openTiers.tier2 ? 'rotate-180' : ''}`} />
           </CollapsibleTrigger>
           <CollapsibleContent className="px-2 space-y-0.5">
@@ -188,7 +188,7 @@ export function ComplianceScanDisplay({ scan, onFixIssues, isFixing }: Props) {
         {/* Tier 3: Performance */}
         <Collapsible open={openTiers.tier3} onOpenChange={() => toggle('tier3')}>
           <CollapsibleTrigger className="flex items-center justify-between w-full py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors">
-            <span className="text-xs font-medium">Tier 3 — Performance</span>
+            <span className="text-xs font-medium">Tier 3 - Performance</span>
             <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${openTiers.tier3 ? 'rotate-180' : ''}`} />
           </CollapsibleTrigger>
           <CollapsibleContent className="px-2 space-y-0.5">

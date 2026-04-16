@@ -316,7 +316,7 @@ export function scanTopicTitle(title: string): TopicTitleScanResult {
   }
 
   if (SURGERY_REGEX.test(title)) {
-    issues.push('Contains "surgery" — context-dependent, review needed');
+    issues.push('Contains "surgery" - context-dependent, review needed');
   }
 
   for (const drug of DRUG_BRAND_NAMES) {
@@ -338,11 +338,11 @@ export function scanTopicTitle(title: string): TopicTitleScanResult {
   }
 
   if (hasEmDash(title)) {
-    issues.push('Contains em-dash (—) — use hyphens instead');
+    issues.push('Contains em-dash (—) - use hyphens instead');
   }
 
   if (hasUsEnglishIssue(title)) {
-    issues.push('Contains British spelling — use US English');
+    issues.push('Contains British spelling - use US English');
   }
 
   return { pass: issues.length === 0, issues };

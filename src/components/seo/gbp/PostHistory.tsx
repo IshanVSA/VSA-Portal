@@ -210,7 +210,7 @@ export function PostHistory({ clinicId: navClinicId }: PostHistoryProps) {
               <Card className="border-border/50 cursor-pointer hover:border-primary/30 transition-colors" onClick={() => setSelectedPost(post)}>
                 <CardContent className="py-3 px-4 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold flex items-center gap-1"><FileText className="h-3 w-3 text-primary" />W{post.week_number} — {post.topic}</span>
+                    <span className="text-xs font-semibold flex items-center gap-1"><FileText className="h-3 w-3 text-primary" />W{post.week_number} - {post.topic}</span>
                     <Badge variant="outline" className={`text-[10px] ${statusBadgeColors[post.status]}`}>{post.status}</Badge>
                   </div>
                   <p className="text-[11px] text-muted-foreground line-clamp-3">{post.post_content}</p>
@@ -233,7 +233,7 @@ export function PostHistory({ clinicId: navClinicId }: PostHistoryProps) {
             <>
               <DialogHeader>
                 <DialogTitle className="text-sm">
-                  Week {selectedPost.week_number} — {selectedPost.topic}
+                  Week {selectedPost.week_number} - {selectedPost.topic}
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
