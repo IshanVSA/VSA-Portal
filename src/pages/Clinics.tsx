@@ -447,7 +447,12 @@ export default function Clinics() {
   };
 
   const deleteClinic = async (clinicId: string) => {
-    const { error } = await supabase.from("clinics").delete().eq("id", clinicId);
+    if (!clinicId) return;
+    const { error } = await supabase
+      .from("clinics")
+      .delete()
+      .eq("id", clinicId)
+      .select();
     if (error) { toast.error(error.message); } else {
       toast.success("Clinic deleted");
       setClinics(prev => prev.filter(c => c.id !== clinicId));
