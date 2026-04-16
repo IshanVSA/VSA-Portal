@@ -446,8 +446,15 @@ export default function Clinics() {
     fetchTeamAssignments();
   };
 
-  const deleteClinic = async (clinicId: string) => {
-    const { error } = await supabase.from("clinics").delete().eq("id", clinicId);
+  const deleteClinic = async (clinicId: string, clinicName: string) => {
+    if (!clinicId) return;
+    const confirmed = window.confirm(`Are you sure you want to delete "${clinicName}"? This will permanently remove all associated data including team members, content, analytics, and tickets.`);
+    if (!confirmed) return;
+    const { error } = await supabase
+      .from("clinics")
+      .delete()
+      .eq("id", clinicId)
+      .select();
     if (error) { toast.error(error.message); } else {
       toast.success("Clinic deleted");
       setClinics(prev => prev.filter(c => c.id !== clinicId));
@@ -677,7 +684,7 @@ export default function Clinics() {
                             <Button variant="ghost" size="sm" className="h-8 text-xs"><Eye className="h-3.5 w-3.5 sm:mr-1" /> <span className="hidden sm:inline">View</span></Button>
                           </Link>
                           {role === "admin" && (
-                            <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => deleteClinic(clinic.id)}>
+                            <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => deleteClinic(clinic.id, clinic.clinic_name)}>
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           )}
