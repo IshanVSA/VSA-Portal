@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TermsBlockedScreen } from "./TermsBlockedScreen";
+import { getClientIp } from "@/lib/get-client-ip";
 
 interface Props {
   currentVersion: string;
@@ -32,12 +33,14 @@ export function TermsAcceptanceModal({ currentVersion }: Props) {
     if (!user) return;
     setSubmitting(true);
     try {
+      const ip = await getClientIp();
       const { error } = await supabase.from("terms_acceptance_log").insert({
         user_id: user.id,
         terms_version: currentVersion,
         acceptance_type: "client",
         user_agent: navigator.userAgent,
         casl_consent_given: caslConsent,
+        ip_address: ip,
       });
       if (error) throw error;
       await queryClient.invalidateQueries({ queryKey: ["terms-acceptance"] });
@@ -52,9 +55,11 @@ export function TermsAcceptanceModal({ currentVersion }: Props) {
     if (!user) return;
     setSubmitting(true);
     try {
+      const ip = await getClientIp();
       await supabase.from("terms_decline_log").insert({
         user_id: user.id,
         terms_version: currentVersion,
+        ip_address: ip,
       });
       // Notify admins
       try {
