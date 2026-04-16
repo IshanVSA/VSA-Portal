@@ -514,11 +514,11 @@ function SynthesizedProfileCard({ profile }: { profile: Record<string, any> }) {
           </div>
         )}
 
-        {/* Vedant Review Checklist */}
+        {/* Team Review Checklist */}
         {profile.vedant_review_checklist?.length > 0 && (
           <div className="space-y-2 pt-3 border-t border-border/50">
             <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-              <CheckSquare className="h-3 w-3 text-violet-500" /> Vedant Review Checklist
+              <CheckSquare className="h-3 w-3 text-violet-500" /> Team Review Checklist
             </p>
             <div className="space-y-1.5">
               {profile.vedant_review_checklist.map((item: any, i: number) => (
