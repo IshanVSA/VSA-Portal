@@ -1,0 +1,1 @@
+ALTER TABLE public.terms_decline_log ADD COLUMN IF NOT EXISTS ip_address text;

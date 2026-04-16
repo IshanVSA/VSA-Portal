@@ -2146,6 +2146,7 @@ export type Database = {
         Row: {
           declined_at: string
           id: string
+          ip_address: string | null
           resolution: string | null
           resolved_at: string | null
           terms_version: string
@@ -2154,6 +2155,7 @@ export type Database = {
         Insert: {
           declined_at?: string
           id?: string
+          ip_address?: string | null
           resolution?: string | null
           resolved_at?: string | null
           terms_version: string
@@ -2162,6 +2164,7 @@ export type Database = {
         Update: {
           declined_at?: string
           id?: string
+          ip_address?: string | null
           resolution?: string | null
           resolved_at?: string | null
           terms_version?: string

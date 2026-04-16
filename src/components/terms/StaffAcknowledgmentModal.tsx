@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { getClientIp } from "@/lib/get-client-ip";
 
 interface Props {
   currentVersion: string;
@@ -18,12 +19,14 @@ export function StaffAcknowledgmentModal({ currentVersion }: Props) {
     if (!user) return;
     setSubmitting(true);
     try {
+      const ip = await getClientIp();
       const { error } = await supabase.from("terms_acceptance_log").insert({
         user_id: user.id,
         terms_version: currentVersion,
         acceptance_type: "staff",
         user_agent: navigator.userAgent,
         casl_consent_given: false,
+        ip_address: ip,
       });
       if (error) throw error;
       await queryClient.invalidateQueries({ queryKey: ["terms-acceptance"] });
