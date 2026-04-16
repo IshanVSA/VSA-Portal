@@ -24,7 +24,7 @@ interface Props {
   clinicId: string | undefined;
 }
 
-// Vedant Review Checklist items — must all be checked before activation
+// Team Review Checklist items - must all be checked before activation
 const VEDANT_CHECKLIST = [
   { id: "voice_authentic", label: "Voice fingerprint sounds authentically like this clinic" },
   { id: "differentiator_validated", label: "Clinic differentiator is validated against reviews" },
@@ -299,12 +299,12 @@ export default function AdminDNAProfileCard({ clinicId }: Props) {
           </div>
         )}
 
-        {/* ─── Vedant Review Checklist ─── */}
+        {/* ─── Team Review Checklist ─── */}
         {isAdmin && !isActive && (
           <div className="space-y-3 pt-4 border-t border-border/50">
             <p className="text-sm font-semibold flex items-center gap-2">
               <CheckSquare className="h-4 w-4 text-emerald-600" />
-              Vedant Review Checklist
+              Team Review Checklist
             </p>
             <p className="text-xs text-muted-foreground">
               All items must be verified before activating this profile for content generation.
