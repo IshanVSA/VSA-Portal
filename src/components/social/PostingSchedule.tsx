@@ -79,7 +79,7 @@ export default function PostingSchedule({ clinicId }: Props) {
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Calendar className="h-4 w-4 text-primary" />
-            Posting Schedule — {format(now, "MMMM yyyy")}
+            Posting Schedule - {format(now, "MMMM yyyy")}
           </CardTitle>
           <div className="flex items-center gap-2">
             <Globe className="h-3.5 w-3.5 text-muted-foreground" />

@@ -135,7 +135,7 @@ export function ClusterManager() {
         <Card className="border-border/60">
           <CardHeader className="pb-2 pt-3 px-4">
             <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Solo Clusters — No Collision Risk ({soloClusters.length})
+              Solo Clusters - No Collision Risk ({soloClusters.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">

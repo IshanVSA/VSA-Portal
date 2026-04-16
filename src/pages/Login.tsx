@@ -29,7 +29,7 @@ export default function Login() {
 
   return (
     <div className="flex min-h-screen">
-      {/* Left panel — clean brand panel */}
+      {/* Left panel - clean brand panel */}
       <div className="hidden lg:flex lg:flex-1 relative items-center justify-center p-12 bg-[hsl(222,47%,6%)]">
         <div className="max-w-sm relative z-10">
           <img src={vsaLogo} alt="VSA Vet Media" className="h-14 w-14 rounded-2xl object-cover mb-8 shadow-2xl" />

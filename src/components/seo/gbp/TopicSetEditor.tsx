@@ -74,7 +74,7 @@ export function TopicSetEditor({ open, onOpenChange, topic, onSave, isSaving }: 
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs">Week 1 — What's New</Label>
+            <Label className="text-xs">Week 1 - What's New</Label>
             <Input
               value={form.week_1_topic}
               onChange={e => setForm(f => ({ ...f, week_1_topic: e.target.value }))}
@@ -84,7 +84,7 @@ export function TopicSetEditor({ open, onOpenChange, topic, onSave, isSaving }: 
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs font-medium">Week 2 — Products/Services Focus</Label>
+            <Label className="text-xs font-medium">Week 2 - Products/Services Focus</Label>
             <Input
               value={form.week_2_topic}
               onChange={e => setForm(f => ({ ...f, week_2_topic: e.target.value }))}
@@ -94,7 +94,7 @@ export function TopicSetEditor({ open, onOpenChange, topic, onSave, isSaving }: 
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs">Week 3 — What's New</Label>
+            <Label className="text-xs">Week 3 - What's New</Label>
             <Input
               value={form.week_3_topic}
               onChange={e => setForm(f => ({ ...f, week_3_topic: e.target.value }))}
@@ -104,7 +104,7 @@ export function TopicSetEditor({ open, onOpenChange, topic, onSave, isSaving }: 
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs">Week 4 — What's New</Label>
+            <Label className="text-xs">Week 4 - What's New</Label>
             <Input
               value={form.week_4_topic}
               onChange={e => setForm(f => ({ ...f, week_4_topic: e.target.value }))}

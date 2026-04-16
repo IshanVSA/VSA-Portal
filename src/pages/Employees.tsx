@@ -360,7 +360,7 @@ export default function Employees() {
         <Dialog open={!!editDialogUser} onOpenChange={(open) => { if (!open) setEditDialogUser(null); }}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Edit — {editDialogUser?.full_name || "Team Member"}</DialogTitle>
+              <DialogTitle>Edit - {editDialogUser?.full_name || "Team Member"}</DialogTitle>
               <DialogDescription>Update access level, team role, and clinic assignments.</DialogDescription>
             </DialogHeader>
             <div className="space-y-5 py-2">

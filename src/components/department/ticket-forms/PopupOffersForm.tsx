@@ -265,7 +265,7 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
         {verifying ? (
           <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Verifying…</>
         ) : verified ? (
-          <><ShieldCheck className="h-4 w-4 mr-1.5 text-primary" /> Verified — Re-verify</>
+          <><ShieldCheck className="h-4 w-4 mr-1.5 text-primary" /> Verified - Re-verify</>
         ) : (
           <><Shield className="h-4 w-4 mr-1.5" /> Verify Offer Compliance</>
         )}

@@ -509,7 +509,7 @@ export function SeoReportsTab({ clinicId }: Props) {
           {isLoading && <p className="text-xs text-muted-foreground mt-3">Loading data…</p>}
           {!isLoading && months.length === 0 && <p className="text-xs text-muted-foreground mt-3">No SEO data available. Use "Upload SEO Report" to add data.</p>}
           {hasExtended && (
-            <p className="text-xs text-success mt-3">✓ Extended data available — PDF will include all detailed sections.</p>
+            <p className="text-xs text-success mt-3">✓ Extended data available - PDF will include all detailed sections.</p>
           )}
         </CardContent>
       </Card>
@@ -519,7 +519,7 @@ export function SeoReportsTab({ clinicId }: Props) {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" /> Report Preview — {current.month}
+                <BarChart3 className="h-4 w-4" /> Report Preview - {current.month}
               </CardTitle>
               {prevMonth && <span className="text-[10px] text-muted-foreground">vs {prevMonth.month}</span>}
             </div>

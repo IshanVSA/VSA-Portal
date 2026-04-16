@@ -221,7 +221,7 @@ export default function PromotionModule({ clinicId, jurisdiction }: Props) {
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Calendar className="h-3 w-3" />
-                    {format(new Date(promo.start_date), "MMM d")} — {format(new Date(promo.end_date), "MMM d, yyyy")}
+                    {format(new Date(promo.start_date), "MMM d")} - {format(new Date(promo.end_date), "MMM d, yyyy")}
                   </div>
                   {promo.inclusions && <p className="text-xs text-foreground">{promo.inclusions}</p>}
                   {promo.exclusions && <p className="text-xs text-muted-foreground italic">Excl: {promo.exclusions}</p>}

@@ -113,7 +113,7 @@ export default function ContentCalendarContent({ clinicId: externalClinicId }: {
       const { addVSALogoToAllPages } = await import("@/lib/pdf-logo");
       const doc = new jsPDF({ orientation: "landscape" });
       const clinicName = clinics.find(c => c.id === selectedClinicId)?.clinic_name || "All Clinics";
-      doc.setFontSize(16); doc.text(`Content Calendar — ${clinicName}`, 14, 18);
+      doc.setFontSize(16); doc.text(`Content Calendar - ${clinicName}`, 14, 18);
       doc.setFontSize(10); doc.text(format(currentMonth, "MMMM yyyy"), 14, 25);
       autoTable(doc, { head: [data.headers], body: data.rows, startY: 30, styles: { fontSize: 7, cellPadding: 2 }, headStyles: { fillColor: [59, 130, 246] } });
       await addVSALogoToAllPages(doc);

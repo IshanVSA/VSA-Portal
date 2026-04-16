@@ -193,7 +193,7 @@ export default function BrandDNATab({ clinicId }: Props) {
         <>
           <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
             <Dna className="h-4 w-4" />
-            Layer 3 — Collection Call Answers
+            Layer 3 - Collection Call Answers
           </h3>
           <div className="grid gap-4 md:grid-cols-2">
             {Object.entries(QUESTION_LABELS).map(([key, label]) => (
@@ -254,7 +254,7 @@ function ImproveScoreChecklist({ profile }: { profile: Record<string, any> }) {
   if (improvable.length === 0) return null;
 
   const actionMap: Record<string, string> = {
-    voice_fingerprint: "Schedule a deeper collection call — ask the owner for specific phrases they repeat to clients",
+    voice_fingerprint: "Schedule a deeper collection call - ask the owner for specific phrases they repeat to clients",
     narrative_anchor: "Ask the owner to tell the founding story in their own words during the collection call",
     clinic_differentiator: "Run Review Mining to cross-validate the owner's stated differentiator",
     target_client: "Ask Q3 again with specifics: age, pet type, neighbourhood, income level",
@@ -266,7 +266,7 @@ function ImproveScoreChecklist({ profile }: { profile: Record<string, any> }) {
     stat_holiday: "Confirm statutory holiday hours protocol (Q10)",
     google_review_themes: "Run Review Mining to extract real client sentiment themes",
     doctors_voice_topic: "Ask the doctor: 'What myth do you bust every week?' (Q2)",
-    founding_story: "Get a richer founding story — when, why, personal motivation (Q4)",
+    founding_story: "Get a richer founding story - when, why, personal motivation (Q4)",
     founding_year: "Check website About page or ask during collection call",
     neighbourhood: "Run Locality Fetch to auto-populate neighbourhood data",
     cultural_communities: "Run Locality Fetch to detect nearby cultural communities",
@@ -287,7 +287,7 @@ function ImproveScoreChecklist({ profile }: { profile: Record<string, any> }) {
     <div className="rounded-lg border border-amber-300/40 bg-amber-50/20 p-4 space-y-3">
       <div className="flex items-center gap-2">
         <TrendingUp className="h-4 w-4 text-amber-600" />
-        <p className="text-sm font-semibold text-amber-800">Improve Your Score — Top Actions</p>
+        <p className="text-sm font-semibold text-amber-800">Improve Your Score - Top Actions</p>
         <Badge variant="outline" className="text-[10px] ml-auto border-amber-300 text-amber-700">
           +{improvable.reduce((sum: number, f: any) => sum + (f.weight - f.weighted_score), 0)} pts possible
         </Badge>
@@ -304,7 +304,7 @@ function ImproveScoreChecklist({ profile }: { profile: Record<string, any> }) {
               </div>
               <div>
                 <span className="font-medium text-foreground">{f.field.replace(/_/g, " ")}</span>
-                <span className="text-muted-foreground"> — {action}</span>
+                <span className="text-muted-foreground"> - {action}</span>
               </div>
             </div>
           );
@@ -473,7 +473,7 @@ function SynthesizedProfileCard({ profile }: { profile: Record<string, any> }) {
             <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Users className="h-3 w-3" /> Community Connections</p>
             <div className="flex flex-wrap gap-2">
               {profile.community_connections.map((c: any, i: number) => (
-                <Badge key={i} variant="outline" className="text-xs">{c.name}{c.relationship ? ` — ${c.relationship}` : ""}</Badge>
+                <Badge key={i} variant="outline" className="text-xs">{c.name}{c.relationship ? ` - ${c.relationship}` : ""}</Badge>
               ))}
             </div>
           </div>
@@ -571,7 +571,7 @@ function WebsiteExtractionCard({ data }: { data: Record<string, any> | undefined
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Globe className="h-4 w-4 text-primary" />
-            Layer 1 — Website Extraction
+            Layer 1 - Website Extraction
           </CardTitle>
           <div className="flex items-center gap-2">
             {data.confidence && (
@@ -694,7 +694,7 @@ function ReviewMiningCard({ data }: { data: Record<string, any> | undefined }) {
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Star className="h-4 w-4 text-amber-500" />
-            Layer 2 — Review Mining
+            Layer 2 - Review Mining
           </CardTitle>
           <div className="flex items-center gap-2">
             {data.confidence && (
@@ -821,7 +821,7 @@ function LocalityCard({ data }: { data: Record<string, any> | undefined }) {
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <MapPin className="h-4 w-4 text-emerald-600" />
-            Locality — Neighbourhood Profile
+            Locality - Neighbourhood Profile
           </CardTitle>
           <div className="flex items-center gap-2">
             {data.confidence && (
@@ -838,7 +838,7 @@ function LocalityCard({ data }: { data: Record<string, any> | undefined }) {
         </div>
         {data.neighbourhood && (
           <p className="text-xs text-muted-foreground mt-1">
-            {data.neighbourhood}{data.formatted_address ? ` — ${data.formatted_address}` : ""}
+            {data.neighbourhood}{data.formatted_address ? ` - ${data.formatted_address}` : ""}
           </p>
         )}
       </CardHeader>

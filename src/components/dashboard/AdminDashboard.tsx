@@ -207,7 +207,7 @@ export default function AdminDashboard() {
           <CardContent className="p-0">
             {ticketSummary.length === 0 ? (
               <div className="py-8 text-center">
-                <p className="text-sm text-muted-foreground">All clear — no open tickets</p>
+                <p className="text-sm text-muted-foreground">All clear - no open tickets</p>
               </div>
             ) : (
               <ul className="divide-y divide-border/40">

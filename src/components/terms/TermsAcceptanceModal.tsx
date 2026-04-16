@@ -83,7 +83,7 @@ export function TermsAcceptanceModal({ currentVersion }: Props) {
         <div className="p-6 pb-2 border-b">
           <h2 className="text-xl font-semibold">Privacy Policy & Terms of Use</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Version {currentVersion} — Please review and accept to continue.
+            Version {currentVersion} - Please review and accept to continue.
           </p>
         </div>
 
@@ -152,7 +152,7 @@ export function TermsAcceptanceModal({ currentVersion }: Props) {
 function TermsContent() {
   return (
     <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/90">
-      <h2 className="text-lg font-bold mt-0">PART ONE — Privacy Policy</h2>
+      <h2 className="text-lg font-bold mt-0">PART ONE - Privacy Policy</h2>
 
       <h3>1. Who We Are</h3>
       <p>VSA Vet Media Inc. ("VSA," "we," "us," or "our") is a veterinary-exclusive digital marketing agency incorporated under the laws of British Columbia, Canada, with its principal place of business in Vancouver, British Columbia. We provide digital marketing services exclusively to licensed veterinary practices and veterinary practice groups through our proprietary SaaS platform ("Platform").</p>
@@ -209,18 +209,18 @@ function TermsContent() {
       <p>Material amendments: 14 days notice. Non-material: 7 days notice. Legal/regulatory: effective immediately.</p>
 
       <h3>18. Contact</h3>
-      <p>VSA Vet Media Inc. — Privacy and Compliance Team, Vancouver, British Columbia, Canada. Email: privacy@vsavetmedia.ca</p>
+      <p>VSA Vet Media Inc. - Privacy and Compliance Team, Vancouver, British Columbia, Canada. Email: privacy@vsavetmedia.ca</p>
 
       <hr className="my-6" />
 
-      <h2 className="text-lg font-bold">PART TWO — Terms of Use</h2>
+      <h2 className="text-lg font-bold">PART TWO - Terms of Use</h2>
 
       <h3>1. Agreement and Acceptance</h3>
       <p>These Terms constitute a legally binding agreement between VSA and the Client. By accessing the Platform, the account holder confirms they have read and understood the Terms, are at least 19 years of age, and have authority to bind the Client.</p>
       <p><strong>ACCESS TO THE PLATFORM IS RESTRICTED EXCLUSIVELY TO CLIENTS WITH AN ACTIVE SERVICE RELATIONSHIP WITH VSA.</strong></p>
 
       <h3>2. Definitions</h3>
-      <p>Key definitions: "Active Subscription," "Compliance Checker," "Continuous Service Period," "Design Files," "Legacy Client," "New Client," "Platform," "Start Date," "VSA IP," and "Website" — as defined in the full Terms document.</p>
+      <p>Key definitions: "Active Subscription," "Compliance Checker," "Continuous Service Period," "Design Files," "Legacy Client," "New Client," "Platform," "Start Date," "VSA IP," and "Website" - as defined in the full Terms document.</p>
 
       <h3>3. Platform Access and Account</h3>
       <p>VSA grants a limited, non-exclusive, non-transferable, revocable right to access the Platform. The primary account holder is responsible for all account activity including staff users.</p>
@@ -229,7 +229,7 @@ function TermsContent() {
       <p>Deferred billing model with monthly invoicing. Late payment escalation: Day 15 overdue notice, Day 30 second notice, Day 45 formal suspension notice, Day 52 suspension, Day 90 termination. Interest: 1.5% per month. Billing disputes must be raised within 30 days.</p>
 
       <h3>5. Cancellation</h3>
-      <p>30-day written notice required. Tenure resets to zero upon cancellation — prior tenure does not carry forward.</p>
+      <p>30-day written notice required. Tenure resets to zero upon cancellation - prior tenure does not carry forward.</p>
 
       <h3>6. Content Delivery and Deemed Approval</h3>
       <p>5 business day review window. If no feedback received, content is deemed approved and VSA proceeds with publication.</p>
@@ -278,7 +278,7 @@ function TermsContent() {
 
       <hr className="my-6" />
 
-      <h2 className="text-lg font-bold">PART THREE — Intellectual Property</h2>
+      <h2 className="text-lg font-bold">PART THREE - Intellectual Property</h2>
 
       <h3>1. Platform Ownership</h3>
       <p>The Platform and all components are exclusive VSA IP. No rights transfer to the Client.</p>
@@ -286,7 +286,7 @@ function TermsContent() {
       <h3>2. Platform-Stored Content</h3>
       <p>All content created within the Platform remains VSA IP. No export rights upon termination.</p>
 
-      <h3>3. Website IP — Tiered Entitlement</h3>
+      <h3>3. Website IP - Tiered Entitlement</h3>
       <p><strong>Under 24 months:</strong> Zero transfer. <strong>24+ months:</strong> Design Files delivered upon written request. Source code, themes, plugins, and technical components are permanently excluded.</p>
 
       <h3>4–5. Legacy & New Client Provisions</h3>
@@ -299,7 +299,7 @@ function TermsContent() {
       <p>Published content remains on Client's channels. VSA retains IP rights in underlying systems and methodologies.</p>
 
       <p className="text-xs text-muted-foreground mt-8">
-        VSA Vet Media Inc. | Privacy Policy and Terms of Use | Version 1.0 | Effective Date: April 13, 2026 | Confidential — Authorized Clients Only
+        VSA Vet Media Inc. | Privacy Policy and Terms of Use | Version 1.0 | Effective Date: April 13, 2026 | Confidential - Authorized Clients Only
       </p>
     </div>
   );

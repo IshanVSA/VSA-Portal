@@ -2,7 +2,7 @@ export default function TermsOfService() {
   return (
     <div className="min-h-screen bg-background text-foreground px-6 py-12 max-w-3xl mx-auto">
       <h1 className="text-3xl font-bold mb-1">Terms of Use</h1>
-      <p className="text-sm text-muted-foreground mb-8">Version 1.0 — Effective Date: April 13, 2026</p>
+      <p className="text-sm text-muted-foreground mb-8">Version 1.0 - Effective Date: April 13, 2026</p>
 
       <div className="space-y-6 text-sm leading-relaxed text-foreground/90">
 
@@ -25,7 +25,7 @@ export default function TermsOfService() {
           <p><strong>"Active Subscription"</strong> means the period during which the Client has an active service relationship and is in good standing with payment obligations.</p>
           <p className="mt-2"><strong>"Compliance Checker"</strong> means the AI-assisted regulatory compliance tool within the Platform.</p>
           <p className="mt-2"><strong>"Continuous Service Period"</strong> means the uninterrupted duration of the Client's Active Subscription as determined by VSA's billing records. A break resets the period to zero.</p>
-          <p className="mt-2"><strong>"Design Files"</strong> means visual design source files (Figma files, exported assets, mockups, brand guides) — excluding source code, themes, plugins, and technical components.</p>
+          <p className="mt-2"><strong>"Design Files"</strong> means visual design source files (Figma files, exported assets, mockups, brand guides) - excluding source code, themes, plugins, and technical components.</p>
           <p className="mt-2"><strong>"Legacy Client"</strong> means any Client with an active service relationship prior to Platform launch.</p>
           <p className="mt-2"><strong>"New Client"</strong> means any Client whose first service relationship commenced on or after Platform launch.</p>
           <p className="mt-2"><strong>"Platform"</strong> means VSA's proprietary SaaS application at portal.vsavetmedia.com.</p>
@@ -86,7 +86,7 @@ export default function TermsOfService() {
           <p><strong>6.1</strong> VSA delivers content on a scheduled basis. All AI-generated content is reviewed by VSA's editorial team.</p>
           <p className="mt-2"><strong>6.2</strong> Client has 5 business days to review and submit feedback.</p>
           <p className="mt-2"><strong>6.3</strong> If no feedback received within 5 business days, content is deemed approved and VSA proceeds with publication.</p>
-          <p className="mt-2"><strong>6.4</strong> Client modifications after delivery — VSA bears no responsibility for consequences of Client-side modifications.</p>
+          <p className="mt-2"><strong>6.4</strong> Client modifications after delivery - VSA bears no responsibility for consequences of Client-side modifications.</p>
         </section>
 
         <section>
@@ -192,7 +192,7 @@ export default function TermsOfService() {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold mb-2">3. Website IP — Tiered Entitlement</h2>
+          <h2 className="text-lg font-semibold mb-2">3. Website IP - Tiered Entitlement</h2>
           <div className="overflow-x-auto mt-2">
             <table className="w-full text-sm border-collapse border border-border">
               <thead><tr className="bg-muted"><th className="border border-border px-3 py-2 text-left">Continuous Service Period</th><th className="border border-border px-3 py-2 text-left">Client Entitlement Upon Termination</th></tr></thead>
@@ -226,7 +226,7 @@ export default function TermsOfService() {
         </section>
 
         <p className="text-xs text-muted-foreground mt-8 pt-4 border-t">
-          VSA Vet Media Inc. | Terms of Use | Version 1.0 | Effective Date: April 13, 2026 | Confidential — Authorized Clients Only
+          VSA Vet Media Inc. | Terms of Use | Version 1.0 | Effective Date: April 13, 2026 | Confidential - Authorized Clients Only
         </p>
       </div>
     </div>

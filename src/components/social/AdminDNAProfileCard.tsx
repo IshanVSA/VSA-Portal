@@ -105,7 +105,7 @@ export default function AdminDNAProfileCard({ clinicId }: Props) {
         .eq("clinic_id", clinicId);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["brand-dna", clinicId] });
-      toast.success("Profile activated — content generation is now enabled");
+      toast.success("Profile activated - content generation is now enabled");
     } catch (e: any) {
       toast.error("Activation failed", { description: e.message });
     } finally {
@@ -185,7 +185,7 @@ export default function AdminDNAProfileCard({ clinicId }: Props) {
           />
         </div>
 
-        {/* AUTO fields — read-only for concierge */}
+        {/* AUTO fields - read-only for concierge */}
         <div className="grid gap-4 md:grid-cols-3">
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
@@ -211,9 +211,9 @@ export default function AdminDNAProfileCard({ clinicId }: Props) {
               <Select value={editFields.hospital_type} onValueChange={(v) => setEditFields((p) => ({ ...p, hospital_type: v }))}>
                 <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="TYPE_1">TYPE 1 — 24/7 Emergency</SelectItem>
-                  <SelectItem value="TYPE_2">TYPE 2 — Extended Hours</SelectItem>
-                  <SelectItem value="TYPE_3">TYPE 3 — General Practice</SelectItem>
+                  <SelectItem value="TYPE_1">TYPE 1 - 24/7 Emergency</SelectItem>
+                  <SelectItem value="TYPE_2">TYPE 2 - Extended Hours</SelectItem>
+                  <SelectItem value="TYPE_3">TYPE 3 - General Practice</SelectItem>
                 </SelectContent>
               </Select>
             ) : (

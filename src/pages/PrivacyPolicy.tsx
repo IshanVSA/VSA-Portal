@@ -2,7 +2,7 @@ export default function PrivacyPolicy() {
   return (
     <div className="min-h-screen bg-background text-foreground px-6 py-12 max-w-3xl mx-auto">
       <h1 className="text-3xl font-bold mb-1">Privacy Policy</h1>
-      <p className="text-sm text-muted-foreground mb-8">Version 1.0 — Effective Date: April 13, 2026</p>
+      <p className="text-sm text-muted-foreground mb-8">Version 1.0 - Effective Date: April 13, 2026</p>
 
       <div className="space-y-6 text-sm leading-relaxed text-foreground/90">
 
@@ -18,9 +18,9 @@ export default function PrivacyPolicy() {
           <p className="mt-2">This Policy does not govern the independent data practices of third-party platforms and services integrated into or connected to the Platform.</p>
           <h3 className="font-semibold mt-3 mb-1">Governing Privacy Frameworks</h3>
           <ul className="list-disc ml-6 space-y-1">
-            <li>Personal Information Protection and Electronic Documents Act (PIPEDA) — Federal Canada</li>
-            <li>Personal Information Protection Act (PIPA) — British Columbia</li>
-            <li>California Consumer Privacy Act as amended by the California Privacy Rights Act (CCPA/CPRA) — California</li>
+            <li>Personal Information Protection and Electronic Documents Act (PIPEDA) - Federal Canada</li>
+            <li>Personal Information Protection Act (PIPA) - British Columbia</li>
+            <li>California Consumer Privacy Act as amended by the California Privacy Rights Act (CCPA/CPRA) - California</li>
             <li>Applicable privacy statutes in all other US states where Clients operate</li>
           </ul>
         </section>
@@ -77,7 +77,7 @@ export default function PrivacyPolicy() {
 
           <h3 className="font-semibold mt-3 mb-1">5.3 Limitations and Client Responsibility</h3>
           <ul className="list-disc ml-6 space-y-1">
-            <li>AI-generated content is an assistive tool — not a guarantee of compliance</li>
+            <li>AI-generated content is an assistive tool - not a guarantee of compliance</li>
             <li>All content is subject to human review by VSA's editorial team</li>
             <li>AI-generated content does not constitute legal or regulatory advice</li>
             <li>Final compliance responsibility rests solely with the Client</li>
@@ -137,8 +137,8 @@ export default function PrivacyPolicy() {
 
         <section>
           <h2 className="text-lg font-semibold mb-2">13. Team Member Information and Removal</h2>
-          <p><strong>Pathway One — Clinic Request:</strong> Submit through the Platform dashboard. Actioned within 5 business days.</p>
-          <p className="mt-2"><strong>Pathway Two — Individual Request:</strong> Contact privacy@vsavetmedia.ca directly. Actioned within 5 business days regardless of clinic authorization.</p>
+          <p><strong>Pathway One - Clinic Request:</strong> Submit through the Platform dashboard. Actioned within 5 business days.</p>
+          <p className="mt-2"><strong>Pathway Two - Individual Request:</strong> Contact privacy@vsavetmedia.ca directly. Actioned within 5 business days regardless of clinic authorization.</p>
         </section>
 
         <section>
@@ -178,7 +178,7 @@ export default function PrivacyPolicy() {
         </section>
 
         <p className="text-xs text-muted-foreground mt-8 pt-4 border-t">
-          VSA Vet Media Inc. | Privacy Policy | Version 1.0 | Effective Date: April 13, 2026 | Confidential — Authorized Clients Only
+          VSA Vet Media Inc. | Privacy Policy | Version 1.0 | Effective Date: April 13, 2026 | Confidential - Authorized Clients Only
         </p>
       </div>
     </div>

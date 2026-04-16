@@ -122,7 +122,7 @@ export function useBrandDNA(clinicId: string | undefined) {
         toast.info("Review mining skipped", { description: data.reason });
       } else {
         toast.success("Review mining complete", {
-          description: `Analyzed ${data?.extracted?.review_count || 0} reviews — ${data?.extracted?.confidence || "unknown"} confidence`,
+          description: `Analyzed ${data?.extracted?.review_count || 0} reviews - ${data?.extracted?.confidence || "unknown"} confidence`,
         });
       }
     },
@@ -167,7 +167,7 @@ export function useBrandDNA(clinicId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["brand-dna", clinicId] });
       const locality = data?.locality || data;
       toast.success("Locality fetch complete", {
-        description: `Neighbourhood: ${locality?.neighbourhood || "unknown"} — ${locality?.confidence || "unknown"} confidence`,
+        description: `Neighbourhood: ${locality?.neighbourhood || "unknown"} - ${locality?.confidence || "unknown"} confidence`,
       });
     },
     onError: (error: Error) => {

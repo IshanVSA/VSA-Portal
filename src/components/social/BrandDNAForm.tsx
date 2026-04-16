@@ -14,7 +14,7 @@ const QUESTIONS = [
   {
     key: "q1_differentiator",
     title: "Real Differentiator",
-    question: "What does your clinic do that no one else in your area does — or does as well? What would a loyal client say if asked why they drive past other clinics to get to yours?",
+    question: "What does your clinic do that no one else in your area does - or does as well? What would a loyal client say if asked why they drive past other clinics to get to yours?",
     helper: "Think about specific things: a special piece of equipment, a unique service, how you handle emergencies, your communication style, follow-up calls, etc.",
     type: "textarea" as const,
   },
@@ -43,12 +43,12 @@ const QUESTIONS = [
     key: "q5_owner_presence",
     title: "Owner Presence",
     question: "How involved should the owner/lead vet be in social media content?",
-    helper: "This affects how we frame posts — whether the owner's name, face, and quotes appear in content.",
+    helper: "This affects how we frame posts - whether the owner's name, face, and quotes appear in content.",
     type: "radio" as const,
     options: [
-      { value: "featured", label: "Featured — Name, face, and quotes in content" },
-      { value: "behind_scenes", label: "Behind the scenes — Referenced but not front-facing" },
-      { value: "anonymous", label: "Anonymous — Clinic brand only, no personal branding" },
+      { value: "featured", label: "Featured - Name, face, and quotes in content" },
+      { value: "behind_scenes", label: "Behind the scenes - Referenced but not front-facing" },
+      { value: "anonymous", label: "Anonymous - Clinic brand only, no personal branding" },
     ],
   },
   {
@@ -79,9 +79,9 @@ const QUESTIONS = [
     helper: "Real patient photos dramatically increase engagement vs. stock photos.",
     type: "radio" as const,
     options: [
-      { value: "yes_always", label: "Yes — We have blanket consent from most clients" },
-      { value: "conditional", label: "Conditional — Need to ask each time" },
-      { value: "no", label: "No — Use stock photos or illustrations only" },
+      { value: "yes_always", label: "Yes - We have blanket consent from most clients" },
+      { value: "conditional", label: "Conditional - Need to ask each time" },
+      { value: "no", label: "No - Use stock photos or illustrations only" },
     ],
   },
   {

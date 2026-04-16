@@ -115,7 +115,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-semibold">Content Generation</h2>
-          <p className="text-xs text-muted-foreground">SM2 v2.1 — 8-Agent Pipeline &middot; {monthLabel}</p>
+          <p className="text-xs text-muted-foreground">SM2 v2.1 - 8-Agent Pipeline &middot; {monthLabel}</p>
         </div>
         <div className="flex gap-2">
           {currentGeneration?.html_file_path && (
@@ -132,7 +132,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
             </DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader>
-                <DialogTitle>Pre-Generation Setup — {monthLabel}</DialogTitle>
+                <DialogTitle>Pre-Generation Setup - {monthLabel}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-2">
                 {/* DNA Score */}

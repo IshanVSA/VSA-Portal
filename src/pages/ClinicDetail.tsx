@@ -400,7 +400,7 @@ export default function ClinicDetail() {
 
           <TabsContent value="instagram" className="space-y-4 mt-4">
             {instaData.length === 0 ? (
-              <EmptyState message="No Instagram data yet — connect your account and sync from the Connections tab." />
+              <EmptyState message="No Instagram data yet - connect your account and sync from the Connections tab." />
             ) : (
               <>
                 {/* Insight Cards Grid */}
@@ -476,7 +476,7 @@ export default function ClinicDetail() {
 
           <TabsContent value="facebook" className="space-y-4 mt-4">
             {fbData.length === 0 ? (
-              <EmptyState message="No Facebook data yet — connect your account and sync from the Connections tab." />
+              <EmptyState message="No Facebook data yet - connect your account and sync from the Connections tab." />
             ) : (
               <>
                 {/* Insight Cards Grid */}
@@ -586,7 +586,7 @@ export default function ClinicDetail() {
 
           <TabsContent value="google" className="space-y-4 mt-4">
             {googleAdsData.length === 0 ? (
-              <EmptyState message="No Google Ads data yet — connect your account and sync from the Connections tab." />
+              <EmptyState message="No Google Ads data yet - connect your account and sync from the Connections tab." />
             ) : (
               <>
                 {/* KPI Cards */}

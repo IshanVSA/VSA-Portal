@@ -54,7 +54,7 @@ const AUTO_TITLES: Record<string, string> = {
   "Add/Remove Team Members": "Team Member Update Request",
   "New Forms": "New Form Request",
   "Price List Updates": "Price List Update Request",
-  "Emergency": "Emergency — Website Issue",
+  "Emergency": "Emergency - Website Issue",
   "Dashboard Access": "Dashboard Access Request",
   "Analytics Review": "Analytics Review Request",
   "Monthly Performance Report": "Monthly Performance Report Request",
@@ -290,7 +290,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle>New Ticket — {ticketType ? getTicketTypeLabel(ticketType) : "Select Type"}</DialogTitle>
+              <DialogTitle>New Ticket - {ticketType ? getTicketTypeLabel(ticketType) : "Select Type"}</DialogTitle>
               <DialogDescription>Create a new support ticket for this department.</DialogDescription>
             </DialogHeader>
 

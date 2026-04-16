@@ -155,10 +155,10 @@ export function BatchQueue({ clinicId }: BatchQueueProps) {
                           Batch #{batch.batch_number}
                           {batch.cluster_id && (
                             <span className="font-normal text-muted-foreground ml-1.5">
-                              — {clusterNames[batch.cluster_id] || batch.cluster_id}
+                              - {clusterNames[batch.cluster_id] || batch.cluster_id}
                             </span>
                           )}
-                          {!batch.cluster_id && <span className="font-normal text-muted-foreground ml-1.5">— Solo</span>}
+                          {!batch.cluster_id && <span className="font-normal text-muted-foreground ml-1.5">- Solo</span>}
                         </CardTitle>
                         <Badge variant="outline" className={`text-[10px] ${statusColors[batch.status || "queued"]}`}>
                           {(batch.status || "queued").replace("_", " ")}

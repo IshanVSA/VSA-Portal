@@ -314,7 +314,7 @@ export default function Clinics() {
       if (extractedFieldCount >= 4) {
         toast.success(`Clinic details extracted${extracted.source_urls?.length ? ` from ${extracted.source_urls.length} pages` : ""}`);
       } else {
-        toast("Partial details extracted — please review before saving");
+        toast("Partial details extracted - please review before saving");
       }
     } catch (invokeError) {
       toast.error(invokeError instanceof Error ? invokeError.message : "Failed to extract clinic details");

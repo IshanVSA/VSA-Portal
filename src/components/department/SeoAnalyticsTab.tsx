@@ -660,7 +660,7 @@ export function SeoAnalyticsTab({ clinicId }: Props) {
       {keywords.length > 0 && (
         <Card className="border-border/60">
           <CardHeader className="pb-2">
-            <SectionTitle icon={Target} title={`Top Keywords — ${activeMonth}`} badge={`${keywords.length} keywords`} />
+            <SectionTitle icon={Target} title={`Top Keywords - ${activeMonth}`} badge={`${keywords.length} keywords`} />
           </CardHeader>
           <CardContent className="p-0">
             <Table>
