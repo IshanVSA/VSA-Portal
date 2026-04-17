@@ -20,7 +20,7 @@ import { useBrandDNA } from "@/hooks/useBrandDNA";
 import { BrandDNAForm } from "@/components/social/BrandDNAForm";
 
 
-const ContentCalendarContent = lazy(() => import("@/components/social/ContentCalendarContent"));
+const PromotionModule = lazy(() => import("@/components/social/PromotionModule"));
 
 const AnalyticsContent = lazy(() => import("@/components/social/AnalyticsContent"));
 const BrandDNATab = lazy(() => import("@/components/social/BrandDNATab"));
