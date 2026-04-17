@@ -70,8 +70,18 @@ export default function SocialMedia() {
   const showDNAGate = isClient && !dnaLoading && !dnaCompleted && !isLocked;
 
   const visibleTabs = isClient
-    ? [...baseTabs.filter(t => ["overview", "tickets"].includes(t.value)), contentReviewTab, themeSlidersTab]
-    : [...baseTabs, generationTab, gbpPostsTab, dnaTab, themeSlidersTab, ...(isStaff ? [chatTab] : [])];
+    ? [
+        baseTabs.find(t => t.value === "overview")!,
+        baseTabs.find(t => t.value === "tickets")!,
+        baseTabs.find(t => t.value === "promotions")!,
+        baseTabs.find(t => t.value === "analytics")!,
+        baseTabs.find(t => t.value === "uploads")!,
+        gbpPostsTab,
+        dnaTab,
+        themeSlidersTab,
+        metaAdsTab,
+      ]
+    : [...baseTabs, generationTab, gbpPostsTab, dnaTab, themeSlidersTab, metaAdsTab, ...(isStaff ? [chatTab] : [])];
 
   const handleTabChange = (value: string) => {
     setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", value); return next; }, { replace: true });
