@@ -18,6 +18,11 @@ export const TICKET_VISIBILITY: Record<string, string[]> = {
   "Call Volume Issues": ["google_ads"],
   "Wrong Call Tracking": ["google_ads"],
   "Campaign Adjustments": ["google_ads"],
+  "Content Request": ["social_media"],
+  "Client Visit": ["social_media"],
+  "Bulk Uploads": ["social_media"],
+  "Special Promotion": ["social_media"],
+  "Boost": ["social_media"],
 };
 
 const DEPARTMENT_LABELS: Record<string, string> = {

@@ -6,7 +6,7 @@ import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatsCard } from "@/components/StatsCard";
-import { FileCheck, CalendarDays, BarChart3, Building2, Users, CheckCircle2, Clock, Sparkles, Inbox, AlertTriangle, Ticket, Megaphone, MapPin } from "lucide-react";
+import { FileCheck, CalendarDays, BarChart3, Building2, Users, CheckCircle2, Clock, Sparkles, Inbox, AlertTriangle, Ticket, Megaphone, MapPin, FileText, PawPrint, UploadCloud, Tag, Rocket } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { format, subDays, startOfDay } from "date-fns";
@@ -35,9 +35,12 @@ const statusLabels: Record<string, string> = {
   final_approved: "Completed",
 };
 
-const socialServices = [
-  "Content Creation", "Post Scheduling", "Engagement Management",
-  "Analytics Review", "Campaign Strategy", "Others",
+const QUICK_ACTIONS: { type: string; title: string; helper: string; icon: typeof FileText; color: string }[] = [
+  { type: "Content Request",   title: "Content Request",   helper: "Request a custom post or campaign",      icon: FileText,    color: "text-blue-500 bg-blue-500/10" },
+  { type: "Client Visit",      title: "Client Visit",      helper: "Share a recent visit worth featuring",   icon: PawPrint,    color: "text-emerald-500 bg-emerald-500/10" },
+  { type: "Bulk Uploads",      title: "Bulk Uploads",      helper: "Upload up to 20 photos or files at once", icon: UploadCloud, color: "text-amber-500 bg-amber-500/10" },
+  { type: "Special Promotion", title: "Special Promotion", helper: "Launch a time-bound offer",              icon: Tag,         color: "text-violet-500 bg-violet-500/10" },
+  { type: "Boost",             title: "Boost",             helper: "Spotlight a service that needs traction", icon: Rocket,      color: "text-rose-500 bg-rose-500/10" },
 ];
 
 export function SocialOverview({ clinicId }: { clinicId?: string }) {
@@ -50,7 +53,7 @@ export function SocialOverview({ clinicId }: { clinicId?: string }) {
   const [weeklyData, setWeeklyData] = useState<{ day: string; posts: number }[]>([]);
   const { team: departmentTeam } = useDepartmentTeam("social_media", clinicId);
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
-  const [prefilledService, setPrefilledService] = useState("");
+  const [activeQuickAction, setActiveQuickAction] = useState<string>("");
   const [requestSummary, setRequestSummary] = useState<RequestSummary>({
     generated: 0, concierge_preferred: 0, admin_approved: 0, client_selected: 0, final_approved: 0,
   });
@@ -243,25 +246,32 @@ export function SocialOverview({ clinicId }: { clinicId?: string }) {
         </Card>
       )}
 
-      {/* Services */}
+      {/* Quick Actions */}
       <Card className="overflow-hidden animate-fade-in" style={{ animationDelay: "160ms", animationFillMode: "both" }}>
         <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
-          <CardTitle className="text-base">Services</CardTitle>
+          <CardTitle className="text-base">Quick Actions</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
-          <div className="flex flex-wrap gap-2">
-            {socialServices.map(s => (
-              <Badge
-                key={s}
-                variant="secondary"
-                className="text-xs font-medium px-3 py-1.5 cursor-pointer hover:bg-primary/10 hover:text-primary transition-colors"
-                onClick={() => { setPrefilledService(s); setTicketDialogOpen(true); }}
-              >
-                {s}
-              </Badge>
-            ))}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {QUICK_ACTIONS.map(action => {
+              const Icon = action.icon;
+              return (
+                <button
+                  key={action.type}
+                  onClick={() => { setActiveQuickAction(action.type); setTicketDialogOpen(true); }}
+                  className="group flex flex-col items-start gap-2 p-3 rounded-lg border border-border/60 bg-card hover:border-primary/40 hover:bg-muted/30 hover:shadow-sm transition-all text-left"
+                >
+                  <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${action.color}`}>
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 w-full">
+                    <p className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">{action.title}</p>
+                    <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">{action.helper}</p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
-          <p className="text-[11px] text-muted-foreground mt-3">Click a service to create a ticket</p>
         </CardContent>
       </Card>
 
@@ -269,9 +279,10 @@ export function SocialOverview({ clinicId }: { clinicId?: string }) {
         open={ticketDialogOpen}
         onOpenChange={setTicketDialogOpen}
         department="social_media"
-        services={socialServices}
+        services={QUICK_ACTIONS.map(a => a.type)}
         onCreated={() => {}}
-        defaultType={prefilledService}
+        defaultType={activeQuickAction}
+        clinicId={clinicId}
       />
 
       {/* Charts + Panels Row */}

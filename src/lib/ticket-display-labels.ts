@@ -11,6 +11,11 @@ const DISPLAY_TO_TICKET_TYPE: Record<string, string> = {
   "SEO Thread Update": "SEO Thread Updates",
   "Call Volume Issue": "Call Volume Issues",
   "Campaign Adjustment": "Campaign Adjustments",
+  "Content Request": "Content Request",
+  "Client Visit": "Client Visit",
+  "Bulk Upload": "Bulk Uploads",
+  "Special Promotion": "Special Promotion",
+  "Boost": "Boost",
 };
 
 const TICKET_TYPE_TO_DISPLAY: Record<string, string> = Object.fromEntries(

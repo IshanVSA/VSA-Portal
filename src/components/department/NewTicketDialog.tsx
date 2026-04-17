@@ -27,6 +27,11 @@ import { MonthlyReportForm } from "./ticket-forms/MonthlyReportForm";
 import { CallVolumeIssuesForm } from "./ticket-forms/CallVolumeIssuesForm";
 import { WrongCallTrackingForm } from "./ticket-forms/WrongCallTrackingForm";
 import { CampaignAdjustmentsForm } from "./ticket-forms/CampaignAdjustmentsForm";
+import { ContentRequestForm } from "./ticket-forms/ContentRequestForm";
+import { ClientVisitForm } from "./ticket-forms/ClientVisitForm";
+import { SpecialPromotionForm } from "./ticket-forms/SpecialPromotionForm";
+import { BoostForm } from "./ticket-forms/BoostForm";
+import { BulkUploadsForm } from "./ticket-forms/BulkUploadsForm";
 
 interface NewTicketDialogProps {
   open: boolean;
@@ -44,6 +49,7 @@ const CUSTOM_FORM_TYPES = [
   "Add/Remove Team Members", "New Forms", "Price List Updates", "Emergency",
   "Dashboard Access", "Analytics Review", "Monthly Performance Report",
   "Call Volume Issues", "Wrong Call Tracking", "Campaign Adjustments",
+  "Content Request", "Client Visit", "Bulk Uploads", "Special Promotion", "Boost",
 ];
 
 const AUTO_TITLES: Record<string, string> = {
@@ -61,6 +67,11 @@ const AUTO_TITLES: Record<string, string> = {
   "Call Volume Issues": "Call Volume Issue Report",
   "Wrong Call Tracking": "Wrong Call Tracking Report",
   "Campaign Adjustments": "Campaign Adjustment Request",
+  "Content Request": "Content Request",
+  "Client Visit": "Client Visit",
+  "Bulk Uploads": "Bulk Uploads",
+  "Special Promotion": "Special Promotion Request",
+  "Boost": "Boost Request",
 };
 
 export function NewTicketDialog({ open, onOpenChange, department, services, onCreated, defaultType = "", clinicId }: NewTicketDialogProps) {
@@ -239,6 +250,16 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
         return <WrongCallTrackingForm onChange={handleCustomFormChange} />;
       case "Campaign Adjustments":
         return <CampaignAdjustmentsForm onChange={handleCustomFormChange} />;
+      case "Content Request":
+        return <ContentRequestForm onChange={handleCustomFormChange} />;
+      case "Client Visit":
+        return <ClientVisitForm onChange={handleCustomFormChange} />;
+      case "Special Promotion":
+        return <SpecialPromotionForm onChange={handleCustomFormChange} />;
+      case "Boost":
+        return <BoostForm onChange={handleCustomFormChange} />;
+      case "Bulk Uploads":
+        return <BulkUploadsForm onChange={handleCustomFormChange} files={files} onFilesChange={setFiles} />;
       default:
         return null;
     }
@@ -325,14 +346,14 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
                 </div>
               )}
 
-              {ticketType !== "Pop-up Offers" && (
+              {ticketType !== "Pop-up Offers" && !["Content Request","Client Visit","Special Promotion","Boost","Bulk Uploads"].includes(ticketType) && (
                 <div className="space-y-1.5">
                   <Label htmlFor="ticket-notes">{ticketType === "Add/Remove Team Members" ? "Bio" : "Notes"}</Label>
                   <Textarea id="ticket-notes" placeholder={ticketType === "Add/Remove Team Members" ? "Short bio for the team member..." : "Additional notes..."} value={notes} onChange={e => setNotes(e.target.value)} rows={2} maxLength={1000} />
                 </div>
               )}
 
-              {ticketType !== "Time Changes" && ticketType !== "Pop-up Offers" && ticketType !== "New Forms" && (
+              {ticketType !== "Time Changes" && ticketType !== "Pop-up Offers" && ticketType !== "New Forms" && ticketType !== "Bulk Uploads" && (
                 <FileUploader files={files} onFilesChange={setFiles} label={ticketType === "Price List Updates" ? "Upload your price list doc" : "Attachments"} />
               )}
 

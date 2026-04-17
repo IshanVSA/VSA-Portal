@@ -6,6 +6,7 @@ import { formatDistanceToNow, format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { moveBulkUploadsToDepartmentFolder } from "@/lib/ticket-bulk-uploads";
 
 interface TeamMemberOption {
   id: string;
@@ -59,6 +60,7 @@ const statusBorder: Record<string, string> = {
 
 export function TicketTableView({ tickets, teamMembers, onUpdated }: TicketTableViewProps) {
   const handleStatusChange = async (ticketId: string, newStatus: string) => {
+    const ticket = tickets.find(t => t.id === ticketId);
     const { error } = await supabase
       .from("department_tickets" as any)
       .update({ status: newStatus } as any)
@@ -66,6 +68,9 @@ export function TicketTableView({ tickets, teamMembers, onUpdated }: TicketTable
     if (error) {
       toast.error("Failed to update status");
     } else {
+      if (newStatus === "completed" && ticket?.ticket_type === "Bulk Uploads") {
+        await moveBulkUploadsToDepartmentFolder(ticketId, ticket.department);
+      }
       toast.success(`Status updated`);
       onUpdated();
     }
