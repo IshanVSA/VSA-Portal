@@ -43,7 +43,7 @@ const baseTabs = [
   { value: "calendar", label: "Calendar", icon: CalendarDays },
   
   { value: "analytics", label: "Analytics", icon: BarChart3 },
-  { value: "uploads", label: "Uploads", icon: Upload },
+  { value: "uploads", label: "Files", icon: Upload },
 ];
 const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
 const dnaTab = { value: "brand-dna", label: "Brand DNA", icon: Dna };

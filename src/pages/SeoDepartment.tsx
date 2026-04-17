@@ -37,7 +37,7 @@ const commonTabs = [
   { value: "analytics", label: "Analytics", icon: BarChart3 },
   { value: "reports", label: "Reports", icon: FileText },
   
-  { value: "uploads", label: "Uploads", icon: Upload },
+  { value: "uploads", label: "Files", icon: Upload },
 ];
 const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
 const blogTab = { value: "blog", label: "Blog", icon: BookOpen };
