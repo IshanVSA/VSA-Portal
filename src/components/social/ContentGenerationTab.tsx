@@ -361,7 +361,9 @@ export default function ContentGenerationTab({ clinicId }: Props) {
 
 function StatusBadge({ status }: { status: string }) {
   const config: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive"; icon: typeof CheckCircle }> = {
-    processing: { label: "Pipeline Running...", variant: "secondary", icon: RefreshCw },
+    queued: { label: "Queued", variant: "secondary", icon: Clock },
+    processing: { label: "Pipeline Running", variant: "secondary", icon: RefreshCw },
+    retrying: { label: "Retrying", variant: "secondary", icon: RefreshCw },
     pending: { label: "Pending Review", variant: "outline", icon: Clock },
     sent_to_client: { label: "Sent to Client", variant: "secondary", icon: Send },
     approved_client: { label: "Client Approved", variant: "default", icon: CheckCircle },
@@ -371,9 +373,10 @@ function StatusBadge({ status }: { status: string }) {
     rejected: { label: "Rejected", variant: "destructive", icon: AlertTriangle },
   };
   const c = config[status] || config.pending;
+  const isSpinning = status === "processing" || status === "retrying";
   return (
     <Badge variant={c.variant} className="text-[10px] gap-1">
-      <c.icon className="h-3 w-3" />
+      <c.icon className={`h-3 w-3 ${isSpinning ? "animate-spin" : ""}`} />
       {c.label}
     </Badge>
   );
