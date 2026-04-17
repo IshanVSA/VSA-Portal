@@ -24,7 +24,7 @@ const baseTabs = [
   { value: "tickets", label: "Tickets", icon: Ticket },
   { value: "analytics", label: "Analytics", icon: BarChart3 },
   { value: "reports", label: "Reports", icon: FileText },
-  { value: "uploads", label: "Uploads", icon: Upload },
+  { value: "uploads", label: "Files", icon: Upload },
 ];
 
 const healthTab = { value: "health", label: "Health", icon: HeartPulse };
