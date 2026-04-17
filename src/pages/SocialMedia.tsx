@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Share2, LayoutDashboard, CalendarDays, BarChart3, Ticket, Upload, MessageSquare, Dna, Sparkles, Eye, SlidersHorizontal, MapPin } from "lucide-react";
+import { Share2, LayoutDashboard, BarChart3, Ticket, Upload, MessageSquare, Dna, Sparkles, Eye, SlidersHorizontal, MapPin, Tag } from "lucide-react";
 import { GBPPostsTab } from "@/components/seo/gbp/GBPPostsTab";
 import { SocialOverview } from "@/components/social/SocialOverview";
 import { lazy, Suspense } from "react";
@@ -20,7 +20,7 @@ import { useBrandDNA } from "@/hooks/useBrandDNA";
 import { BrandDNAForm } from "@/components/social/BrandDNAForm";
 
 
-const ContentCalendarContent = lazy(() => import("@/components/social/ContentCalendarContent"));
+const PromotionModule = lazy(() => import("@/components/social/PromotionModule"));
 
 const AnalyticsContent = lazy(() => import("@/components/social/AnalyticsContent"));
 const BrandDNATab = lazy(() => import("@/components/social/BrandDNATab"));
@@ -40,7 +40,7 @@ const baseTabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
   
   { value: "tickets", label: "Tickets", icon: Ticket },
-  { value: "calendar", label: "Calendar", icon: CalendarDays },
+  { value: "promotions", label: "Active Promotions", icon: Tag },
   
   { value: "analytics", label: "Analytics", icon: BarChart3 },
   { value: "uploads", label: "Files", icon: Upload },
@@ -134,7 +134,7 @@ export default function SocialMedia() {
                 <TabsContent value="tickets" className="mt-4"><TicketsTab department="social_media" services={socialServices} clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="content-review" className="mt-4"><Suspense fallback={<TabFallback />}><ClientContentReview clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="preferences" className="mt-4"><Suspense fallback={<TabFallback />}><ContentThemeSliders clinicId={selectedClinicId} /></Suspense></TabsContent>
-                <TabsContent value="calendar" className="mt-4"><Suspense fallback={<TabFallback />}><ContentCalendarContent clinicId={selectedClinicId} /></Suspense></TabsContent>
+                <TabsContent value="promotions" className="mt-4"><Suspense fallback={<TabFallback />}><PromotionModule clinicId={selectedClinicId} /></Suspense></TabsContent>
                 
                 <TabsContent value="analytics" className="mt-4"><Suspense fallback={<TabFallback />}><AnalyticsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="social_media" clinicId={selectedClinicId} /></TabsContent>
