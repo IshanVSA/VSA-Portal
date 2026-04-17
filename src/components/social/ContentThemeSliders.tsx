@@ -174,6 +174,13 @@ export default function ContentThemeSliders({ clinicId }: Props) {
                     const current = values[theme.key] ?? theme.defaultVal;
                     const otherTotal = total - current;
                     const maxAllowed = Math.min(60, 100 - otherTotal);
+                    if (v > maxAllowed && maxAllowed === current) {
+                      toast.warning("Already at 100%", {
+                        description: "Lower another theme before increasing this one.",
+                        id: "slider-cap",
+                      });
+                      return;
+                    }
                     handleChange(theme.key, Math.min(v, maxAllowed));
                   }}
                   min={0}
