@@ -1,90 +1,75 @@
 
-Goal: fix the SM2 generation flow so Alma Animal Hospital does not get stuck on "Pipeline Running..." again.
+What’s happening now
 
-What I found
-- The current `generate-sm2-content` function still runs the full 8-agent SM2 pipeline inside a single edge function request and only tries to keep it alive with `EdgeRuntime.waitUntil`.
-- The logs already show why this is failing: the pipeline starts, completes Researcher, Planner, and Writer, begins Art Director, then the function shuts down before the remaining agents finish.
-- That means the previous patch improved registration, but it did not solve the architectural problem: the SM2 run is too long for a single edge-function lifecycle.
-- Blog generation in this project already uses the durable pattern we need: queue job -> cron worker picks it up -> retries/backoff -> clear status updates.
+- The latest Alma run is not just “slow”.
+- The logs show the worker did start and got through:
+  - Researcher in about 9s
+  - Planner in about 44s
+  - Writer in about 78s
+  - then it started Art Director
+- Right after that, the worker shuts down before finishing the remaining 5 agents.
+- So the real issue is still edge-function runtime length. Even with the queue/worker setup, one worker run is still trying to complete the full 8-agent pipeline in a single invocation.
 
-Implementation plan
+Why it still says “Pipeline Running”
 
-1. Convert SM2 to a durable queued worker flow
-- Keep `generate-sm2-content` as the starter function only.
-- Change it to:
-  - validate auth and prerequisites
-  - block duplicate active runs for the same clinic/month
-  - create an `sm2_generations` row in an active queue state like `queued`
-  - return `202` immediately with the generation ID
-- Move the actual 8-agent pipeline execution into a dedicated worker edge function, following the existing `blog-worker` architecture.
+- The row stays in `processing` after the worker is killed mid-run.
+- The cron keeps waking the worker, but the job does not complete because each retry hits the same runtime ceiling.
+- The UI label is technically reflecting the DB status, but the backend job is effectively timing out, not actively progressing.
 
-2. Add worker-friendly SM2 job state tracking
-- Extend `sm2_generations` with retry/attempt fields similar to blog jobs:
-  - `retry_count`
-  - `next_retry_at`
-  - `last_attempt_at`
-- Use `approval_status` values consistently for active and terminal states:
-  - `queued`
-  - `processing`
-  - `retrying`
-  - `pending`
-  - `generation_failed`
-  - existing approval states remain unchanged after generation completes
-- Add an index for active queue lookups so the worker can efficiently pick the next due job.
+Why it feels long
 
-3. Create an `sm2-worker` edge function
-- Worker behavior:
-  - pick one due SM2 job in `queued` or `retrying`
-  - mark it `processing`
-  - run the existing 8-agent pipeline
-  - upload the HTML deliverable
-  - update the row to `pending` on success
-  - write human-readable `failure_reason` on failure
-- Add retry logic for transient Anthropic/provider failures using the same style as `blog-worker`:
-  - 429 / 5xx / 529 / overloaded / timeout
-  - exponential backoff
-  - terminal fail after max retries
+- The first 3 agents alone already take about 130 seconds.
+- There are 5 more agents after that.
+- The current UI message saying “usually takes 2-5 minutes” is too optimistic for this pipeline.
 
-4. Schedule the worker
-- Add a scheduled invocation for `sm2-worker`, mirroring the existing `blog-worker` cron pattern.
-- This ensures stuck generations are no longer dependent on the original browser-triggered request staying alive.
+Plan to fix it properly
 
-5. Improve the Social Media UI so status is trustworthy
-- Update `useSM2Generation` to support the new active states:
-  - `queued`
-  - `processing`
-  - `retrying`
-- Add automatic refetch while any generation is active, so the page updates even after refresh or if the original mutation poll stops.
-- Improve polling/toasts so they surface real `failure_reason` text instead of generic "Please try again."
-- Update `ContentGenerationTab` status badges/labels for the new lifecycle, for example:
-  - Queued
-  - Pipeline Running
-  - Retrying
-  - Generation Failed
+1. Make SM2 resumable by stage
+- Refactor `sm2-worker` so one invocation handles only a small part of the pipeline, not all 8 agents.
+- Persist intermediate outputs after each stage: research, plan, write, art, stories, concierge, fact check, review.
+- Store the current stage on the `sm2_generations` row and resume from the next stage on the next cron tick.
 
-6. Prevent duplicate runs
-- Add a server-side check in the starter function so clicking Generate again cannot create multiple active SM2 jobs for the same clinic and month.
-- Return the existing job ID/status if one is already active.
+2. Add stage-tracking fields in the database
+- Add fields like:
+  - `pipeline_stage`
+  - `pipeline_data` JSONB for intermediate agent outputs
+  - optional `stage_started_at` / `stage_completed_at`
+- This avoids losing progress when the worker shuts down.
 
-7. Clean up currently stuck records
-- Run a one-time database cleanup for stale `processing` SM2 rows, including Alma's stuck run, so they become retryable/failed instead of hanging forever in the UI.
-- I will make the message user-friendly, such as "Generation interrupted before completion. Please retry."
+3. Update worker logic
+- Pick one due job
+- Run only the next unfinished stage
+- Save output immediately
+- Requeue the row for the next tick until final HTML assembly is complete
+- Mark `pending` only after final upload succeeds
+
+4. Improve stalled-job recovery
+- If a stage sits in `processing` too long, mark it retryable from the same stage instead of restarting the entire pipeline.
+- Keep failure reasons human-readable.
+
+5. Fix the UI messaging
+- Change “2-5 minutes” to a more realistic queued/background message
+- Show the current stage in the status area, for example:
+  - Running: Research
+  - Running: Writing
+  - Running: Art Direction
+- Show “last updated” or retry info so it doesn’t look frozen
+
+6. Verify end-to-end
+- Re-run Alma
+- Confirm the job moves stage-by-stage across multiple worker ticks
+- Confirm it no longer gets stuck forever on “Pipeline Running”
+- Confirm final HTML is generated and visible in the history card
 
 Files likely involved
+
+- `supabase/functions/sm2-worker/index.ts`
 - `supabase/functions/generate-sm2-content/index.ts`
-- new `supabase/functions/sm2-worker/index.ts`
-- one or more `supabase/migrations/*.sql` files for SM2 retry fields/indexes
-- scheduled worker invocation setup
 - `src/hooks/useSM2Generation.ts`
 - `src/components/social/ContentGenerationTab.tsx`
-
-Verification
-- Trigger generation for Alma again.
-- Confirm status moves through queued/processing and no longer stays permanently on "Pipeline Running...".
-- Confirm successful run reaches `pending` with HTML file path populated.
-- Confirm transient failures move to `retrying`, then either recover or end in `generation_failed` with a visible failure reason.
-- Confirm page refresh still shows live status updates.
-- Confirm duplicate clicks do not create duplicate active jobs.
+- new migration for SM2 stage persistence
 
 Technical note
-- This is not a small bug in polling or labels. The logs indicate a true execution-lifecycle problem: the SM2 pipeline is simply too long to be safely completed inside one edge function request. The durable worker pattern is the correct fix for this codebase because it already exists here for blog generation and matches the project’s current conventions.
+
+- The queue architecture was a good first step, but the worker still does too much in one run.
+- The durable fix is not “wait longer”, it is “persist after each agent and resume on the next tick”.
