@@ -12,6 +12,7 @@ import { formatDistanceToNow, format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { moveBulkUploadsToDepartmentFolder } from "@/lib/ticket-bulk-uploads";
 
 interface TeamMemberOption {
   id: string;
@@ -74,6 +75,9 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
       .from("department_tickets" as any)
       .update({ status: newStatus } as any)
       .eq("id", id);
+    if (!error && newStatus === "completed" && ticket_type === "Bulk Uploads") {
+      await moveBulkUploadsToDepartmentFolder(id, department);
+    }
     setUpdating(false);
     if (error) {
       toast.error("Failed to update status");
