@@ -346,14 +346,14 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
                 </div>
               )}
 
-              {ticketType !== "Pop-up Offers" && (
+              {ticketType !== "Pop-up Offers" && !["Content Request","Client Visit","Special Promotion","Boost","Bulk Uploads"].includes(ticketType) && (
                 <div className="space-y-1.5">
                   <Label htmlFor="ticket-notes">{ticketType === "Add/Remove Team Members" ? "Bio" : "Notes"}</Label>
                   <Textarea id="ticket-notes" placeholder={ticketType === "Add/Remove Team Members" ? "Short bio for the team member..." : "Additional notes..."} value={notes} onChange={e => setNotes(e.target.value)} rows={2} maxLength={1000} />
                 </div>
               )}
 
-              {ticketType !== "Time Changes" && ticketType !== "Pop-up Offers" && ticketType !== "New Forms" && (
+              {ticketType !== "Time Changes" && ticketType !== "Pop-up Offers" && ticketType !== "New Forms" && ticketType !== "Bulk Uploads" && (
                 <FileUploader files={files} onFilesChange={setFiles} label={ticketType === "Price List Updates" ? "Upload your price list doc" : "Attachments"} />
               )}
 
