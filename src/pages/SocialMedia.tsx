@@ -52,6 +52,7 @@ const generationTab = { value: "generation", label: "Generate", icon: Sparkles }
 const gbpPostsTab = { value: "gbp-posts", label: "GBP Posts", icon: MapPin };
 const contentReviewTab = { value: "content-review", label: "My Content", icon: Eye };
 const themeSlidersTab = { value: "preferences", label: "Preferences", icon: SlidersHorizontal };
+const metaAdsTab = { value: "meta-ads", label: "Meta Ads", icon: Megaphone };
 
 export default function SocialMedia() {
   const [searchParams, setSearchParams] = useSearchParams();
