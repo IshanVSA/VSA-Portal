@@ -23,9 +23,14 @@ export interface SM2Generation {
   email_day3_sent: boolean | null;
   email_day5_sent: boolean | null;
   failure_reason: string | null;
+  retry_count: number | null;
+  next_retry_at: string | null;
+  last_attempt_at: string | null;
   created_at: string;
   updated_at: string;
 }
+
+const ACTIVE_STATUSES = new Set(["queued", "processing", "retrying"]);
 
 export function useSM2Generation(clinicId: string | undefined, monthYear?: string) {
   const queryClient = useQueryClient();
