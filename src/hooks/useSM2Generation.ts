@@ -26,8 +26,33 @@ export interface SM2Generation {
   retry_count: number | null;
   next_retry_at: string | null;
   last_attempt_at: string | null;
+  pipeline_stage: string | null;
+  stage_started_at: string | null;
+  stage_completed_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export const STAGE_LABELS: Record<string, string> = {
+  queued: "Queued",
+  research: "Researching trends",
+  plan: "Planning posts",
+  write: "Writing captions",
+  art: "Designing visuals",
+  stories: "Building Stories",
+  concierge: "Briefing concierge",
+  fact_check: "Fact checking",
+  review: "Final review",
+  assemble: "Assembling deliverable",
+  completed: "Completed",
+};
+
+export function nextStageLabel(stage: string | null | undefined): string {
+  if (!stage || stage === "queued") return "Researching trends";
+  const order = ["queued","research","plan","write","art","stories","concierge","fact_check","review","assemble","completed"];
+  const i = order.indexOf(stage);
+  const next = order[Math.min(i + 1, order.length - 1)];
+  return STAGE_LABELS[next] || "Working";
 }
 
 const ACTIVE_STATUSES = new Set(["queued", "processing", "retrying"]);
@@ -116,7 +141,7 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
       }
       if ((data?.status === "queued" || data?.status === "processing") && data?.generation_id) {
         toast.info("Content generation queued", {
-          description: "This usually takes 2-5 minutes. You'll be notified when ready.",
+          description: "Runs in the background, one stage at a time. Status updates live.",
         });
         pollForCompletion(data.generation_id);
       } else {

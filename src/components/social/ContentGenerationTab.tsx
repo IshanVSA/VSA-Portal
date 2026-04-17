@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { useSM2Generation } from "@/hooks/useSM2Generation";
+import { useSM2Generation, STAGE_LABELS, nextStageLabel } from "@/hooks/useSM2Generation";
+import { formatDistanceToNow } from "date-fns";
 import { useMonthlySignals } from "@/hooks/useMonthlySignals";
 import { useBrandDNA } from "@/hooks/useBrandDNA";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -275,14 +276,19 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                         <p className="text-sm font-medium">
                           {format(new Date(gen.month_year + "-01"), "MMMM yyyy")}
                         </p>
-                        <div className="flex items-center gap-2 mt-0.5">
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                           <Badge variant={gen.generation_confidence_score >= 90 ? "default" : gen.generation_confidence_score >= 70 ? "secondary" : "destructive"} className="text-[10px]">
                             {gen.generation_confidence_score}% confidence
                           </Badge>
                           <Badge variant="outline" className="text-[10px]">
                             DNA {gen.dna_completeness_score}%
                           </Badge>
-                          <StatusBadge status={gen.approval_status} />
+                          <StatusBadge status={gen.approval_status} stage={(gen as any).pipeline_stage} />
+                          {(gen.approval_status === "processing" || gen.approval_status === "queued" || gen.approval_status === "retrying") && gen.last_attempt_at && (
+                            <span className="text-[10px] text-muted-foreground">
+                              updated {formatDistanceToNow(new Date(gen.last_attempt_at), { addSuffix: true })}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -359,7 +365,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, stage }: { status: string; stage?: string | null }) {
   const config: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive"; icon: typeof CheckCircle }> = {
     queued: { label: "Queued", variant: "secondary", icon: Clock },
     processing: { label: "Pipeline Running", variant: "secondary", icon: RefreshCw },
@@ -374,10 +380,13 @@ function StatusBadge({ status }: { status: string }) {
   };
   const c = config[status] || config.pending;
   const isSpinning = status === "processing" || status === "retrying";
+  const stageLabel = (status === "processing" || status === "queued")
+    ? nextStageLabel(stage)
+    : null;
   return (
     <Badge variant={c.variant} className="text-[10px] gap-1">
       <c.icon className={`h-3 w-3 ${isSpinning ? "animate-spin" : ""}`} />
-      {c.label}
+      {stageLabel ? `Running: ${stageLabel}` : c.label}
     </Badge>
   );
 }

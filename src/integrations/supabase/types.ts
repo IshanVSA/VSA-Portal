@@ -1930,8 +1930,12 @@ export type Database = {
           model_used: string | null
           month_year: string
           next_retry_at: string | null
+          pipeline_data: Json
+          pipeline_stage: string
           retry_count: number
           sent_to_client_at: string | null
+          stage_completed_at: string | null
+          stage_started_at: string | null
           token_count: number | null
           triggered_by: string | null
           updated_at: string
@@ -1955,8 +1959,12 @@ export type Database = {
           model_used?: string | null
           month_year: string
           next_retry_at?: string | null
+          pipeline_data?: Json
+          pipeline_stage?: string
           retry_count?: number
           sent_to_client_at?: string | null
+          stage_completed_at?: string | null
+          stage_started_at?: string | null
           token_count?: number | null
           triggered_by?: string | null
           updated_at?: string
@@ -1980,8 +1988,12 @@ export type Database = {
           model_used?: string | null
           month_year?: string
           next_retry_at?: string | null
+          pipeline_data?: Json
+          pipeline_stage?: string
           retry_count?: number
           sent_to_client_at?: string | null
+          stage_completed_at?: string | null
+          stage_started_at?: string | null
           token_count?: number | null
           triggered_by?: string | null
           updated_at?: string
