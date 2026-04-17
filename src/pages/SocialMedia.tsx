@@ -3,7 +3,8 @@ import { useSearchParams } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Share2, LayoutDashboard, BarChart3, Ticket, Upload, MessageSquare, Dna, Sparkles, Eye, SlidersHorizontal, MapPin, Tag } from "lucide-react";
+import { Share2, LayoutDashboard, BarChart3, Ticket, Upload, MessageSquare, Dna, Sparkles, Eye, SlidersHorizontal, MapPin, Tag, Megaphone } from "lucide-react";
+import { ComingSoonTab } from "@/components/department/ComingSoonTab";
 import { GBPPostsTab } from "@/components/seo/gbp/GBPPostsTab";
 import { SocialOverview } from "@/components/social/SocialOverview";
 import { lazy, Suspense } from "react";
@@ -51,6 +52,7 @@ const generationTab = { value: "generation", label: "Generate", icon: Sparkles }
 const gbpPostsTab = { value: "gbp-posts", label: "GBP Posts", icon: MapPin };
 const contentReviewTab = { value: "content-review", label: "My Content", icon: Eye };
 const themeSlidersTab = { value: "preferences", label: "Preferences", icon: SlidersHorizontal };
+const metaAdsTab = { value: "meta-ads", label: "Meta Ads", icon: Megaphone };
 
 export default function SocialMedia() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -68,8 +70,18 @@ export default function SocialMedia() {
   const showDNAGate = isClient && !dnaLoading && !dnaCompleted && !isLocked;
 
   const visibleTabs = isClient
-    ? [...baseTabs.filter(t => ["overview", "tickets"].includes(t.value)), contentReviewTab, themeSlidersTab]
-    : [...baseTabs, generationTab, gbpPostsTab, dnaTab, themeSlidersTab, ...(isStaff ? [chatTab] : [])];
+    ? [
+        baseTabs.find(t => t.value === "overview")!,
+        baseTabs.find(t => t.value === "tickets")!,
+        baseTabs.find(t => t.value === "promotions")!,
+        baseTabs.find(t => t.value === "analytics")!,
+        baseTabs.find(t => t.value === "uploads")!,
+        gbpPostsTab,
+        dnaTab,
+        themeSlidersTab,
+        metaAdsTab,
+      ]
+    : [...baseTabs, generationTab, gbpPostsTab, dnaTab, themeSlidersTab, metaAdsTab, ...(isStaff ? [chatTab] : [])];
 
   const handleTabChange = (value: string) => {
     setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", value); return next; }, { replace: true });
@@ -139,10 +151,11 @@ export default function SocialMedia() {
                 <TabsContent value="analytics" className="mt-4"><Suspense fallback={<TabFallback />}><AnalyticsContent clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="social_media" clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="gbp-posts" className="mt-4"><GBPPostsTab clinicId={selectedClinicId} /></TabsContent>
+                <TabsContent value="brand-dna" className="mt-4"><Suspense fallback={<TabFallback />}><BrandDNATab clinicId={selectedClinicId} /></Suspense></TabsContent>
+                <TabsContent value="meta-ads" className="mt-4"><ComingSoonTab label="Meta Ads" /></TabsContent>
                 {isStaff && (
                   <>
                     <TabsContent value="generation" className="mt-4"><Suspense fallback={<TabFallback />}><ContentGenerationTab clinicId={selectedClinicId} /></Suspense></TabsContent>
-                    <TabsContent value="brand-dna" className="mt-4"><Suspense fallback={<TabFallback />}><BrandDNATab clinicId={selectedClinicId} /></Suspense></TabsContent>
                     <TabsContent value="chat" className="mt-4"><DepartmentChat department="social_media" clinicId={selectedClinicId} onVisible={markAsRead} /></TabsContent>
                   </>
                 )}
