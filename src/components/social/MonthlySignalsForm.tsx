@@ -124,6 +124,7 @@ export default function MonthlySignalsForm({ clinicId }: Props) {
   }
 
   return (
+    <div className="space-y-4">
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
@@ -173,13 +174,28 @@ export default function MonthlySignalsForm({ clinicId }: Props) {
           </div>
         </div>
 
-        {/* Tag inputs */}
-        <TagInput label="Seasonal Topics" tags={seasonalTopics} onChange={setSeasonalTopics} placeholder="e.g. Summer heat safety" />
+        <Button onClick={handleSave} disabled={saving} className="gap-2">
+          {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          Save Monthly Signals
+        </Button>
+      </CardContent>
+    </Card>
+
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+          <Newspaper className="h-4 w-4 text-primary" />
+          Community & Local Context
+        </CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Local events, alerts, news, and clinic updates that shape this month's content.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-5">
         <TagInput label="Community Events" tags={communityEvents} onChange={setCommunityEvents} placeholder="e.g. Local pet adoption fair" />
         <TagInput label="Local Alerts" tags={localAlerts} onChange={setLocalAlerts} placeholder="e.g. Tick season warning" />
         <TagInput label="Local News" tags={localNews} onChange={setLocalNews} placeholder="e.g. New dog park opening nearby" />
 
-        {/* Text areas */}
         <div className="space-y-1.5">
           <Label className="text-sm font-medium flex items-center gap-1"><Newspaper className="h-3.5 w-3.5" /> Clinic News This Month</Label>
           <Textarea value={clinicNews} onChange={(e) => setClinicNews(e.target.value)} placeholder="New vet joining, equipment upgrade, etc." rows={3} />
@@ -190,7 +206,6 @@ export default function MonthlySignalsForm({ clinicId }: Props) {
           <Textarea value={fbSpecific} onChange={(e) => setFbSpecific(e.target.value)} placeholder="Any Facebook-only instructions or notes" rows={2} />
         </div>
 
-        {/* Holidays display */}
         {holidays.length > 0 && (
           <div className="space-y-1.5">
             <Label className="text-sm font-medium flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> Statutory Holidays (auto-populated)</Label>
@@ -202,11 +217,12 @@ export default function MonthlySignalsForm({ clinicId }: Props) {
           </div>
         )}
 
-        <Button onClick={handleSave} disabled={saving} className="gap-2">
+        <Button onClick={handleSave} disabled={saving} variant="outline" className="gap-2">
           {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Save Monthly Signals
+          Save Context
         </Button>
       </CardContent>
     </Card>
+    </div>
   );
 }
