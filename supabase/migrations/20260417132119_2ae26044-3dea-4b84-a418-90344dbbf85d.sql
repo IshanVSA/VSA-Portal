@@ -1,0 +1,1 @@
+UPDATE public.sm2_generations SET approval_status = 'generation_failed', failure_reason = 'Pipeline timed out - background execution not supported. Fixed in latest update.', updated_at = now() WHERE approval_status = 'processing' AND created_at < now() - interval '10 minutes';

@@ -1017,13 +1017,31 @@ Deno.serve(async (req) => {
       .single();
     const generationId = newGen!.id;
 
-    (globalThis as any).EdgeRuntime?.waitUntil?.(
-      backgroundGenerate(
-        serviceClient, clinic, clinic_id, month_year,
-        completenessScore, authData.user.id,
-        monthlySignals, gbpConfig, dna, generationId,
-      )
-    );
+    const pipelinePromise = backgroundGenerate(
+      serviceClient, clinic, clinic_id, month_year,
+      completenessScore, authData.user.id,
+      monthlySignals, gbpConfig, dna, generationId,
+    ).catch(async (err) => {
+      console.error("[PIPELINE] Uncaught background error:", err);
+      await serviceClient
+        .from("sm2_generations")
+        .update({
+          approval_status: "generation_failed",
+          failure_reason: `Pipeline crashed: ${err?.message || String(err)}`,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", generationId);
+    });
+
+    const edgeRuntime = (globalThis as any).EdgeRuntime;
+    if (edgeRuntime && typeof edgeRuntime.waitUntil === "function") {
+      edgeRuntime.waitUntil(pipelinePromise);
+      console.log(`[SM2 v2.1] Pipeline registered with EdgeRuntime.waitUntil for generation ${generationId}`);
+    } else {
+      console.warn(`[SM2 v2.1] EdgeRuntime.waitUntil unavailable - awaiting pipeline inline (may timeout)`);
+      // Fallback: at least don't drop the promise silently
+      pipelinePromise.catch(() => {});
+    }
 
     return json({
       success: true,
