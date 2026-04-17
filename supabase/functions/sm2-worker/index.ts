@@ -1,6 +1,8 @@
-// SM2 Worker — durable queued worker for SM2 v2.1 8-agent pipeline.
-// Picks one due job from sm2_generations (queued/retrying), runs the full
-// pipeline, uploads HTML, and updates the row. Mirrors blog-worker pattern.
+// SM2 Worker — STAGE-BASED durable worker for SM2 v2.1 8-agent pipeline.
+// CRITICAL: Each invocation runs only ONE stage of the pipeline, then re-queues.
+// This avoids the edge-function runtime ceiling that was killing the full
+// 8-agent run mid-flight (Art Director onwards). The cron tick picks the job
+// back up and continues from the last completed stage.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -17,10 +19,31 @@ const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const SM2_MODEL = "claude-sonnet-4-20250514";
 const MAX_RETRIES = 5;
 
+// Pipeline stages (ordered). 'queued' is the starting marker.
+// 'completed' means HTML uploaded and row marked pending.
+const STAGES = [
+  "queued",       // -> next: research
+  "research",     // -> next: plan
+  "plan",         // -> next: write
+  "write",        // -> next: art
+  "art",          // -> next: stories
+  "stories",      // -> next: concierge
+  "concierge",    // -> next: fact_check
+  "fact_check",   // -> next: review
+  "review",       // -> next: assemble
+  "assemble",     // -> next: completed
+  "completed",
+] as const;
+type Stage = typeof STAGES[number];
+
+function nextStage(current: Stage): Stage {
+  const idx = STAGES.indexOf(current);
+  return STAGES[Math.min(idx + 1, STAGES.length - 1)];
+}
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function getRetryDelayMs(retryCount: number): number {
-  // 2min, 5min, 10min, 20min, 30min
   const delays = [2, 5, 10, 20, 30];
   return (delays[Math.min(retryCount, delays.length - 1)] ?? 30) * 60 * 1000;
 }
@@ -47,89 +70,75 @@ function humanizeFailure(raw: string): string {
 }
 
 // ═══════════════════════════════════════════
-// AGENT PROMPTS (copied from generate-sm2-content)
+// AGENT PROMPTS
 // ═══════════════════════════════════════════
 
-const AGENT_RESEARCHER = `You are the SM2 Researcher Agent. Your job is to identify trending topics, formats, and local seasonal context for a veterinary clinic's social media content.
+const AGENT_RESEARCHER = `You are the SM2 Researcher Agent. Identify trending topics, formats, and local seasonal context for a veterinary clinic's social media content.
 
-Given the clinic's location, niche, and current month, output a JSON object with:
+Output a JSON object with:
 - trending_topics: array of 5-8 trending topics in pet/vet social media right now
-- top_formats: array of 3-5 top performing content formats this month (e.g. "kinetic text reel", "carousel infographic")
+- top_formats: array of 3-5 top performing content formats this month
 - adaptable_trends: array of 3-5 general social trends adaptable to vet content
-- local_seasonal: array of 3-5 local seasonal context items for this specific area and month
+- local_seasonal: array of 3-5 local seasonal context items
 - awareness_months: array of relevant pet health awareness events this month
 
 Output ONLY valid JSON. No markdown, no explanation.`;
 
-const AGENT_PLANNER = `You are the SM2 Planner Agent. You are the brain of the content pipeline. You decide everything about each post: pillar, topic, format, local reference, hook angle, CTA type, boost suggestion, and compliance flags. You do NOT write captions.
+const AGENT_PLANNER = `You are the SM2 Planner Agent. You decide everything about each post: pillar, topic, format, local reference, hook angle, CTA type, boost suggestion, and compliance flags. You do NOT write captions.
 
-CRITICAL — HARD GATE ENFORCEMENT:
-Read CONTENT_SETTINGS from the DNA payload. These are HARD BLOCKS, not guidelines:
-- promotion_requested=false → ZERO promotional posts. No offers, discounts, deals, financial incentives.
-- team_spotlight_requested=false → ZERO team member feature posts. Clinic identity references OK. Individual features BLOCKED.
-- patient_consent≠CONFIRMED → ZERO patient content. No patient photos, before/after, case studies, milestones.
-- pricing_in_posts≠requested OR pricing_on_website=false → ZERO pricing in any post.
-- end_of_life_content≠requested → ZERO euthanasia, pet loss, grief, memorial content.
+CRITICAL — HARD GATE ENFORCEMENT (read CONTENT_SETTINGS):
+- promotion_requested=false → ZERO promotional posts.
+- team_spotlight_requested=false → ZERO team feature posts.
+- patient_consent≠CONFIRMED → ZERO patient content.
+- pricing_in_posts≠requested OR pricing_on_website=false → ZERO pricing.
+- end_of_life_content≠requested → ZERO euthanasia/grief/memorial.
 
-If a gate blocks a planned topic, REPLACE it with an alternative from permitted pillars.
+If a gate blocks a planned topic, REPLACE it with permitted pillars.
 
-Output a JSON object with:
-- neighbourhood_brief: string (3 paragraphs about this clinic's community)
-- confirmation_summary: object with completeness_score, warnings, hard_gates_applied
-- posts: array of 10 objects each with: number, date_suggestion, day_of_week, pillar, topic, format, local_reference, hook_a_direction, hook_b_direction, cta_type, boost_suggested, boost_budget, boost_reasoning, compliance_flags, safety_rules_applied, image_direction
-- budget_allocation: object with always_on, promotions, burst, total
+Output JSON with: neighbourhood_brief, confirmation_summary {completeness_score, warnings, hard_gates_applied}, posts (array of 10 with number, date_suggestion, day_of_week, pillar, topic, format, local_reference, hook_a_direction, hook_b_direction, cta_type, boost_suggested, boost_budget, boost_reasoning, compliance_flags, safety_rules_applied, image_direction), budget_allocation {always_on, promotions, burst, total}.
 
 Output ONLY valid JSON.`;
 
-const AGENT_WRITER = `You are the SM2 Writer Agent. You execute the Planner's decisions with maximum creative quality.
+const AGENT_WRITER = `You are the SM2 Writer Agent.
 
 RULES:
 - ZERO em dashes. Use commas, periods, colons.
-- ZERO emojis. Never.
+- ZERO emojis.
 - NO URLs in captions. Phone number only in CTAs.
-- FLAGGED TERMS: Never use prescription, pharmacy, medication, drug, diagnosis, cure, guaranteed, laser therapy.
+- FLAGGED TERMS: never use prescription, pharmacy, medication, drug, diagnosis, cure, guaranteed, laser therapy.
 - NO engagement bait.
 - Hashtags in Instagram only.
 
-For each of the 10 posts, output JSON with: number, hook_a, hook_b, caption, hashtags, disclaimer, alt_text, stories_hook
+For each of the 10 posts output JSON with: number, hook_a, hook_b, caption, hashtags, disclaimer, alt_text, stories_hook.
 
 Output ONLY valid JSON array of 10 post objects.`;
 
-const AGENT_ART_DIRECTOR = `You are the SM2 Art Director v2. Typography-first image generation prompts.
+const AGENT_ART_DIRECTOR = `You are the SM2 Art Director v2. Typography-first.
 
-For each post, create an image generation prompt with:
-- concept: design approach name
-- layout: spatial percentages, alignment zones, dimensions
-- type: font name suggestions, point sizes, weights
-- colour: hex codes (max 4), specific usage per element
-- texture: type and opacity percentage
-- neg: 5+ MANDATORY negative instructions. ALWAYS include: "NO paw prints, NO AI-generated pets, NO centred text, NO script fonts, NO stock imagery"
+For each post create: concept, layout, type (fonts), colour (hex max 4), texture, neg (5+ negatives ALWAYS including "NO paw prints, NO AI-generated pets, NO centred text, NO script fonts, NO stock imagery"), dimensions. Reels also include frames + transitions.
 
-For Reels, include: frames (array), transitions
-
-Output ONLY valid JSON array of 10 objects with: number, concept, layout, type, colour, texture, neg, dimensions, frames (if reel), transitions (if reel)`;
+Output ONLY valid JSON array of 10 objects with: number, concept, layout, type, colour, texture, neg, dimensions, frames (if reel), transitions (if reel).`;
 
 const AGENT_STORIES = `You are the SM2 Stories Planner. Expand each post into 3-5 frame Stories sequences.
 
-Each frame needs: type, visual (max 15 words), sticker.
+Each frame: type, visual (max 15 words), sticker.
 
-Output ONLY valid JSON array of 10 objects with: number, frames (array of {type, visual, sticker})`;
+Output ONLY valid JSON array of 10 objects with: number, frames (array of {type, visual, sticker}).`;
 
-const AGENT_CONCIERGE = `You are the SM2 Concierge Briefer. Create step-by-step execution instructions for each post.
+const AGENT_CONCIERGE = `You are the SM2 Concierge Briefer. Step-by-step execution per post.
 
-For each post provide: before_posting (array), while_posting (array), after_posting (array).
+For each post: before_posting (array), while_posting (array), after_posting (array).
+Also: engagement_playbook (array of 10+ {trigger, response, note}).
 
-Also create an engagement_playbook: array of 10+ {trigger, response, note}.
+Output ONLY valid JSON with: posts (array of 10), engagement_playbook (array).`;
 
-Output ONLY valid JSON with: posts (array of 10), engagement_playbook (array)`;
-
-const AGENT_FACT_CHECKER = `You are the SM2 Fact Checker. Verify every post against the DNA payload and Content Safety Rules.
+const AGENT_FACT_CHECKER = `You are the SM2 Fact Checker. Verify every post against DNA payload and Content Safety Rules.
 
 For each post output: number, verdict ("PASS" | "FLAG" | "FAIL"), issues (array of strings).
 
 Output ONLY valid JSON array of 10 objects.`;
 
-const AGENT_REVIEWER = `You are the SM2 Reviewer. Batch review of all 10 posts. 12 criteria assessment.
+const AGENT_REVIEWER = `You are the SM2 Reviewer. Batch review across 12 criteria.
 
 Output JSON with:
 - criteria: array of 12 {name, verdict, detail}
@@ -141,7 +150,7 @@ Output JSON with:
 Output ONLY valid JSON.`;
 
 // ═══════════════════════════════════════════
-// ANTHROPIC CALL with per-call retry
+// ANTHROPIC CALL
 // ═══════════════════════════════════════════
 
 async function callAgent(systemPrompt: string, userMessage: string, maxTokens: number, agentName: string): Promise<{ parsed: any; tokens: number }> {
@@ -195,7 +204,7 @@ async function callAgent(systemPrompt: string, userMessage: string, maxTokens: n
 }
 
 // ═══════════════════════════════════════════
-// DNA PAYLOAD + HTML ASSEMBLY (minimal copies)
+// DNA PAYLOAD + HTML ASSEMBLY
 // ═══════════════════════════════════════════
 
 function buildDNAPayload(clinic: any, dna: any, signals: any, gbpConfig: any): string {
@@ -314,16 +323,20 @@ ${postCards}
 }
 
 // ═══════════════════════════════════════════
-// PIPELINE — process one job end-to-end
+// STAGE EXECUTION — runs ONE stage, persists, advances pipeline_stage.
+// Returns true if pipeline reached "completed", false if more stages remain.
 // ═══════════════════════════════════════════
 
-async function processJob(supabase: any, job: any): Promise<void> {
+async function runOneStage(supabase: any, job: any): Promise<{ done: boolean; stage: Stage; tokens: number }> {
   if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not configured");
 
   const { clinic_id, month_year, id: generationId } = job;
-  console.log(`[SM2-WORKER] Job ${generationId} clinic=${clinic_id} month=${month_year} retry=${job.retry_count}`);
+  const currentStage: Stage = (job.pipeline_stage || "queued") as Stage;
+  const stageToRun: Stage = currentStage === "queued" ? "research" : nextStage(currentStage);
 
-  // Fetch all required data
+  console.log(`[SM2-WORKER] Job ${generationId} stage="${stageToRun}" (was "${currentStage}")`);
+
+  // Always need clinic + dna + signals + gbp for context
   const [clinicRes, dnaRes, signalsRes, gbpRes] = await Promise.all([
     supabase.from("clinics").select("*").eq("id", clinic_id).maybeSingle(),
     supabase.from("clinic_brand_dna").select("*").eq("clinic_id", clinic_id).maybeSingle(),
@@ -339,99 +352,160 @@ async function processJob(supabase: any, job: any): Promise<void> {
   if (!dna) throw new Error("Brand DNA missing");
 
   const dnaPayload = buildDNAPayload(clinic, dna, signals, gbpConfig);
-  let totalTokens = 0;
+  const data = (job.pipeline_data || {}) as Record<string, any>;
 
-  // 8-Agent Pipeline
-  const research = await callAgent(AGENT_RESEARCHER,
-    `Clinic: ${clinic.clinic_name}\nLocation: ${gbpConfig?.city || ""}, ${gbpConfig?.state_or_province || ""}\nMonth: ${month_year}\nSpecies: ${JSON.stringify(gbpConfig?.species_treated || ["Dogs","Cats"])}`,
-    3000, "Researcher");
-  totalTokens += research.tokens;
+  let stageOutput: any = null;
+  let tokens = 0;
 
-  const plan = await callAgent(AGENT_PLANNER,
-    `${dnaPayload}\n\n=== TREND REPORT ===\n${JSON.stringify(research.parsed, null, 2)}`,
-    4000, "Planner");
-  totalTokens += plan.tokens;
-
-  const write = await callAgent(AGENT_WRITER,
-    `${dnaPayload}\n\n=== CONTENT PLAN ===\n${JSON.stringify(plan.parsed, null, 2)}`,
-    4000, "Writer");
-  totalTokens += write.tokens;
-
-  const art = await callAgent(AGENT_ART_DIRECTOR,
-    `=== IMAGE DIRECTIONS ===\n${JSON.stringify((plan.parsed?.posts || []).map((p: any) => ({ number: p.number, pillar: p.pillar, topic: p.topic, format: p.format, image_direction: p.image_direction })), null, 2)}`,
-    3000, "Art Director");
-  totalTokens += art.tokens;
-
-  const storiesA = await callAgent(AGENT_STORIES,
-    `=== POSTS ===\n${JSON.stringify(Array.isArray(write.parsed) ? write.parsed.map((w: any) => ({ number: w.number, hook_a: w.hook_a, stories_hook: w.stories_hook })) : [], null, 2)}`,
-    2500, "Stories");
-  totalTokens += storiesA.tokens;
-
-  const concierge = await callAgent(AGENT_CONCIERGE,
-    `${dnaPayload}\n\n=== PLAN ===\n${JSON.stringify(plan.parsed?.posts || [], null, 2)}\n\n=== WRITTEN ===\n${JSON.stringify(write.parsed, null, 2)}`,
-    3000, "Concierge");
-  totalTokens += concierge.tokens;
-
-  const fact = await callAgent(AGENT_FACT_CHECKER,
-    `${dnaPayload}\n\n=== POSTS ===\n${JSON.stringify(write.parsed, null, 2)}`,
-    2500, "Fact Checker");
-  totalTokens += fact.tokens;
-
-  const review = await callAgent(AGENT_REVIEWER,
-    `${dnaPayload}\n\n=== POSTS ===\n${JSON.stringify(write.parsed, null, 2)}\n\n=== FACT CHECK ===\n${JSON.stringify(fact.parsed, null, 2)}`,
-    2500, "Reviewer");
-  totalTokens += review.tokens;
-
-  // Assemble HTML
-  const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-  const monthNum = parseInt(month_year.split("-")[1]);
-  const year = month_year.split("-")[0];
-  const monthLabel = `${monthNames[monthNum - 1]} ${year}`;
-
-  const html = assembleHTML(clinic, monthLabel, plan.parsed, write.parsed, art.parsed, storiesA.parsed, concierge.parsed, fact.parsed, review.parsed);
-
-  // Upload
-  const clinicSlug = (clinic.clinic_name || "clinic").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  const filePath = `sm2/${clinicSlug}-${month_year}-v${Date.now()}-social.html`;
-  const { error: uploadErr } = await supabase.storage
-    .from("department-files")
-    .upload(filePath, new Blob([html], { type: "text/html" }), { contentType: "text/html", upsert: true });
-  if (uploadErr) throw new Error(`Upload failed: ${uploadErr.message}`);
-
-  // Confidence score
-  let confidenceScore = 0;
-  if (review.parsed?.criteria) {
-    const passed = review.parsed.criteria.filter((c: any) => c.verdict === "PASS").length;
-    confidenceScore = Math.round((passed / review.parsed.criteria.length) * 100);
-  }
-
+  // Mark stage_started
   await supabase
     .from("sm2_generations")
     .update({
-      approval_status: "pending",
-      html_file_path: filePath,
-      generation_confidence_score: confidenceScore,
-      dna_completeness_score: dna.completeness_score || 0,
-      model_used: SM2_MODEL,
-      token_count: totalTokens,
-      failure_reason: null,
-      next_retry_at: null,
+      stage_started_at: new Date().toISOString(),
       last_attempt_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
     .eq("id", generationId);
 
-  await supabase
-    .from("clinic_monthly_signals")
-    .update({ stock_post_count: 10 })
-    .eq("clinic_id", clinic_id)
-    .eq("month_year", month_year);
+  switch (stageToRun) {
+    case "research": {
+      const r = await callAgent(AGENT_RESEARCHER,
+        `Clinic: ${clinic.clinic_name}\nLocation: ${gbpConfig?.city || ""}, ${gbpConfig?.state_or_province || ""}\nMonth: ${month_year}\nSpecies: ${JSON.stringify(gbpConfig?.species_treated || ["Dogs","Cats"])}`,
+        3000, "Researcher");
+      stageOutput = r.parsed; tokens = r.tokens;
+      break;
+    }
+    case "plan": {
+      const r = await callAgent(AGENT_PLANNER,
+        `${dnaPayload}\n\n=== TREND REPORT ===\n${JSON.stringify(data.research, null, 2)}`,
+        4000, "Planner");
+      stageOutput = r.parsed; tokens = r.tokens;
+      break;
+    }
+    case "write": {
+      const r = await callAgent(AGENT_WRITER,
+        `${dnaPayload}\n\n=== CONTENT PLAN ===\n${JSON.stringify(data.plan, null, 2)}`,
+        4000, "Writer");
+      stageOutput = r.parsed; tokens = r.tokens;
+      break;
+    }
+    case "art": {
+      const r = await callAgent(AGENT_ART_DIRECTOR,
+        `=== IMAGE DIRECTIONS ===\n${JSON.stringify((data.plan?.posts || []).map((p: any) => ({ number: p.number, pillar: p.pillar, topic: p.topic, format: p.format, image_direction: p.image_direction })), null, 2)}`,
+        3000, "Art Director");
+      stageOutput = r.parsed; tokens = r.tokens;
+      break;
+    }
+    case "stories": {
+      const r = await callAgent(AGENT_STORIES,
+        `=== POSTS ===\n${JSON.stringify(Array.isArray(data.write) ? data.write.map((w: any) => ({ number: w.number, hook_a: w.hook_a, stories_hook: w.stories_hook })) : [], null, 2)}`,
+        2500, "Stories");
+      stageOutput = r.parsed; tokens = r.tokens;
+      break;
+    }
+    case "concierge": {
+      const r = await callAgent(AGENT_CONCIERGE,
+        `${dnaPayload}\n\n=== PLAN ===\n${JSON.stringify(data.plan?.posts || [], null, 2)}\n\n=== WRITTEN ===\n${JSON.stringify(data.write, null, 2)}`,
+        3000, "Concierge");
+      stageOutput = r.parsed; tokens = r.tokens;
+      break;
+    }
+    case "fact_check": {
+      const r = await callAgent(AGENT_FACT_CHECKER,
+        `${dnaPayload}\n\n=== POSTS ===\n${JSON.stringify(data.write, null, 2)}`,
+        2500, "Fact Checker");
+      stageOutput = r.parsed; tokens = r.tokens;
+      break;
+    }
+    case "review": {
+      const r = await callAgent(AGENT_REVIEWER,
+        `${dnaPayload}\n\n=== POSTS ===\n${JSON.stringify(data.write, null, 2)}\n\n=== FACT CHECK ===\n${JSON.stringify(data.fact_check, null, 2)}`,
+        2500, "Reviewer");
+      stageOutput = r.parsed; tokens = r.tokens;
+      break;
+    }
+    case "assemble": {
+      // Final HTML assembly + upload + mark pending
+      const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+      const monthNum = parseInt(month_year.split("-")[1]);
+      const year = month_year.split("-")[0];
+      const monthLabel = `${monthNames[monthNum - 1]} ${year}`;
 
-  console.log(`[SM2-WORKER] Job ${generationId} COMPLETE. confidence=${confidenceScore}% tokens=${totalTokens}`);
+      const html = assembleHTML(
+        clinic, monthLabel,
+        data.plan, data.write, data.art, data.stories,
+        data.concierge, data.fact_check, data.review,
+      );
+
+      const clinicSlug = (clinic.clinic_name || "clinic").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      const filePath = `sm2/${clinicSlug}-${month_year}-v${Date.now()}-social.html`;
+      const { error: uploadErr } = await supabase.storage
+        .from("department-files")
+        .upload(filePath, new Blob([html], { type: "text/html" }), { contentType: "text/html", upsert: true });
+      if (uploadErr) throw new Error(`Upload failed: ${uploadErr.message}`);
+
+      let confidenceScore = 0;
+      if (data.review?.criteria) {
+        const passed = data.review.criteria.filter((c: any) => c.verdict === "PASS").length;
+        confidenceScore = Math.round((passed / data.review.criteria.length) * 100);
+      }
+
+      const totalTokens = (job.token_count || 0);
+
+      await supabase
+        .from("sm2_generations")
+        .update({
+          approval_status: "pending",
+          pipeline_stage: "completed",
+          html_file_path: filePath,
+          generation_confidence_score: confidenceScore,
+          dna_completeness_score: dna.completeness_score || 0,
+          model_used: SM2_MODEL,
+          token_count: totalTokens,
+          failure_reason: null,
+          next_retry_at: null,
+          stage_completed_at: new Date().toISOString(),
+          last_attempt_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", generationId);
+
+      await supabase
+        .from("clinic_monthly_signals")
+        .update({ stock_post_count: 10 })
+        .eq("clinic_id", clinic_id)
+        .eq("month_year", month_year);
+
+      console.log(`[SM2-WORKER] Job ${generationId} COMPLETE. confidence=${confidenceScore}% tokens=${totalTokens}`);
+      return { done: true, stage: "assemble", tokens: 0 };
+    }
+    default:
+      throw new Error(`Unknown stage: ${stageToRun}`);
+  }
+
+  // Persist intermediate stage output and advance pipeline_stage.
+  // Keep approval_status="processing" so the cron picks it up next tick.
+  const newData = { ...data, [stageToRun]: stageOutput };
+  await supabase
+    .from("sm2_generations")
+    .update({
+      pipeline_stage: stageToRun,
+      pipeline_data: newData,
+      token_count: (job.token_count || 0) + tokens,
+      stage_completed_at: new Date().toISOString(),
+      last_attempt_at: new Date().toISOString(),
+      next_retry_at: null,
+      failure_reason: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", generationId);
+
+  console.log(`[SM2-WORKER] Job ${generationId} stage "${stageToRun}" persisted. Re-queued for next stage.`);
+  return { done: false, stage: stageToRun, tokens };
 }
 
 // ═══════════════════════════════════════════
-// HANDLER
+// HANDLER — picks one job, runs ONE stage, returns
 // ═══════════════════════════════════════════
 
 Deno.serve(async (req) => {
@@ -442,12 +516,12 @@ Deno.serve(async (req) => {
   });
 
   try {
-    // Pick one due job: queued OR retrying-and-due. Skip rows currently 'processing'
-    // (in-flight worker) unless they've stalled past 15min (crashed/timed-out).
     const nowIso = new Date().toISOString();
-    const stalledCutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    // Stage runtimes are bounded (~80s worst case for Writer). A stage that has
+    // been "processing" for > 4min is almost certainly a crashed worker.
+    const stalledCutoff = new Date(Date.now() - 4 * 60 * 1000).toISOString();
 
-    // 1. Try queued first
+    // 1. Queued (brand-new jobs)
     let { data: job } = await supabase
       .from("sm2_generations")
       .select("*")
@@ -456,7 +530,22 @@ Deno.serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    // 2. Then retrying that are due
+    // 2. Processing jobs that finished a stage and need the next one
+    //    (last_attempt_at is recent — they completed a stage, now re-queued)
+    if (!job) {
+      const { data } = await supabase
+        .from("sm2_generations")
+        .select("*")
+        .eq("approval_status", "processing")
+        .neq("pipeline_stage", "completed")
+        .gte("last_attempt_at", stalledCutoff)
+        .order("last_attempt_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      job = data;
+    }
+
+    // 3. Retrying that are due
     if (!job) {
       const { data } = await supabase
         .from("sm2_generations")
@@ -469,12 +558,14 @@ Deno.serve(async (req) => {
       job = data;
     }
 
-    // 3. Then stalled processing rows (recover from crash)
+    // 4. Stalled processing rows (worker crashed mid-stage). Resume from
+    //    the last completed stage — pipeline_data is preserved.
     if (!job) {
       const { data } = await supabase
         .from("sm2_generations")
         .select("*")
         .eq("approval_status", "processing")
+        .neq("pipeline_stage", "completed")
         .lt("last_attempt_at", stalledCutoff)
         .order("created_at", { ascending: true })
         .limit(1)
@@ -488,7 +579,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Claim it
+    // Claim it (status -> processing). pipeline_stage stays at last completed.
     await supabase
       .from("sm2_generations")
       .update({
@@ -499,8 +590,13 @@ Deno.serve(async (req) => {
       .eq("id", job.id);
 
     try {
-      await processJob(supabase, job);
-      return new Response(JSON.stringify({ processed: 1, job_id: job.id }), {
+      const result = await runOneStage(supabase, job);
+      return new Response(JSON.stringify({
+        processed: 1,
+        job_id: job.id,
+        stage: result.stage,
+        done: result.done,
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     } catch (err: any) {
@@ -511,7 +607,7 @@ Deno.serve(async (req) => {
 
       if (retryable && newRetryCount < MAX_RETRIES) {
         const nextRetry = new Date(Date.now() + getRetryDelayMs(newRetryCount)).toISOString();
-        console.warn(`[SM2-WORKER] Job ${job.id} retryable (${newRetryCount}/${MAX_RETRIES}): ${errorMsg}`);
+        console.warn(`[SM2-WORKER] Job ${job.id} stage retryable (${newRetryCount}/${MAX_RETRIES}): ${errorMsg}`);
         await supabase
           .from("sm2_generations")
           .update({
@@ -524,7 +620,7 @@ Deno.serve(async (req) => {
           })
           .eq("id", job.id);
       } else {
-        console.error(`[SM2-WORKER] Job ${job.id} FAILED: ${errorMsg}`);
+        console.error(`[SM2-WORKER] Job ${job.id} FAILED at stage ${job.pipeline_stage}: ${errorMsg}`);
         await supabase
           .from("sm2_generations")
           .update({

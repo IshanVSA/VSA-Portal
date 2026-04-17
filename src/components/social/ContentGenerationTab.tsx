@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { useSM2Generation } from "@/hooks/useSM2Generation";
+import { useSM2Generation, STAGE_LABELS, nextStageLabel } from "@/hooks/useSM2Generation";
+import { formatDistanceToNow } from "date-fns";
 import { useMonthlySignals } from "@/hooks/useMonthlySignals";
 import { useBrandDNA } from "@/hooks/useBrandDNA";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
