@@ -170,7 +170,12 @@ export default function ContentThemeSliders({ clinicId }: Props) {
                 <div className={`h-2 w-2 rounded-full ${theme.color} shrink-0`} />
                 <Slider
                   value={[values[theme.key] ?? theme.defaultVal]}
-                  onValueChange={([v]) => handleChange(theme.key, v)}
+                  onValueChange={([v]) => {
+                    const current = values[theme.key] ?? theme.defaultVal;
+                    const otherTotal = total - current;
+                    const maxAllowed = Math.min(60, 100 - otherTotal);
+                    handleChange(theme.key, Math.min(v, maxAllowed));
+                  }}
                   min={0}
                   max={60}
                   step={5}
