@@ -1926,8 +1926,11 @@ export type Database = {
           generation_confidence_score: number | null
           html_file_path: string | null
           id: string
+          last_attempt_at: string | null
           model_used: string | null
           month_year: string
+          next_retry_at: string | null
+          retry_count: number
           sent_to_client_at: string | null
           token_count: number | null
           triggered_by: string | null
@@ -1948,8 +1951,11 @@ export type Database = {
           generation_confidence_score?: number | null
           html_file_path?: string | null
           id?: string
+          last_attempt_at?: string | null
           model_used?: string | null
           month_year: string
+          next_retry_at?: string | null
+          retry_count?: number
           sent_to_client_at?: string | null
           token_count?: number | null
           triggered_by?: string | null
@@ -1970,8 +1976,11 @@ export type Database = {
           generation_confidence_score?: number | null
           html_file_path?: string | null
           id?: string
+          last_attempt_at?: string | null
           model_used?: string | null
           month_year?: string
+          next_retry_at?: string | null
+          retry_count?: number
           sent_to_client_at?: string | null
           token_count?: number | null
           triggered_by?: string | null

@@ -23,9 +23,14 @@ export interface SM2Generation {
   email_day3_sent: boolean | null;
   email_day5_sent: boolean | null;
   failure_reason: string | null;
+  retry_count: number | null;
+  next_retry_at: string | null;
+  last_attempt_at: string | null;
   created_at: string;
   updated_at: string;
 }
+
+const ACTIVE_STATUSES = new Set(["queued", "processing", "retrying"]);
 
 export function useSM2Generation(clinicId: string | undefined, monthYear?: string) {
   const queryClient = useQueryClient();
@@ -46,26 +51,31 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
       return (data || []) as SM2Generation[];
     },
     enabled: !!clinicId,
-    staleTime: 30_000,
+    staleTime: 10_000,
+    // Auto-refetch every 8s while any generation is active.
+    refetchInterval: (query) => {
+      const list = (query.state.data as SM2Generation[] | undefined) || [];
+      const hasActive = list.some(g => ACTIVE_STATUSES.has(g.approval_status));
+      return hasActive ? 8_000 : false;
+    },
+    refetchIntervalInBackground: false,
   });
 
   const currentGeneration = generations?.find(g => g.month_year === currentMonth) || null;
 
-  // Poll for completion when a generation is "processing"
   const pollForCompletion = useCallback(async (generationId: string) => {
-    const maxAttempts = 60; // 5 minutes max (every 5s)
+    const maxAttempts = 90; // ~12 minutes (every 8s)
     for (let i = 0; i < maxAttempts; i++) {
-      await new Promise(r => setTimeout(r, 5000));
+      await new Promise(r => setTimeout(r, 8000));
       const { data } = await supabase
         .from("sm2_generations")
-        .select("approval_status, generation_confidence_score, dna_completeness_score")
+        .select("approval_status, generation_confidence_score, dna_completeness_score, failure_reason")
         .eq("id", generationId)
         .single();
-      
+
       if (!data) continue;
-      
+
       if (data.approval_status === "pending") {
-        // Generation complete!
         queryClient.invalidateQueries({ queryKey: ["sm2-generations", clinicId] });
         toast.success("Content generated successfully", {
           description: `Confidence: ${data.generation_confidence_score || 0}% | DNA Score: ${data.dna_completeness_score || 0}%`,
@@ -74,12 +84,14 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
       }
       if (data.approval_status === "generation_failed") {
         queryClient.invalidateQueries({ queryKey: ["sm2-generations", clinicId] });
-        toast.error("Content generation failed", { description: "Please try again." });
+        toast.error("Content generation failed", {
+          description: (data as any).failure_reason || "Please try again.",
+        });
         return false;
       }
-      // Still processing, continue polling
+      // queued / processing / retrying — keep polling
     }
-    toast.error("Generation timed out. Check back later.");
+    toast.info("Generation is still running. Status will update automatically.");
     return false;
   }, [clinicId, queryClient]);
 
@@ -94,13 +106,18 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
       return data;
     },
     onSuccess: (data) => {
-      // The function now returns 202 with a generation_id
       queryClient.invalidateQueries({ queryKey: ["sm2-generations", clinicId] });
-      if (data?.status === "processing" && data?.generation_id) {
-        toast.info("Content generation started", {
-          description: "This takes 1-3 minutes. You'll be notified when ready.",
+      if (data?.already_running && data?.generation_id) {
+        toast.info("Generation already in progress", {
+          description: "We'll show the result once it's ready.",
         });
-        // Start polling in background
+        pollForCompletion(data.generation_id);
+        return;
+      }
+      if ((data?.status === "queued" || data?.status === "processing") && data?.generation_id) {
+        toast.info("Content generation queued", {
+          description: "This usually takes 2-5 minutes. You'll be notified when ready.",
+        });
         pollForCompletion(data.generation_id);
       } else {
         toast.success("Content generated successfully");

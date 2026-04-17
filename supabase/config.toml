@@ -92,3 +92,6 @@ verify_jwt = false
 
 [functions.generate-blog-batch]
 verify_jwt = false
+
+[functions.sm2-worker]
+verify_jwt = false

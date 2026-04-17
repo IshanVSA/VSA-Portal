@@ -768,172 +768,9 @@ function toggleSection(id) {
 }
 
 // ═══════════════════════════════════════════
-// BACKGROUND GENERATION — 8 AGENT PIPELINE
-// ═══════════════════════════════════════════
-
-async function backgroundGenerate(
-  serviceClient: any,
-  clinic: any,
-  clinic_id: string,
-  month_year: string,
-  completenessScore: number,
-  userId: string,
-  monthlySignals: any,
-  gbpConfig: any,
-  dna: any,
-  generationId: string,
-) {
-  try {
-    const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!apiKey) throw new Error("ANTHROPIC_API_KEY not configured");
-
-    const contentSettings = clinic.content_settings || {
-      promotion_requested: false, team_spotlight_requested: false,
-      pricing_on_website: false, pricing_in_posts: "not_requested",
-      patient_consent: "NOT_CONFIRMED", end_of_life_content: "not_requested",
-    };
-
-    // Step 0: SaaS DNA Assembly
-    const dnaPayload = buildDNAPayload(clinic, dna, monthlySignals, gbpConfig);
-    console.log(`[PIPELINE] DNA assembled for ${clinic.clinic_name}, month: ${month_year}`);
-
-    let totalTokens = 0;
-
-    // Agent 1: Researcher
-    const researchResult = await callAgent(apiKey, AGENT_RESEARCHER,
-      `Clinic: ${clinic.clinic_name}\nLocation: ${gbpConfig?.city || ""}, ${gbpConfig?.state_or_province || ""}, ${gbpConfig?.country || ""}\nNiche: Veterinary clinic\nMonth: ${month_year}\nSpecies: ${JSON.stringify(gbpConfig?.species_treated || ["Dogs","Cats"])}`,
-      3000, "Researcher");
-    totalTokens += researchResult.tokens;
-
-    // Agent 2: Planner
-    const planResult = await callAgent(apiKey, AGENT_PLANNER,
-      `${dnaPayload}\n\n=== TREND REPORT (Agent 1) ===\n${JSON.stringify(researchResult.parsed, null, 2)}`,
-      4000, "Planner");
-    totalTokens += planResult.tokens;
-
-    // Agent 3: Writer
-    const writeResult = await callAgent(apiKey, AGENT_WRITER,
-      `${dnaPayload}\n\n=== CONTENT PLAN (Agent 2) ===\n${JSON.stringify(planResult.parsed, null, 2)}`,
-      4000, "Writer");
-    totalTokens += writeResult.tokens;
-
-    // Agent 3B: Art Director v2
-    const artResult = await callAgent(apiKey, AGENT_ART_DIRECTOR,
-      `=== BRAND IDENTITY ===\nPrimary Color: ${dna?.additional_fields?.primary_brand_color || "NOT FETCHED"}\nSecondary Color: ${dna?.additional_fields?.secondary_brand_color || "NOT FETCHED"}\nFont: ${dna?.additional_fields?.brand_font || "NOT FETCHED"}\n\n=== IMAGE DIRECTIONS (Agent 2) ===\n${JSON.stringify((planResult.parsed?.posts || []).map((p: any) => ({ number: p.number, pillar: p.pillar, topic: p.topic, format: p.format, image_direction: p.image_direction })), null, 2)}\n\n=== TRENDING AESTHETICS ===\n${JSON.stringify(researchResult.parsed?.top_formats || [], null, 2)}`,
-      3000, "Art Director v2");
-    totalTokens += artResult.tokens;
-
-    // Agent 3C: Stories Planner
-    const storiesResult = await callAgent(apiKey, AGENT_STORIES,
-      `=== 10 WRITTEN POSTS ===\n${JSON.stringify(Array.isArray(writeResult.parsed) ? writeResult.parsed.map((w: any) => ({ number: w.number, hook_a: w.hook_a, stories_hook: w.stories_hook })) : [], null, 2)}\n\n=== IMAGE PROMPTS ===\n${JSON.stringify(Array.isArray(artResult.parsed) ? artResult.parsed.map((a: any) => ({ number: a.number, concept: a.concept })) : [], null, 2)}`,
-      2500, "Stories Planner");
-    totalTokens += storiesResult.tokens;
-
-    // Agent 4: Concierge Briefer
-    const conciergeResult = await callAgent(apiKey, AGENT_CONCIERGE,
-      `${dnaPayload}\n\n=== PLAN ===\n${JSON.stringify(planResult.parsed?.posts || [], null, 2)}\n\n=== WRITTEN POSTS ===\n${JSON.stringify(writeResult.parsed, null, 2)}\n\n=== ART PROMPTS ===\n${JSON.stringify(artResult.parsed, null, 2)}`,
-      3000, "Concierge Briefer");
-    totalTokens += conciergeResult.tokens;
-
-    // Agent 5: Fact Checker
-    const factResult = await callAgent(apiKey, AGENT_FACT_CHECKER,
-      `${dnaPayload}\n\n=== WRITTEN POSTS TO VERIFY ===\n${JSON.stringify(writeResult.parsed, null, 2)}`,
-      2500, "Fact Checker");
-    totalTokens += factResult.tokens;
-
-    // Agent 6: Reviewer
-    const reviewResult = await callAgent(apiKey, AGENT_REVIEWER,
-      `${dnaPayload}\n\n=== ALL 10 POSTS ===\n${JSON.stringify(writeResult.parsed, null, 2)}\n\n=== ART PROMPTS ===\n${JSON.stringify(artResult.parsed, null, 2)}\n\n=== STORIES ===\n${JSON.stringify(storiesResult.parsed, null, 2)}\n\n=== CONCIERGE ===\n${JSON.stringify(conciergeResult.parsed, null, 2)}\n\n=== FACT CHECK ===\n${JSON.stringify(factResult.parsed, null, 2)}`,
-      2500, "Reviewer");
-    totalTokens += reviewResult.tokens;
-
-    // SaaS Backstop
-    const backstop = saasBackstop(
-      Array.isArray(writeResult.parsed) ? writeResult.parsed : [],
-      contentSettings,
-    );
-    if (!backstop.passed) {
-      console.warn(`[BACKSTOP] Violations found: ${backstop.violations.join("; ")}`);
-      // Don't fail — but note it in the review
-    }
-
-    // Assemble HTML
-    const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-    const monthNum = parseInt(month_year.split("-")[1]);
-    const year = month_year.split("-")[0];
-    const monthLabel = `${monthNames[monthNum - 1]} ${year}`;
-
-    const htmlContent = assembleHTML(
-      clinic, monthLabel, contentSettings,
-      planResult.parsed, writeResult.parsed, artResult.parsed,
-      storiesResult.parsed, conciergeResult.parsed, factResult.parsed,
-      reviewResult.parsed, gbpConfig,
-    );
-
-    // Calculate confidence from reviewer
-    let confidenceScore = 0;
-    if (reviewResult.parsed?.criteria) {
-      const passed = reviewResult.parsed.criteria.filter((c: any) => c.verdict === "PASS").length;
-      confidenceScore = Math.round((passed / reviewResult.parsed.criteria.length) * 100);
-    }
-
-    // Upload HTML
-    const clinicSlug = clinic.clinic_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-    const timestamp = Date.now();
-    const filePath = `sm2/${clinicSlug}-${month_year}-v${timestamp}-social.html`;
-
-    await serviceClient.storage
-      .from("department-files")
-      .upload(filePath, new Blob([htmlContent], { type: "text/html" }), {
-        contentType: "text/html",
-        upsert: true,
-      });
-
-    await serviceClient
-      .from("sm2_generations")
-      .update({
-        approval_status: "pending",
-        html_file_path: filePath,
-        generation_confidence_score: confidenceScore,
-        dna_completeness_score: completenessScore,
-        model_used: SM2_MODEL,
-        token_count: totalTokens,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", generationId);
-
-    await serviceClient
-      .from("clinic_monthly_signals")
-      .update({ stock_post_count: 10 })
-      .eq("clinic_id", clinic_id)
-      .eq("month_year", month_year);
-
-    console.log(`[PIPELINE] Complete. Confidence: ${confidenceScore}%, Tokens: ${totalTokens}, File: ${filePath}, Verdict: ${reviewResult.parsed?.batch_verdict || "?"}`);
-  } catch (error: any) {
-    console.error(`[PIPELINE] Failed:`, error);
-    let failureReason = error?.message || "Unknown error";
-    if (failureReason.includes("credit balance is too low")) {
-      failureReason = "Anthropic API credits exhausted. Please top up your Anthropic account at console.anthropic.com → Plans & Billing.";
-    } else if (failureReason.includes("ANTHROPIC_API_KEY not configured")) {
-      failureReason = "Anthropic API key is not configured. Please add it in Supabase Edge Function secrets.";
-    } else if (failureReason.includes("rate_limit")) {
-      failureReason = "Anthropic API rate limit reached. Please wait a few minutes and try again.";
-    } else if (failureReason.includes("overloaded")) {
-      failureReason = "Anthropic API is currently overloaded. Please try again in a few minutes.";
-    }
-    await serviceClient
-      .from("sm2_generations")
-      .update({
-        approval_status: "generation_failed",
-        failure_reason: failureReason,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", generationId);
-  }
-}
-
-// ═══════════════════════════════════════════
-// MAIN HANDLER
+// MAIN HANDLER — STARTER ONLY
+// Pipeline execution lives in supabase/functions/sm2-worker/index.ts
+// This function only validates and enqueues the job.
 // ═══════════════════════════════════════════
 
 Deno.serve(async (req) => {
@@ -962,92 +799,91 @@ Deno.serve(async (req) => {
     const { clinic_id, month_year } = parsed.data;
 
     const [clinicRes, dnaRes, signalsRes, gbpRes] = await Promise.all([
-      serviceClient.from("clinics").select("*").eq("id", clinic_id).maybeSingle(),
-      serviceClient.from("clinic_brand_dna").select("*").eq("clinic_id", clinic_id).maybeSingle(),
-      serviceClient.from("clinic_monthly_signals").select("*").eq("clinic_id", clinic_id).eq("month_year", month_year).maybeSingle(),
-      serviceClient.from("clinic_gbp_config").select("*").eq("clinic_id", clinic_id).maybeSingle(),
+      serviceClient.from("clinics").select("id, clinic_name, campaign_start_date").eq("id", clinic_id).maybeSingle(),
+      serviceClient.from("clinic_brand_dna").select("completeness_score").eq("clinic_id", clinic_id).maybeSingle(),
+      serviceClient.from("clinic_monthly_signals").select("id").eq("clinic_id", clinic_id).eq("month_year", month_year).maybeSingle(),
+      serviceClient.from("clinic_gbp_config").select("jurisdiction").eq("clinic_id", clinic_id).maybeSingle(),
     ]);
 
     const clinic = clinicRes.data;
     const dna = dnaRes.data;
-    const signals = signalsRes.data;
-    const gbpConfig = gbpRes.data;
-
     if (!clinic) return json({ error: "Clinic not found" }, 404);
     if (!dna) return json({ error: "No Brand DNA record. Complete the DNA profile first." }, 422);
 
     const completenessScore = dna.completeness_score || 0;
     if (completenessScore < 50) {
       return json({
-        error: `DNA Completeness Score is ${completenessScore}/100 (below 50). Cannot generate content. Missing fields must be collected first.`,
+        error: `DNA Completeness Score is ${completenessScore}/100 (below 50). Cannot generate content.`,
         score: completenessScore,
       }, 422);
     }
 
-    let monthlySignals = signals;
-    if (!monthlySignals) {
+    if (!signalsRes.data) {
       const campaignMonthNumber = clinic.campaign_start_date
         ? Math.max(1, Math.ceil((new Date(`${month_year}-01`).getTime() - new Date(clinic.campaign_start_date).getTime()) / (30.44 * 24 * 60 * 60 * 1000)))
         : 1;
-
-      const jurisdiction = (gbpConfig?.jurisdiction || dna?.synthesized_profile?.jurisdiction || "").toLowerCase();
+      const jurisdiction = (gbpRes.data?.jurisdiction || "").toLowerCase();
       const currency = jurisdiction.includes("us") || jurisdiction.includes("united states") ? "USD" : "CAD";
-
-      const { data: created } = await serviceClient.from("clinic_monthly_signals").insert({
-        clinic_id,
-        month_year,
-        campaign_month_number: campaignMonthNumber,
-        currency,
-      }).select().maybeSingle();
-      monthlySignals = created;
+      await serviceClient.from("clinic_monthly_signals").insert({
+        clinic_id, month_year, campaign_month_number: campaignMonthNumber, currency,
+      });
     }
 
-    console.log(`[SM2 v2.1] Starting 8-agent pipeline for ${clinic.clinic_name}, month: ${month_year}, DNA: ${completenessScore}%`);
+    // Duplicate-run protection
+    const { data: existing } = await serviceClient
+      .from("sm2_generations")
+      .select("id, approval_status")
+      .eq("clinic_id", clinic_id)
+      .eq("month_year", month_year)
+      .in("approval_status", ["queued", "processing", "retrying"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    const { data: newGen } = await serviceClient
+    if (existing) {
+      return json({
+        success: true,
+        status: existing.approval_status,
+        generation_id: existing.id,
+        message: "An active generation is already in progress for this month.",
+        already_running: true,
+      }, 202);
+    }
+
+    const { data: newGen, error: insertErr } = await serviceClient
       .from("sm2_generations")
       .insert({
         clinic_id,
         month_year,
-        approval_status: "processing",
+        approval_status: "queued",
         triggered_by: authData.user.id,
         dna_completeness_score: completenessScore,
+        retry_count: 0,
       })
       .select("id")
       .single();
-    const generationId = newGen!.id;
 
-    const pipelinePromise = backgroundGenerate(
-      serviceClient, clinic, clinic_id, month_year,
-      completenessScore, authData.user.id,
-      monthlySignals, gbpConfig, dna, generationId,
-    ).catch(async (err) => {
-      console.error("[PIPELINE] Uncaught background error:", err);
-      await serviceClient
-        .from("sm2_generations")
-        .update({
-          approval_status: "generation_failed",
-          failure_reason: `Pipeline crashed: ${err?.message || String(err)}`,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", generationId);
-    });
-
-    const edgeRuntime = (globalThis as any).EdgeRuntime;
-    if (edgeRuntime && typeof edgeRuntime.waitUntil === "function") {
-      edgeRuntime.waitUntil(pipelinePromise);
-      console.log(`[SM2 v2.1] Pipeline registered with EdgeRuntime.waitUntil for generation ${generationId}`);
-    } else {
-      console.warn(`[SM2 v2.1] EdgeRuntime.waitUntil unavailable - awaiting pipeline inline (may timeout)`);
-      // Fallback: at least don't drop the promise silently
-      pipelinePromise.catch(() => {});
+    if (insertErr || !newGen) {
+      return json({ error: "Failed to enqueue generation: " + (insertErr?.message || "unknown") }, 500);
     }
+
+    console.log(`[SM2 STARTER] Enqueued generation ${newGen.id} for clinic ${clinic_id} month ${month_year}`);
+
+    // Kick the worker immediately so it doesn't wait for the cron tick
+    fetch(`${supabaseUrl}/functions/v1/sm2-worker`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${anonKey}`,
+      },
+      body: "{}",
+    }).catch((e) => console.warn("[SM2 STARTER] Worker kick failed (cron will retry):", e?.message));
 
     return json({
       success: true,
-      status: "processing",
-      generation_id: generationId,
-      message: "SM2 v2.1 pipeline started (8 agents). Ready in 2-5 minutes.",
+      status: "queued",
+      generation_id: newGen.id,
+      message: "Generation queued. Worker will start in <60 seconds.",
     }, 202);
 
   } catch (error) {
