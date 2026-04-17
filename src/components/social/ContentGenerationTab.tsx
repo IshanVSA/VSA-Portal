@@ -365,7 +365,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, stage }: { status: string; stage?: string | null }) {
   const config: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive"; icon: typeof CheckCircle }> = {
     queued: { label: "Queued", variant: "secondary", icon: Clock },
     processing: { label: "Pipeline Running", variant: "secondary", icon: RefreshCw },
@@ -380,10 +380,13 @@ function StatusBadge({ status }: { status: string }) {
   };
   const c = config[status] || config.pending;
   const isSpinning = status === "processing" || status === "retrying";
+  const stageLabel = (status === "processing" || status === "queued")
+    ? nextStageLabel(stage)
+    : null;
   return (
     <Badge variant={c.variant} className="text-[10px] gap-1">
       <c.icon className={`h-3 w-3 ${isSpinning ? "animate-spin" : ""}`} />
-      {c.label}
+      {stageLabel ? `Running: ${stageLabel}` : c.label}
     </Badge>
   );
 }
