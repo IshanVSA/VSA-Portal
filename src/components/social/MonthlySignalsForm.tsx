@@ -223,6 +223,6 @@ export default function MonthlySignalsForm({ clinicId }: Props) {
         </Button>
       </CardContent>
     </Card>
-    </>
+    </div>
   );
 }
