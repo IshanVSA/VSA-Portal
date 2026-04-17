@@ -40,7 +40,7 @@ const baseTabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
   
   { value: "tickets", label: "Tickets", icon: Ticket },
-  { value: "calendar", label: "Calendar", icon: CalendarDays },
+  { value: "promotions", label: "Active Promotions", icon: Tag },
   
   { value: "analytics", label: "Analytics", icon: BarChart3 },
   { value: "uploads", label: "Files", icon: Upload },
