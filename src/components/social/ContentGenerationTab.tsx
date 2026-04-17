@@ -276,14 +276,19 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                         <p className="text-sm font-medium">
                           {format(new Date(gen.month_year + "-01"), "MMMM yyyy")}
                         </p>
-                        <div className="flex items-center gap-2 mt-0.5">
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                           <Badge variant={gen.generation_confidence_score >= 90 ? "default" : gen.generation_confidence_score >= 70 ? "secondary" : "destructive"} className="text-[10px]">
                             {gen.generation_confidence_score}% confidence
                           </Badge>
                           <Badge variant="outline" className="text-[10px]">
                             DNA {gen.dna_completeness_score}%
                           </Badge>
-                          <StatusBadge status={gen.approval_status} />
+                          <StatusBadge status={gen.approval_status} stage={(gen as any).pipeline_stage} />
+                          {(gen.approval_status === "processing" || gen.approval_status === "queued" || gen.approval_status === "retrying") && gen.last_attempt_at && (
+                            <span className="text-[10px] text-muted-foreground">
+                              updated {formatDistanceToNow(new Date(gen.last_attempt_at), { addSuffix: true })}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
