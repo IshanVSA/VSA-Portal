@@ -4,9 +4,22 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { ImagePlus, Trash2, MessageSquare, Save, Facebook, Instagram } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  ImagePlus,
+  Trash2,
+  MessageSquare,
+  Save,
+  Facebook,
+  Instagram,
+  ChevronRight,
+  Palette,
+  Film,
+  Megaphone,
+} from "lucide-react";
 import { format } from "date-fns";
 import { useSM2Posts, type SM2Post } from "@/hooks/useSM2Posts";
+import { cn } from "@/lib/utils";
 
 interface Props {
   open: boolean;
@@ -25,7 +38,7 @@ export default function PostDayDialog({ open, onClose, date, generationId, isCli
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[88vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{label}</DialogTitle>
         </DialogHeader>
@@ -59,6 +72,48 @@ function platformIcon(platform: string) {
   return <Facebook className="h-3.5 w-3.5" />;
 }
 
+function statusBadgeClass(status: string | null) {
+  const s = (status || "PASS").toUpperCase();
+  if (s === "PASS") return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30";
+  if (s === "FAIL") return "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30";
+  return "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30";
+}
+
+function SectionToggle({
+  label,
+  icon,
+  children,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Collapsible open={open} onOpenChange={setOpen} className="border rounded-md">
+      <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wide hover:bg-muted/50 transition-colors">
+        <span className="flex items-center gap-2">
+          {icon}
+          {label}
+        </span>
+        <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", open && "rotate-90")} />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="px-3 pb-3 pt-1 text-sm space-y-2 border-t">{children}</CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+function KV({ k, v }: { k: string; v: any }) {
+  if (v === null || v === undefined || v === "") return null;
+  const value = typeof v === "object" ? JSON.stringify(v) : String(v);
+  return (
+    <div className="grid grid-cols-[120px_1fr] gap-2 text-xs">
+      <span className="text-muted-foreground capitalize">{k.replace(/_/g, " ")}</span>
+      <span className="whitespace-pre-wrap">{value}</span>
+    </div>
+  );
+}
+
 function PostCard({
   post,
   isClient,
@@ -86,6 +141,10 @@ function PostCard({
     if (!file.type.startsWith("image/")) return;
     onUpload(file);
   };
+
+  const ad = post.art_direction || {};
+  const stories = Array.isArray(post.stories) ? post.stories : [];
+  const cb = post.concierge_brief || {};
 
   return (
     <Card className="overflow-hidden">
@@ -148,38 +207,144 @@ function PostCard({
         </div>
 
         {/* Content */}
-        <div className="space-y-2.5 min-w-0">
+        <div className="space-y-3 min-w-0">
+          {/* Header row */}
           <div className="flex items-center gap-1.5 flex-wrap">
+            {post.post_number != null && (
+              <Badge variant="outline" className="text-[10px] font-mono">#{post.post_number}</Badge>
+            )}
             <Badge variant="outline" className="text-[10px] gap-1">
               {platformIcon(post.platform)}
               {post.platform}
             </Badge>
-            {post.post_type && <Badge variant="secondary" className="text-[10px]">{post.post_type}</Badge>}
             {post.theme && <Badge className="text-[10px]">{post.theme}</Badge>}
+            {post.post_type && <Badge variant="secondary" className="text-[10px]">{post.post_type}</Badge>}
+            <Badge variant="outline" className={cn("text-[10px] font-semibold", statusBadgeClass(post.status))}>
+              {(post.status || "PASS").toUpperCase()}
+            </Badge>
           </div>
-          {post.hook && (
-            <div>
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Hook</p>
-              <p className="text-sm font-medium">{post.hook}</p>
+
+          {/* Topic / title */}
+          {post.topic && <h3 className="text-base font-bold leading-tight">{post.topic}</h3>}
+
+          {/* Hooks */}
+          {(post.hook || post.hook_b) && (
+            <div className="space-y-1.5 rounded-md bg-muted/40 p-2.5 border">
+              {post.hook && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Hook A</p>
+                  <p className="text-sm font-medium">{post.hook}</p>
+                </div>
+              )}
+              {post.hook_b && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Hook B</p>
+                  <p className="text-sm font-medium">{post.hook_b}</p>
+                </div>
+              )}
             </div>
           )}
+
+          {/* Caption */}
           {post.caption && (
             <div>
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Caption</p>
-              <p className="text-sm whitespace-pre-wrap">{post.caption}</p>
+              <p className="text-sm whitespace-pre-wrap leading-relaxed">{post.caption}</p>
             </div>
           )}
+
+          {/* Hashtags */}
           {post.hashtags && post.hashtags.length > 0 && (
-            <p className="text-xs text-primary/80 font-mono">{post.hashtags.join(" ")}</p>
+            <p className="text-xs text-primary/80 font-mono break-words">{post.hashtags.join(" ")}</p>
           )}
+
+          {/* CTA */}
           {post.cta && (
             <p className="text-xs">
               <span className="text-muted-foreground">CTA: </span>
               {post.cta}
             </p>
           )}
+
+          {/* Compliance */}
           {post.compliance_notes && (
             <p className="text-[11px] text-amber-600 dark:text-amber-400">⚠ {post.compliance_notes}</p>
+          )}
+
+          {/* Collapsible: Art Direction */}
+          {ad && Object.keys(ad).length > 0 && (
+            <SectionToggle label="Art Direction" icon={<Palette className="h-3.5 w-3.5" />}>
+              {Object.entries(ad)
+                .filter(([k]) => !["frames", "transitions"].includes(k))
+                .map(([k, v]) => (
+                  <KV key={k} k={k} v={v} />
+                ))}
+              {Array.isArray((ad as any).frames) && (ad as any).frames.length > 0 && (
+                <div className="pt-2 mt-2 border-t">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-1">
+                    Frames
+                  </p>
+                  <ol className="list-decimal list-inside space-y-1 text-xs">
+                    {(ad as any).frames.map((f: any, i: number) => (
+                      <li key={i} className="whitespace-pre-wrap">{typeof f === "string" ? f : JSON.stringify(f)}</li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+              {(ad as any).transitions && (
+                <div className="pt-2 mt-2 border-t">
+                  <KV k="transitions" v={(ad as any).transitions} />
+                </div>
+              )}
+            </SectionToggle>
+          )}
+
+          {/* Collapsible: Stories */}
+          {stories.length > 0 && (
+            <SectionToggle
+              label={`Stories (${stories.length})`}
+              icon={<Film className="h-3.5 w-3.5" />}
+            >
+              <ol className="space-y-2">
+                {stories.map((frame: any, i: number) => (
+                  <li key={i} className="text-xs border rounded p-2 bg-muted/30">
+                    <p className="font-semibold mb-1">Frame {i + 1}</p>
+                    {typeof frame === "string" ? (
+                      <p className="whitespace-pre-wrap">{frame}</p>
+                    ) : (
+                      <div className="space-y-1">
+                        {Object.entries(frame).map(([k, v]) => (
+                          <KV key={k} k={k} v={v} />
+                        ))}
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </SectionToggle>
+          )}
+
+          {/* Collapsible: Concierge Brief */}
+          {cb && Object.keys(cb).length > 0 && (
+            <SectionToggle label="Concierge Brief" icon={<Megaphone className="h-3.5 w-3.5" />}>
+              {Object.entries(cb).map(([k, v]) => {
+                if (Array.isArray(v)) {
+                  return (
+                    <div key={k} className="text-xs">
+                      <p className="text-muted-foreground capitalize mb-1">{k.replace(/_/g, " ")}</p>
+                      <ul className="list-disc list-inside space-y-0.5 ml-1">
+                        {v.map((item, i) => (
+                          <li key={i} className="whitespace-pre-wrap">
+                            {typeof item === "string" ? item : JSON.stringify(item)}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                }
+                return <KV key={k} k={k} v={v} />;
+              })}
+            </SectionToggle>
           )}
 
           {/* Client feedback */}
