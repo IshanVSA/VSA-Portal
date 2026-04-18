@@ -30,7 +30,7 @@ const navItems: NavItem[] = [
   { title: "Intake Forms", url: "/intake-forms", icon: ClipboardList, roles: ["admin", "concierge", "client"] },
   { title: "Employees", url: "/employees", icon: Users, roles: ["admin"] },
   { title: "Clients", url: "/clients", icon: UserCheck, roles: ["admin"] },
-  { title: "Review", url: "/review", icon: ShieldCheck, roles: ["admin"] },
+  
   { title: "Settings", url: "/settings", icon: Settings, roles: ["admin", "concierge", "client"] },
 ];
 
