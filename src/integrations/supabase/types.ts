@@ -2067,66 +2067,87 @@ export type Database = {
       }
       sm2_posts: {
         Row: {
+          art_direction: Json | null
           caption: string | null
           client_feedback: string | null
           clinic_id: string
           compliance_notes: string | null
+          concierge_brief: Json | null
           created_at: string
           cta: string | null
           generation_id: string
           hashtags: string[] | null
           hook: string | null
+          hook_b: string | null
           id: string
           image_path: string | null
           image_uploaded_at: string | null
           image_uploaded_by: string | null
           platform: string
           position: number
+          post_number: number | null
           post_type: string | null
           scheduled_date: string
+          status: string | null
+          stories: Json | null
           theme: string | null
+          topic: string | null
           updated_at: string
         }
         Insert: {
+          art_direction?: Json | null
           caption?: string | null
           client_feedback?: string | null
           clinic_id: string
           compliance_notes?: string | null
+          concierge_brief?: Json | null
           created_at?: string
           cta?: string | null
           generation_id: string
           hashtags?: string[] | null
           hook?: string | null
+          hook_b?: string | null
           id?: string
           image_path?: string | null
           image_uploaded_at?: string | null
           image_uploaded_by?: string | null
           platform: string
           position?: number
+          post_number?: number | null
           post_type?: string | null
           scheduled_date: string
+          status?: string | null
+          stories?: Json | null
           theme?: string | null
+          topic?: string | null
           updated_at?: string
         }
         Update: {
+          art_direction?: Json | null
           caption?: string | null
           client_feedback?: string | null
           clinic_id?: string
           compliance_notes?: string | null
+          concierge_brief?: Json | null
           created_at?: string
           cta?: string | null
           generation_id?: string
           hashtags?: string[] | null
           hook?: string | null
+          hook_b?: string | null
           id?: string
           image_path?: string | null
           image_uploaded_at?: string | null
           image_uploaded_by?: string | null
           platform?: string
           position?: number
+          post_number?: number | null
           post_type?: string | null
           scheduled_date?: string
+          status?: string | null
+          stories?: Json | null
           theme?: string | null
+          topic?: string | null
           updated_at?: string
         }
         Relationships: [
