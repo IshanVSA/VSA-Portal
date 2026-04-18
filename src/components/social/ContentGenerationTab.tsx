@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Sparkles, RefreshCw, FileText, Eye, AlertTriangle, CheckCircle, Clock, Send, TrendingUp, Heart, Share2, MessageCircle, CalendarDays, Pencil, ShieldAlert, ShieldCheck } from "lucide-react";
 import HtmlEditorDialog from "./HtmlEditorDialog";
+import SM2CalendarView from "./SM2CalendarView";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -220,7 +221,21 @@ export default function ContentGenerationTab({ clinicId }: Props) {
         </Card>
       )}
 
-      {/* Top Performers Card */}
+      {/* Calendar view of current month's generation */}
+      {currentGeneration && currentGeneration.approval_status !== "queued" && currentGeneration.approval_status !== "processing" && currentGeneration.approval_status !== "retrying" && currentGeneration.approval_status !== "generation_failed" && (
+        <Card>
+          <CardContent className="pt-6">
+            <SM2CalendarView
+              generationId={currentGeneration.id}
+              monthYear={currentGeneration.month_year}
+              approvalStatus={currentGeneration.approval_status}
+              isClient={false}
+              onSendToClient={() => sendToClient.mutate(currentGeneration.id)}
+              sendPending={sendToClient.isPending}
+            />
+          </CardContent>
+        </Card>
+      )}
       {topPerformers.length > 0 && (
         <Card className="overflow-hidden animate-fade-in">
           <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
