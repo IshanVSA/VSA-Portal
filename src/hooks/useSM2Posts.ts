@@ -21,6 +21,13 @@ export interface SM2Post {
   image_uploaded_by: string | null;
   client_feedback: string | null;
   position: number;
+  post_number: number | null;
+  topic: string | null;
+  hook_b: string | null;
+  status: string | null;
+  art_direction: Record<string, any> | null;
+  stories: any[] | null;
+  concierge_brief: Record<string, any> | null;
   created_at: string;
   updated_at: string;
 }
