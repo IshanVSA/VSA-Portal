@@ -476,6 +476,70 @@ async function runOneStage(supabase: any, job: any): Promise<{ done: boolean; st
         .eq("clinic_id", clinic_id)
         .eq("month_year", month_year);
 
+      // Insert structured per-post rows for the new calendar approval flow
+      try {
+        const planPosts = Array.isArray(data.plan?.posts) ? data.plan.posts : [];
+        const writes = Array.isArray(data.write) ? data.write : [];
+        const arts = Array.isArray(data.art) ? data.art : [];
+        const conciergePosts = Array.isArray(data.concierge?.posts) ? data.concierge.posts : [];
+        const yearNum = parseInt(year);
+        const monthIdx = monthNum; // 1-12
+        const daysInMonth = new Date(yearNum, monthIdx, 0).getDate();
+
+        const parseDay = (raw: any, fallbackIdx: number): string => {
+          if (!raw) return `${year}-${String(monthIdx).padStart(2, "0")}-${String(Math.min(daysInMonth, (fallbackIdx * 3) + 1)).padStart(2, "0")}`;
+          const s = String(raw);
+          // Already YYYY-MM-DD
+          const iso = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+          if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+          // "Mar 15" / "March 15" / "15"
+          const dayMatch = s.match(/\b(\d{1,2})\b/);
+          const day = dayMatch ? Math.min(daysInMonth, Math.max(1, parseInt(dayMatch[1]))) : Math.min(daysInMonth, (fallbackIdx * 3) + 1);
+          return `${year}-${String(monthIdx).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        };
+
+        // Clear any prior posts for this generation (in case of re-assemble)
+        await supabase.from("sm2_posts").delete().eq("generation_id", generationId);
+
+        const rows = planPosts.map((p: any, i: number) => {
+          const w = writes[i] || {};
+          const a = arts[i] || {};
+          const c = conciergePosts[i] || {};
+          const platformGuess = (() => {
+            const fmt = String(p.format || "").toLowerCase();
+            if (fmt.includes("reel") || fmt.includes("tiktok")) return "instagram";
+            if (fmt.includes("story")) return "instagram";
+            return "facebook";
+          })();
+          const hashtagsRaw = w.hashtags || "";
+          const hashtags = typeof hashtagsRaw === "string"
+            ? hashtagsRaw.split(/\s+/).filter((h: string) => h.startsWith("#"))
+            : Array.isArray(hashtagsRaw) ? hashtagsRaw : [];
+          return {
+            generation_id: generationId,
+            clinic_id,
+            scheduled_date: parseDay(p.date_suggestion, i),
+            platform: platformGuess,
+            post_type: p.format || null,
+            theme: p.pillar || null,
+            caption: w.caption || null,
+            hashtags,
+            cta: p.cta_type || null,
+            hook: w.hook_a || p.hook_a_direction || null,
+            compliance_notes: Array.isArray(p.compliance_flags) ? p.compliance_flags.join("; ") : (p.compliance_flags || null),
+            position: i,
+          };
+        });
+
+        if (rows.length) {
+          const { error: postsErr } = await supabase.from("sm2_posts").insert(rows);
+          if (postsErr) console.warn(`[SM2-WORKER] sm2_posts insert warning: ${postsErr.message}`);
+          else console.log(`[SM2-WORKER] Inserted ${rows.length} sm2_posts for generation ${generationId}`);
+        }
+      } catch (e) {
+        console.warn(`[SM2-WORKER] Failed to insert sm2_posts: ${e instanceof Error ? e.message : String(e)}`);
+      }
+
       console.log(`[SM2-WORKER] Job ${generationId} COMPLETE. confidence=${confidenceScore}% tokens=${totalTokens}`);
       return { done: true, stage: "assemble", tokens: 0 };
     }

@@ -34,6 +34,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { format } from "date-fns";
+import SM2CalendarView from "./SM2CalendarView";
 
 interface Props {
   clinicId: string | undefined;
@@ -120,23 +121,33 @@ export default function ClientContentReview({ clinicId }: Props) {
         ))}
       </div>
 
-      {/* HTML Preview Dialog */}
-      {viewingGen?.html_file_path && (
-        <ClientHtmlPreview
-          filePath={viewingGen.html_file_path}
-          monthYear={viewingGen.month_year}
-          approvalStatus={viewingGen.approval_status}
-          onClose={() => setViewingGen(null)}
-          onRequestChanges={() => {
-            setViewingGen(null);
-            setFeedbackGen(viewingGen);
-            setFeedbackText(viewingGen.client_feedback || "");
-          }}
-          onApprove={() => {
-            setViewingGen(null);
-            setApproveConfirm(viewingGen);
-          }}
-        />
+      {/* Calendar Preview Dialog */}
+      {viewingGen && (
+        <Dialog open onOpenChange={() => setViewingGen(null)}>
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                {format(new Date(viewingGen.month_year + "-01"), "MMMM yyyy")} — Content Calendar
+              </DialogTitle>
+            </DialogHeader>
+            <SM2CalendarView
+              generationId={viewingGen.id}
+              monthYear={viewingGen.month_year}
+              approvalStatus={viewingGen.approval_status}
+              isClient={true}
+              onApprove={() => {
+                setApproveConfirm(viewingGen);
+                setViewingGen(null);
+              }}
+              onRequestChanges={() => {
+                setFeedbackGen(viewingGen);
+                setFeedbackText(viewingGen.client_feedback || "");
+                setViewingGen(null);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Feedback Dialog */}

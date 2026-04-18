@@ -153,9 +153,22 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
     },
   });
 
-  // Staff action: mark as sent to client
+  // Staff action: mark as sent to client (gated on all posts having images)
   const sendToClient = useMutation({
     mutationFn: async (generationId: string) => {
+      // Gate: every sm2_post must have an image_path
+      const { data: posts, error: postsErr } = await supabase
+        .from("sm2_posts")
+        .select("id, image_path")
+        .eq("generation_id", generationId);
+      if (postsErr) throw postsErr;
+      if (posts && posts.length > 0) {
+        const missing = posts.filter((p) => !p.image_path).length;
+        if (missing > 0) {
+          throw new Error(`Add images to all posts before sending. ${missing} of ${posts.length} still missing.`);
+        }
+      }
+
       const { error } = await supabase
         .from("sm2_generations")
         .update({
