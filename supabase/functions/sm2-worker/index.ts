@@ -481,7 +481,9 @@ async function runOneStage(supabase: any, job: any): Promise<{ done: boolean; st
         const planPosts = Array.isArray(data.plan?.posts) ? data.plan.posts : [];
         const writes = Array.isArray(data.write) ? data.write : [];
         const arts = Array.isArray(data.art) ? data.art : [];
+        const storiesArr = Array.isArray(data.stories) ? data.stories : [];
         const conciergePosts = Array.isArray(data.concierge?.posts) ? data.concierge.posts : [];
+        const factChecks = Array.isArray(data.fact_check) ? data.fact_check : [];
         const yearNum = parseInt(year);
         const monthIdx = monthNum; // 1-12
         const daysInMonth = new Date(yearNum, monthIdx, 0).getDate();
@@ -489,10 +491,8 @@ async function runOneStage(supabase: any, job: any): Promise<{ done: boolean; st
         const parseDay = (raw: any, fallbackIdx: number): string => {
           if (!raw) return `${year}-${String(monthIdx).padStart(2, "0")}-${String(Math.min(daysInMonth, (fallbackIdx * 3) + 1)).padStart(2, "0")}`;
           const s = String(raw);
-          // Already YYYY-MM-DD
           const iso = s.match(/(\d{4})-(\d{2})-(\d{2})/);
           if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
-          // "Mar 15" / "March 15" / "15"
           const dayMatch = s.match(/\b(\d{1,2})\b/);
           const day = dayMatch ? Math.min(daysInMonth, Math.max(1, parseInt(dayMatch[1]))) : Math.min(daysInMonth, (fallbackIdx * 3) + 1);
           return `${year}-${String(monthIdx).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -504,7 +504,9 @@ async function runOneStage(supabase: any, job: any): Promise<{ done: boolean; st
         const rows = planPosts.map((p: any, i: number) => {
           const w = writes[i] || {};
           const a = arts[i] || {};
+          const s = storiesArr[i] || {};
           const c = conciergePosts[i] || {};
+          const fc = factChecks[i] || {};
           const platformGuess = (() => {
             const fmt = String(p.format || "").toLowerCase();
             if (fmt.includes("reel") || fmt.includes("tiktok")) return "instagram";
@@ -515,6 +517,7 @@ async function runOneStage(supabase: any, job: any): Promise<{ done: boolean; st
           const hashtags = typeof hashtagsRaw === "string"
             ? hashtagsRaw.split(/\s+/).filter((h: string) => h.startsWith("#"))
             : Array.isArray(hashtagsRaw) ? hashtagsRaw : [];
+          const storiesFrames = Array.isArray((s as any)?.frames) ? (s as any).frames : (Array.isArray(s) ? s : null);
           return {
             generation_id: generationId,
             clinic_id,
@@ -528,6 +531,13 @@ async function runOneStage(supabase: any, job: any): Promise<{ done: boolean; st
             hook: w.hook_a || p.hook_a_direction || null,
             compliance_notes: Array.isArray(p.compliance_flags) ? p.compliance_flags.join("; ") : (p.compliance_flags || null),
             position: i,
+            post_number: i + 1,
+            topic: p.topic || null,
+            hook_b: w.hook_b || p.hook_b_direction || null,
+            status: fc?.status || "PASS",
+            art_direction: a && Object.keys(a).length ? a : null,
+            stories: storiesFrames,
+            concierge_brief: c && Object.keys(c).length ? c : null,
           };
         });
 
