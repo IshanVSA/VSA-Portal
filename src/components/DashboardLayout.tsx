@@ -85,7 +85,6 @@ const adminSections: NavSection[] = [
   ]},
   { title: "ADMIN", items: [
     { label: "Reports", icon: FileText, path: "/reports" },
-    { label: "Review Queue", icon: ShieldCheck, path: "/review" },
     { label: "Settings", icon: Settings, path: "/settings" },
   ]},
 ];
