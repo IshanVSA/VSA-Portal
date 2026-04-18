@@ -2065,6 +2065,80 @@ export type Database = {
           },
         ]
       }
+      sm2_posts: {
+        Row: {
+          caption: string | null
+          client_feedback: string | null
+          clinic_id: string
+          compliance_notes: string | null
+          created_at: string
+          cta: string | null
+          generation_id: string
+          hashtags: string[] | null
+          hook: string | null
+          id: string
+          image_path: string | null
+          image_uploaded_at: string | null
+          image_uploaded_by: string | null
+          platform: string
+          position: number
+          post_type: string | null
+          scheduled_date: string
+          theme: string | null
+          updated_at: string
+        }
+        Insert: {
+          caption?: string | null
+          client_feedback?: string | null
+          clinic_id: string
+          compliance_notes?: string | null
+          created_at?: string
+          cta?: string | null
+          generation_id: string
+          hashtags?: string[] | null
+          hook?: string | null
+          id?: string
+          image_path?: string | null
+          image_uploaded_at?: string | null
+          image_uploaded_by?: string | null
+          platform: string
+          position?: number
+          post_type?: string | null
+          scheduled_date: string
+          theme?: string | null
+          updated_at?: string
+        }
+        Update: {
+          caption?: string | null
+          client_feedback?: string | null
+          clinic_id?: string
+          compliance_notes?: string | null
+          created_at?: string
+          cta?: string | null
+          generation_id?: string
+          hashtags?: string[] | null
+          hook?: string | null
+          id?: string
+          image_path?: string | null
+          image_uploaded_at?: string | null
+          image_uploaded_by?: string | null
+          platform?: string
+          position?: number
+          post_type?: string | null
+          scheduled_date?: string
+          theme?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sm2_posts_generation_id_fkey"
+            columns: ["generation_id"]
+            isOneToOne: false
+            referencedRelation: "sm2_generations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sm2_system_prompts: {
         Row: {
           created_at: string
