@@ -205,7 +205,7 @@ export default function SM2CalendarView({
                             borderColor: `${color.replace("hsl", "hsla").replace(")", " / 0.25)")}`,
                             color,
                           }}
-                          title={p.theme || p.platform}
+                          title={p.topic || p.theme || p.platform}
                         >
                           {url ? (
                             <img src={url} alt="" className="w-4 h-4 object-cover rounded-sm" />
