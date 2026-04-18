@@ -90,6 +90,15 @@ export function MetaConnectionCard({
               <XCircle className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground text-sm">Not connected</span>
             </div>
+            <div className="rounded-lg border border-border/60 bg-muted/30 p-3 text-xs space-y-1.5">
+              <p className="font-semibold text-foreground">Setup requirements (Dev Mode)</p>
+              <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+                <li>App must be in <strong>Development Mode</strong> (Live toggle OFF)</li>
+                <li>Add the Page admin as an <strong>App Tester</strong> in App Roles → Roles at developers.facebook.com</li>
+                <li>Connect using that admin's Facebook account below</li>
+              </ol>
+              <p className="text-muted-foreground pt-1">This unlocks full insights, demographics, and per-post metrics without Business Verification.</p>
+            </div>
             <Button asChild className="w-full">
               <a href={oauthUrl} target="_blank" rel="noopener noreferrer">Connect with Facebook</a>
             </Button>

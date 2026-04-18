@@ -23,6 +23,34 @@ async function decryptToken(encryptedText: string): Promise<string> {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const GRAPH = "https://graph.facebook.com/v21.0";
+
+type PermStatus = "ok" | "missing" | "skipped";
+interface PermissionsStatus {
+  fb_page_info: PermStatus;
+  fb_page_insights: PermStatus;
+  fb_daily_trends: PermStatus;
+  fb_posts: PermStatus;
+  fb_post_insights: PermStatus;
+  fb_demographics: PermStatus;
+  ig_profile: PermStatus;
+  ig_insights: PermStatus;
+  ig_media_insights: PermStatus;
+  ig_demographics: PermStatus;
+  ig_online_followers: PermStatus;
+  ig_stories: PermStatus;
+}
+
+async function gget(url: string): Promise<{ data: any; error: any }> {
+  try {
+    const r = await fetch(url);
+    const j = await r.json();
+    if (j.error) return { data: null, error: j.error };
+    return { data: j, error: null };
+  } catch (e: any) {
+    return { data: null, error: { message: e.message } };
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -30,7 +58,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify auth
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -54,7 +81,6 @@ Deno.serve(async (req) => {
 
     const userId = claimsData.claims.sub as string;
 
-    // Check role
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { data: roleData } = await supabase
       .from("user_roles")
@@ -77,7 +103,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get credentials
     const { data: creds } = await supabase
       .from("clinic_api_credentials")
       .select("meta_page_access_token, meta_page_id, meta_instagram_business_id")
@@ -91,229 +116,360 @@ Deno.serve(async (req) => {
       });
     }
 
-    const token_str = await decryptToken(creds.meta_page_access_token);
+    const tok = await decryptToken(creds.meta_page_access_token);
     const pageId = creds.meta_page_id;
     const igId = creds.meta_instagram_business_id;
     const today = new Date().toISOString().slice(0, 10);
     const analyticsRows: any[] = [];
 
-    // ---- Facebook Page Insights ----
-    try {
-      // Basic page info (works with pages_read_engagement)
-      const fbRes = await fetch(
-        `https://graph.facebook.com/v21.0/${pageId}?fields=fan_count,name,followers_count,new_like_count,talking_about_count&access_token=${token_str}`
+    const perms: PermissionsStatus = {
+      fb_page_info: "skipped",
+      fb_page_insights: "skipped",
+      fb_daily_trends: "skipped",
+      fb_posts: "skipped",
+      fb_post_insights: "skipped",
+      fb_demographics: "skipped",
+      ig_profile: "skipped",
+      ig_insights: "skipped",
+      ig_media_insights: "skipped",
+      ig_demographics: "skipped",
+      ig_online_followers: "skipped",
+      ig_stories: "skipped",
+    };
+
+    // ============================================================
+    // FACEBOOK
+    // ============================================================
+    let fbPage: any = {};
+    {
+      const { data, error } = await gget(
+        `${GRAPH}/${pageId}?fields=fan_count,name,followers_count,new_like_count,talking_about_count&access_token=${tok}`
       );
-      const fbPage = await fbRes.json();
-      if (fbPage.error) {
-        console.error("Facebook page info error:", JSON.stringify(fbPage.error));
+      if (error) { perms.fb_page_info = "missing"; console.warn("fb_page_info", JSON.stringify(error)); }
+      else { perms.fb_page_info = "ok"; fbPage = data; }
+    }
+
+    // 28-day insights
+    const metricsMap: Record<string, any> = {};
+    {
+      const fbMetrics = [
+        "page_impressions",
+        "page_impressions_unique",
+        "page_engaged_users",
+        "page_post_engagements",
+        "page_views_total",
+        "page_fan_adds",
+        "page_fan_removes",
+        "page_actions_post_reactions_total",
+        "page_video_views",
+      ].join(",");
+      const { data, error } = await gget(
+        `${GRAPH}/${pageId}/insights?metric=${fbMetrics}&period=days_28&access_token=${tok}`
+      );
+      if (error) { perms.fb_page_insights = "missing"; console.warn("fb_page_insights", JSON.stringify(error)); }
+      else {
+        perms.fb_page_insights = "ok";
+        for (const m of data.data || []) {
+          const latest = m.values?.[m.values.length - 1];
+          if (latest) metricsMap[m.name] = latest.value;
+        }
       }
+    }
 
-      // Attempt page insights (requires read_insights - may fail without App Review)
-      const metricsMap: Record<string, any> = {};
-      const dailyData: any[] = [];
-      let recentPosts: any[] = [];
-      let reactions: any = {};
+    // Daily trends
+    const dailyData: any[] = [];
+    {
+      const thirty = new Date();
+      thirty.setDate(thirty.getDate() - 30);
+      const since = thirty.toISOString().slice(0, 10);
+      const { data, error } = await gget(
+        `${GRAPH}/${pageId}/insights?metric=page_impressions,page_engaged_users,page_views_total&period=day&since=${since}&until=${today}&access_token=${tok}`
+      );
+      if (error) { perms.fb_daily_trends = "missing"; console.warn("fb_daily_trends", JSON.stringify(error)); }
+      else {
+        perms.fb_daily_trends = "ok";
+        const imp = data.data?.find((m: any) => m.name === "page_impressions");
+        const eng = data.data?.find((m: any) => m.name === "page_engaged_users");
+        const vws = data.data?.find((m: any) => m.name === "page_views_total");
+        const len = imp?.values?.length || 0;
+        for (let i = 0; i < len; i++) {
+          dailyData.push({
+            date: imp?.values[i]?.end_time?.slice(0, 10),
+            impressions: imp?.values[i]?.value || 0,
+            engaged_users: eng?.values?.[i]?.value || 0,
+            page_views: vws?.values?.[i]?.value || 0,
+          });
+        }
+      }
+    }
 
-      try {
-        const fbMetrics = [
-          "page_impressions",
-          "page_impressions_unique",
-          "page_engaged_users",
-          "page_post_engagements",
-          "page_views_total",
-          "page_fan_adds",
-          "page_fan_removes",
-          "page_actions_post_reactions_total",
-          "page_video_views",
-        ].join(",");
+    // Demographics
+    const fbDemographics: any = { country: {}, city: {}, gender_age: {} };
+    {
+      const { data, error } = await gget(
+        `${GRAPH}/${pageId}/insights?metric=page_fans_country,page_fans_city,page_fans_gender_age&period=lifetime&access_token=${tok}`
+      );
+      if (error) { perms.fb_demographics = "missing"; console.warn("fb_demographics", JSON.stringify(error)); }
+      else {
+        perms.fb_demographics = "ok";
+        for (const m of data.data || []) {
+          const v = m.values?.[m.values.length - 1]?.value || {};
+          if (m.name === "page_fans_country") fbDemographics.country = v;
+          else if (m.name === "page_fans_city") fbDemographics.city = v;
+          else if (m.name === "page_fans_gender_age") fbDemographics.gender_age = v;
+        }
+      }
+    }
 
-        const insightsRes = await fetch(
-          `https://graph.facebook.com/v21.0/${pageId}/insights?metric=${fbMetrics}&period=days_28&access_token=${token_str}`
+    // Recent posts
+    let recentPosts: any[] = [];
+    {
+      const { data, error } = await gget(
+        `${GRAPH}/${pageId}/posts?fields=id,message,created_time,full_picture,permalink_url,shares,likes.summary(true),comments.summary(true)&limit=10&access_token=${tok}`
+      );
+      if (error) { perms.fb_posts = "missing"; console.warn("fb_posts", JSON.stringify(error)); }
+      else {
+        perms.fb_posts = "ok";
+        recentPosts = (data.data || []).map((post: any) => ({
+          id: post.id,
+          message: (post.message || "").slice(0, 200),
+          created_time: post.created_time,
+          picture: post.full_picture || null,
+          permalink: post.permalink_url || null,
+          likes: post.likes?.summary?.total_count || 0,
+          comments: post.comments?.summary?.total_count || 0,
+          shares: post.shares?.count || 0,
+        }));
+      }
+    }
+
+    // Per-post insights
+    if (recentPosts.length > 0) {
+      let okCount = 0;
+      for (const post of recentPosts) {
+        const { data, error } = await gget(
+          `${GRAPH}/${post.id}/insights?metric=post_impressions,post_impressions_unique,post_engaged_users,post_clicks&access_token=${tok}`
         );
-        const insightsData = await insightsRes.json();
-        if (insightsData.error) {
-          console.warn("Facebook insights unavailable (may need App Review):", JSON.stringify(insightsData.error));
-        } else if (insightsData.data) {
-          for (const metric of insightsData.data) {
-            const latest = metric.values?.[metric.values.length - 1];
-            if (latest) metricsMap[metric.name] = latest.value;
+        if (!error && data?.data) {
+          okCount++;
+          for (const m of data.data) {
+            const v = m.values?.[0]?.value || 0;
+            post[m.name] = v;
           }
         }
-      } catch (insightsErr) {
-        console.warn("Insights fetch failed (non-fatal):", insightsErr);
+      }
+      perms.fb_post_insights = okCount > 0 ? "ok" : "missing";
+    }
+
+    analyticsRows.push({
+      clinic_id,
+      platform: "facebook",
+      metric_type: "monthly_summary",
+      date: today,
+      value: fbPage.fan_count || 0,
+      metrics_json: {
+        likes: fbPage.fan_count || 0,
+        followers: fbPage.followers_count || 0,
+        reach: metricsMap.page_impressions || 0,
+        reach_unique: metricsMap.page_impressions_unique || 0,
+        engagement: metricsMap.page_engaged_users || 0,
+        post_engagements: metricsMap.page_post_engagements || 0,
+        page_views: metricsMap.page_views_total || 0,
+        fan_adds: metricsMap.page_fan_adds || 0,
+        fan_removes: metricsMap.page_fan_removes || 0,
+        video_views: metricsMap.page_video_views || 0,
+        reactions: metricsMap.page_actions_post_reactions_total || {},
+        talking_about: fbPage.talking_about_count || 0,
+        daily_trends: dailyData,
+        recent_posts: recentPosts,
+        demographics: fbDemographics,
+      },
+    });
+
+    // ============================================================
+    // INSTAGRAM
+    // ============================================================
+    if (igId) {
+      let followers = 0;
+      let mediaCount = 0;
+      let username = "";
+      let profilePic = "";
+      {
+        const { data, error } = await gget(
+          `${GRAPH}/${igId}?fields=followers_count,media_count,username,profile_picture_url&access_token=${tok}`
+        );
+        if (error) { perms.ig_profile = "missing"; console.warn("ig_profile", JSON.stringify(error)); }
+        else {
+          perms.ig_profile = "ok";
+          followers = data.followers_count || 0;
+          mediaCount = data.media_count || 0;
+          username = data.username || "";
+          profilePic = data.profile_picture_url || "";
+        }
       }
 
-      // Attempt daily trends (requires read_insights)
-      try {
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        const sinceStr = thirtyDaysAgo.toISOString().slice(0, 10);
-        const untilStr = today;
-
-        const dailyInsightsRes = await fetch(
-          `https://graph.facebook.com/v21.0/${pageId}/insights?metric=page_impressions,page_engaged_users,page_views_total&period=day&since=${sinceStr}&until=${untilStr}&access_token=${token_str}`
+      // IG insights — use the modern, supported metrics
+      const igMetrics: Record<string, number> = {};
+      {
+        const metricList = "reach,profile_views,website_clicks,accounts_engaged,total_interactions,likes,comments,shares,saves,views";
+        const { data, error } = await gget(
+          `${GRAPH}/${igId}/insights?metric=${metricList}&metric_type=total_value&period=day&access_token=${tok}`
         );
-        const dailyInsights = await dailyInsightsRes.json();
-        if (dailyInsights.error) {
-          console.warn("Daily insights unavailable (may need App Review):", JSON.stringify(dailyInsights.error));
-        } else if (dailyInsights.data && dailyInsights.data.length > 0) {
-          const impressionsMetric = dailyInsights.data.find((m: any) => m.name === "page_impressions");
-          const engagedMetric = dailyInsights.data.find((m: any) => m.name === "page_engaged_users");
-          const viewsMetric = dailyInsights.data.find((m: any) => m.name === "page_views_total");
-          const len = impressionsMetric?.values?.length || 0;
-          for (let i = 0; i < len; i++) {
-            dailyData.push({
-              date: impressionsMetric?.values[i]?.end_time?.slice(0, 10),
-              impressions: impressionsMetric?.values[i]?.value || 0,
-              engaged_users: engagedMetric?.values?.[i]?.value || 0,
-              page_views: viewsMetric?.values?.[i]?.value || 0,
-            });
+        if (error) { perms.ig_insights = "missing"; console.warn("ig_insights", JSON.stringify(error)); }
+        else {
+          perms.ig_insights = "ok";
+          for (const m of data.data || []) {
+            igMetrics[m.name] = m.total_value?.value ?? m.values?.[0]?.value ?? 0;
           }
         }
-      } catch (dailyErr) {
-        console.warn("Daily trends fetch failed (non-fatal):", dailyErr);
       }
 
-      // Attempt recent posts (may require pages_read_user_content for full data)
-      try {
-        const postsRes = await fetch(
-          `https://graph.facebook.com/v21.0/${pageId}/posts?fields=id,message,created_time,shares,likes.summary(true),comments.summary(true)&limit=10&access_token=${token_str}`
+      // IG media (recent posts) with insights
+      const igMedia: any[] = [];
+      {
+        const { data, error } = await gget(
+          `${GRAPH}/${igId}/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count&limit=12&access_token=${tok}`
         );
-        const postsData = await postsRes.json();
-        if (postsData.error) {
-          console.warn("Posts fetch unavailable:", JSON.stringify(postsData.error));
+        if (!error && data?.data) {
+          for (const m of data.data) {
+            const item: any = {
+              id: m.id,
+              caption: (m.caption || "").slice(0, 200),
+              media_type: m.media_type,
+              media_url: m.media_url,
+              thumbnail_url: m.thumbnail_url || m.media_url,
+              permalink: m.permalink,
+              timestamp: m.timestamp,
+              likes: m.like_count || 0,
+              comments: m.comments_count || 0,
+            };
+            // Per-media insights
+            const metricSet = m.media_type === "VIDEO" || m.media_type === "REELS"
+              ? "reach,saved,likes,comments,shares,views"
+              : "reach,saved,likes,comments,shares";
+            const ins = await gget(`${GRAPH}/${m.id}/insights?metric=${metricSet}&access_token=${tok}`);
+            if (!ins.error && ins.data?.data) {
+              for (const im of ins.data.data) {
+                item[im.name] = im.values?.[0]?.value ?? 0;
+              }
+            }
+            igMedia.push(item);
+          }
+          perms.ig_media_insights = igMedia.some(i => i.reach !== undefined) ? "ok" : "missing";
         } else {
-          recentPosts = (postsData.data || []).map((post: any) => ({
-            id: post.id,
-            message: (post.message || "").slice(0, 120),
-            created_time: post.created_time,
-            likes: post.likes?.summary?.total_count || 0,
-            comments: post.comments?.summary?.total_count || 0,
-            shares: post.shares?.count || 0,
-          }));
+          perms.ig_media_insights = "missing";
+          if (error) console.warn("ig_media_insights", JSON.stringify(error));
         }
-      } catch (postsErr) {
-        console.warn("Posts fetch failed (non-fatal):", postsErr);
       }
 
-      reactions = metricsMap.page_actions_post_reactions_total || {};
+      // Demographics
+      const igDemographics: any = { country: {}, city: {}, gender_age: {} };
+      {
+        const breakdowns = ["country", "city", "age,gender"];
+        let ok = 0;
+        for (const bd of breakdowns) {
+          const { data, error } = await gget(
+            `${GRAPH}/${igId}/insights?metric=follower_demographics&period=lifetime&breakdown=${encodeURIComponent(bd)}&metric_type=total_value&access_token=${tok}`
+          );
+          if (!error && data?.data?.[0]) {
+            ok++;
+            const breakdown = data.data[0].total_value?.breakdowns?.[0];
+            const results = breakdown?.results || [];
+            const map: Record<string, number> = {};
+            for (const r of results) {
+              const key = r.dimension_values?.join(" · ") || "unknown";
+              map[key] = r.value;
+            }
+            if (bd === "country") igDemographics.country = map;
+            else if (bd === "city") igDemographics.city = map;
+            else igDemographics.gender_age = map;
+          }
+        }
+        perms.ig_demographics = ok > 0 ? "ok" : "missing";
+      }
+
+      // Online followers (best times to post)
+      const onlineFollowers: Record<string, number> = {};
+      {
+        const { data, error } = await gget(
+          `${GRAPH}/${igId}/insights?metric=online_followers&period=lifetime&access_token=${tok}`
+        );
+        if (error) { perms.ig_online_followers = "missing"; console.warn("ig_online_followers", JSON.stringify(error)); }
+        else {
+          perms.ig_online_followers = "ok";
+          const v = data.data?.[0]?.values?.[data.data[0].values.length - 1]?.value || {};
+          Object.assign(onlineFollowers, v);
+        }
+      }
+
+      // Stories (last 24h)
+      const stories: any[] = [];
+      {
+        const { data, error } = await gget(
+          `${GRAPH}/${igId}/stories?fields=id,media_type,media_url,thumbnail_url,permalink,timestamp&access_token=${tok}`
+        );
+        if (!error && data?.data) {
+          for (const s of data.data) {
+            const item: any = {
+              id: s.id,
+              media_type: s.media_type,
+              thumbnail_url: s.thumbnail_url || s.media_url,
+              permalink: s.permalink,
+              timestamp: s.timestamp,
+            };
+            const ins = await gget(`${GRAPH}/${s.id}/insights?metric=reach,replies,views&access_token=${tok}`);
+            if (!ins.error && ins.data?.data) {
+              for (const im of ins.data.data) item[im.name] = im.values?.[0]?.value ?? 0;
+            }
+            stories.push(item);
+          }
+          perms.ig_stories = "ok";
+        } else {
+          perms.ig_stories = "missing";
+        }
+      }
+
+      const engagementRate = followers > 0 && igMedia.length > 0
+        ? Math.round(
+            (igMedia.reduce((s, m) => s + (m.likes || 0) + (m.comments || 0), 0) / igMedia.length / followers) * 10000
+          ) / 100
+        : 0;
 
       analyticsRows.push({
         clinic_id,
-        platform: "facebook",
+        platform: "instagram",
         metric_type: "monthly_summary",
         date: today,
-        value: fbPage.fan_count || 0,
+        value: followers,
         metrics_json: {
-          likes: fbPage.fan_count || 0,
-          followers: fbPage.followers_count || 0,
-          reach: metricsMap.page_impressions || 0,
-          reach_unique: metricsMap.page_impressions_unique || 0,
-          engagement: metricsMap.page_engaged_users || 0,
-          post_engagements: metricsMap.page_post_engagements || 0,
-          page_views: metricsMap.page_views_total || 0,
-          fan_adds: metricsMap.page_fan_adds || 0,
-          fan_removes: metricsMap.page_fan_removes || 0,
-          video_views: metricsMap.page_video_views || 0,
-          reactions,
-          talking_about: fbPage.talking_about_count || 0,
-          daily_trends: dailyData,
-          recent_posts: recentPosts,
+          username,
+          profile_picture: profilePic,
+          followers,
+          media_count: mediaCount,
+          reach: igMetrics.reach || 0,
+          profile_views: igMetrics.profile_views || 0,
+          website_clicks: igMetrics.website_clicks || 0,
+          accounts_engaged: igMetrics.accounts_engaged || 0,
+          total_interactions: igMetrics.total_interactions || 0,
+          likes: igMetrics.likes || 0,
+          comments: igMetrics.comments || 0,
+          shares: igMetrics.shares || 0,
+          saves: igMetrics.saves || 0,
+          views: igMetrics.views || 0,
+          engagement_rate: engagementRate,
+          recent_media: igMedia,
+          demographics: igDemographics,
+          online_followers: onlineFollowers,
+          stories,
         },
       });
-    } catch (e) {
-      console.error("Facebook fetch error:", e);
     }
 
-    // ---- Instagram Insights ----
-    if (igId) {
-      try {
-        let followers = 0;
-        let mediaCount = 0;
-        const igMetrics: Record<string, number> = {};
-        let engagementRate = 0;
-
-        // Get follower count (basic profile info)
-        try {
-          const igProfileRes = await fetch(
-            `https://graph.facebook.com/v21.0/${igId}?fields=followers_count,media_count&access_token=${token_str}`
-          );
-          const igProfile = await igProfileRes.json();
-          if (igProfile.error) {
-            console.warn("Instagram profile info error:", JSON.stringify(igProfile.error));
-          } else {
-            followers = igProfile.followers_count || 0;
-            mediaCount = igProfile.media_count || 0;
-          }
-        } catch (profileErr) {
-          console.warn("Instagram profile fetch failed (non-fatal):", profileErr);
-        }
-
-        // Get insights - reach, impressions (may require additional permissions)
-        try {
-          const igInsightsRes = await fetch(
-            `https://graph.facebook.com/v21.0/${igId}/insights?metric=reach,impressions&period=days_28&access_token=${token_str}`
-          );
-          const igInsights = await igInsightsRes.json();
-          if (igInsights.error) {
-            console.warn("Instagram insights unavailable (may need App Review):", JSON.stringify(igInsights.error));
-          } else if (igInsights.data) {
-            for (const metric of igInsights.data) {
-              const latest = metric.values?.[metric.values.length - 1];
-              if (latest) igMetrics[metric.name] = latest.value;
-            }
-          }
-        } catch (insightsErr) {
-          console.warn("Instagram insights fetch failed (non-fatal):", insightsErr);
-        }
-
-        // Calculate engagement from recent media
-        try {
-          if (followers > 0) {
-            const mediaRes = await fetch(
-              `https://graph.facebook.com/v21.0/${igId}/media?fields=like_count,comments_count&limit=25&access_token=${token_str}`
-            );
-            const mediaData = await mediaRes.json();
-            if (mediaData.error) {
-              console.warn("Instagram media fetch error:", JSON.stringify(mediaData.error));
-            } else if (mediaData.data && mediaData.data.length > 0) {
-              const totalEngagement = mediaData.data.reduce(
-                (sum: number, m: any) => sum + (m.like_count || 0) + (m.comments_count || 0),
-                0
-              );
-              engagementRate = Math.round((totalEngagement / mediaData.data.length / followers) * 10000) / 100;
-            }
-          }
-        } catch (mediaErr) {
-          console.warn("Instagram media fetch failed (non-fatal):", mediaErr);
-        }
-
-        analyticsRows.push({
-          clinic_id,
-          platform: "instagram",
-          metric_type: "monthly_summary",
-          date: today,
-          value: followers,
-          metrics_json: {
-            followers,
-            media_count: mediaCount,
-            reach: igMetrics.reach || 0,
-            impressions: igMetrics.impressions || 0,
-            engagement: engagementRate,
-          },
-        });
-      } catch (e) {
-        console.error("Instagram fetch error:", e);
-      }
-    }
-
-    // Insert analytics rows
     if (analyticsRows.length > 0) {
       const { error: insertError } = await supabase.from("analytics").insert(analyticsRows);
       if (insertError) console.error("Analytics insert error:", insertError);
     }
 
-    // Update last sync timestamp
     await supabase
       .from("clinic_api_credentials")
       .update({ last_meta_sync_at: new Date().toISOString() })
@@ -323,6 +479,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         synced: analyticsRows.map((r) => r.platform),
+        permissions_status: perms,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
