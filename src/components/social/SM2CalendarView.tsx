@@ -213,7 +213,7 @@ export default function SM2CalendarView({
                             <span className="w-4 h-4 rounded-sm border border-dashed flex items-center justify-center text-[8px] opacity-60">·</span>
                           )}
                           {platformIcon(p.platform)}
-                          <span className="truncate flex-1 min-w-0">{p.theme || p.post_type || "Post"}</span>
+                          <span className="truncate flex-1 min-w-0">{p.topic || p.theme || p.post_type || "Post"}</span>
                         </div>
                       );
                     })}
