@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendZohoEmail, brandedEmailWrapper } from "../_shared/zoho-mail.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -117,7 +118,34 @@ Deno.serve(async (req) => {
       .update({ email, ...(team_role ? { team_role } : {}) })
       .eq("id", newUser.user.id);
 
-    return new Response(JSON.stringify({ id: newUser.user.id }), {
+    // Send welcome email with credentials (only for client role; staff get accounts via different flow if desired — but we send for all)
+    const siteUrl = Deno.env.get("SITE_URL") || "https://vet-dash-suite.lovable.app";
+    const loginUrl = `${siteUrl.replace(/\/$/, "")}/login`;
+    const emailResult = await sendZohoEmail({
+      to: email,
+      subject: "Welcome to VSA Vet Media — your login details",
+      html: brandedEmailWrapper({
+        heading: `Welcome, ${full_name.split(" ")[0] || "there"}`,
+        preheader: "Your VSA Vet Media account is ready.",
+        bodyHtml: `
+          <p>Your VSA Vet Media account has been created. Use the credentials below to sign in for the first time.</p>
+          <table cellpadding="0" cellspacing="0" style="margin:20px 0;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;width:100%;">
+            <tr><td style="padding:12px 16px;background:#f9fafb;font-weight:600;color:#374151;width:120px;">Email</td><td style="padding:12px 16px;color:#111827;font-family:Menlo,monospace;">${email}</td></tr>
+            <tr><td style="padding:12px 16px;background:#f9fafb;font-weight:600;color:#374151;border-top:1px solid #e5e7eb;">Password</td><td style="padding:12px 16px;color:#111827;font-family:Menlo,monospace;border-top:1px solid #e5e7eb;">${password.replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]!))}</td></tr>
+          </table>
+          <p style="text-align:center;margin:28px 0;">
+            <a href="${loginUrl}" style="display:inline-block;background:#0f172a;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;">Sign in to your dashboard</a>
+          </p>
+          <p style="color:#6b7280;font-size:13px;">For security, we recommend changing your password after your first sign-in. If you didn't expect this email, please contact <a href="mailto:support@vsavetmedia.ca" style="color:#0f172a;">support@vsavetmedia.ca</a>.</p>
+        `,
+      }),
+    });
+
+    if (!emailResult.ok) {
+      console.error("Welcome email failed:", emailResult.error);
+    }
+
+    return new Response(JSON.stringify({ id: newUser.user.id, email_sent: emailResult.ok && !emailResult.skipped }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
