@@ -1,14 +1,17 @@
+import { useState, useEffect } from "react";
 import { useBrandDNA } from "@/hooks/useBrandDNA";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import {
   Dna, CheckCircle, AlertCircle, Clock, Globe, RefreshCw, User,
   Stethoscope, Building, Star, MessageSquareQuote, Fingerprint,
   TrendingUp, Sparkles, Shield, Scale, BookOpen, Target, Ban,
   Users, Camera, CalendarClock, CheckSquare, AlertTriangle,
-  MapPin, TreePine, Home, Car,
+  MapPin, TreePine, Home, Car, Edit2, Save, X,
 } from "lucide-react";
 import { format } from "date-fns";
 import { lazy, Suspense } from "react";
