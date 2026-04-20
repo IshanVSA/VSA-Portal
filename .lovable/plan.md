@@ -1,89 +1,62 @@
 
 
-The user wants richer Meta (FB/IG) analytics in the Social Media department. Their app isn't verified, but Meta says Standard Access (own data / pages with roles) works without verification. The current `MetaConnectionCard` already does OAuth and `sync-meta-analytics` pulls data. Need to inspect what's currently fetched/stored vs what's possible under Standard Access, then expand.
+## Plan: Add "Void" status + automatic ticket assignment
 
-Let me check the current sync function and analytics rendering.
-<lov-tool-use id="toolu_vrtx_018kqZHG3R1T771E9DpKFF7E" name="code--view" integration-id="code" data="{\"file_path\": \"supabase/functions/sync-meta-analytics/index.ts\"}">
-</lov-tool-use>
+### 1. Database changes (migration)
 
-<lov-tool-use id="toolu_vrtx_01Tk6vkWZVLRthXSSWHKko9m" name="code--search_files" integration-id="code" data="{\"query\": \"FacebookInsightCard|InstagramInsightCard|meta_insights|sync-meta\", \"include_patterns\": \"src/**/*.tsx,src/**/*.ts\"}">
-</lov-tool-use>
+- Extend the `ticket_status` enum to include a new value: **`void`**.
+- Add two new columns on `department_tickets`:
+  - `void_reason` (text, nullable) — required when status is set to void
+  - `voided_by` (uuid, nullable) — captures the admin/team member who voided it
+  - `voided_at` (timestamptz, nullable)
 
-<lov-tool-use id="toolu_vrtx_01TWWjrQQpboxhPByjGG4sux" name="code--search_files" integration-id="code" data="{\"query\": \"CREATE TABLE.*meta|meta_analytics|fb_insights|ig_insights\", \"include_patterns\": \"supabase/migrations/*.sql\"}">
-</lov-tool-use>
+### 2. Auto-assignment on ticket creation (database trigger)
 
-<lov-tool-use id="toolu_vrtx_01H2xHognQoYN3SnJNjyDE2V" name="code--view" integration-id="code" data="{\"file_path\": \"supabase/functions/sync-meta-analytics/index.ts\"}">
-</lov-tool-use>
+Replace the manual-only flow with an **automatic round-robin trigger** that fires on `INSERT` into `department_tickets`:
 
-<lov-tool-use id="toolu_vrtx_013jyarWNLsZb3Y5HWtmTPvY" name="code--search_files" integration-id="code" data="{\"query\": \"FacebookInsightCard|sync-meta-analytics|meta_page_id|instagram_business\", \"include_patterns\": \"src/**/*.tsx,src/**/*.ts\"}">
-</lov-tool-use>
-I have enough context. The current sync function already attempts insights but they fail without App Review. Per Meta's message, the user can keep the app in **Development Mode** and add the Page admin as a Tester to access full insights. Let me present a plan focused on enriching what we can pull and surface in the UI.
+- Look up all `department_members` for the ticket's `department`
+- If the ticket has a `clinic_id`, intersect with `clinic_team_members` so only members assigned to that clinic are eligible
+- Pick the member with the **fewest currently open/in_progress tickets** in that department (load-balanced round-robin)
+- Set `assigned_to` and bump `status` to `in_progress`
+- Fall back to department lead (existing behavior) if no eligible member found
 
-<lov-plan>
+This means new tickets are auto-assigned at creation time rather than waiting for the hourly `ticket-automation` cron.
 
-## Plan: Rich Meta analytics without App Review (Dev Mode + Standard Access)
+### 3. UI: Void status everywhere
 
-Meta confirmed the app can stay in Development Mode and use full insight permissions as long as the calling user has a role on the app (Admin/Developer/Tester) AND a role on the Page. Our current `sync-meta-analytics` already requests the right metrics, but (a) it silently logs failures into `console.warn`, (b) it ignores per-post insights, demographics, and Instagram media-level insights, and (c) the UI only shows 4 KPI cards.
+**TicketCard** (`src/components/department/TicketCard.tsx`)
+- Add `void` to `statusConfig` (slate/grey color, `Ban` icon, `border-l-slate-500`)
+- Add `Void` to status options in the dropdown (admin & concierge only — hidden from clients)
+- When user picks "Void", open a small inline AlertDialog asking for a **mandatory reason** (textarea). On confirm, write `status='void'`, `void_reason`, `voided_by=auth.uid()`, `voided_at=now()`
+- In the expanded panel, when status is void, show the reason in a destructive-styled callout
 
-We will (1) expand the sync to pull every metric available under Standard Access + Dev-Mode tester, (2) surface failures so the user knows when a permission is missing, and (3) build a real analytics dashboard in the Social Media department.
+**TicketKanbanView** (`src/components/department/TicketKanbanView.tsx`)
+- Add a 5th column "Void" with grey styling
+- Drag-drop into Void column triggers the same reason prompt before persisting
 
-### 1. Prerequisite (one-time, user action — documented in UI)
+**TicketTableView** (`src/components/department/TicketTableView.tsx`)
+- Add Void to the status filter and status badge map
 
-Add a small "Setup Requirements" callout on the Meta connection card explaining:
-- App must remain in Development Mode (Live toggle OFF)
-- The clinic Page admin who connects must be added as **Tester or Admin** under App Roles → Roles in developers.facebook.com
-- Then click "Reconnect" to pull a fresh token with all dev-mode scopes
+**TicketsTab + DepartmentOverview + AdminDashboard counts**
+- Include `void` tickets in the "all" view but exclude them from open/in-progress KPI tallies
 
-No code change to OAuth — existing scopes already cover what we need in dev mode.
+### 4. Manual reassignment stays available
 
-### 2. Expand `sync-meta-analytics` (server)
+The Assignee dropdown on every card stays editable so admins can override the auto-assignment if needed. We are only changing the **default at creation time**, not removing manual control.
 
-Add the following Graph API calls (all work in Dev Mode for app testers):
+### 5. Files touched
 
-**Facebook Page**
-- `page_fans_country` & `page_fans_city` (top demographics — lifetime period)
-- `page_fans_gender_age` (audience breakdown)
-- Per-post insights for the 10 most recent posts: `post_impressions`, `post_impressions_unique`, `post_engaged_users`, `post_clicks`, `post_reactions_by_type_total`
-- `page_video_views_paid`, `page_video_view_time`
-- Negative feedback: `page_negative_feedback`
+- New migration: extend enum, add 3 columns, create `auto_assign_ticket()` trigger function + `BEFORE INSERT` trigger on `department_tickets`
+- `src/components/department/TicketCard.tsx` — status config, void dialog, reason display
+- `src/components/department/TicketKanbanView.tsx` — Void column, drag-drop reason prompt
+- `src/components/department/TicketTableView.tsx` — Void badge & filter
+- `src/components/department/TicketsTab.tsx` — include void in fetched list, optional filter chip
+- `src/components/dashboard/MyTickets.tsx` — show Void badge
+- `supabase/functions/ticket-automation/index.ts` — keep as a safety-net for any tickets the trigger missed; skip voided tickets in escalation logic
 
-**Instagram Business**
-- `audience_country`, `audience_city`, `audience_gender_age` (lifetime)
-- `online_followers` (best times to post)
-- Per-media insights for 10 most recent posts: `impressions`, `reach`, `engagement`, `saved`, `video_views` (for reels)
-- Story insights: `impressions`, `reach`, `replies`, `exits` for last 24h stories
+### 6. What the user sees
 
-Key changes in the function:
-- Wrap each block in try/catch and accumulate a `permissions_status` object: `{ page_insights: "ok" | "missing", post_insights: ..., ig_insights: ..., demographics: ... }`
-- Return that status in the response so UI can show actionable warnings
-- Store everything in `analytics.metrics_json` (no schema migration — JSONB already accommodates)
-
-### 3. New `SocialAnalyticsTab` component (UI)
-
-Replace the bare numbers in the SM department with a Meta Business Suite-style dashboard. Reuse `FacebookInsightCard` and add new sections:
-
-```text
-┌─ Connection status banner (green/amber based on permissions_status) ─┐
-│                                                                       │
-├─ Top KPI grid (4 cards) — Followers, Reach, Engagement, Impressions  ┤
-├─ Trend chart (Recharts AreaChart) — 30-day reach + engagement        ┤
-├─ Top Posts table — thumbnail, caption, reach, engagement, ER%        ┤
-├─ Audience demographics — gender/age bar + top countries/cities      ┤
-├─ Best times to post — heatmap from online_followers (IG only)        ┤
-├─ Stories performance (24h) — IG only                                  ┤
-└─ Last sync timestamp + Sync Now button                                ┘
-```
-
-Tabs at the top: **Overview · Facebook · Instagram · Audience**.
-
-### 4. Files touched
-
-- `supabase/functions/sync-meta-analytics/index.ts` — add the new Graph calls, return `permissions_status`
-- `src/components/department/SocialAnalyticsTab.tsx` (new) — the dashboard
-- `src/pages/SocialMedia.tsx` — wire the new tab in
-- `src/components/clinic-detail/MetaConnectionCard.tsx` — add the Dev-Mode setup callout & surface `permissions_status` from sync response
-
-### 5. What we cannot do without App Review
-
-Even in Dev Mode, these remain unavailable: data from Pages/Instagram accounts the connecting user has no role on, ads insights for ad accounts they don't manage, comment moderation on others' posts. We'll display "Requires Business Verification" badges on those specific cards so it's transparent.
+- Creating a new ticket: it instantly shows "In Progress · Assigned to [name]" (no more "Unassigned" state)
+- Any admin/team member can change status → "Void" → enter reason → ticket greys out with the reason visible
+- Clients see voided tickets but cannot void them themselves
 
