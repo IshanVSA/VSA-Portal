@@ -1301,6 +1301,9 @@ export type Database = {
           ticket_type: string
           title: string
           updated_at: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
         }
         Insert: {
           assigned_to?: string | null
@@ -1317,6 +1320,9 @@ export type Database = {
           ticket_type: string
           title: string
           updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Update: {
           assigned_to?: string | null
@@ -1333,6 +1339,9 @@ export type Database = {
           ticket_type?: string
           title?: string
           updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Relationships: [
           {
