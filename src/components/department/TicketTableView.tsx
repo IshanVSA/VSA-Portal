@@ -1,7 +1,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Clock, AlertTriangle, CheckCircle2, Inbox, UserCircle } from "lucide-react";
+import { Clock, AlertTriangle, CheckCircle2, Inbox, UserCircle, Ban } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { useState } from "react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { formatDistanceToNow, format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -18,7 +24,8 @@ interface TableTicket {
   title: string;
   ticket_type: string;
   priority: "regular" | "urgent" | "emergency";
-  status: "open" | "in_progress" | "completed" | "emergency";
+  status: "open" | "in_progress" | "completed" | "emergency" | "void";
+  void_reason?: string | null;
   description?: string | null;
   department: string;
   created_at: string;
@@ -36,6 +43,7 @@ const statusConfig: Record<string, { label: string; icon: React.ElementType; cla
   in_progress: { label: "In Progress", icon: Clock, className: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
   completed: { label: "Completed", icon: CheckCircle2, className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
   emergency: { label: "Emergency", icon: AlertTriangle, className: "bg-destructive/10 text-destructive border-destructive/20" },
+  void: { label: "Void", icon: Ban, className: "bg-slate-500/10 text-slate-500 border-slate-500/20" },
 };
 
 const priorityConfig: Record<string, { label: string; className: string }> = {
@@ -56,10 +64,19 @@ const statusBorder: Record<string, string> = {
   in_progress: "border-l-amber-500",
   completed: "border-l-emerald-500",
   emergency: "border-l-destructive",
+  void: "border-l-slate-500",
 };
 
 export function TicketTableView({ tickets, teamMembers, onUpdated }: TicketTableViewProps) {
+  const [voidPending, setVoidPending] = useState<string | null>(null);
+  const [voidReason, setVoidReason] = useState("");
+
   const handleStatusChange = async (ticketId: string, newStatus: string) => {
+    if (newStatus === "void") {
+      setVoidReason("");
+      setVoidPending(ticketId);
+      return;
+    }
     const ticket = tickets.find(t => t.id === ticketId);
     const { error } = await supabase
       .from("department_tickets" as any)
@@ -72,6 +89,29 @@ export function TicketTableView({ tickets, teamMembers, onUpdated }: TicketTable
         await moveBulkUploadsToDepartmentFolder(ticketId, ticket.department);
       }
       toast.success(`Status updated`);
+      onUpdated();
+    }
+  };
+
+  const confirmVoid = async () => {
+    if (!voidPending || !voidReason.trim()) {
+      toast.error("A reason is required to void a ticket");
+      return;
+    }
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase
+      .from("department_tickets" as any)
+      .update({
+        status: "void",
+        void_reason: voidReason.trim(),
+        voided_by: user?.id ?? null,
+        voided_at: new Date().toISOString(),
+      } as any)
+      .eq("id", voidPending);
+    if (error) toast.error("Failed to void ticket");
+    else {
+      toast.success("Ticket voided");
+      setVoidPending(null);
       onUpdated();
     }
   };

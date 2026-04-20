@@ -4,15 +4,21 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import {
-  Clock, AlertTriangle, CheckCircle2, Inbox, ChevronDown, ChevronUp,
-  ArrowRightLeft, UserCircle, Calendar, Tag, Building2, FileText,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Clock, AlertTriangle, CheckCircle2, Inbox, ChevronDown, ChevronUp, Ban,
+  UserCircle, Calendar, Tag, Building2, FileText,
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { moveBulkUploadsToDepartmentFolder } from "@/lib/ticket-bulk-uploads";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface TeamMemberOption {
   id: string;
@@ -24,11 +30,12 @@ interface TicketCardProps {
   title: string;
   ticket_type: string;
   priority: "regular" | "urgent" | "emergency";
-  status: "open" | "in_progress" | "completed" | "emergency";
+  status: "open" | "in_progress" | "completed" | "emergency" | "void";
   description?: string | null;
   department: string;
   created_at: string;
   assigned_to?: string | null;
+  void_reason?: string | null;
   teamMembers?: TeamMemberOption[];
   onUpdated?: () => void;
 }
@@ -38,6 +45,7 @@ const statusConfig = {
   in_progress: { label: "In Progress", icon: Clock, color: "text-amber-600", bg: "bg-amber-500/10", border: "border-l-amber-500" },
   completed: { label: "Completed", icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-500/10", border: "border-l-emerald-500" },
   emergency: { label: "Emergency", icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10", border: "border-l-destructive" },
+  void: { label: "Void", icon: Ban, color: "text-slate-500", bg: "bg-slate-500/10", border: "border-l-slate-500" },
 };
 
 const priorityConfig = {
@@ -53,23 +61,33 @@ const allDepartments = [
   { value: "social_media", label: "Social Media" },
 ];
 
-const statusOptions: { value: string; label: string }[] = [
-  { value: "open", label: "Open" },
-  { value: "in_progress", label: "In Progress" },
-  { value: "completed", label: "Completed" },
-];
-
-export function TicketCard({ id, title, ticket_type, priority, status, description, department, created_at, assigned_to, teamMembers = [], onUpdated }: TicketCardProps) {
+export function TicketCard({ id, title, ticket_type, priority, status, description, department, created_at, assigned_to, void_reason, teamMembers = [], onUpdated }: TicketCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [voidDialogOpen, setVoidDialogOpen] = useState(false);
+  const [voidReason, setVoidReason] = useState("");
+  const { role } = useUserRole();
+  const canVoid = role === "admin" || role === "concierge";
 
-  const sc = statusConfig[status];
+  const sc = statusConfig[status] || statusConfig.open;
   const pc = priorityConfig[priority];
   const StatusIcon = sc.icon;
   const deptLabel = allDepartments.find(d => d.value === department)?.label || department;
   const assigneeName = assigned_to ? teamMembers.find(m => m.id === assigned_to)?.name : null;
 
+  const statusOptions: { value: string; label: string }[] = [
+    { value: "open", label: "Open" },
+    { value: "in_progress", label: "In Progress" },
+    { value: "completed", label: "Completed" },
+    ...(canVoid ? [{ value: "void", label: "Void" }] : []),
+  ];
+
   const handleStatusChange = async (newStatus: string) => {
+    if (newStatus === "void") {
+      setVoidReason("");
+      setVoidDialogOpen(true);
+      return;
+    }
     setUpdating(true);
     const { error } = await supabase
       .from("department_tickets" as any)
@@ -83,6 +101,32 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
       toast.error("Failed to update status");
     } else {
       toast.success(`Status updated to ${newStatus.replace("_", " ")}`);
+      onUpdated?.();
+    }
+  };
+
+  const confirmVoid = async () => {
+    if (!voidReason.trim()) {
+      toast.error("A reason is required to void a ticket");
+      return;
+    }
+    setUpdating(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase
+      .from("department_tickets" as any)
+      .update({
+        status: "void",
+        void_reason: voidReason.trim(),
+        voided_by: user?.id ?? null,
+        voided_at: new Date().toISOString(),
+      } as any)
+      .eq("id", id);
+    setUpdating(false);
+    if (error) {
+      toast.error("Failed to void ticket");
+    } else {
+      toast.success("Ticket voided");
+      setVoidDialogOpen(false);
       onUpdated?.();
     }
   };
@@ -120,7 +164,6 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
     }
   };
 
-  // Parse description into structured key-value pairs for display
   const descriptionPairs = description
     ? description.split(/(?<=\S)\s*(?=[A-Z][a-z]*\s*(?:Date|Hours|Name|Type|Changes|Options|Details|Update|Bio|Notes|Promote):)/g)
         .map(part => {
@@ -134,14 +177,16 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
     : [];
 
   const hasStructuredDesc = descriptionPairs.length >= 2;
+  const isVoid = status === "void";
 
   return (
+    <>
     <Card className={cn(
       "overflow-hidden transition-all border-l-[3px]",
       sc.border,
+      isVoid && "opacity-70",
       updating ? "opacity-60 pointer-events-none" : "hover:shadow-md"
     )}>
-      {/* Header row */}
       <div className="px-4 pt-3.5 pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
@@ -150,7 +195,7 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
                 <StatusIcon className={cn("h-3.5 w-3.5", sc.color)} />
               </div>
               <div className="min-w-0">
-                <h3 className="text-sm font-semibold text-foreground truncate">{title}</h3>
+                <h3 className={cn("text-sm font-semibold text-foreground truncate", isVoid && "line-through text-muted-foreground")}>{title}</h3>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
@@ -163,7 +208,6 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
               </div>
             </div>
 
-            {/* Metadata badges */}
             <div className="flex flex-wrap items-center gap-1.5 ml-[2.375rem]">
               <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5 gap-1", sc.bg, sc.color, "border-0")}>
                 {sc.label}
@@ -203,10 +247,18 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
         </div>
       </div>
 
-      {/* Expanded detail panel */}
       {expanded && (
         <div className="border-t border-border/40">
-          {/* Description section */}
+          {isVoid && void_reason && (
+            <div className="px-4 py-3 bg-destructive/5 border-b border-destructive/20">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Ban className="h-3.5 w-3.5 text-destructive" />
+                <span className="text-xs font-medium text-destructive">Void Reason</span>
+              </div>
+              <p className="text-[11px] text-foreground ml-5 whitespace-pre-wrap leading-relaxed">{void_reason}</p>
+            </div>
+          )}
+
           {description && (
             <div className="px-4 py-3 bg-muted/20">
               <div className="flex items-center gap-1.5 mb-2">
@@ -228,7 +280,6 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
             </div>
           )}
 
-          {/* Actions row */}
           <div className="px-4 py-3 flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
               <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Status</label>
@@ -280,5 +331,30 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
         </div>
       )}
     </Card>
+
+    <AlertDialog open={voidDialogOpen} onOpenChange={setVoidDialogOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Void this ticket?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Voiding marks the ticket as cancelled. Provide a reason — this will be visible to the client and team.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <Textarea
+          placeholder="Reason for voiding (required)…"
+          value={voidReason}
+          onChange={(e) => setVoidReason(e.target.value)}
+          rows={4}
+          className="text-sm"
+        />
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmVoid} disabled={!voidReason.trim() || updating}>
+            Void Ticket
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

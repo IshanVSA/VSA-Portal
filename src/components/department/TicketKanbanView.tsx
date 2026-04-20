@@ -1,8 +1,12 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Clock, AlertTriangle, CheckCircle2, Inbox, UserCircle, GripVertical } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Clock, AlertTriangle, CheckCircle2, Inbox, UserCircle, GripVertical, Ban } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -19,7 +23,7 @@ interface KanbanTicket {
   title: string;
   ticket_type: string;
   priority: "regular" | "urgent" | "emergency";
-  status: "open" | "in_progress" | "completed" | "emergency";
+  status: "open" | "in_progress" | "completed" | "emergency" | "void";
   description?: string | null;
   department: string;
   created_at: string;
@@ -37,6 +41,7 @@ const columns: { key: string; label: string; icon: React.ElementType; color: str
   { key: "in_progress", label: "In Progress", icon: Clock, color: "text-amber-500", headerBg: "bg-amber-500/10 border-amber-500/30" },
   { key: "completed", label: "Completed", icon: CheckCircle2, color: "text-emerald-500", headerBg: "bg-emerald-500/10 border-emerald-500/30" },
   { key: "emergency", label: "Emergency", icon: AlertTriangle, color: "text-destructive", headerBg: "bg-destructive/10 border-destructive/30" },
+  { key: "void", label: "Void", icon: Ban, color: "text-slate-500", headerBg: "bg-slate-500/10 border-slate-500/30" },
 ];
 
 const priorityDot: Record<string, string> = {
@@ -55,6 +60,8 @@ const deptLabels: Record<string, string> = {
 export function TicketKanbanView({ tickets, teamMembers, onUpdated }: TicketKanbanViewProps) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
+  const [voidPending, setVoidPending] = useState<string | null>(null);
+  const [voidReason, setVoidReason] = useState("");
 
   const handleStatusChange = async (ticketId: string, newStatus: string) => {
     const ticket = tickets.find(t => t.id === ticketId);
@@ -85,9 +92,7 @@ export function TicketKanbanView({ tickets, teamMembers, onUpdated }: TicketKanb
     setDragOverCol(colKey);
   };
 
-  const handleDragLeave = () => {
-    setDragOverCol(null);
-  };
+  const handleDragLeave = () => setDragOverCol(null);
 
   const handleDrop = async (e: React.DragEvent, colKey: string) => {
     e.preventDefault();
@@ -99,6 +104,11 @@ export function TicketKanbanView({ tickets, teamMembers, onUpdated }: TicketKanb
       return;
     }
     setDraggedId(null);
+    if (colKey === "void") {
+      setVoidReason("");
+      setVoidPending(ticketId);
+      return;
+    }
     await handleStatusChange(ticketId, colKey);
   };
 
@@ -107,8 +117,33 @@ export function TicketKanbanView({ tickets, teamMembers, onUpdated }: TicketKanb
     setDragOverCol(null);
   };
 
+  const confirmVoid = async () => {
+    if (!voidPending || !voidReason.trim()) {
+      toast.error("A reason is required to void a ticket");
+      return;
+    }
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase
+      .from("department_tickets" as any)
+      .update({
+        status: "void",
+        void_reason: voidReason.trim(),
+        voided_by: user?.id ?? null,
+        voided_at: new Date().toISOString(),
+      } as any)
+      .eq("id", voidPending);
+    if (error) {
+      toast.error("Failed to void ticket");
+    } else {
+      toast.success("Ticket voided");
+      setVoidPending(null);
+      onUpdated();
+    }
+  };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+    <>
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
       {columns.map(col => {
         const Icon = col.icon;
         const colTickets = tickets.filter(t => t.status === col.key);
@@ -124,7 +159,6 @@ export function TicketKanbanView({ tickets, teamMembers, onUpdated }: TicketKanb
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, col.key)}
           >
-            {/* Column header */}
             <div className={cn("flex items-center gap-2 px-3 py-2.5 rounded-lg border mb-3", col.headerBg)}>
               <Icon className={cn("h-4 w-4", col.color)} />
               <span className="text-sm font-semibold text-foreground">{col.label}</span>
@@ -133,7 +167,6 @@ export function TicketKanbanView({ tickets, teamMembers, onUpdated }: TicketKanb
               </span>
             </div>
 
-            {/* Cards */}
             <div className="flex-1 space-y-2">
               {colTickets.length === 0 ? (
                 <div className={cn(
@@ -146,6 +179,7 @@ export function TicketKanbanView({ tickets, teamMembers, onUpdated }: TicketKanb
                 colTickets.map(t => {
                   const assignee = t.assigned_to ? teamMembers.find(m => m.id === t.assigned_to)?.name : null;
                   const isDragging = draggedId === t.id;
+                  const isVoid = t.status === "void";
                   return (
                     <Card
                       key={t.id}
@@ -154,13 +188,14 @@ export function TicketKanbanView({ tickets, teamMembers, onUpdated }: TicketKanb
                       onDragEnd={handleDragEnd}
                       className={cn(
                         "p-3 hover:shadow-md transition-all cursor-grab active:cursor-grabbing group",
-                        isDragging && "opacity-40 scale-95"
+                        isDragging && "opacity-40 scale-95",
+                        isVoid && "opacity-70"
                       )}
                     >
                       <div className="flex items-start gap-2 mb-2">
                         <GripVertical className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
                         <div className={cn("h-2 w-2 rounded-full mt-1.5 shrink-0", priorityDot[t.priority])} />
-                        <h4 className="text-sm font-medium text-foreground leading-tight line-clamp-2">{t.title}</h4>
+                        <h4 className={cn("text-sm font-medium text-foreground leading-tight line-clamp-2", isVoid && "line-through text-muted-foreground")}>{t.title}</h4>
                       </div>
 
                       {t.description && (
@@ -193,5 +228,30 @@ export function TicketKanbanView({ tickets, teamMembers, onUpdated }: TicketKanb
         );
       })}
     </div>
+
+    <AlertDialog open={!!voidPending} onOpenChange={(o) => !o && setVoidPending(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Void this ticket?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Provide a reason for voiding. This will be visible to the client and team.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <Textarea
+          placeholder="Reason for voiding (required)…"
+          value={voidReason}
+          onChange={(e) => setVoidReason(e.target.value)}
+          rows={4}
+          className="text-sm"
+        />
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmVoid} disabled={!voidReason.trim()}>
+            Void Ticket
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
