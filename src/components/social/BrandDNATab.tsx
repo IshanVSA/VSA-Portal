@@ -1,11 +1,19 @@
 import { useState, useEffect } from "react";
 import { useBrandDNA } from "@/hooks/useBrandDNA";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useAuth } from "@/hooks/useAuth";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Dna, CheckCircle, AlertCircle, Clock, Globe, RefreshCw, User,
   Stethoscope, Building, Star, MessageSquareQuote, Fingerprint,
@@ -183,7 +191,7 @@ export default function BrandDNATab({ clinicId }: Props) {
       </div>
 
       {/* Synthesized Profile */}
-      {hasSynthesis && <SynthesizedProfileCard profile={synthesizedProfile} />}
+      {hasSynthesis && <SynthesizedProfileCard profile={synthesizedProfile} clinicId={clinicId} />}
 
       {/* Admin DNA Profile Card */}
       {hasSynthesis && (
@@ -405,7 +413,7 @@ function ImproveScoreChecklist({ profile }: { profile: Record<string, any> }) {
 }
 
 /* ── Synthesized Profile Card ── */
-function SynthesizedProfileCard({ profile }: { profile: Record<string, any> }) {
+function SynthesizedProfileCard({ profile, clinicId }: { profile: Record<string, any>; clinicId: string | undefined }) {
   const score = profile.completeness_score || 0;
   const scoreColor = score >= 90 ? "text-green-600" : score >= 70 ? "text-amber-600" : "text-red-600";
   const scoreLabel = score >= 90 ? "Full Generation Ready" : score >= 70 ? "Generate with Warnings" : score >= 50 ? "Limited Generation" : "Do Not Activate";
@@ -465,13 +473,14 @@ function SynthesizedProfileCard({ profile }: { profile: Record<string, any> }) {
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
               <Target className="h-3 w-3" /> Clinic Differentiator
-              {profile.differentiator_validated !== undefined && (
-                <Badge variant={profile.differentiator_validated ? "default" : "destructive"} className="ml-1 text-[10px]">
-                  {profile.differentiator_validated ? "✓ Review-validated" : "⚠ Not validated"}
-                </Badge>
-              )}
+              <DifferentiatorValidationBadge clinicId={clinicId} profile={profile} />
             </p>
             <p className="text-sm">{profile.clinic_differentiator}</p>
+            {profile.differentiator_validation_note && (
+              <p className="text-xs text-muted-foreground italic mt-1">
+                Note: {profile.differentiator_validation_note}
+              </p>
+            )}
           </div>
         )}
 
@@ -1011,5 +1020,138 @@ function LocalityCard({ data }: { data: Record<string, any> | undefined }) {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function DifferentiatorValidationBadge({
+  clinicId,
+  profile,
+}: {
+  clinicId: string | undefined;
+  profile: any;
+}) {
+  const { role } = useUserRole();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [validated, setValidated] = useState<boolean>(!!profile.differentiator_validated);
+  const [note, setNote] = useState<string>(profile.differentiator_validation_note || "");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setValidated(!!profile.differentiator_validated);
+    setNote(profile.differentiator_validation_note || "");
+  }, [profile.differentiator_validated, profile.differentiator_validation_note]);
+
+  const isStaff = role === "admin" || role === "concierge";
+  const isManual = !!profile.differentiator_validated_by;
+
+  const label = profile.differentiator_validated
+    ? isManual
+      ? "✓ Manually validated"
+      : "✓ Review-validated"
+    : "⚠ Not validated";
+
+  const variant: "default" | "destructive" | "secondary" = profile.differentiator_validated
+    ? isManual
+      ? "secondary"
+      : "default"
+    : "destructive";
+
+  const handleSave = async () => {
+    if (!clinicId || !user) return;
+    setSaving(true);
+    try {
+      const updated = {
+        ...profile,
+        differentiator_validated: validated,
+        differentiator_validated_by: validated ? user.id : null,
+        differentiator_validated_at: validated ? new Date().toISOString() : null,
+        differentiator_validation_note: validated ? note.trim() : "",
+      };
+      const { error } = await supabase
+        .from("clinic_brand_dna")
+        .update({ synthesized_profile: updated as any })
+        .eq("clinic_id", clinicId);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["brand-dna", clinicId] });
+      toast.success(validated ? "Marked as validated" : "Marked as not validated");
+      setOpen(false);
+    } catch (e: any) {
+      toast.error("Save failed", { description: e.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (profile.differentiator_validated === undefined && !isStaff) return null;
+
+  if (!isStaff) {
+    return (
+      <Badge variant={variant} className="ml-1 text-[10px]">
+        {label}
+      </Badge>
+    );
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="ml-1 inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
+          aria-label="Manage differentiator validation"
+        >
+          <Badge variant={variant} className="text-[10px] cursor-pointer">
+            {label}
+          </Badge>
+          <Shield className="h-3 w-3 text-muted-foreground" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80" align="start">
+        <div className="space-y-3">
+          <div>
+            <p className="text-sm font-semibold">Differentiator validation</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Confirm after a human review (e.g. client call, owner email).
+            </p>
+          </div>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="diff-validated" className="text-sm">
+              Mark as validated
+            </Label>
+            <Switch id="diff-validated" checked={validated} onCheckedChange={setValidated} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="diff-note" className="text-xs text-muted-foreground">
+              Validation note (optional)
+            </Label>
+            <Textarea
+              id="diff-note"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={3}
+              placeholder="e.g. Confirmed with Dr. Parveen via call on Apr 19"
+              className="text-sm"
+              disabled={!validated}
+            />
+          </div>
+          {profile.differentiator_validated_at && (
+            <p className="text-[10px] text-muted-foreground">
+              Last updated {format(new Date(profile.differentiator_validated_at), "MMM d, yyyy")}
+            </p>
+          )}
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1.5">
+              {saving ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              Save
+            </Button>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

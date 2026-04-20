@@ -27,7 +27,7 @@ interface Props {
 // Team Review Checklist items - must all be checked before activation
 const VEDANT_CHECKLIST = [
   { id: "voice_authentic", label: "Voice fingerprint sounds authentically like this clinic" },
-  { id: "differentiator_validated", label: "Clinic differentiator is validated against reviews" },
+  { id: "differentiator_validated", label: "Clinic differentiator is validated (review or manual)" },
   { id: "exclusions_confirmed", label: "Content exclusions confirmed with client" },
   { id: "governing_body_correct", label: "Governing body and jurisdiction are correct" },
   { id: "hospital_type_correct", label: "Hospital type classification is accurate" },
@@ -92,6 +92,8 @@ export default function AdminDNAProfileCard({ clinicId }: Props) {
 
   const allChecked = VEDANT_CHECKLIST.every((item) => {
     if (item.id === "score_above_50") return score >= 50;
+    if (item.id === "differentiator_validated")
+      return synthesized.differentiator_validated === true || checklist[item.id] === true;
     return checklist[item.id] === true;
   });
 
@@ -311,7 +313,12 @@ export default function AdminDNAProfileCard({ clinicId }: Props) {
             </p>
             <div className="space-y-2">
               {VEDANT_CHECKLIST.map((item) => {
-                const autoCheck = item.id === "score_above_50" ? score >= 50 : false;
+                const autoCheck =
+                  item.id === "score_above_50"
+                    ? score >= 50
+                    : item.id === "differentiator_validated"
+                      ? synthesized.differentiator_validated === true
+                      : false;
                 const isChecked = autoCheck || checklist[item.id] === true;
                 return (
                   <div key={item.id} className="flex items-center gap-3">
