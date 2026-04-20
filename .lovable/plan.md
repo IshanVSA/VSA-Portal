@@ -1,62 +1,58 @@
 
 
-## Plan: Add "Void" status + automatic ticket assignment
+## Plan: Manually validate the Clinic Differentiator
 
-### 1. Database changes (migration)
+### Context
 
-- Extend the `ticket_status` enum to include a new value: **`void`**.
-- Add two new columns on `department_tickets`:
-  - `void_reason` (text, nullable) — required when status is set to void
-  - `voided_by` (uuid, nullable) — captures the admin/team member who voided it
-  - `voided_at` (timestamptz, nullable)
+The "⚠ Not validated" badge is driven by `synthesized_profile.differentiator_validated` (boolean) set by the AI in `synthesize-dna`. For CVBC clinics (like Alma) review mining is suppressed by policy, so this flag stays `false` permanently — there's no way for the AI to ever flip it. Today, staff can edit the differentiator text but cannot change its validation state.
 
-### 2. Auto-assignment on ticket creation (database trigger)
+### What we'll build
 
-Replace the manual-only flow with an **automatic round-robin trigger** that fires on `INSERT` into `department_tickets`:
+A small **manual validation control** next to the badge, available to admins and concierges, that lets staff confirm the differentiator after a human review (e.g., a client call or owner email).
 
-- Look up all `department_members` for the ticket's `department`
-- If the ticket has a `clinic_id`, intersect with `clinic_team_members` so only members assigned to that clinic are eligible
-- Pick the member with the **fewest currently open/in_progress tickets** in that department (load-balanced round-robin)
-- Set `assigned_to` and bump `status` to `in_progress`
-- Fall back to department lead (existing behavior) if no eligible member found
+### 1. UI — `BrandDNATab.tsx` (badge area, ~line 466)
 
-This means new tickets are auto-assigned at creation time rather than waiting for the hourly `ticket-automation` cron.
+Replace the static badge with an interactive control:
 
-### 3. UI: Void status everywhere
+- **Read-only for clients** — they continue to see "✓ Review-validated" / "⚠ Not validated"
+- **For admin/concierge** — the badge becomes a button with a `Shield` icon. Clicking opens a small popover:
+  - Toggle: "Mark as validated" / "Mark as not validated"
+  - Optional `Textarea`: "Validation note (e.g. confirmed with Dr. Parveen on 2026-04-19)"
+  - "Save" button
 
-**TicketCard** (`src/components/department/TicketCard.tsx`)
-- Add `void` to `statusConfig` (slate/grey color, `Ban` icon, `border-l-slate-500`)
-- Add `Void` to status options in the dropdown (admin & concierge only — hidden from clients)
-- When user picks "Void", open a small inline AlertDialog asking for a **mandatory reason** (textarea). On confirm, write `status='void'`, `void_reason`, `voided_by=auth.uid()`, `voided_at=now()`
-- In the expanded panel, when status is void, show the reason in a destructive-styled callout
+When saved, write to `clinic_brand_dna.synthesized_profile`:
+```json
+{
+  ...existing,
+  "differentiator_validated": true,
+  "differentiator_validated_by": "<user_id>",
+  "differentiator_validated_at": "2026-04-20T...",
+  "differentiator_validation_note": "Confirmed with Dr. Parveen via call"
+}
+```
 
-**TicketKanbanView** (`src/components/department/TicketKanbanView.tsx`)
-- Add a 5th column "Void" with grey styling
-- Drag-drop into Void column triggers the same reason prompt before persisting
+No DB schema change — `synthesized_profile` is JSONB.
 
-**TicketTableView** (`src/components/department/TicketTableView.tsx`)
-- Add Void to the status filter and status badge map
+### 2. Visual states (admin/concierge view)
 
-**TicketsTab + DepartmentOverview + AdminDashboard counts**
-- Include `void` tickets in the "all" view but exclude them from open/in-progress KPI tallies
+```text
+[⚠ Not validated]   →  click  →  popover with toggle + note  →  [✓ Manually validated by Sarah · Apr 20]
+```
 
-### 4. Manual reassignment stays available
+A third badge variant "Manually validated" (amber-to-emerald) distinguishes human validation from AI/review validation, so the audit trail stays clear.
 
-The Assignee dropdown on every card stays editable so admins can override the auto-assignment if needed. We are only changing the **default at creation time**, not removing manual control.
+### 3. Sync with the Vedant Checklist
 
-### 5. Files touched
+In `AdminDNAProfileCard.tsx`, the existing checklist item `differentiator_validated` ("Clinic differentiator is validated against reviews") will:
+- Auto-check when `synthesized.differentiator_validated === true` (whether AI or manual)
+- Re-label to "Clinic differentiator is validated (review or manual)"
 
-- New migration: extend enum, add 3 columns, create `auto_assign_ticket()` trigger function + `BEFORE INSERT` trigger on `department_tickets`
-- `src/components/department/TicketCard.tsx` — status config, void dialog, reason display
-- `src/components/department/TicketKanbanView.tsx` — Void column, drag-drop reason prompt
-- `src/components/department/TicketTableView.tsx` — Void badge & filter
-- `src/components/department/TicketsTab.tsx` — include void in fetched list, optional filter chip
-- `src/components/dashboard/MyTickets.tsx` — show Void badge
-- `supabase/functions/ticket-automation/index.ts` — keep as a safety-net for any tickets the trigger missed; skip voided tickets in escalation logic
+This means manual validation also unblocks profile activation.
 
-### 6. What the user sees
+### 4. Files touched
 
-- Creating a new ticket: it instantly shows "In Progress · Assigned to [name]" (no more "Unassigned" state)
-- Any admin/team member can change status → "Void" → enter reason → ticket greys out with the reason visible
-- Clients see voided tickets but cannot void them themselves
+- `src/components/social/BrandDNATab.tsx` — interactive badge + popover for staff, read-only for clients
+- `src/components/social/AdminDNAProfileCard.tsx` — checklist auto-check + relabel
+
+No migration, no edge function changes.
 
