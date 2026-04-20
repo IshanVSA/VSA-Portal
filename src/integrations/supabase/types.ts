@@ -2423,7 +2423,7 @@ export type Database = {
       app_role: "admin" | "concierge" | "client"
       department_type: "website" | "seo" | "google_ads" | "social_media"
       ticket_priority: "regular" | "urgent" | "emergency"
-      ticket_status: "open" | "in_progress" | "completed" | "emergency"
+      ticket_status: "open" | "in_progress" | "completed" | "emergency" | "void"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2554,7 +2554,7 @@ export const Constants = {
       app_role: ["admin", "concierge", "client"],
       department_type: ["website", "seo", "google_ads", "social_media"],
       ticket_priority: ["regular", "urgent", "emergency"],
-      ticket_status: ["open", "in_progress", "completed", "emergency"],
+      ticket_status: ["open", "in_progress", "completed", "emergency", "void"],
     },
   },
 } as const
