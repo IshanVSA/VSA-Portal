@@ -22,6 +22,8 @@ import { PageSelectionDialog } from "@/components/clinic-detail/PageSelectionDia
 import { FacebookInsightCard } from "@/components/clinic-detail/FacebookInsightCard";
 import { GoogleAdsConnectionCard } from "@/components/clinic-detail/GoogleAdsConnectionCard";
 import { GoogleAccountSelectionDialog } from "@/components/clinic-detail/GoogleAccountSelectionDialog";
+import { GBPConnectionCard } from "@/components/clinic-detail/GBPConnectionCard";
+import { GBPLocationSelectionDialog } from "@/components/clinic-detail/GBPLocationSelectionDialog";
 import { TrackingSetupCard } from "@/components/clinic-detail/TrackingSetupCard";
 import { ClientJourney } from "@/components/clinic-detail/ClientJourney";
 import { COMMON_TIMEZONES, DEFAULT_CLINIC_TIMEZONE, getSafeTimeZone } from "@/lib/website-analytics";
@@ -45,6 +47,10 @@ interface ClinicCredentials {
   google_ads_account_name: string | null;
   last_meta_sync_at: string | null;
   last_google_sync_at: string | null;
+  gbp_account_id: string | null;
+  gbp_location_id: string | null;
+  gbp_location_name: string | null;
+  gbp_connected_at: string | null;
 }
 
 type ClinicAccessKey = "website_enabled" | "seo_enabled" | "google_ads_enabled" | "ai_seo_enabled" | "social_media_enabled";
@@ -170,7 +176,9 @@ export default function ClinicDetail() {
     meta_page_id: null, meta_instagram_business_id: null, meta_page_name: null,
     google_ads_customer_id: null, google_ads_login_customer_id: null, google_ads_account_name: null,
     last_meta_sync_at: null, last_google_sync_at: null,
+    gbp_account_id: null, gbp_location_id: null, gbp_location_name: null, gbp_connected_at: null,
   });
+  const [gbpLocations, setGbpLocations] = useState<{ locations: any[]; refresh_token: string } | null>(null);
   
   const [instaData, setInstaData] = useState<any[]>([]);
   const [fbData, setFbData] = useState<any[]>([]);
@@ -266,14 +274,28 @@ export default function ClinicDetail() {
         }
       });
     }
+
+    // Check for gbp_token_ref URL parameter
+    const gbpTokenRef = searchParams.get("gbp_token_ref");
+    if (gbpTokenRef) {
+      setActiveTab("connections");
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("gbp_token_ref");
+      setSearchParams(newParams, { replace: true });
+      fetchOAuthData(gbpTokenRef).then((result) => {
+        if (result?.payload) {
+          setGbpLocations(result.payload);
+        }
+      });
+    }
   }, [id]);
 
   const fetchCredentials = async () => {
     if (!id) return;
     const { data } = await supabase.from("clinic_api_credentials")
-      .select("meta_page_id, meta_instagram_business_id, meta_page_name, google_ads_customer_id, google_ads_login_customer_id, google_ads_account_name, last_meta_sync_at, last_google_sync_at")
+      .select("meta_page_id, meta_instagram_business_id, meta_page_name, google_ads_customer_id, google_ads_login_customer_id, google_ads_account_name, last_meta_sync_at, last_google_sync_at, gbp_account_id, gbp_location_id, gbp_location_name, gbp_connected_at")
       .eq("clinic_id", id).maybeSingle();
-    if (data) setCreds(data);
+    if (data) setCreds(data as ClinicCredentials);
   };
 
   const updateClinicAccess = async (key: ClinicAccessKey, checked: boolean) => {
@@ -718,6 +740,14 @@ export default function ClinicDetail() {
                 lastGoogleSyncAt={creds.last_google_sync_at}
                 onRefresh={() => { fetchCredentials(); fetchAnalytics(); }}
               />
+              <GBPConnectionCard
+                clinicId={id!}
+                hasGbpCreds={!!creds.gbp_account_id}
+                locationName={creds.gbp_location_name}
+                locationId={creds.gbp_location_id}
+                connectedAt={creds.gbp_connected_at}
+                onRefresh={() => { fetchCredentials(); }}
+              />
               <TrackingSetupCard clinicId={id!} />
 
               {/* Website URL Card */}
@@ -820,6 +850,25 @@ export default function ClinicDetail() {
               setSearchParams({}, { replace: true });
               fetchCredentials();
               fetchAnalytics();
+            }}
+          />
+        )}
+
+        {gbpLocations && id && (
+          <GBPLocationSelectionDialog
+            open={!!gbpLocations}
+            locations={gbpLocations.locations}
+            refreshToken={gbpLocations.refresh_token}
+            clinicId={id}
+            clinicName={clinic?.clinic_name || ""}
+            onClose={() => {
+              setGbpLocations(null);
+              setSearchParams({}, { replace: true });
+            }}
+            onConnected={() => {
+              setGbpLocations(null);
+              setSearchParams({}, { replace: true });
+              fetchCredentials();
             }}
           />
         )}

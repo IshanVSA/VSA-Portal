@@ -132,6 +132,28 @@ export function useGBPPosts(clinicId: string | null) {
       if (status === "approved") {
         const { data: { user } } = await supabase.auth.getUser();
         updates.approved_by = user?.id;
+
+        // Auto-schedule: Monday 9:00 AM clinic-local for the post's week
+        const { data: post } = await supabase
+          .from("gbp_post_history")
+          .select("year, month, week_number, clinic_id")
+          .eq("id", postId)
+          .maybeSingle();
+        if (post) {
+          // Compute Monday of week N in (year, month). Week 1 = first Monday on/after 1st of month.
+          const firstOfMonth = new Date(Date.UTC(post.year, post.month - 1, 1));
+          const dow = firstOfMonth.getUTCDay(); // 0=Sun..6=Sat
+          const offsetToMonday = (8 - dow) % 7; // days to next Monday (0 if already Mon)
+          const firstMonday = new Date(firstOfMonth);
+          firstMonday.setUTCDate(firstOfMonth.getUTCDate() + offsetToMonday);
+          const targetMonday = new Date(firstMonday);
+          targetMonday.setUTCDate(firstMonday.getUTCDate() + (post.week_number - 1) * 7);
+          targetMonday.setUTCHours(13, 0, 0, 0); // ~9 AM Eastern; clinic-local refinement TBD
+          updates.scheduled_publish_at = targetMonday.toISOString();
+          updates.status = "scheduled";
+          updates.publish_attempts = 0;
+          updates.publish_error = null;
+        }
       }
       if (status === "reviewed") {
         const { data: { user } } = await supabase.auth.getUser();
@@ -145,6 +167,7 @@ export function useGBPPosts(clinicId: string | null) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["gbp-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["gbp-scheduled-posts"] });
     },
   });
 

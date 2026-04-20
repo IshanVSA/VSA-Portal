@@ -50,7 +50,7 @@ export function ScheduledPosts({ clinicId: navClinicId }: ScheduledPostsProps) {
         .eq("clinic_id", selectedClinicId)
         .eq("month", selectedMonth)
         .eq("year", selectedYear)
-        .eq("status", "approved")
+        .in("status", ["approved", "scheduled", "published", "failed"])
         .order("week_number");
       if (error) throw error;
       return data || [];
@@ -131,14 +131,38 @@ export function ScheduledPosts({ clinicId: navClinicId }: ScheduledPostsProps) {
             >
               <Card className="h-full">
                 <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
                     <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-600 border-emerald-200">
                       Week {post.week_number}
                     </Badge>
-                    <Badge variant="secondary" className="text-xs">
-                      {POST_TYPE_LABELS[post.post_type] || post.post_type}
-                    </Badge>
+                    <div className="flex items-center gap-1.5">
+                      {post.status === "published" && (
+                        <Badge className="text-[10px] bg-primary/15 text-primary border-primary/30">Published</Badge>
+                      )}
+                      {post.status === "scheduled" && (
+                        <Badge className="text-[10px] bg-blue-500/10 text-blue-600 border-blue-200">Scheduled</Badge>
+                      )}
+                      {post.status === "failed" && (
+                        <Badge className="text-[10px] bg-destructive/10 text-destructive border-destructive/30">Failed</Badge>
+                      )}
+                      <Badge variant="secondary" className="text-xs">
+                        {POST_TYPE_LABELS[post.post_type] || post.post_type}
+                      </Badge>
+                    </div>
                   </div>
+                  {post.scheduled_publish_at && post.status !== "published" && (
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Publishes {new Date(post.scheduled_publish_at).toLocaleString()}
+                    </p>
+                  )}
+                  {post.published_at && (
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Published {new Date(post.published_at).toLocaleString()}
+                    </p>
+                  )}
+                  {post.publish_error && (
+                    <p className="text-[10px] text-destructive mt-1 line-clamp-2">⚠ {post.publish_error}</p>
+                  )}
                   <CardTitle className="text-sm mt-2">{post.topic}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
