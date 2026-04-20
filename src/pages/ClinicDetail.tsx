@@ -853,6 +853,25 @@ export default function ClinicDetail() {
             }}
           />
         )}
+
+        {gbpLocations && id && (
+          <GBPLocationSelectionDialog
+            open={!!gbpLocations}
+            locations={gbpLocations.locations}
+            refreshToken={gbpLocations.refresh_token}
+            clinicId={id}
+            clinicName={clinic?.clinic_name || ""}
+            onClose={() => {
+              setGbpLocations(null);
+              setSearchParams({}, { replace: true });
+            }}
+            onConnected={() => {
+              setGbpLocations(null);
+              setSearchParams({}, { replace: true });
+              fetchCredentials();
+            }}
+          />
+        )}
       </div>
     </>
   );
