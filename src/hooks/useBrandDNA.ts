@@ -175,7 +175,20 @@ export function useBrandDNA(clinicId: string | undefined) {
     },
   });
 
-  const isCompleted = dna?.status === "completed" || dna?.status === "synthesized";
+  // Q&A keys the client must fill (matches QUESTIONS in BrandDNAForm.tsx)
+  const REQUIRED_Q_KEYS = [
+    "q1_differentiator","q2_myth","q3_target_client","q4_founding_story",
+    "q5_owner_presence","q6_growth_priority","q7_content_exclusions",
+    "q8_community_connections","q9_patient_consent","q10_stat_holidays",
+  ];
+  const callNotes = (dna?.call_notes ?? {}) as Record<string, any>;
+  const answeredCount = REQUIRED_Q_KEYS.filter(
+    (k) => callNotes[k] !== undefined && String(callNotes[k]).trim() !== ""
+  ).length;
+  const isCompleted =
+    answeredCount >= REQUIRED_Q_KEYS.length ||
+    dna?.status === "completed" ||
+    dna?.status === "active";
 
   return { dna, isLoading, upsertDNA, isCompleted, extractWebsite, mineReviews, synthesizeDNA, localityFetch };
 }
