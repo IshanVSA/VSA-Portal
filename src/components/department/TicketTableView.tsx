@@ -133,6 +133,7 @@ export function TicketTableView({ tickets, teamMembers, onUpdated }: TicketTable
   if (tickets.length === 0) return null;
 
   return (
+    <>
     <div className="border border-border rounded-lg overflow-hidden">
       <Table>
         <TableHeader>
@@ -151,15 +152,18 @@ export function TicketTableView({ tickets, teamMembers, onUpdated }: TicketTable
             const sc = statusConfig[t.status] || statusConfig.open;
             const pc = priorityConfig[t.priority] || priorityConfig.regular;
             const assignee = t.assigned_to ? teamMembers.find(m => m.id === t.assigned_to)?.name : null;
+            const isVoid = t.status === "void";
             return (
               <TableRow
                 key={t.id}
-                className={cn("border-l-[3px]", statusBorder[t.status] || "border-l-muted")}
+                className={cn("border-l-[3px]", statusBorder[t.status] || "border-l-muted", isVoid && "opacity-70")}
               >
                 <TableCell>
                   <div>
-                    <p className="text-sm font-medium text-foreground truncate max-w-[280px]">{t.title}</p>
-                    {t.description && (
+                    <p className={cn("text-sm font-medium text-foreground truncate max-w-[280px]", isVoid && "line-through text-muted-foreground")}>{t.title}</p>
+                    {isVoid && t.void_reason ? (
+                      <p className="text-[11px] text-destructive truncate max-w-[280px] mt-0.5">Void: {t.void_reason}</p>
+                    ) : t.description && (
                       <p className="text-[11px] text-muted-foreground truncate max-w-[280px] mt-0.5">{t.description}</p>
                     )}
                   </div>
@@ -201,6 +205,7 @@ export function TicketTableView({ tickets, teamMembers, onUpdated }: TicketTable
                       <SelectItem value="open" className="text-xs">Open</SelectItem>
                       <SelectItem value="in_progress" className="text-xs">In Progress</SelectItem>
                       <SelectItem value="completed" className="text-xs">Completed</SelectItem>
+                      <SelectItem value="void" className="text-xs">Void</SelectItem>
                     </SelectContent>
                   </Select>
                 </TableCell>
@@ -210,5 +215,31 @@ export function TicketTableView({ tickets, teamMembers, onUpdated }: TicketTable
         </TableBody>
       </Table>
     </div>
+
+    <AlertDialog open={!!voidPending} onOpenChange={(o) => !o && setVoidPending(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Void this ticket?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Provide a reason for voiding. This will be visible to the client and team.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <Textarea
+          placeholder="Reason for voiding (required)…"
+          value={voidReason}
+          onChange={(e) => setVoidReason(e.target.value)}
+          rows={4}
+          className="text-sm"
+        />
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmVoid} disabled={!voidReason.trim()}>
+            Void Ticket
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
+
