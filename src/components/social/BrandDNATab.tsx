@@ -191,7 +191,7 @@ export default function BrandDNATab({ clinicId }: Props) {
       </div>
 
       {/* Synthesized Profile */}
-      {hasSynthesis && <SynthesizedProfileCard profile={synthesizedProfile} />}
+      {hasSynthesis && <SynthesizedProfileCard profile={synthesizedProfile} clinicId={clinicId} />}
 
       {/* Admin DNA Profile Card */}
       {hasSynthesis && (
@@ -413,7 +413,7 @@ function ImproveScoreChecklist({ profile }: { profile: Record<string, any> }) {
 }
 
 /* ── Synthesized Profile Card ── */
-function SynthesizedProfileCard({ profile }: { profile: Record<string, any> }) {
+function SynthesizedProfileCard({ profile, clinicId }: { profile: Record<string, any>; clinicId: string | undefined }) {
   const score = profile.completeness_score || 0;
   const scoreColor = score >= 90 ? "text-green-600" : score >= 70 ? "text-amber-600" : "text-red-600";
   const scoreLabel = score >= 90 ? "Full Generation Ready" : score >= 70 ? "Generate with Warnings" : score >= 50 ? "Limited Generation" : "Do Not Activate";
