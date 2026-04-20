@@ -68,7 +68,7 @@ export default function AdminDNAProfileCard({ clinicId }: Props) {
     hospital_type: synthesized.hospital_type || "",
   });
 
-  const canEdit = isAdmin; // concierges are read-only for AUTO fields
+  const canEdit = isAdmin || isConcierge; // staff can edit synthesized profile to correct AI mistakes
 
   const handleSave = async () => {
     if (!clinicId || !dna) return;
