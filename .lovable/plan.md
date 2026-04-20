@@ -1,58 +1,62 @@
 
 
-## Plan: Manually validate the Clinic Differentiator
+## Plan: Fix Brand DNA collection form not showing for additional clinics
 
-### Context
+### The bug
 
-The "⚠ Not validated" badge is driven by `synthesized_profile.differentiator_validated` (boolean) set by the AI in `synthesize-dna`. For CVBC clinics (like Alma) review mining is suppressed by policy, so this flag stays `false` permanently — there's no way for the AI to ever flip it. Today, staff can edit the differentiator text but cannot change its validation state.
-
-### What we'll build
-
-A small **manual validation control** next to the badge, available to admins and concierges, that lets staff confirm the differentiator after a human review (e.g., a client call or owner email).
-
-### 1. UI — `BrandDNATab.tsx` (badge area, ~line 466)
-
-Replace the static badge with an interactive control:
-
-- **Read-only for clients** — they continue to see "✓ Review-validated" / "⚠ Not validated"
-- **For admin/concierge** — the badge becomes a button with a `Shield` icon. Clicking opens a small popover:
-  - Toggle: "Mark as validated" / "Mark as not validated"
-  - Optional `Textarea`: "Validation note (e.g. confirmed with Dr. Parveen on 2026-04-19)"
-  - "Save" button
-
-When saved, write to `clinic_brand_dna.synthesized_profile`:
-```json
-{
-  ...existing,
-  "differentiator_validated": true,
-  "differentiator_validated_by": "<user_id>",
-  "differentiator_validated_at": "2026-04-20T...",
-  "differentiator_validation_note": "Confirmed with Dr. Parveen via call"
-}
+In `useBrandDNA.ts`, the form gate uses:
+```ts
+const isCompleted = dna?.status === "completed" || dna?.status === "synthesized";
 ```
 
-No DB schema change — `synthesized_profile` is JSONB.
+But `status` is flipped to `synthesized` automatically by the AI pipeline (website extraction → synthesis) the moment a clinic is created — even before the **client** ever opens the questionnaire. Confirmed in the DB: clinics `62ecb5aa…` and `9b737aa6…` have `status='synthesized'` with **empty `call_notes`** (zero Q&A answers).
 
-### 2. Visual states (admin/concierge view)
+Result: when a client switches to a different clinic of theirs, `SocialMedia.tsx` evaluates `showDNAGate = isClient && !dnaCompleted` → `dnaCompleted` is wrongly `true` → form is hidden, client lands on the regular Social Media tabs without ever filling Layer 3.
 
-```text
-[⚠ Not validated]   →  click  →  popover with toggle + note  →  [✓ Manually validated by Sarah · Apr 20]
+### The fix
+
+Change the "is the client done with their questionnaire?" check to look at **whether the client actually answered the Layer 3 questions**, not at the AI-driven `status` field.
+
+**`src/hooks/useBrandDNA.ts`** — replace the `isCompleted` derivation:
+
+```ts
+// Q&A keys the client must fill (matches QUESTIONS in BrandDNAForm.tsx)
+const REQUIRED_Q_KEYS = [
+  "q1_differentiator","q2_myth","q3_target_client","q4_founding_story",
+  "q5_owner_presence","q6_growth_priority","q7_content_exclusions",
+  "q8_community_connections","q9_patient_consent","q10_stat_holidays",
+];
+
+const callNotes = (dna?.call_notes ?? {}) as Record<string, any>;
+const answeredCount = REQUIRED_Q_KEYS.filter(
+  k => callNotes[k] !== undefined && String(callNotes[k]).trim() !== ""
+).length;
+
+// Client-side completion = they actually answered the questionnaire,
+// OR a staff member explicitly marked the record completed/active.
+const isCompleted =
+  answeredCount >= REQUIRED_Q_KEYS.length ||
+  dna?.status === "completed" ||
+  dna?.status === "active";
 ```
 
-A third badge variant "Manually validated" (amber-to-emerald) distinguishes human validation from AI/review validation, so the audit trail stays clear.
+Notes:
+- Drop `'synthesized'` from the auto-pass list — that status only means the AI pipeline ran, not that the client submitted.
+- Keep `'completed'` (set by the form's submit handler) and `'active'` (set when a staff member activates the profile) as overrides so existing fully-filled clinics aren't re-prompted.
 
-### 3. Sync with the Vedant Checklist
+### Why this works
 
-In `AdminDNAProfileCard.tsx`, the existing checklist item `differentiator_validated` ("Clinic differentiator is validated against reviews") will:
-- Auto-check when `synthesized.differentiator_validated === true` (whether AI or manual)
-- Re-label to "Clinic differentiator is validated (review or manual)"
+- Clinic A (form already filled): `call_notes` contains all 10 answers → `isCompleted = true` → no gate.
+- Clinic B (new, AI extracted website only): `call_notes` is empty → `isCompleted = false` → form appears.
+- Existing fully-onboarded clinics with `status='active'`: still treated as completed.
 
-This means manual validation also unblocks profile activation.
+### Backfill (no migration needed)
 
-### 4. Files touched
+No SQL change required. The two clinics currently stuck (`62ecb5aa…`, `9b737aa6…`) will automatically begin showing the form to their client owners on next visit because their `call_notes` is empty.
 
-- `src/components/social/BrandDNATab.tsx` — interactive badge + popover for staff, read-only for clients
-- `src/components/social/AdminDNAProfileCard.tsx` — checklist auto-check + relabel
+### Files touched
 
-No migration, no edge function changes.
+- `src/hooks/useBrandDNA.ts` — only the `isCompleted` derivation changes (~10 lines).
+
+No edge function, schema, or other component changes.
 
