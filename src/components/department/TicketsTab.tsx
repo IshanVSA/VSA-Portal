@@ -25,6 +25,7 @@ const statusFilters = [
   { value: "in_progress", label: "In Progress" },
   { value: "completed", label: "Completed" },
   { value: "emergency", label: "Emergency" },
+  { value: "void", label: "Void" },
 ];
 
 type ViewMode = "cards" | "kanban" | "table";
@@ -235,6 +236,7 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
               department={t.department}
               created_at={t.created_at}
               assigned_to={t.assigned_to}
+              void_reason={t.void_reason}
               teamMembers={teamMemberProfiles}
               onUpdated={() => refetch()}
             />

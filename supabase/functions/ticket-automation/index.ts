@@ -91,6 +91,7 @@ Deno.serve(async (req) => {
       .in("status", ["open", "in_progress"])
       .neq("priority", "emergency")
       .lt("created_at", cutoff48h);
+    // Note: voided tickets are excluded automatically since status filter only matches open/in_progress.
 
     if (overdue && overdue.length > 0) {
       for (const ticket of overdue) {
