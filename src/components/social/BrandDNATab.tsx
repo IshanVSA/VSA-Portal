@@ -230,10 +230,41 @@ export default function BrandDNATab({ clinicId }: Props) {
       {/* Layer 3: Q&A Cards */}
       {dna && (
         <>
-          <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-            <Dna className="h-4 w-4" />
-            Layer 3 - Collection Call Answers
-          </h3>
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+              <Dna className="h-4 w-4" />
+              Layer 3 - Collection Call Answers
+            </h3>
+            {!editingAnswers ? (
+              <Button variant="outline" size="sm" onClick={() => setEditingAnswers(true)} className="gap-1.5">
+                <Edit2 className="h-3.5 w-3.5" /> Edit Answers
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setDraftCallNotes((dna.call_notes as Record<string, string>) || {});
+                    const af = (dna.additional_fields as Record<string, any>) || {};
+                    const stringFields: Record<string, string> = {};
+                    Object.keys(ADDITIONAL_LABELS).forEach((k) => {
+                      stringFields[k] = typeof af[k] === "string" ? af[k] : "";
+                    });
+                    setDraftAdditional(stringFields);
+                    setEditingAnswers(false);
+                  }}
+                  className="gap-1.5"
+                >
+                  <X className="h-3.5 w-3.5" /> Cancel
+                </Button>
+                <Button size="sm" onClick={handleSaveAnswers} disabled={upsertDNA.isPending} className="gap-1.5">
+                  {upsertDNA.isPending ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                  Save
+                </Button>
+              </div>
+            )}
+          </div>
           <div className="grid gap-4 md:grid-cols-2">
             {Object.entries(QUESTION_LABELS).map(([key, label]) => (
               <Card key={key} className="border-border/60">
@@ -241,31 +272,51 @@ export default function BrandDNATab({ clinicId }: Props) {
                   <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-foreground">
-                    {callNotes[key] || <span className="italic text-muted-foreground">Not answered</span>}
-                  </p>
+                  {editingAnswers ? (
+                    <Textarea
+                      value={draftCallNotes[key] || ""}
+                      onChange={(e) => setDraftCallNotes((p) => ({ ...p, [key]: e.target.value }))}
+                      rows={3}
+                      className="text-sm"
+                      placeholder="Enter answer…"
+                    />
+                  ) : (
+                    <p className="text-sm text-foreground whitespace-pre-wrap">
+                      {callNotes[key] || <span className="italic text-muted-foreground">Not answered</span>}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             ))}
           </div>
 
-          {Object.entries(ADDITIONAL_LABELS).some(([key]) => {
-            const val = additionalFields[key];
-            return val && typeof val === "string" && val.trim();
-          }) && (
+          {(editingAnswers ||
+            Object.entries(ADDITIONAL_LABELS).some(([key]) => {
+              const val = additionalFields[key];
+              return val && typeof val === "string" && val.trim();
+            })) && (
             <>
               <h3 className="text-sm font-semibold text-muted-foreground mt-4">Additional Details</h3>
               <div className="grid gap-4 md:grid-cols-2">
                 {Object.entries(ADDITIONAL_LABELS).map(([key, label]) => {
                   const val = additionalFields[key];
-                  if (!val || typeof val !== "string" || !val.trim()) return null;
+                  if (!editingAnswers && (!val || typeof val !== "string" || !val.trim())) return null;
                   return (
                     <Card key={key} className="border-border/60">
                       <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-sm text-foreground">{val}</p>
+                        {editingAnswers ? (
+                          <Input
+                            value={draftAdditional[key] || ""}
+                            onChange={(e) => setDraftAdditional((p) => ({ ...p, [key]: e.target.value }))}
+                            className="text-sm"
+                            placeholder="Optional…"
+                          />
+                        ) : (
+                          <p className="text-sm text-foreground">{val}</p>
+                        )}
                       </CardContent>
                     </Card>
                   );
