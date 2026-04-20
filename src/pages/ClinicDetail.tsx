@@ -274,6 +274,20 @@ export default function ClinicDetail() {
         }
       });
     }
+
+    // Check for gbp_token_ref URL parameter
+    const gbpTokenRef = searchParams.get("gbp_token_ref");
+    if (gbpTokenRef) {
+      setActiveTab("connections");
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("gbp_token_ref");
+      setSearchParams(newParams, { replace: true });
+      fetchOAuthData(gbpTokenRef).then((result) => {
+        if (result?.payload) {
+          setGbpLocations(result.payload);
+        }
+      });
+    }
   }, [id]);
 
   const fetchCredentials = async () => {
@@ -725,6 +739,14 @@ export default function ClinicDetail() {
                 customerId={creds.google_ads_customer_id}
                 lastGoogleSyncAt={creds.last_google_sync_at}
                 onRefresh={() => { fetchCredentials(); fetchAnalytics(); }}
+              />
+              <GBPConnectionCard
+                clinicId={id!}
+                hasGbpCreds={!!creds.gbp_account_id}
+                locationName={creds.gbp_location_name}
+                locationId={creds.gbp_location_id}
+                connectedAt={creds.gbp_connected_at}
+                onRefresh={() => { fetchCredentials(); }}
               />
               <TrackingSetupCard clinicId={id!} />
 
