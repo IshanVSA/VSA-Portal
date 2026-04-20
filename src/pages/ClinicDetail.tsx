@@ -22,6 +22,8 @@ import { PageSelectionDialog } from "@/components/clinic-detail/PageSelectionDia
 import { FacebookInsightCard } from "@/components/clinic-detail/FacebookInsightCard";
 import { GoogleAdsConnectionCard } from "@/components/clinic-detail/GoogleAdsConnectionCard";
 import { GoogleAccountSelectionDialog } from "@/components/clinic-detail/GoogleAccountSelectionDialog";
+import { GBPConnectionCard } from "@/components/clinic-detail/GBPConnectionCard";
+import { GBPLocationSelectionDialog } from "@/components/clinic-detail/GBPLocationSelectionDialog";
 import { TrackingSetupCard } from "@/components/clinic-detail/TrackingSetupCard";
 import { ClientJourney } from "@/components/clinic-detail/ClientJourney";
 import { COMMON_TIMEZONES, DEFAULT_CLINIC_TIMEZONE, getSafeTimeZone } from "@/lib/website-analytics";
@@ -45,6 +47,10 @@ interface ClinicCredentials {
   google_ads_account_name: string | null;
   last_meta_sync_at: string | null;
   last_google_sync_at: string | null;
+  gbp_account_id: string | null;
+  gbp_location_id: string | null;
+  gbp_location_name: string | null;
+  gbp_connected_at: string | null;
 }
 
 type ClinicAccessKey = "website_enabled" | "seo_enabled" | "google_ads_enabled" | "ai_seo_enabled" | "social_media_enabled";
