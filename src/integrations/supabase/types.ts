@@ -499,11 +499,17 @@ export type Database = {
         Row: {
           clinic_id: string
           created_at: string
+          gbp_account_id: string | null
+          gbp_connected_at: string | null
+          gbp_location_id: string | null
+          gbp_location_name: string | null
+          gbp_refresh_token: string | null
           google_ads_account_name: string | null
           google_ads_customer_id: string | null
           google_ads_login_customer_id: string | null
           google_ads_refresh_token: string | null
           id: string
+          last_gbp_sync_at: string | null
           last_google_sync_at: string | null
           last_meta_sync_at: string | null
           meta_instagram_business_id: string | null
@@ -514,11 +520,17 @@ export type Database = {
         Insert: {
           clinic_id: string
           created_at?: string
+          gbp_account_id?: string | null
+          gbp_connected_at?: string | null
+          gbp_location_id?: string | null
+          gbp_location_name?: string | null
+          gbp_refresh_token?: string | null
           google_ads_account_name?: string | null
           google_ads_customer_id?: string | null
           google_ads_login_customer_id?: string | null
           google_ads_refresh_token?: string | null
           id?: string
+          last_gbp_sync_at?: string | null
           last_google_sync_at?: string | null
           last_meta_sync_at?: string | null
           meta_instagram_business_id?: string | null
@@ -529,11 +541,17 @@ export type Database = {
         Update: {
           clinic_id?: string
           created_at?: string
+          gbp_account_id?: string | null
+          gbp_connected_at?: string | null
+          gbp_location_id?: string | null
+          gbp_location_name?: string | null
+          gbp_refresh_token?: string | null
           google_ads_account_name?: string | null
           google_ads_customer_id?: string | null
           google_ads_login_customer_id?: string | null
           google_ads_refresh_token?: string | null
           id?: string
+          last_gbp_sync_at?: string | null
           last_google_sync_at?: string | null
           last_meta_sync_at?: string | null
           meta_instagram_business_id?: string | null
@@ -1454,6 +1472,7 @@ export type Database = {
           created_at: string | null
           cta_text: string | null
           cta_url: string | null
+          gbp_post_resource_name: string | null
           generated_by: string | null
           hook_style: string | null
           id: string
@@ -1462,7 +1481,11 @@ export type Database = {
           post_content: string
           post_type: string
           primary_keyword: string
+          publish_attempts: number
+          publish_error: string | null
+          published_at: string | null
           reviewed_by: string | null
+          scheduled_publish_at: string | null
           secondary_keywords: string[] | null
           status: string | null
           topic: string
@@ -1480,6 +1503,7 @@ export type Database = {
           created_at?: string | null
           cta_text?: string | null
           cta_url?: string | null
+          gbp_post_resource_name?: string | null
           generated_by?: string | null
           hook_style?: string | null
           id?: string
@@ -1488,7 +1512,11 @@ export type Database = {
           post_content: string
           post_type: string
           primary_keyword: string
+          publish_attempts?: number
+          publish_error?: string | null
+          published_at?: string | null
           reviewed_by?: string | null
+          scheduled_publish_at?: string | null
           secondary_keywords?: string[] | null
           status?: string | null
           topic: string
@@ -1506,6 +1534,7 @@ export type Database = {
           created_at?: string | null
           cta_text?: string | null
           cta_url?: string | null
+          gbp_post_resource_name?: string | null
           generated_by?: string | null
           hook_style?: string | null
           id?: string
@@ -1514,7 +1543,11 @@ export type Database = {
           post_content?: string
           post_type?: string
           primary_keyword?: string
+          publish_attempts?: number
+          publish_error?: string | null
+          published_at?: string | null
           reviewed_by?: string | null
+          scheduled_publish_at?: string | null
           secondary_keywords?: string[] | null
           status?: string | null
           topic?: string
