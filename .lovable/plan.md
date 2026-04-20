@@ -1,62 +1,85 @@
 
 
-## Plan: Fix Brand DNA collection form not showing for additional clinics
+## Plan: Automate publishing of approved GBP posts
 
-### The bug
+### How GBP auto-posting actually works
 
-In `useBrandDNA.ts`, the form gate uses:
-```ts
-const isCompleted = dna?.status === "completed" || dna?.status === "synthesized";
-```
+Approved posts in `gbp_post_history` (status `approved`) currently just sit in the "Scheduled Posts" tab as a preview. Nothing pushes them to Google. To automate this we need three pieces:
 
-But `status` is flipped to `synthesized` automatically by the AI pipeline (website extraction → synthesis) the moment a clinic is created — even before the **client** ever opens the questionnaire. Confirmed in the DB: clinics `62ecb5aa…` and `9b737aa6…` have `status='synthesized'` with **empty `call_notes`** (zero Q&A answers).
+1. **Google Business Profile API access** — a separate Google API from Ads, with its own OAuth scope (`https://www.googleapis.com/auth/business.manage`).
+2. **Per-clinic OAuth connection** — each clinic owner must authorize us to post to their GBP location once. We store a `refresh_token` + the GBP `account_id` and `location_id`.
+3. **A scheduler** — a cron job that wakes up, finds approved posts whose scheduled date has arrived, and calls the GBP API for each one.
 
-Result: when a client switches to a different clinic of theirs, `SocialMedia.tsx` evaluates `showDNAGate = isClient && !dnaCompleted` → `dnaCompleted` is wrongly `true` → form is hidden, client lands on the regular Social Media tabs without ever filling Layer 3.
+### ⚠ Important prerequisite (Google approval)
 
-### The fix
+The Google Business Profile API is **gated** — Google must approve your project for production access (form: "Business Profile APIs access request"). Without approval, calls return 403 even with a valid OAuth token. This usually takes 1–4 weeks. We can **build everything now and test on the approved test clinic**, then flip to all clinics once Google approves you. I'll flag this clearly in the UI.
 
-Change the "is the client done with their questionnaire?" check to look at **whether the client actually answered the Layer 3 questions**, not at the AI-driven `status` field.
+### 1. Database (one migration)
 
-**`src/hooks/useBrandDNA.ts`** — replace the `isCompleted` derivation:
+Extend `clinic_api_credentials` with GBP fields:
+- `gbp_refresh_token` (text, encrypted with existing `enc:` AES-256-GCM)
+- `gbp_account_id` (text) — e.g. `accounts/12345`
+- `gbp_location_id` (text) — e.g. `locations/67890`
+- `gbp_location_name` (text) — friendly label
+- `gbp_connected_at`, `last_gbp_sync_at` (timestamptz)
 
-```ts
-// Q&A keys the client must fill (matches QUESTIONS in BrandDNAForm.tsx)
-const REQUIRED_Q_KEYS = [
-  "q1_differentiator","q2_myth","q3_target_client","q4_founding_story",
-  "q5_owner_presence","q6_growth_priority","q7_content_exclusions",
-  "q8_community_connections","q9_patient_consent","q10_stat_holidays",
-];
+Extend `gbp_post_history` with publishing state:
+- `scheduled_publish_at` (timestamptz) — when to publish (auto-set when approved)
+- `published_at` (timestamptz)
+- `gbp_post_resource_name` (text) — Google's returned ID, used to update/delete later
+- `publish_error` (text) — last failure reason for the UI
+- `publish_attempts` (int, default 0)
+- Add `'scheduled'`, `'failed'` to the `gbp_post_status` enum (alongside existing `published`)
 
-const callNotes = (dna?.call_notes ?? {}) as Record<string, any>;
-const answeredCount = REQUIRED_Q_KEYS.filter(
-  k => callNotes[k] !== undefined && String(callNotes[k]).trim() !== ""
-).length;
+### 2. Connection flow — new edge function `gbp-oauth`
 
-// Client-side completion = they actually answered the questionnaire,
-// OR a staff member explicitly marked the record completed/active.
-const isCompleted =
-  answeredCount >= REQUIRED_Q_KEYS.length ||
-  dna?.status === "completed" ||
-  dna?.status === "active";
-```
+Mirrors the existing `google-oauth` pattern (authorize → callback → store token):
+- `?action=authorize&clinic_id=...` → redirects to Google with scope `business.manage`
+- `?action=callback` → exchanges code, lists the user's GBP accounts + locations via `mybusinessaccountmanagement.googleapis.com` and `mybusinessbusinessinformation.googleapis.com`, opens a **location selection dialog** (reuse the `GoogleAccountSelectionDialog` pattern), then encrypts and stores the refresh token + selected location
 
-Notes:
-- Drop `'synthesized'` from the auto-pass list — that status only means the AI pipeline ran, not that the client submitted.
-- Keep `'completed'` (set by the form's submit handler) and `'active'` (set when a staff member activates the profile) as overrides so existing fully-filled clinics aren't re-prompted.
+New UI card: `src/components/clinic-detail/GBPConnectionCard.tsx` — sits in Clinic Detail next to the existing Google Ads / Meta cards. Shows connection state, location, "Connect / Reconnect / Disconnect".
 
-### Why this works
+### 3. Scheduling logic
 
-- Clinic A (form already filled): `call_notes` contains all 10 answers → `isCompleted = true` → no gate.
-- Clinic B (new, AI extracted website only): `call_notes` is empty → `isCompleted = false` → form appears.
-- Existing fully-onboarded clinics with `status='active'`: still treated as completed.
+When a staff member clicks **Approve** in `PostHistory`, we now also set `scheduled_publish_at`:
+- Default schedule = **Monday of the post's `week_number`, 9:00 AM in the clinic's timezone**
+- Staff can override the date/time inline on the post card before approval (small datetime picker added to `PostHistory`)
+- `status` becomes `scheduled` once a publish time is set; stays `approved` only if no time is set yet
 
-### Backfill (no migration needed)
+### 4. Publishing worker — new edge function `gbp-publish-cron`
 
-No SQL change required. The two clinics currently stuck (`62ecb5aa…`, `9b737aa6…`) will automatically begin showing the form to their client owners on next visit because their `call_notes` is empty.
+Runs every 15 minutes via `pg_cron` + `pg_net` (existing pattern from `google-ads-cron` and `pagespeed-cron`):
+- Selects rows from `gbp_post_history` where `status = 'scheduled'` AND `scheduled_publish_at <= now()` AND `publish_attempts < 5`
+- For each post: refresh the access token, build the GBP `localPosts.create` payload (summary = `post_content`, optional CTA with `cta_text` + `cta_url`, topic type from `post_type`), POST to `https://mybusiness.googleapis.com/v4/{account}/{location}/localPosts`
+- On success: set `status='published'`, `published_at=now()`, `gbp_post_resource_name=...`
+- On failure: increment `publish_attempts`, save `publish_error`, set `status='failed'` after 5 attempts
+- Uses `CRON_SECRET` (already configured) for auth
 
-### Files touched
+### 5. UI updates (small)
 
-- `src/hooks/useBrandDNA.ts` — only the `isCompleted` derivation changes (~10 lines).
+- **`ScheduledPosts.tsx`** — add `scheduled_publish_at` display, "Publish now" button (admin/concierge), and a status badge (`Scheduled` / `Published` / `Failed — retry`)
+- **`PostHistory.tsx`** — datetime picker in the approval flow, "Republish" action for failed posts
+- **`GBPConnectionCard.tsx`** — new component on Clinic Detail page
+- **Banner** at the top of GBP Posts tab if the clinic has approved posts but no GBP connection: *"Connect Google Business Profile to enable auto-publishing"*
 
-No edge function, schema, or other component changes.
+### 6. Files touched
+
+**New**
+- `supabase/functions/gbp-oauth/index.ts`
+- `supabase/functions/gbp-publish-cron/index.ts`
+- `src/components/clinic-detail/GBPConnectionCard.tsx`
+- `src/components/clinic-detail/GBPLocationSelectionDialog.tsx`
+- 1 migration (schema + cron schedule)
+
+**Edited**
+- `src/components/seo/gbp/ScheduledPosts.tsx` — schedule time + publish state
+- `src/components/seo/gbp/PostHistory.tsx` — datetime picker on approve, retry button
+- `src/pages/ClinicDetail.tsx` — mount `GBPConnectionCard`
+- `supabase/config.toml` — register the two new functions with `verify_jwt = false`
+
+### 7. Required from you
+
+- **Confirm**: should we add a "Connect GBP" card on the Clinic Detail page (same place as Meta / Google Ads), or inside the GBP Posts tab itself?
+- **Confirm**: default publish time = **Monday 9:00 AM clinic-local** for the post's week — sound right? (Otherwise tell me preferred default.)
+- **Action you'll need to take**: submit Google's "Business Profile APIs" access form — I'll give you the exact link and pre-filled justification text in the implementation step. Until approved, auto-publishing will work only on accounts whitelisted by Google.
 
