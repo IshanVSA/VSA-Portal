@@ -59,7 +59,24 @@ interface Props {
 }
 
 export default function BrandDNATab({ clinicId }: Props) {
-  const { dna, isLoading, extractWebsite, mineReviews, synthesizeDNA, localityFetch } = useBrandDNA(clinicId);
+  const { dna, isLoading, extractWebsite, mineReviews, synthesizeDNA, localityFetch, upsertDNA } = useBrandDNA(clinicId);
+  const [editingAnswers, setEditingAnswers] = useState(false);
+  const [draftCallNotes, setDraftCallNotes] = useState<Record<string, string>>({});
+  const [draftAdditional, setDraftAdditional] = useState<Record<string, string>>({});
+
+  // Sync drafts when DNA loads / changes
+  useEffect(() => {
+    if (dna) {
+      setDraftCallNotes((dna.call_notes as Record<string, string>) || {});
+      const af = (dna.additional_fields as Record<string, any>) || {};
+      const stringFields: Record<string, string> = {};
+      Object.keys(ADDITIONAL_LABELS).forEach((k) => {
+        if (typeof af[k] === "string") stringFields[k] = af[k];
+        else stringFields[k] = "";
+      });
+      setDraftAdditional(stringFields);
+    }
+  }, [dna?.id]);
 
   if (isLoading) {
     return (
@@ -78,6 +95,25 @@ export default function BrandDNATab({ clinicId }: Props) {
   const localityData = additionalFields.locality as Record<string, any> | undefined;
   const synthesizedProfile = (dna?.synthesized_profile || {}) as Record<string, any>;
   const hasSynthesis = synthesizedProfile && Object.keys(synthesizedProfile).length > 0 && synthesizedProfile.voice_fingerprint;
+
+  const handleSaveAnswers = async () => {
+    if (!dna) return;
+    try {
+      // Strip empty additional fields so we don't bloat the JSON
+      const cleanedAdditional: Record<string, string> = {};
+      Object.entries(draftAdditional).forEach(([k, v]) => {
+        if (v && v.trim()) cleanedAdditional[k] = v.trim();
+      });
+      await upsertDNA.mutateAsync({
+        call_notes: draftCallNotes,
+        additional_fields: cleanedAdditional,
+        status: dna.status === "active" ? "active" : "completed",
+      });
+      setEditingAnswers(false);
+    } catch (e) {
+      // toast handled by mutation
+    }
+  };
 
   return (
     <div className="space-y-6">
