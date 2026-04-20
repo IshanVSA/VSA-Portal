@@ -1,11 +1,19 @@
 import { useState, useEffect } from "react";
 import { useBrandDNA } from "@/hooks/useBrandDNA";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useAuth } from "@/hooks/useAuth";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Dna, CheckCircle, AlertCircle, Clock, Globe, RefreshCw, User,
   Stethoscope, Building, Star, MessageSquareQuote, Fingerprint,
@@ -465,13 +473,14 @@ function SynthesizedProfileCard({ profile }: { profile: Record<string, any> }) {
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
               <Target className="h-3 w-3" /> Clinic Differentiator
-              {profile.differentiator_validated !== undefined && (
-                <Badge variant={profile.differentiator_validated ? "default" : "destructive"} className="ml-1 text-[10px]">
-                  {profile.differentiator_validated ? "✓ Review-validated" : "⚠ Not validated"}
-                </Badge>
-              )}
+              <DifferentiatorValidationBadge clinicId={clinicId} profile={profile} />
             </p>
             <p className="text-sm">{profile.clinic_differentiator}</p>
+            {profile.differentiator_validation_note && (
+              <p className="text-xs text-muted-foreground italic mt-1">
+                Note: {profile.differentiator_validation_note}
+              </p>
+            )}
           </div>
         )}
 
