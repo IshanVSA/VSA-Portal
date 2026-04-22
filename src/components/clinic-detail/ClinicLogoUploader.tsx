@@ -131,8 +131,33 @@ export function ClinicLogoUploader({
     }
 
     setStage("resizing");
-    setProgress(15);
+    setProgress(10);
     try {
+      let dims: { width: number; height: number };
+      try {
+        dims = await readImageDimensions(file);
+      } catch {
+        toast.error("Could not read image — file may be corrupted");
+        setStage("idle");
+        setProgress(0);
+        return;
+      }
+      const minSide = Math.min(dims.width, dims.height);
+      const maxSide = Math.max(dims.width, dims.height);
+      if (minSide < MIN_DIMENSION) {
+        toast.error(`Image is too small (${dims.width}×${dims.height}px). Use at least ${MIN_DIMENSION}×${MIN_DIMENSION}px.`);
+        setStage("idle");
+        setProgress(0);
+        return;
+      }
+      if (maxSide > MAX_DIMENSION) {
+        toast.error(`Image is too large (${dims.width}×${dims.height}px). Maximum is ${MAX_DIMENSION}×${MAX_DIMENSION}px.`);
+        setStage("idle");
+        setProgress(0);
+        return;
+      }
+
+      setProgress(20);
       const blob = await resizeImage(file);
       setStage("uploading");
       setProgress(50);
