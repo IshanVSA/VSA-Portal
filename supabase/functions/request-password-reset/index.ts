@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { sendZohoEmail, brandedEmailWrapper } from "../_shared/zoho-mail.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,7 +33,6 @@ Deno.serve(async (req) => {
     let exists = false;
     let page = 1;
     const perPage = 1000;
-    // Hard cap to avoid runaway loops; raise if user base grows past this.
     const MAX_PAGES = 20;
 
     while (page <= MAX_PAGES) {
@@ -57,9 +57,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Generate the recovery link via the admin API. This actually triggers
-    // Supabase to send the recovery email through the configured SMTP/email pipeline.
-    const { error: linkError } = await admin.auth.admin.generateLink({
+    // Generate recovery link (do NOT rely on Supabase to send it)
+    const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
       type: "recovery",
       email: normalizedEmail,
       options: {
@@ -67,10 +66,45 @@ Deno.serve(async (req) => {
       },
     });
 
-    if (linkError) {
+    if (linkError || !linkData?.properties?.action_link) {
       console.error("generateLink error:", linkError);
       return new Response(
-        JSON.stringify({ error: linkError.message }),
+        JSON.stringify({ error: linkError?.message ?? "Failed to generate reset link" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const actionLink = linkData.properties.action_link;
+
+    // Send via Zoho from support@vsavetmedia.ca
+    const html = brandedEmailWrapper({
+      heading: "Reset your password",
+      preheader: "Use the secure link below to choose a new password.",
+      bodyHtml: `
+        <p style="margin:0 0 16px;">We received a request to reset the password for your VSA Vet Media account.</p>
+        <p style="margin:0 0 24px;">Click the button below to set a new password. This link will expire shortly for your security.</p>
+        <p style="margin:0 0 24px;">
+          <a href="${actionLink}"
+             style="display:inline-block;background:#0f172a;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:15px;">
+             Reset password
+          </a>
+        </p>
+        <p style="margin:0 0 8px;font-size:13px;color:#6b7280;">If the button doesn't work, copy and paste this link into your browser:</p>
+        <p style="margin:0 0 24px;font-size:13px;word-break:break-all;"><a href="${actionLink}" style="color:#2563eb;">${actionLink}</a></p>
+        <p style="margin:0;font-size:13px;color:#6b7280;">If you didn't request this, you can safely ignore this email — your password won't change.</p>
+      `,
+    });
+
+    const sendResult = await sendZohoEmail({
+      to: normalizedEmail,
+      subject: "Reset your VSA Vet Media password",
+      html,
+    });
+
+    if (!sendResult.ok) {
+      console.error("Zoho send failed:", sendResult.error);
+      return new Response(
+        JSON.stringify({ error: "Failed to send reset email. Please try again." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
