@@ -15,17 +15,53 @@ export default function ResetPassword() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Listen for the PASSWORD_RECOVERY event
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setReady(true);
+    let mounted = true;
+
+    const init = async () => {
+      try {
+        const url = new URL(window.location.href);
+        const code = url.searchParams.get("code");
+        const errorDescription =
+          url.searchParams.get("error_description") ||
+          new URLSearchParams(window.location.hash.replace(/^#/, "")).get("error_description");
+
+        if (errorDescription) {
+          toast.error(decodeURIComponent(errorDescription));
+        }
+
+        // PKCE flow: exchange ?code= for a session
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) {
+            toast.error(error.message);
+          } else {
+            // Clean the URL
+            window.history.replaceState({}, document.title, "/reset-password");
+            if (mounted) setReady(true);
+            return;
+          }
+        }
+
+        // Implicit/hash flow: supabase-js auto-detects access_token in the hash
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session && mounted) setReady(true);
+      } catch (err: any) {
+        toast.error(err?.message ?? "Could not verify reset link");
+      }
+    };
+
+    init();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
+        if (mounted) setReady(true);
       }
     });
-    // Also check if we already have a session (user clicked the link)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true);
-    });
-    return () => subscription.unsubscribe();
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
