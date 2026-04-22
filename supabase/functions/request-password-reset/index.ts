@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { sendZohoEmail, brandedEmailWrapper } from "../_shared/zoho-mail.ts";
+import { getResetPasswordUrl, withCanonicalRedirect } from "../_shared/password-reset-link.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,18 +10,7 @@ const corsHeaders = {
 
 // Supabase recovery links default to ~1 hour validity.
 const RESET_LINK_TTL_MINUTES = 60;
-const SITE_URL = (Deno.env.get("SITE_URL") || "https://vet-dash-suite.lovable.app").replace(/\/$/, "");
-const RESET_PASSWORD_URL = `${SITE_URL}/reset-password`;
-
-function withCanonicalRedirect(actionLink: string) {
-  try {
-    const url = new URL(actionLink);
-    url.searchParams.set("redirect_to", RESET_PASSWORD_URL);
-    return url.toString();
-  } catch {
-    return actionLink;
-  }
-}
+const RESET_PASSWORD_URL = getResetPasswordUrl();
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
