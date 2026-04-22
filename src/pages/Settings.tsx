@@ -41,12 +41,27 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [showMetaKey, setShowMetaKey] = useState(false);
   const [showGoogleKey, setShowGoogleKey] = useState(false);
+  const [clinics, setClinics] = useState<ClinicLite[]>([]);
+  const [clinicsLoading, setClinicsLoading] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle()
       .then(({ data }) => { if (data?.full_name) setFullName(data.full_name); });
   }, [user]);
+
+  useEffect(() => {
+    if (!user || role === "admin" || !role) return;
+    setClinicsLoading(true);
+    supabase
+      .from("clinics")
+      .select("id, clinic_name, logo_url")
+      .order("clinic_name", { ascending: true })
+      .then(({ data }) => {
+        setClinics((data ?? []) as ClinicLite[]);
+        setClinicsLoading(false);
+      });
+  }, [user, role]);
 
   const saveProfile = async () => {
     if (!user) return;
