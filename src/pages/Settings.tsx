@@ -15,9 +15,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import {
   Settings as SettingsIcon, User, Key, Sparkles, Bell, Palette,
-  Shield, Save, Mail, Eye, EyeOff,
+  Shield, Save, Mail, Eye, EyeOff, Building2,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { ClinicLogoUploader } from "@/components/clinic-detail/ClinicLogoUploader";
+
+type ClinicLite = { id: string; clinic_name: string; logo_url: string | null };
 
 const fadeUp = {
   hidden: { opacity: 0, y: 12 },
