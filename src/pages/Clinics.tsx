@@ -18,6 +18,7 @@ import { isHttpsClinicWebsiteUrl, normalizeClinicWebsiteUrl } from "@/lib/clinic
 import { Plus, Search, Eye, Trash2, Pencil, Building2, Users, X, Loader2, Sparkles, Lock, ShieldCheck } from "lucide-react";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
+import { ClinicLogoUploader } from "@/components/clinic-detail/ClinicLogoUploader";
 
 interface Clinic {
   id: string;
@@ -614,7 +615,19 @@ export default function Clinics() {
                   const serviceAccess = getClinicServiceAccess(clinic);
                   return (
                     <TableRow key={clinic.id}>
-                      <TableCell className="font-medium">{clinic.clinic_name}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-3">
+                          <ClinicLogoUploader
+                            clinicId={clinic.id}
+                            clinicName={clinic.clinic_name}
+                            logoUrl={clinic.logo_url}
+                            onChange={(url) => setClinics((prev) => prev.map((c) => c.id === clinic.id ? { ...c, logo_url: url } : c))}
+                            size={36}
+                            readOnly
+                          />
+                          <span>{clinic.clinic_name}</span>
+                        </div>
+                      </TableCell>
                       {role === "admin" && (
                         <TableCell className="hidden xl:table-cell">
                           <div className="flex flex-wrap gap-1.5">

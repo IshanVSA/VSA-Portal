@@ -13,6 +13,7 @@ import RecentActivity from "./RecentActivity";
 interface Clinic {
   id: string;
   clinic_name: string;
+  logo_url: string | null;
 }
 
 export default function ClientDashboard() {
@@ -26,7 +27,7 @@ export default function ClientDashboard() {
     if (!user) return;
     const fetchData = async () => {
       const { data: clinicData } = await supabase
-        .from("clinics").select("id, clinic_name")
+        .from("clinics").select("id, clinic_name, logo_url")
         .eq("owner_user_id", user.id);
       const owned = clinicData || [];
       setClinics(owned);
@@ -83,9 +84,13 @@ export default function ClientDashboard() {
             <Card key={clinic.id} className="group border-border/60 hover:shadow-md transition-shadow">
               <CardContent className="py-3 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-md bg-primary/8 flex items-center justify-center shrink-0">
-                    <span className="text-xs font-bold text-primary">{clinic.clinic_name.charAt(0)}</span>
-                  </div>
+                  <ClinicLogoUploader
+                    clinicId={clinic.id}
+                    clinicName={clinic.clinic_name}
+                    logoUrl={clinic.logo_url}
+                    size={36}
+                    onChange={(url) => setClinics((prev) => prev.map((c) => c.id === clinic.id ? { ...c, logo_url: url } : c))}
+                  />
                   <span className="font-medium text-sm text-foreground">{clinic.clinic_name}</span>
                 </div>
                 <Link to={`/clinics/${clinic.id}`}>
