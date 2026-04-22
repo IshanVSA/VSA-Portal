@@ -1,46 +1,52 @@
 
 
-## Plan: Add clinic profile picture (logo) upload
+## Plan: Make tickets read-only for clients across all views
 
-### What you'll get
+### Problem
 
-A new circular profile picture slot at the top of every clinic's detail page. Anyone with access to the clinic — admin, concierge, or the client owner — can click it to upload, replace, or remove the image. The picture will also show up wherever the clinic is listed (clinic list, dashboard cards, sidebar selector) instead of the current letter avatar.
+Clients can currently change ticket status, assignee, and department through:
+- **Kanban view** — drag-and-drop between columns
+- **Card view** — Status / Department / Assign dropdowns inside the expanded "Details" panel
+- **Table view** — Status and Assignee dropdowns inline in each row
 
-### How it works
+Clients should be able to **see** everything (status badges, assignee, void reason, details) but never change anything ticket-related.
 
-- **Storage**: reuse the existing public `department-files` bucket under a new folder `clinic-logos/{clinic_id}/logo.{ext}` — no new bucket needed.
-- **Database**: the `clinics.logo_url` column already exists. We just need to start writing to it. No migration required.
-- **Permissions**: the upload component only renders for users who can already view the clinic (admins via RLS, the assigned concierge, or the owner client). Storage RLS on `department-files` is already public-read; we add an INSERT/UPDATE/DELETE policy on `storage.objects` scoped to that path so admins, the assigned concierge, and the clinic owner can write.
+### Solution
 
-### UI changes
+Detect the client role once via the existing `useUserRole()` hook in each view component and render a read-only variant when `role === "client"`. Admin and concierge behavior is unchanged.
 
-1. **New component** `src/components/clinic-detail/ClinicLogoUploader.tsx`
-   - 96×96 circular avatar with hover overlay ("Change photo")
-   - Click → file picker (accepts `image/png, image/jpeg, image/webp`, max 2 MB, client-side resize to 512×512)
-   - Shows a small "Remove" button when a logo exists
-   - Optimistic update + toast feedback
-   - Uses existing `Avatar` primitive from `src/components/ui/avatar.tsx` for fallback initials when no image
+### Behavior by view
 
-2. **Mount points** (display the logo where the clinic appears):
-   - `src/pages/ClinicDetail.tsx` — interactive uploader at the top of the page header, replacing the current text-only title block
-   - `src/pages/Clinics.tsx` — read-only avatar in each clinic row
-   - `src/components/dashboard/ClientDashboard.tsx` — replace the letter circle with the logo
-   - Global clinic selector in the navbar (if present) — read-only avatar next to the name
+**Kanban view (`TicketKanbanView.tsx`)**
+- Cards become non-draggable (`draggable={false}`, no `GripVertical` handle, no `cursor-grab`).
+- Drop targets stop accepting drops (skip `onDragOver` / `onDrop` handlers, no "Drop here" hint).
+- Tickets remain visible in their respective status columns.
 
-### Files touched
+**Card view (`TicketCard.tsx`)**
+- "Details" expand button stays so clients can still read description, void reason, dates, badges.
+- The bottom action row (Status / Dept / Assign selects) is hidden entirely for clients.
+- Status/priority/assignee shown as read-only badges (already present at the top of the card).
 
-**New**
-- `src/components/clinic-detail/ClinicLogoUploader.tsx`
-- 1 storage RLS migration (policies on `storage.objects` for the `clinic-logos/` path)
+**Table view (`TicketTableView.tsx`)**
+- Status column renders the existing colored status badge instead of a `Select`.
+- Assigned-to column renders the assignee name (or "Unassigned" muted text) instead of a `Select`.
+- All other columns unchanged.
+
+**New Ticket button**
+- Stays available — clients submit tickets, they just can't manage them after creation.
+
+### Technical details
+
+- Add `const { role } = useUserRole(); const isClient = role === "client";` to each of the three view components.
+- In Kanban: gate `draggable`, `onDragStart`, `onDragOver`, `onDrop`, `handleStatusChange`, and the `GripVertical` icon on `!isClient`. Replace `cursor-grab active:cursor-grabbing` with `cursor-default` for clients.
+- In Card: wrap the bottom controls block (lines ~283-330) in `{!isClient && (...)}`.
+- In Table: replace the two `<Select>` blocks in the status and assignee `TableCell`s with read-only badges/text when `isClient`.
+- No backend/RLS changes — server-side RLS already prevents unauthorized writes; this is purely a UX fix to stop showing controls that would silently fail.
+
+### Files
 
 **Edited**
-- `src/pages/ClinicDetail.tsx` — mount uploader in header
-- `src/pages/Clinics.tsx` — show logo in list
-- `src/components/dashboard/ClientDashboard.tsx` — show logo in clinic cards
-
-### Notes
-
-- Old logos are deleted from storage when replaced, so we don't accumulate orphans.
-- Image is resized client-side before upload to keep storage small and load times fast.
-- No edge function needed — the browser uploads directly to Supabase Storage using the existing client.
+- `src/components/department/TicketKanbanView.tsx` — disable drag-and-drop for clients
+- `src/components/department/TicketCard.tsx` — hide management controls in expanded panel for clients
+- `src/components/department/TicketTableView.tsx` — replace selects with read-only badges for clients
 
