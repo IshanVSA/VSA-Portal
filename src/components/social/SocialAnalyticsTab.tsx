@@ -147,9 +147,10 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
         <div>
           <h2 className="text-lg font-semibold">Social Analytics</h2>
           {isStaff && (
-            <p className="text-xs text-muted-foreground">
-              {lastSync ? `Last synced ${formatDistanceToNow(new Date(lastSync), { addSuffix: true })}` : "Not synced yet"}
-            </p>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>{lastSync ? `Last synced ${formatDistanceToNow(new Date(lastSync), { addSuffix: true })}` : "Not synced yet"}</span>
+              <Badge variant="outline" className="text-[10px]">Auto-sync: Daily 07:30 UTC</Badge>
+            </div>
           )}
         </div>
         {isStaff && (
