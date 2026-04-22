@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
       },
     });
 
-    if (linkError || !linkData?.properties?.action_link) {
+    if (linkError || !linkData?.properties?.hashed_token) {
       console.error("generateLink error:", linkError);
       return new Response(
         JSON.stringify({ error: linkError?.message ?? "Failed to generate reset link" }),
@@ -79,7 +79,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    const actionLink = withCanonicalRedirect(linkData.properties.action_link);
+    const resetUrl = new URL(RESET_PASSWORD_URL);
+    resetUrl.searchParams.set("token_hash", linkData.properties.hashed_token);
+    resetUrl.searchParams.set("type", "recovery");
+    const actionLink = withCanonicalRedirect(resetUrl.toString(), RESET_PASSWORD_URL);
     const expiresAt = new Date(Date.now() + RESET_LINK_TTL_MINUTES * 60 * 1000);
     const expiresAtIso = expiresAt.toISOString();
     const expiresAtPretty = expiresAt.toLocaleString("en-US", {
