@@ -226,8 +226,14 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
       <FilePreviewDialog
         open={!!previewFile}
         onOpenChange={(o) => { if (!o) setPreviewFile(null); }}
-        url={previewFile?.url || ""}
         filename={previewFile?.name || ""}
+        getUrl={previewFile ? async () => {
+          const { data, error } = await supabase.storage
+            .from(BUCKET)
+            .createSignedUrl(`${folder}${previewFile.name}`, 3600);
+          if (error || !data?.signedUrl) throw error || new Error("No signed URL");
+          return data.signedUrl;
+        } : undefined}
       />
     </div>
   );
