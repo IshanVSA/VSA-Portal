@@ -1,30 +1,55 @@
 
 
-## Plan: Fix sole-member auto-assignment by changing trigger timing
+## Goal
+Upgrade the Quick Actions block in **Website**, **SEO**, and **Google Ads** departments to match the polished card-grid UI used in **Social Media** (icon tile + title + helper text), instead of the current flat badge chips.
 
-### Root cause
+## Current State
+- `SocialOverview.tsx` → rich grid: each action is a card-button with a colored icon tile, bold title, and helper sentence (the target design).
+- `DepartmentOverview.tsx` (used by Website / SEO / Google Ads) → renders `services` as plain `<Badge>` chips in a `flex-wrap` row. Functional but visually flat.
 
-The `trg_auto_assign_ticket_pool` trigger is registered as **AFTER INSERT**. Inside the function, the line `NEW.assigned_to := sole_member` only takes effect on **BEFORE** triggers — on AFTER triggers, mutations to `NEW` are silently discarded by Postgres.
+## Target Design (mirrors Social)
+```text
+┌───────────────────────────────────────────────────┐
+│ Quick Actions          Click to create a ticket   │
+├───────────────────────────────────────────────────┤
+│ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────┐│
+│ │ [icon]   │ │ [icon]   │ │ [icon]   │ │ [icon] ││
+│ │ Title    │ │ Title    │ │ Title    │ │ Title  ││
+│ │ helper…  │ │ helper…  │ │ helper…  │ │ helper…││
+│ └──────────┘ └──────────┘ └──────────┘ └────────┘│
+└───────────────────────────────────────────────────┘
+```
+- Grid: `grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3`
+- Each tile: rounded border card-button, `h-9 w-9` colored icon tile, title (semibold), helper (`text-[11px] text-muted-foreground line-clamp-2`), hover lifts border to primary and tints background.
+- Click opens existing `NewTicketDialog` with `defaultType` prefilled (no behavior change).
 
-Result: the pool row gets inserted into `ticket_assignees` correctly (1 member = Debraj), but the ticket's own `assigned_to` column is never updated. The card shows "Pool: 1 member" instead of being assigned to Debraj, and the client view shows "Unassigned".
+## Implementation Plan
 
-The previous tickets at 13:58 and 14:11 only appear assigned because the migration's one-time backfill `UPDATE` statement caught them. Any ticket created after the migration ran misses the backfill and stays unassigned.
+### 1. New shared registry — `src/lib/quick-actions.ts`
+Map each department's ticket types to `{ type, title, helper, icon, color }` using lucide icons + Tailwind color tokens. Coverage:
+- **Website** (9 types): Time Changes, Pop-up Offers, Third Party Integrations, Payment Options, Add/Remove Team Members, New Forms, Price List Updates, Emergency, Others.
+- **Google Ads** (3 quick types): Call Volume Issues, Wrong Call Tracking, Others.
+- **SEO** (staff only — clients still hidden): Backlinking, Ranking Reports, Keyword Research, Manual Work Reports, Search Atlas Integration, SEO Thread Updates, Others.
+- **Social Media**: re-export the existing 5 from `SocialOverview`.
 
-### Fix (one migration)
+Export `getQuickActions(department)` returning the typed list. Color palette rotates blue/emerald/amber/violet/rose/sky/teal so each tile feels distinct (matches Social's tone).
 
-1. **Drop and recreate the trigger as `BEFORE INSERT`** so `NEW.assigned_to := sole_member` actually persists to the row being inserted.
-2. **Re-run the backfill** for unassigned tickets in the last 7 days that have exactly one pool member, so the new "Time Changes Request" at 14:22 gets assigned to Debraj immediately.
+### 2. Update `src/components/department/DepartmentOverview.tsx`
+- Replace the badge-chips Quick Actions block with the same rich-card grid markup used in `SocialOverview` (icon tile + title + helper).
+- Source the action metadata from `getQuickActions(department)`. If a service in `services` is missing from the registry, fall back to `{ title: getTicketTypeLabel(s), helper: "Create a ticket for this request", icon: Sparkles }` so nothing breaks.
+- Keep the existing `NewTicketDialog` wiring (`defaultType=action.type`).
+- Header copy aligned with Social: title "Quick Actions" + small right-aligned hint "Click to create a ticket".
 
-No function body change needed — the logic is already correct, only the trigger timing is wrong.
+### 3. Refactor `SocialOverview.tsx` (optional consistency)
+Switch its inline `QUICK_ACTIONS` array to import from the new shared `quick-actions.ts` so all four departments stay in sync going forward. UI unchanged.
 
-### Expected result
+### 4. No changes required
+- `WebsiteDepartment.tsx`, `SeoDepartment.tsx`, `GoogleAdsDepartment.tsx` — they keep passing `services` exactly as today.
+- SEO client-hidden behavior preserved via existing `hideQuickActions={isClient}` flag.
+- Ticket dialog, types, RLS, and routing — untouched.
 
-- New tickets with a single eligible team member are assigned to that person at insert time.
-- The 14:22 Alma ticket flips from "Pool: 1 member / Unassigned" to "Assigned to Debraj Mondal" after refresh.
-- Multi-member pools continue to work as before (claim-on-in-progress).
-
-### Files
-
-**Created**
-- Supabase migration: drop `trg_auto_assign_ticket_pool`, recreate as `BEFORE INSERT`, backfill unassigned single-pool tickets from last 7 days.
+## Files Edited / Created
+- `src/lib/quick-actions.ts` *(new)*
+- `src/components/department/DepartmentOverview.tsx` *(replace Quick Actions block)*
+- `src/components/social/SocialOverview.tsx` *(swap inline list for shared registry — optional but recommended)*
 
