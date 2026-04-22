@@ -763,6 +763,13 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <FilePreviewDialog
+        open={!!previewAttachment}
+        onOpenChange={(o) => { if (!o) setPreviewAttachment(null); }}
+        url={previewAttachment?.url || ""}
+        filename={previewAttachment?.name || ""}
+      />
     </Card>
   );
 }
