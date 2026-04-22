@@ -82,7 +82,7 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
 
   const visibleTypes = getVisibleTicketTypes(department);
 
-  const { data: tickets = [], refetch, isLoading } = useQuery({
+  const { data: ticketsQuery, refetch, isLoading } = useQuery({
     queryKey: ["department-tickets", department, filter, clinicId],
     queryFn: async () => {
       const orClauses = [`department.eq.${department}`];
@@ -117,7 +117,7 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
         });
       }
 
-      // Fetch pool assignees for all tickets in one query
+      let assigneeUserIds: string[] = [];
       if (results.length > 0) {
         const ticketIds = results.map((t: any) => t.id);
         const { data: assigneeRows } = await (supabase
@@ -133,10 +133,52 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
         });
 
         results = results.map((t: any) => ({ ...t, pool_user_ids: poolMap.get(t.id) || [] }));
+
+        const idSet = new Set<string>();
+        results.forEach((t: any) => {
+          if (t.assigned_to) idSet.add(t.assigned_to);
+          (t.pool_user_ids || []).forEach((uid: string) => idSet.add(uid));
+        });
+        assigneeUserIds = Array.from(idSet);
       }
 
-      return results;
+      return { results, assigneeUserIds };
     },
+  });
+
+  const tickets: any[] = ticketsQuery?.results ?? [];
+  const assigneeUserIds: string[] = ticketsQuery?.assigneeUserIds ?? [];
+
+  // Resolve display names for every assignee referenced by any ticket in the list
+  // (handles client/staff users who can't query profiles directly via RLS).
+  const { data: assigneeNameMap = {} } = useQuery({
+    queryKey: ["ticket-assignee-names", clinicId, assigneeUserIds.sort().join(",")],
+    queryFn: async () => {
+      if (!assigneeUserIds.length) return {};
+      // Use the per-ticket RPC for the first ticket as a fallback resolver,
+      // but most names will already be in teamMemberProfiles for staff.
+      // For maximum coverage we run the RPC per ticket that has pool/assignee data.
+      const map: Record<string, string> = {};
+      teamMemberProfiles.forEach(m => { map[m.id] = m.name; });
+
+      // Fill any remaining via RPC (clients/staff with limited profile access)
+      const missing = assigneeUserIds.filter(id => !map[id]);
+      if (missing.length) {
+        const ticketsWithMissing = tickets.filter((t: any) =>
+          (t.assigned_to && missing.includes(t.assigned_to)) ||
+          (t.pool_user_ids || []).some((uid: string) => missing.includes(uid))
+        ).slice(0, 20);
+        await Promise.all(ticketsWithMissing.map(async (t: any) => {
+          const { data } = await (supabase
+            .rpc("get_ticket_user_directory" as any, { _ticket_id: t.id }) as any);
+          ((data ?? []) as { user_id: string; full_name: string }[]).forEach(p => {
+            if (!map[p.user_id]) map[p.user_id] = p.full_name || "Unknown user";
+          });
+        }));
+      }
+      return map;
+    },
+    enabled: assigneeUserIds.length > 0,
   });
 
   // Client-side search filtering
@@ -155,6 +197,17 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
   const inProgressCount = tickets.filter((t: any) => t.status === "in_progress").length;
   const completedCount = tickets.filter((t: any) => t.status === "completed").length;
   const emergencyCount = tickets.filter((t: any) => t.status === "emergency").length;
+
+  // Merge directory-resolved names into the team members list passed to children,
+  // so clients/staff can see assignee names even when their RLS hides full profiles.
+  const mergedTeamMembers = useMemo(() => {
+    const byId = new Map<string, { id: string; name: string }>();
+    teamMemberProfiles.forEach(m => byId.set(m.id, m));
+    Object.entries(assigneeNameMap).forEach(([id, name]) => {
+      if (!byId.has(id)) byId.set(id, { id, name: name as string });
+    });
+    return Array.from(byId.values());
+  }, [teamMemberProfiles, assigneeNameMap]);
 
   return (
     <div className="space-y-4">
@@ -237,13 +290,13 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
       ) : viewMode === "kanban" ? (
         <TicketKanbanView
           tickets={filteredTickets}
-          teamMembers={teamMemberProfiles}
+          teamMembers={mergedTeamMembers}
           onUpdated={() => refetch()}
         />
       ) : viewMode === "table" ? (
         <TicketTableView
           tickets={filteredTickets}
-          teamMembers={teamMemberProfiles}
+          teamMembers={mergedTeamMembers}
           onUpdated={() => refetch()}
         />
       ) : (
@@ -262,7 +315,7 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
               assigned_to={t.assigned_to}
               pool_user_ids={t.pool_user_ids}
               void_reason={t.void_reason}
-              teamMembers={teamMemberProfiles}
+              teamMembers={mergedTeamMembers}
               onUpdated={() => refetch()}
             />
           ))}

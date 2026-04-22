@@ -52,31 +52,19 @@ export function TicketAuditLog({ ticketId }: TicketAuditLogProps) {
     },
   });
 
-  // Collect actor IDs and lookup names
-  const actorIds = Array.from(new Set(entries.map(e => e.actor_id).filter(Boolean) as string[]));
-  const userIds = Array.from(new Set(
-    entries
-      .filter(e => e.field === "assigned_to")
-      .flatMap(e => [e.old_value, e.new_value])
-      .filter((v): v is string => !!v && v !== "null")
-  ));
-  const allLookupIds = Array.from(new Set([...actorIds, ...userIds]));
-
+  // Resolve display names via the secure ticket directory RPC (works for client/staff/admin)
   const { data: profilesMap = {} } = useQuery({
-    queryKey: ["audit-profiles", allLookupIds.sort().join(",")],
+    queryKey: ["audit-directory", ticketId],
     queryFn: async () => {
-      if (!allLookupIds.length) return {};
-      const { data } = await supabase
-        .from("profiles")
-        .select("id, full_name, email")
-        .in("id", allLookupIds);
+      const { data } = await (supabase
+        .rpc("get_ticket_user_directory" as any, { _ticket_id: ticketId }) as any);
       const map: Record<string, string> = {};
-      (data ?? []).forEach((p: any) => {
-        map[p.id] = p.full_name || p.email || "Unknown";
+      ((data ?? []) as { user_id: string; full_name: string }[]).forEach(p => {
+        map[p.user_id] = p.full_name || "Unknown user";
       });
       return map;
     },
-    enabled: allLookupIds.length > 0,
+    enabled: entries.length > 0,
   });
 
   const formatValue = (field: string, value: string | null) => {
@@ -86,6 +74,10 @@ export function TicketAuditLog({ ticketId }: TicketAuditLogProps) {
     if (field === "assigned_to") return profilesMap[value] || "Unknown user";
     return value;
   };
+
+  // Heuristic: an assignment whose old value was null and actor is null = trigger-driven (system)
+  const isSystemAssignment = (entry: AuditEntry) =>
+    entry.field === "assigned_to" && !entry.actor_id && (!entry.old_value || entry.old_value === "null");
 
   return (
     <div className="px-4 py-3 bg-muted/10 border-t border-border/40">
@@ -106,9 +98,12 @@ export function TicketAuditLog({ ticketId }: TicketAuditLogProps) {
           {entries.map(entry => {
             const meta = fieldMeta[entry.field] || { label: entry.field, icon: Activity };
             const Icon = meta.icon;
-            const actorName = entry.actor_id
-              ? (profilesMap[entry.actor_id] || "Unknown user")
-              : "System";
+            const actorName = isSystemAssignment(entry)
+              ? "System"
+              : entry.actor_id
+                ? (profilesMap[entry.actor_id] || "Unknown user")
+                : "System";
+            const actionVerb = isSystemAssignment(entry) ? "assigned" : "changed";
             return (
               <li key={entry.id} className="flex items-start gap-2 text-[11px]">
                 <div className={cn("h-5 w-5 rounded-md bg-background border border-border flex items-center justify-center shrink-0 mt-0.5")}>
@@ -117,7 +112,7 @@ export function TicketAuditLog({ ticketId }: TicketAuditLogProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-1 leading-snug">
                     <span className="font-medium text-foreground">{actorName}</span>
-                    <span className="text-muted-foreground">changed</span>
+                    <span className="text-muted-foreground">{actionVerb}</span>
                     <span className="font-medium text-foreground">{meta.label}</span>
                     <span className="text-muted-foreground">from</span>
                     <span className="px-1.5 py-0.5 rounded bg-muted text-foreground text-[10px]">
