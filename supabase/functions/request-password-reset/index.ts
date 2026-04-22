@@ -7,6 +7,9 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+// Supabase recovery links default to ~1 hour validity.
+const RESET_LINK_TTL_MINUTES = 60;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -75,20 +78,32 @@ Deno.serve(async (req) => {
     }
 
     const actionLink = linkData.properties.action_link;
+    const expiresAt = new Date(Date.now() + RESET_LINK_TTL_MINUTES * 60 * 1000);
+    const expiresAtIso = expiresAt.toISOString();
+    const expiresAtPretty = expiresAt.toLocaleString("en-US", {
+      timeZone: "UTC",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+      month: "short",
+      day: "numeric",
+    }) + " UTC";
 
-    // Send via Zoho from support@vsavetmedia.ca
     const html = brandedEmailWrapper({
       heading: "Reset your password",
-      preheader: "Use the secure link below to choose a new password.",
+      preheader: `Use the secure link below — expires in ${RESET_LINK_TTL_MINUTES} minutes.`,
       bodyHtml: `
         <p style="margin:0 0 16px;">We received a request to reset the password for your VSA Vet Media account.</p>
-        <p style="margin:0 0 24px;">Click the button below to set a new password. This link will expire shortly for your security.</p>
-        <p style="margin:0 0 24px;">
+        <p style="margin:0 0 24px;">Click the button below to set a new password.</p>
+        <p style="margin:0 0 16px;">
           <a href="${actionLink}"
              style="display:inline-block;background:#0f172a;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:15px;">
              Reset password
           </a>
         </p>
+        <div style="margin:0 0 24px;padding:12px 14px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;font-size:13px;color:#9a3412;">
+          ⏱ This link expires in <strong>${RESET_LINK_TTL_MINUTES} minutes</strong> (around <strong>${expiresAtPretty}</strong>). Request a new one if it has expired.
+        </div>
         <p style="margin:0 0 8px;font-size:13px;color:#6b7280;">If the button doesn't work, copy and paste this link into your browser:</p>
         <p style="margin:0 0 24px;font-size:13px;word-break:break-all;"><a href="${actionLink}" style="color:#2563eb;">${actionLink}</a></p>
         <p style="margin:0;font-size:13px;color:#6b7280;">If you didn't request this, you can safely ignore this email — your password won't change.</p>
@@ -102,15 +117,33 @@ Deno.serve(async (req) => {
     });
 
     if (!sendResult.ok) {
-      console.error("Zoho send failed:", sendResult.error);
+      console.error("Zoho send failed:", sendResult);
+      const friendly =
+        sendResult.errorKind === "rate_limited"
+          ? "Too many requests right now. Please try again in a minute."
+          : sendResult.errorKind === "timeout" || sendResult.errorKind === "network"
+          ? "Email service is temporarily unreachable. Please try again."
+          : sendResult.errorKind === "auth"
+          ? "Email service authentication failed. Please contact support."
+          : "Failed to send reset email. Please try again.";
       return new Response(
-        JSON.stringify({ error: "Failed to send reset email. Please try again." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: friendly,
+          errorKind: sendResult.errorKind,
+          attempts: sendResult.attempts,
+        }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     return new Response(
-      JSON.stringify({ success: true, message: "Reset link sent." }),
+      JSON.stringify({
+        success: true,
+        message: "Reset link sent.",
+        expiresAt: expiresAtIso,
+        expiresInMinutes: RESET_LINK_TTL_MINUTES,
+        attempts: sendResult.attempts,
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err: any) {
