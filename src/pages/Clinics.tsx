@@ -27,6 +27,7 @@ interface Clinic {
   owner_user_id: string | null;
   phone: string | null;
   address: string | null;
+  logo_url: string | null;
   website_enabled?: boolean;
   seo_enabled?: boolean;
   google_ads_enabled?: boolean;
