@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { moveBulkUploadsToDepartmentFolder } from "@/lib/ticket-bulk-uploads";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface TeamMemberOption {
   id: string;
@@ -70,6 +71,8 @@ const statusBorder: Record<string, string> = {
 export function TicketTableView({ tickets, teamMembers, onUpdated }: TicketTableViewProps) {
   const [voidPending, setVoidPending] = useState<string | null>(null);
   const [voidReason, setVoidReason] = useState("");
+  const { role } = useUserRole();
+  const isClient = role === "client";
 
   const handleStatusChange = async (ticketId: string, newStatus: string) => {
     if (newStatus === "void") {
@@ -178,17 +181,25 @@ export function TicketTableView({ tickets, teamMembers, onUpdated }: TicketTable
                   <span className="text-xs text-muted-foreground">{deptLabels[t.department] || t.department}</span>
                 </TableCell>
                 <TableCell>
-                  <Select value={t.assigned_to || "unassigned"} onValueChange={(v) => handleAssigneeChange(t.id, v)}>
-                    <SelectTrigger className="h-7 text-xs w-[130px]">
-                      <SelectValue placeholder="Unassigned" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="unassigned" className="text-xs">Unassigned</SelectItem>
-                      {teamMembers.map(m => (
-                        <SelectItem key={m.id} value={m.id} className="text-xs">{m.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {isClient ? (
+                    assignee ? (
+                      <span className="text-xs text-foreground">{assignee}</span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic">Unassigned</span>
+                    )
+                  ) : (
+                    <Select value={t.assigned_to || "unassigned"} onValueChange={(v) => handleAssigneeChange(t.id, v)}>
+                      <SelectTrigger className="h-7 text-xs w-[130px]">
+                        <SelectValue placeholder="Unassigned" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassigned" className="text-xs">Unassigned</SelectItem>
+                        {teamMembers.map(m => (
+                          <SelectItem key={m.id} value={m.id} className="text-xs">{m.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </TableCell>
                 <TableCell>
                   <div className="text-xs text-muted-foreground">
@@ -197,17 +208,24 @@ export function TicketTableView({ tickets, teamMembers, onUpdated }: TicketTable
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Select value={t.status} onValueChange={(v) => handleStatusChange(t.id, v)}>
-                    <SelectTrigger className={cn("h-7 text-xs w-[120px]", sc.className)}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="open" className="text-xs">Open</SelectItem>
-                      <SelectItem value="in_progress" className="text-xs">In Progress</SelectItem>
-                      <SelectItem value="completed" className="text-xs">Completed</SelectItem>
-                      <SelectItem value="void" className="text-xs">Void</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {isClient ? (
+                    <Badge variant="outline" className={cn("text-[10px] gap-1", sc.className)}>
+                      <sc.icon className="h-3 w-3" />
+                      {sc.label}
+                    </Badge>
+                  ) : (
+                    <Select value={t.status} onValueChange={(v) => handleStatusChange(t.id, v)}>
+                      <SelectTrigger className={cn("h-7 text-xs w-[120px]", sc.className)}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="open" className="text-xs">Open</SelectItem>
+                        <SelectItem value="in_progress" className="text-xs">In Progress</SelectItem>
+                        <SelectItem value="completed" className="text-xs">Completed</SelectItem>
+                        <SelectItem value="void" className="text-xs">Void</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 </TableCell>
               </TableRow>
             );
