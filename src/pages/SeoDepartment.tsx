@@ -4,9 +4,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { SearchCode, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Globe, Link2, Hash, TrendingUp, MessageSquare, BookOpen } from "lucide-react";
+import { SearchCode, LayoutDashboard, BarChart3, FileText, Upload, Globe, Link2, Hash, TrendingUp, MessageSquare, BookOpen } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
-import { TicketsTab } from "@/components/department/TicketsTab";
 import { SeoAnalyticsTab } from "@/components/department/SeoAnalyticsTab";
 import { SeoReportsTab } from "@/components/department/SeoReportsTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
@@ -28,9 +27,8 @@ import { DepartmentChat } from "@/components/department/DepartmentChat";
 import { useDepartmentChatUnread } from "@/hooks/useDepartmentChatUnread";
 import { BlogTab } from "@/components/seo/blog/BlogTab";
 
-const staffOnlyTabs = [
-  { value: "tickets", label: "Tickets", icon: Ticket },
-];
+
+
 
 const commonTabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
@@ -129,7 +127,7 @@ export default function SeoDepartment() {
   const isClient = role === "client";
   const isStaff = !isClient;
   const { unreadCount, markAsRead } = useDepartmentChatUnread("seo", selectedClinicId);
-  const tabs = isStaff ? [...commonTabs.slice(0, 1), ...staffOnlyTabs, ...commonTabs.slice(1), blogTab, chatTab] : [...commonTabs, blogTab];
+  const tabs = isStaff ? [...commonTabs, blogTab, chatTab] : [...commonTabs, blogTab];
   const [seoDialogOpen, setSeoDialogOpen] = useState(false);
 
   const selectedClinicName = selectedClinic?.clinic_name;
@@ -197,9 +195,8 @@ export default function SeoDepartment() {
                 </TabsList>
 
                 <TabsContent value="overview" className="mt-4">
-                  <DepartmentOverview kpis={kpis} services={services} trafficData={trafficData.length > 0 ? trafficData : [{ label: "No data", value: 0 }]} trafficLabel="Organic Traffic Trend" team={team} department="seo" accentColor="hsl(var(--dept-seo))" extraSection={<TopKeywordsCard keywords={topKeywords} />} clinicId={selectedClinicId} hideQuickActions={isClient} />
+                  <DepartmentOverview kpis={kpis} services={services} trafficData={trafficData.length > 0 ? trafficData : [{ label: "No data", value: 0 }]} trafficLabel="Organic Traffic Trend" team={team} department="seo" accentColor="hsl(var(--dept-seo))" extraSection={<TopKeywordsCard keywords={topKeywords} />} clinicId={selectedClinicId} hideQuickActions />
                 </TabsContent>
-                <TabsContent value="tickets" className="mt-4"><TicketsTab department="seo" services={services} clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="analytics" className="mt-4"><SeoAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="reports" className="mt-4"><SeoReportsTab clinicId={selectedClinicId} /></TabsContent>
                 
