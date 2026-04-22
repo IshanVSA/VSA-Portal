@@ -9,13 +9,14 @@ interface FilePreviewDialogProps {
   filename: string;
 }
 
-function getKind(name: string): "image" | "video" | "audio" | "pdf" | "text" | "other" {
+function getKind(name: string): "image" | "video" | "audio" | "pdf" | "text" | "office" | "other" {
   const ext = name.split(".").pop()?.toLowerCase() || "";
   if (["jpg", "jpeg", "png", "gif", "webp", "svg", "avif", "bmp"].includes(ext)) return "image";
   if (["mp4", "webm", "mov", "m4v"].includes(ext)) return "video";
   if (["mp3", "wav", "ogg", "m4a"].includes(ext)) return "audio";
   if (ext === "pdf") return "pdf";
   if (["txt", "md", "csv", "log", "json", "xml", "html", "htm"].includes(ext)) return "text";
+  if (["doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods", "odp"].includes(ext)) return "office";
   return "other";
 }
 
@@ -55,6 +56,13 @@ export function FilePreviewDialog({ open, onOpenChange, url, filename }: FilePre
           )}
           {(kind === "pdf" || kind === "text") && (
             <iframe src={url} title={filename} className="w-full h-full border-0 bg-background" />
+          )}
+          {kind === "office" && (
+            <iframe
+              src={`https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`}
+              title={filename}
+              className="w-full h-full border-0 bg-background"
+            />
           )}
           {kind === "other" && (
             <div className="flex flex-col items-center gap-3 text-center p-8">
