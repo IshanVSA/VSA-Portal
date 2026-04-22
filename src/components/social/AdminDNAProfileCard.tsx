@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useBrandDNA } from "@/hooks/useBrandDNA";
 import { useMonthlySignals } from "@/hooks/useMonthlySignals";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -52,6 +52,26 @@ export default function AdminDNAProfileCard({ clinicId }: Props) {
   const synthesized = (dna?.synthesized_profile || {}) as Record<string, any>;
   const score = synthesized.completeness_score || dna?.completeness_score || 0;
   const isActive = dna?.status === "active";
+
+  // Auto-activate the profile once completeness score reaches the threshold (>=50).
+  // Runs once per clinic when synthesized DNA exists but status hasn't flipped to "active" yet.
+  useEffect(() => {
+    if (!clinicId || !dna) return;
+    if (isActive) return;
+    if (score < 50) return;
+    if (!synthesized.voice_fingerprint) return;
+    let cancelled = false;
+    (async () => {
+      const { error } = await supabase
+        .from("clinic_brand_dna")
+        .update({ status: "active" })
+        .eq("clinic_id", clinicId);
+      if (!cancelled && !error) {
+        queryClient.invalidateQueries({ queryKey: ["brand-dna", clinicId] });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [clinicId, dna?.id, isActive, score, synthesized.voice_fingerprint, queryClient]);
 
   // Editable fields state
   const [editFields, setEditFields] = useState({
