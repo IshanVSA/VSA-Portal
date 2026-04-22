@@ -36,6 +36,7 @@ interface TicketCardProps {
   department: string;
   created_at: string;
   assigned_to?: string | null;
+  pool_user_ids?: string[];
   void_reason?: string | null;
   teamMembers?: TeamMemberOption[];
   onUpdated?: () => void;
