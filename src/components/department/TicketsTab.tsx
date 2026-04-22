@@ -290,13 +290,13 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
       ) : viewMode === "kanban" ? (
         <TicketKanbanView
           tickets={filteredTickets}
-          teamMembers={teamMemberProfiles}
+          teamMembers={mergedTeamMembers}
           onUpdated={() => refetch()}
         />
       ) : viewMode === "table" ? (
         <TicketTableView
           tickets={filteredTickets}
-          teamMembers={teamMemberProfiles}
+          teamMembers={mergedTeamMembers}
           onUpdated={() => refetch()}
         />
       ) : (
@@ -315,7 +315,7 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
               assigned_to={t.assigned_to}
               pool_user_ids={t.pool_user_ids}
               void_reason={t.void_reason}
-              teamMembers={teamMemberProfiles}
+              teamMembers={mergedTeamMembers}
               onUpdated={() => refetch()}
             />
           ))}
