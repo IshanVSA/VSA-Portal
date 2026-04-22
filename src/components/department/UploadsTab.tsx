@@ -222,6 +222,13 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
           )}
         </CardContent>
       </Card>
+
+      <FilePreviewDialog
+        open={!!previewFile}
+        onOpenChange={(o) => { if (!o) setPreviewFile(null); }}
+        url={previewFile?.url || ""}
+        filename={previewFile?.name || ""}
+      />
     </div>
   );
 }
