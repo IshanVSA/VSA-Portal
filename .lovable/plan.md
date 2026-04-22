@@ -1,55 +1,135 @@
 
 
-## Goal
-Upgrade the Quick Actions block in **Website**, **SEO**, and **Google Ads** departments to match the polished card-grid UI used in **Social Media** (icon tile + title + helper text), instead of the current flat badge chips.
+# Social Media Department Dashboard Redesign
 
-## Current State
-- `SocialOverview.tsx` → rich grid: each action is a card-button with a colored icon tile, bold title, and helper sentence (the target design).
-- `DepartmentOverview.tsx` (used by Website / SEO / Google Ads) → renders `services` as plain `<Badge>` chips in a `flex-wrap` row. Functional but visually flat.
+Replace the single `SocialOverview` with three purpose-built dashboards — one per role — that surface the data each user actually needs based on the SM2 v2.1 engine, Brand DNA system, Hard Gates, Promotions, GBP Posts, and content workflow.
 
-## Target Design (mirrors Social)
+## Architecture
+
 ```text
-┌───────────────────────────────────────────────────┐
-│ Quick Actions          Click to create a ticket   │
-├───────────────────────────────────────────────────┤
-│ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────┐│
-│ │ [icon]   │ │ [icon]   │ │ [icon]   │ │ [icon] ││
-│ │ Title    │ │ Title    │ │ Title    │ │ Title  ││
-│ │ helper…  │ │ helper…  │ │ helper…  │ │ helper…││
-│ └──────────┘ └──────────┘ └──────────┘ └────────┘│
-└───────────────────────────────────────────────────┘
+SocialOverview.tsx (router shell)
+ ├─ if role === "admin"     → AdminSocialOverview
+ ├─ if role === "concierge" → ConciergeSocialOverview
+ └─ if role === "client"    → ClientSocialOverview
 ```
-- Grid: `grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3`
-- Each tile: rounded border card-button, `h-9 w-9` colored icon tile, title (semibold), helper (`text-[11px] text-muted-foreground line-clamp-2`), hover lifts border to primary and tints background.
-- Click opens existing `NewTicketDialog` with `defaultType` prefilled (no behavior change).
 
-## Implementation Plan
+Shared building blocks stay reusable: `StatsCard`, `BulkUploadsDialog`, `NewTicketDialog`, `Card` family, `recharts`. Quick Actions row stays available for client + concierge (admin gets a different command bar).
 
-### 1. New shared registry — `src/lib/quick-actions.ts`
-Map each department's ticket types to `{ type, title, helper, icon, color }` using lucide icons + Tailwind color tokens. Coverage:
-- **Website** (9 types): Time Changes, Pop-up Offers, Third Party Integrations, Payment Options, Add/Remove Team Members, New Forms, Price List Updates, Emergency, Others.
-- **Google Ads** (3 quick types): Call Volume Issues, Wrong Call Tracking, Others.
-- **SEO** (staff only — clients still hidden): Backlinking, Ranking Reports, Keyword Research, Manual Work Reports, Search Atlas Integration, SEO Thread Updates, Others.
-- **Social Media**: re-export the existing 5 from `SocialOverview`.
+---
 
-Export `getQuickActions(department)` returning the typed list. Color palette rotates blue/emerald/amber/violet/rose/sky/teal so each tile feels distinct (matches Social's tone).
+## 1. Admin Dashboard — "Network Command Center"
 
-### 2. Update `src/components/department/DepartmentOverview.tsx`
-- Replace the badge-chips Quick Actions block with the same rich-card grid markup used in `SocialOverview` (icon tile + title + helper).
-- Source the action metadata from `getQuickActions(department)`. If a service in `services` is missing from the registry, fall back to `{ title: getTicketTypeLabel(s), helper: "Create a ticket for this request", icon: Sparkles }` so nothing breaks.
-- Keep the existing `NewTicketDialog` wiring (`defaultType=action.type`).
-- Header copy aligned with Social: title "Quick Actions" + small right-aligned hint "Click to create a ticket".
+For oversight across the clinic + cluster.
 
-### 3. Refactor `SocialOverview.tsx` (optional consistency)
-Switch its inline `QUICK_ACTIONS` array to import from the new shared `quick-actions.ts` so all four departments stay in sync going forward. UI unchanged.
+**Row 1 — Network KPIs (5 cards)**
+- DNA Profile Score (with `<50 = blocked` warning chip)
+- Posts Generated (this month) / 12 stock cap progress bar
+- Pipeline Health (Generated → Final Approved funnel mini-stat)
+- Active Promotions (live count, jurisdiction badge if CVBC)
+- Open Tickets + Emergency badge
 
-### 4. No changes required
-- `WebsiteDepartment.tsx`, `SeoDepartment.tsx`, `GoogleAdsDepartment.tsx` — they keep passing `services` exactly as today.
-- SEO client-hidden behavior preserved via existing `hideQuickActions={isClient}` flag.
-- Ticket dialog, types, RLS, and routing — untouched.
+**Row 2 — Content Pipeline Funnel** (full-width)
+Horizontal funnel: Generated → Under Review → Approved → Client Selected → Final Approved with counts + drop-off %. Click stage → routes to Generation/Review tab.
 
-## Files Edited / Created
-- `src/lib/quick-actions.ts` *(new)*
-- `src/components/department/DepartmentOverview.tsx` *(replace Quick Actions block)*
-- `src/components/social/SocialOverview.tsx` *(swap inline list for shared registry — optional but recommended)*
+**Row 3 — Two columns**
+- **SM2 Engine Health**: Last generation timestamp, last `failure_reason` (from error reporting layer), Hard Gates pass-rate (5 gates as colored pills), 8-agent pipeline status if a job is running.
+- **Multi-Location Cluster** (existing): each clinic's DNA score, last-generated date, collision-prevention status.
+
+**Row 4 — Two columns**
+- **Weekly Content Trend** (existing bar chart, kept)
+- **GBP Posts Snapshot**: scheduled / published / failed last 7 days + collision risk indicator
+
+**Row 5 — Team & Recent Activity**
+- Team members (existing)
+- Recent activity feed: last 5 events (post generated, DNA updated, ticket opened, promotion created)
+
+---
+
+## 2. Concierge Dashboard — "Operator Workspace"
+
+Focused on day-to-day execution.
+
+**Row 1 — Action KPIs (4 cards)**
+- Pending Review (posts needing concierge action — clickable → Generation tab)
+- Awaiting Client Approval (with auto-approval countdown badge)
+- Open Tickets assigned to me
+- Posts Scheduled This Week
+
+**Row 2 — Quick Actions** (existing 5-tile grid, kept)
+
+**Row 3 — Two columns**
+- **My Review Queue**: top 5 content requests in `generated` / `concierge_preferred` with DNA score, platform mix, "Review" CTA → ContentGenerationTab
+- **Hard Gates Alerts**: any posts flagged by the 5 gates (Promotion / Pricing / Patient Consent / Team Spotlight / Compliance) requiring manual override
+
+**Row 4 — Two columns**
+- **Weekly Content Trend** (kept)
+- **Ticket Summary** (kept, existing 4-status block) + "New Ticket" CTA
+
+**Row 5 — Brand DNA Snapshot**
+DNA completeness ring + Vedant Checklist progress + "Activate Profile" CTA if score ≥50 but not activated. Compact card.
+
+---
+
+## 3. Client Dashboard — "My Social Media"
+
+Friendly, outcomes-focused, no internal jargon.
+
+**Row 1 — Welcome KPIs (3 cards)**
+- DNA Profile Score (animated ring; if `<50` → big "Complete your Brand DNA" CTA card replaces the row)
+- Posts Awaiting My Review (count + "Review now" button → My Content tab)
+- Posts Live This Month
+
+**Row 2 — Two columns**
+- **This Month at a Glance**: monthly signal theme distribution (mini horizontal bars from `MonthlySignalsForm` data), holiday highlights, active promotion card if any
+- **My Content Status**: simple progress bar — "X of 12 posts ready", review countdown if auto-approval is pending
+
+**Row 3 — Quick Actions** (existing 5-tile grid: Bulk Uploads, Content Request, etc., kept)
+
+**Row 4 — Two columns**
+- **Recent Posts Preview**: 4 most recent `final_approved` post thumbnails (from versioned HTML deliverables) — click → opens in `FilePreviewDialog`
+- **Need Help?**: concierge contact card (avatar + name + "Open Ticket" button) using `useDepartmentTeam`
+
+Hide from client: Hard Gates, SM2 engine health, cluster, ticket summary breakdown, generation pipeline internals, failure reasons.
+
+---
+
+## Data Sources (already available, no schema changes)
+
+- `content_posts`, `content_requests` — pipeline + counts
+- `clinic_brand_dna` — score + activation status
+- `clinic_promotions` — active promos
+- `sm2_generations` + `failure_reason` — engine health
+- `sm2_post_performance` — engagement (admin)
+- `gbp_posts` — GBP snapshot
+- `monthly_signals` — theme distribution
+- `department_tickets` — tickets, realtime
+- `geo_clusters` + `clinics` — multi-location
+- `department_team` (via hook) — team
+
+No migrations required.
+
+---
+
+## Files
+
+**Created**
+- `src/components/social/overview/AdminSocialOverview.tsx`
+- `src/components/social/overview/ConciergeSocialOverview.tsx`
+- `src/components/social/overview/ClientSocialOverview.tsx`
+- `src/components/social/overview/shared/PipelineFunnel.tsx`
+- `src/components/social/overview/shared/HardGatesStatus.tsx`
+- `src/components/social/overview/shared/DNAScoreRing.tsx`
+- `src/components/social/overview/shared/RecentPostsPreview.tsx` (client)
+
+**Edited**
+- `src/components/social/SocialOverview.tsx` — becomes a thin router that picks the right role component (keeps existing `clinicId` prop API so `SocialMedia.tsx` doesn't change)
+
+**Unchanged**
+- `src/pages/SocialMedia.tsx` (consumer API stays the same)
+- Existing dialogs (`NewTicketDialog`, `BulkUploadsDialog`)
+- Quick actions registry in `@/lib/quick-actions`
+
+## Visual language
+
+Follows existing standards: glass cards, `dept-tint-social` background, `hsl(var(--dept-social))` accent, 2px glow on KPI hover, fade-in stagger (`animationDelay` 0/160/200/300/400ms), tabular-nums for counts, no emojis, Inter font. Loading state uses skeleton blocks identical to current implementation.
 
