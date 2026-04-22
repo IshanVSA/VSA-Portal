@@ -39,9 +39,6 @@ const commonTabs = [
 ];
 const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
 const blogTab = { value: "blog", label: "Blog", icon: BookOpen };
-
-const services = ["Backlinking", "Ranking Reports", "Keyword Research", "Manual Work Reports", "Search Atlas Integration", "SEO Thread Updates", "Others"];
-
 function TopKeywordsCard({ keywords }: { keywords: SeoKeyword[] }) {
   if (keywords.length === 0) {
     return (
