@@ -363,12 +363,10 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
 
   const removePendingFile = (index: number) => setPendingFiles((prev) => prev.filter((_, i) => i !== index));
 
-  const [previewAttachment, setPreviewAttachment] = useState<{ url: string; name: string } | null>(null);
+  const [previewAttachment, setPreviewAttachment] = useState<FileAttachment | null>(null);
 
-  const handleDownload = async (attachment: FileAttachment) => {
-    const { data } = await supabase.storage.from("department-files").createSignedUrl(attachment.path, 300);
-    if (data?.signedUrl) setPreviewAttachment({ url: data.signedUrl, name: attachment.name });
-    else toast.error("Failed to get file link");
+  const handleDownload = (attachment: FileAttachment) => {
+    setPreviewAttachment(attachment);
   };
 
   const handleToggleReaction = async (messageId: string, emoji: string) => {
@@ -767,8 +765,14 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
       <FilePreviewDialog
         open={!!previewAttachment}
         onOpenChange={(o) => { if (!o) setPreviewAttachment(null); }}
-        url={previewAttachment?.url || ""}
         filename={previewAttachment?.name || ""}
+        getUrl={previewAttachment ? async () => {
+          const { data, error } = await supabase.storage
+            .from("department-files")
+            .createSignedUrl(previewAttachment.path, 300);
+          if (error || !data?.signedUrl) throw error || new Error("No signed URL");
+          return data.signedUrl;
+        } : undefined}
       />
     </Card>
   );
