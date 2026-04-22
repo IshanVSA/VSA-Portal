@@ -82,7 +82,7 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
 
   const visibleTypes = getVisibleTicketTypes(department);
 
-  const { data: tickets = [], refetch, isLoading } = useQuery({
+  const { data: ticketsQuery, refetch, isLoading } = useQuery({
     queryKey: ["department-tickets", department, filter, clinicId],
     queryFn: async () => {
       const orClauses = [`department.eq.${department}`];
@@ -117,7 +117,6 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
         });
       }
 
-      // Fetch pool assignees for all tickets in one query
       let assigneeUserIds: string[] = [];
       if (results.length > 0) {
         const ticketIds = results.map((t: any) => t.id);
@@ -135,7 +134,6 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
 
         results = results.map((t: any) => ({ ...t, pool_user_ids: poolMap.get(t.id) || [] }));
 
-        // Collect all referenced assignee user IDs (assigned_to + pool members)
         const idSet = new Set<string>();
         results.forEach((t: any) => {
           if (t.assigned_to) idSet.add(t.assigned_to);
@@ -148,8 +146,8 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
     },
   });
 
-  const tickets = (ticketsQuery as any)?.results ?? [];
-  const assigneeUserIds: string[] = (ticketsQuery as any)?.assigneeUserIds ?? [];
+  const tickets: any[] = ticketsQuery?.results ?? [];
+  const assigneeUserIds: string[] = ticketsQuery?.assigneeUserIds ?? [];
 
   // Resolve display names for every assignee referenced by any ticket in the list
   // (handles client/staff users who can't query profiles directly via RLS).
