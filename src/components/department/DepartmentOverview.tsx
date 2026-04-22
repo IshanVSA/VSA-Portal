@@ -1,12 +1,12 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import KPICard from "@/components/dashboard/KPICard";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { BarChart3, CheckCircle2, Clock, AlertTriangle, Inbox, LucideIcon } from "lucide-react";
+import { BarChart3, CheckCircle2, Clock, AlertTriangle, Inbox, Sparkles, LucideIcon } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { getTicketTypeLabel } from "@/lib/ticket-display-labels";
+import { getQuickActionMeta } from "@/lib/quick-actions";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
