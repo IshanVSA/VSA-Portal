@@ -192,13 +192,23 @@ function PostCard({
                 <img
                   src={imageUrls[0].url}
                   alt="Cover"
-                  className="w-full aspect-square object-cover rounded-lg border"
+                  className="w-full aspect-square object-cover rounded-lg border cursor-zoom-in"
+                  onClick={() => setViewerIndex(0)}
                 />
                 <Badge className="absolute top-1.5 left-1.5 text-[9px] py-0 px-1.5">Cover</Badge>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setViewerIndex(0); }}
+                  className="absolute bottom-1.5 right-1.5 h-7 px-2 rounded-md bg-background/90 backdrop-blur border text-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] font-medium"
+                  title="View image"
+                >
+                  <Eye className="h-3 w-3" />
+                  View
+                </button>
                 {!isClient && (
                   <button
                     type="button"
-                    onClick={() => onRemoveImage(imageUrls[0].path)}
+                    onClick={(e) => { e.stopPropagation(); onRemoveImage(imageUrls[0].path); }}
                     className="absolute top-1.5 right-1.5 h-6 w-6 rounded-md bg-destructive/90 text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                     title="Remove image"
                   >
@@ -208,25 +218,37 @@ function PostCard({
               </div>
 
               <div className="grid grid-cols-4 gap-1.5">
-                {imageUrls.slice(1).map((img) => (
-                  <div key={img.path} className="relative group">
-                    <img
-                      src={img.url}
-                      alt="Post image"
-                      className="w-full aspect-square object-cover rounded border"
-                    />
-                    {!isClient && (
+                {imageUrls.slice(1).map((img, idx) => {
+                  const realIdx = idx + 1;
+                  return (
+                    <div key={img.path} className="relative group">
+                      <img
+                        src={img.url}
+                        alt="Post image"
+                        className="w-full aspect-square object-cover rounded border cursor-zoom-in"
+                        onClick={() => setViewerIndex(realIdx)}
+                      />
                       <button
                         type="button"
-                        onClick={() => onRemoveImage(img.path)}
-                        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded"
-                        title="Remove"
+                        onClick={(e) => { e.stopPropagation(); setViewerIndex(realIdx); }}
+                        className="absolute inset-0 bg-background/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded"
+                        title="View"
                       >
-                        <Trash2 className="h-3 w-3 text-white" />
+                        <Eye className="h-3.5 w-3.5 text-foreground" />
                       </button>
-                    )}
-                  </div>
-                ))}
+                      {!isClient && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); onRemoveImage(img.path); }}
+                          className="absolute top-0.5 right-0.5 h-5 w-5 rounded bg-destructive/90 text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                          title="Remove"
+                        >
+                          <Trash2 className="h-2.5 w-2.5" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
                 {!isClient && !atLimit && (
                   <button
                     type="button"
