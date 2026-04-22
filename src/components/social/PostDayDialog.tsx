@@ -503,7 +503,7 @@ function ImageLightbox({
 
   return (
     <div
-      className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in"
+      className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-sm flex items-center justify-center p-2 animate-in fade-in"
       onClick={onClose}
     >
       <button
@@ -529,7 +529,7 @@ function ImageLightbox({
       <img
         src={current.url}
         alt="Preview"
-        className="max-h-[85vh] max-w-[85vw] object-contain rounded-lg shadow-2xl"
+        className="max-h-[95vh] max-w-[95vw] w-auto h-auto object-contain rounded-lg shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       />
 
