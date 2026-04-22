@@ -128,7 +128,7 @@ export default function Login() {
                         if (!resetEmail) { toast.error("Enter your email"); return; }
                         setResetLoading(true);
                         const { data, error } = await supabase.functions.invoke("request-password-reset", {
-                          body: { email: resetEmail, redirectTo: `${window.location.origin}/reset-password` },
+                          body: { email: resetEmail },
                         });
                         if (error || (data && (data as any).error)) {
                           const msg = (data as any)?.error || error?.message || "Failed to send reset link";
