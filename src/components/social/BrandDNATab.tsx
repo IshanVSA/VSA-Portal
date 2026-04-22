@@ -67,6 +67,8 @@ interface Props {
 }
 
 export default function BrandDNATab({ clinicId }: Props) {
+  const { role } = useUserRole();
+  const isClient = role === "client";
   const { dna, isLoading, extractWebsite, mineReviews, synthesizeDNA, localityFetch, upsertDNA } = useBrandDNA(clinicId);
   const [editingAnswers, setEditingAnswers] = useState(false);
   const [draftCallNotes, setDraftCallNotes] = useState<Record<string, string>>({});
@@ -142,52 +144,54 @@ export default function BrandDNATab({ clinicId }: Props) {
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="default"
-            size="sm"
-            onClick={() => synthesizeDNA.mutate()}
-            disabled={synthesizeDNA.isPending || !dna}
-            className="gap-2"
-          >
-            {synthesizeDNA.isPending ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4" />
-            )}
-            {synthesizeDNA.isPending ? "Synthesizing..." : hasSynthesis ? "Re-synthesize" : "Synthesize DNA"}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => mineReviews.mutate()}
-            disabled={mineReviews.isPending}
-            className="gap-2"
-          >
-            {mineReviews.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Star className="h-4 w-4" />}
-            {mineReviews.isPending ? "Mining..." : reviewMining ? "Re-mine" : "Mine Reviews"}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => localityFetch.mutate()}
-            disabled={localityFetch.isPending}
-            className="gap-2"
-          >
-            {localityFetch.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />}
-            {localityFetch.isPending ? "Fetching..." : localityData ? "Re-fetch" : "Fetch Locality"}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => extractWebsite.mutate()}
-            disabled={extractWebsite.isPending}
-            className="gap-2"
-          >
-            {extractWebsite.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
-            {extractWebsite.isPending ? "Extracting..." : websiteExtraction ? "Re-extract" : "Extract Website"}
-          </Button>
-        </div>
+        {!isClient && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => synthesizeDNA.mutate()}
+              disabled={synthesizeDNA.isPending || !dna}
+              className="gap-2"
+            >
+              {synthesizeDNA.isPending ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              {synthesizeDNA.isPending ? "Synthesizing..." : hasSynthesis ? "Re-synthesize" : "Synthesize DNA"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => mineReviews.mutate()}
+              disabled={mineReviews.isPending}
+              className="gap-2"
+            >
+              {mineReviews.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Star className="h-4 w-4" />}
+              {mineReviews.isPending ? "Mining..." : reviewMining ? "Re-mine" : "Mine Reviews"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => localityFetch.mutate()}
+              disabled={localityFetch.isPending}
+              className="gap-2"
+            >
+              {localityFetch.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />}
+              {localityFetch.isPending ? "Fetching..." : localityData ? "Re-fetch" : "Fetch Locality"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => extractWebsite.mutate()}
+              disabled={extractWebsite.isPending}
+              className="gap-2"
+            >
+              {extractWebsite.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
+              {extractWebsite.isPending ? "Extracting..." : websiteExtraction ? "Re-extract" : "Extract Website"}
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Synthesized Profile */}
