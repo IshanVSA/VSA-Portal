@@ -46,7 +46,10 @@ export default function BookMeeting() {
         {people.map((person) => (
           <div
             key={person.email}
-            className="glass-card rounded-2xl p-6 flex flex-col items-center text-center hover-lift transition-all duration-300"
+            className={`glass-card rounded-2xl p-6 flex flex-col items-center text-center transition-all duration-300 ${
+              person.inactive ? "opacity-60 grayscale" : "hover-lift"
+            }`}
+            aria-disabled={person.inactive}
           >
             {/* Avatar */}
             {person.photo ? (
@@ -78,10 +81,11 @@ export default function BookMeeting() {
             {/* CTA */}
             <Button
               className="mt-6 w-full"
-              onClick={() => window.open(person.calendarUrl, "_self")}
+              disabled={person.inactive}
+              onClick={() => !person.inactive && window.open(person.calendarUrl, "_self")}
             >
               <CalendarCheck className="mr-2 h-4 w-4" />
-              Schedule a Meeting
+              {person.inactive ? "Currently Unavailable" : "Schedule a Meeting"}
             </Button>
           </div>
         ))}
