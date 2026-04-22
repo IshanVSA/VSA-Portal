@@ -146,14 +146,18 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
       <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">Social Analytics</h2>
-          <p className="text-xs text-muted-foreground">
-            {lastSync ? `Last synced ${formatDistanceToNow(new Date(lastSync), { addSuffix: true })}` : "Not synced yet"}
-          </p>
+          {isStaff && (
+            <p className="text-xs text-muted-foreground">
+              {lastSync ? `Last synced ${formatDistanceToNow(new Date(lastSync), { addSuffix: true })}` : "Not synced yet"}
+            </p>
+          )}
         </div>
-        <Button onClick={handleSync} disabled={syncing} size="sm">
-          {syncing ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1.5" />}
-          Sync Now
-        </Button>
+        {isStaff && (
+          <Button onClick={handleSync} disabled={syncing} size="sm">
+            {syncing ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1.5" />}
+            Sync Now
+          </Button>
+        )}
       </div>
 
       {missingPerms.length > 0 && (
