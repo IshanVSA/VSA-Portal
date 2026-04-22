@@ -112,7 +112,7 @@ export function TicketAuditLog({ ticketId }: TicketAuditLogProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-1 leading-snug">
                     <span className="font-medium text-foreground">{actorName}</span>
-                    <span className="text-muted-foreground">changed</span>
+                    <span className="text-muted-foreground">{actionVerb}</span>
                     <span className="font-medium text-foreground">{meta.label}</span>
                     <span className="text-muted-foreground">from</span>
                     <span className="px-1.5 py-0.5 rounded bg-muted text-foreground text-[10px]">
