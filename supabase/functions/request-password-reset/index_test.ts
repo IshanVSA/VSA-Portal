@@ -11,6 +11,7 @@ import { getResetPasswordUrl, resolvePublicSiteUrl, withCanonicalRedirect } from
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? Deno.env.get("VITE_SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+const HAS_ADMIN_TEST_CREDS = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
 
 Deno.test("resolvePublicSiteUrl ignores localhost values", () => {
   assertEquals(resolvePublicSiteUrl("http://localhost:3000"), "https://vet-dash-suite.lovable.app");
@@ -18,42 +19,44 @@ Deno.test("resolvePublicSiteUrl ignores localhost values", () => {
   assertEquals(resolvePublicSiteUrl("https://vet-dash-suite.lovable.app/"), "https://vet-dash-suite.lovable.app");
 });
 
-Deno.test("recovery links always redirect to the live reset-password route", async () => {
-  assert(SUPABASE_URL, "SUPABASE_URL or VITE_SUPABASE_URL is required for this test");
-  assert(SUPABASE_SERVICE_ROLE_KEY, "SUPABASE_SERVICE_ROLE_KEY is required for this test");
+Deno.test({
+  name: "recovery links always redirect to the live reset-password route",
+  ignore: !HAS_ADMIN_TEST_CREDS,
+  async fn() {
 
-  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-  const email = `reset-link-test+${crypto.randomUUID()}@example.com`;
-  const password = `Temp-${crypto.randomUUID()}Aa1!`;
+    const admin = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+    const email = `reset-link-test+${crypto.randomUUID()}@example.com`;
+    const password = `Temp-${crypto.randomUUID()}Aa1!`;
 
-  const { data: createdUser, error: createError } = await admin.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-  });
-
-  assert(!createError, createError?.message ?? "Failed to create test user");
-  assertExists(createdUser.user?.id, "Expected a test user id");
-
-  try {
-    const expectedResetUrl = getResetPasswordUrl();
-    const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
-      type: "recovery",
+    const { data: createdUser, error: createError } = await admin.auth.admin.createUser({
       email,
-      options: {
-        redirectTo: expectedResetUrl,
-      },
+      password,
+      email_confirm: true,
     });
 
-    assert(!linkError, linkError?.message ?? "Failed to generate recovery link");
-    assertExists(linkData.properties?.action_link, "Expected an action_link in the recovery response");
+    assert(!createError, createError?.message ?? "Failed to create test user");
+    assertExists(createdUser.user?.id, "Expected a test user id");
 
-    const finalActionLink = withCanonicalRedirect(linkData.properties.action_link, expectedResetUrl);
-    const url = new URL(finalActionLink);
+    try {
+      const expectedResetUrl = getResetPasswordUrl();
+      const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+        type: "recovery",
+        email,
+        options: {
+          redirectTo: expectedResetUrl,
+        },
+      });
 
-    assertEquals(url.searchParams.get("redirect_to"), expectedResetUrl);
-    assertNotMatch(finalActionLink, /localhost|127\.0\.0\.1|0\.0\.0\.0/i);
-  } finally {
-    await admin.auth.admin.deleteUser(createdUser.user.id);
-  }
+      assert(!linkError, linkError?.message ?? "Failed to generate recovery link");
+      assertExists(linkData.properties?.action_link, "Expected an action_link in the recovery response");
+
+      const finalActionLink = withCanonicalRedirect(linkData.properties.action_link, expectedResetUrl);
+      const url = new URL(finalActionLink);
+
+      assertEquals(url.searchParams.get("redirect_to"), expectedResetUrl);
+      assertNotMatch(finalActionLink, /localhost|127\.0\.0\.1|0\.0\.0\.0/i);
+    } finally {
+      await admin.auth.admin.deleteUser(createdUser.user.id);
+    }
+  },
 });
