@@ -9,6 +9,18 @@ const corsHeaders = {
 
 // Supabase recovery links default to ~1 hour validity.
 const RESET_LINK_TTL_MINUTES = 60;
+const SITE_URL = (Deno.env.get("SITE_URL") || "https://vet-dash-suite.lovable.app").replace(/\/$/, "");
+const RESET_PASSWORD_URL = `${SITE_URL}/reset-password`;
+
+function withCanonicalRedirect(actionLink: string) {
+  try {
+    const url = new URL(actionLink);
+    url.searchParams.set("redirect_to", RESET_PASSWORD_URL);
+    return url.toString();
+  } catch {
+    return actionLink;
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -16,7 +28,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { email, redirectTo } = await req.json();
+    const { email } = await req.json();
 
     if (!email || typeof email !== "string") {
       return new Response(
@@ -65,7 +77,7 @@ Deno.serve(async (req) => {
       type: "recovery",
       email: normalizedEmail,
       options: {
-        redirectTo: redirectTo || undefined,
+        redirectTo: RESET_PASSWORD_URL,
       },
     });
 
@@ -77,7 +89,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const actionLink = linkData.properties.action_link;
+    const actionLink = withCanonicalRedirect(linkData.properties.action_link);
     const expiresAt = new Date(Date.now() + RESET_LINK_TTL_MINUTES * 60 * 1000);
     const expiresAtIso = expiresAt.toISOString();
     const expiresAtPretty = expiresAt.toLocaleString("en-US", {
