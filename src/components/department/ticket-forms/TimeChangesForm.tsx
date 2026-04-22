@@ -97,7 +97,13 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
           <Label className="text-sm font-medium">
             Start Date <span className="text-destructive">*</span>
           </Label>
-          <Popover>
+          <Popover
+            open={startOpen}
+            onOpenChange={(o) => {
+              setStartOpen(o);
+              if (o) setTempStartDate(startDate);
+            }}
+          >
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
@@ -113,18 +119,48 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
-                selected={startDate}
-                onSelect={setStartDate}
+                selected={tempStartDate}
+                onSelect={setTempStartDate}
                 disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                 initialFocus
                 className={cn("p-3 pointer-events-auto")}
               />
+              <div className="flex items-center justify-end gap-2 border-t border-border px-3 py-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => setStartOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-7 text-xs"
+                  disabled={!tempStartDate}
+                  onClick={() => {
+                    setStartDate(tempStartDate);
+                    if (endDate && tempStartDate && endDate < tempStartDate) {
+                      setEndDate(undefined);
+                    }
+                    setStartOpen(false);
+                  }}
+                >
+                  Confirm
+                </Button>
+              </div>
             </PopoverContent>
           </Popover>
         </div>
         <div className="space-y-1.5">
           <Label className="text-sm font-medium">End Date</Label>
-          <Popover>
+          <Popover
+            open={endOpen}
+            onOpenChange={(o) => {
+              setEndOpen(o);
+              if (o) setTempEndDate(endDate);
+            }}
+          >
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
@@ -140,14 +176,49 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
-                selected={endDate}
-                onSelect={setEndDate}
+                selected={tempEndDate}
+                onSelect={setTempEndDate}
                 disabled={(date) =>
                   date < (startDate || new Date(new Date().setHours(0, 0, 0, 0)))
                 }
                 initialFocus
                 className={cn("p-3 pointer-events-auto")}
               />
+              <div className="flex items-center justify-between gap-2 border-t border-border px-3 py-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => {
+                    setEndDate(undefined);
+                    setTempEndDate(undefined);
+                    setEndOpen(false);
+                  }}
+                >
+                  Clear
+                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => setEndOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-7 text-xs"
+                    disabled={!tempEndDate}
+                    onClick={() => {
+                      setEndDate(tempEndDate);
+                      setEndOpen(false);
+                    }}
+                  >
+                    Confirm
+                  </Button>
+                </div>
+              </div>
             </PopoverContent>
           </Popover>
         </div>
