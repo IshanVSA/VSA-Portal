@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -395,6 +395,15 @@ export function BlogTab({ clinicId }: { clinicId: string | undefined }) {
   const [subTab, setSubTab] = useState(isClient ? "my-blogs" : "overview");
   const [emergencyTopic, setEmergencyTopic] = useState("");
 
+  // Sync subTab when role resolves (role may be undefined on first render)
+  useEffect(() => {
+    if (isClient && (subTab === "overview" || subTab === "publishing" || subTab === "tracker" || subTab === "prompts")) {
+      setSubTab("my-blogs");
+    } else if (!isClient && role && (subTab === "my-blogs" || subTab === "history")) {
+      setSubTab("overview");
+    }
+  }, [isClient, role, subTab]);
+
   if (!clinicId) {
     return <p className="text-sm text-muted-foreground text-center py-8">Select a clinic to view blog content.</p>;
   }
@@ -425,6 +434,7 @@ export function BlogTab({ clinicId }: { clinicId: string | undefined }) {
         </TabsList>
 
         {/* ─── Staff: Overview ─── */}
+        {!isClient && (<>
         <TabsContent value="overview" className="mt-3 space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Card className="border-border/60">
@@ -607,6 +617,7 @@ export function BlogTab({ clinicId }: { clinicId: string | undefined }) {
         <TabsContent value="prompts" className="mt-3">
           <PromptManager versions={promptVersions || []} isAdmin={isAdmin} />
         </TabsContent>
+        </>)}
 
         {/* ─── Client: My Blogs ─── */}
         <TabsContent value="my-blogs" className="mt-3">
