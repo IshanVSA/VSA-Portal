@@ -73,9 +73,18 @@ export function ClinicLogoUploader({
   readOnly = false,
   className,
 }: ClinicLogoUploaderProps) {
-  const [busy, setBusy] = useState(false);
+  const [stage, setStage] = useState<Stage>("idle");
+  const [progress, setProgress] = useState(0);
   const [currentUrl, setCurrentUrl] = useState<string | null>(logoUrl);
   const inputRef = useRef<HTMLInputElement>(null);
+  const busy = stage !== "idle";
+
+  const stageLabel: Record<Exclude<Stage, "idle">, string> = {
+    resizing: "Preparing image…",
+    uploading: "Uploading logo…",
+    saving: "Saving…",
+    removing: "Removing logo…",
+  };
 
   const updateClinic = async (newUrl: string | null) => {
     const { error } = await supabase.from("clinics").update({ logo_url: newUrl }).eq("id", clinicId);
@@ -84,15 +93,12 @@ export function ClinicLogoUploader({
     onChange?.(newUrl);
   };
 
-  const removeOldLogo = async () => {
-    if (!currentUrl) return;
-    // Try to derive storage path from public URL
-    const marker = `/${BUCKET}/`;
-    const idx = currentUrl.indexOf(marker);
-    if (idx === -1) return;
-    const path = currentUrl.substring(idx + marker.length).split("?")[0];
-    if (!path.startsWith("clinic-logos/")) return;
-    await supabase.storage.from(BUCKET).remove([path]);
+  const removeStoredLogo = async () => {
+    // Fixed filename — try to remove all common extensions to clean up legacy uploads
+    const candidates = ["logo.jpg", "logo.jpeg", "logo.png", "logo.webp"].map(
+      (n) => `clinic-logos/${clinicId}/${n}`,
+    );
+    await supabase.storage.from(BUCKET).remove(candidates);
   };
 
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -107,90 +113,135 @@ export function ClinicLogoUploader({
       toast.error("Image must be under 2 MB");
       return;
     }
-    setBusy(true);
+
+    setStage("resizing");
+    setProgress(15);
     try {
       const blob = await resizeImage(file);
-      const path = `clinic-logos/${clinicId}/logo-${Date.now()}.jpg`;
+      setStage("uploading");
+      setProgress(50);
+      const path = `clinic-logos/${clinicId}/logo.jpg`;
       const { error: upErr } = await supabase.storage
         .from(BUCKET)
         .upload(path, blob, { contentType: "image/jpeg", upsert: true, cacheControl: "3600" });
       if (upErr) throw upErr;
+      setProgress(85);
       const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
+      // Cache-bust so the new image renders immediately
       const newUrl = `${pub.publicUrl}?t=${Date.now()}`;
-      await removeOldLogo();
+      setStage("saving");
       await updateClinic(newUrl);
+      setProgress(100);
       toast.success("Logo updated");
     } catch (err: any) {
       toast.error(err?.message || "Failed to upload logo");
     } finally {
-      setBusy(false);
+      setStage("idle");
+      setProgress(0);
     }
   };
 
   const onRemove = async () => {
-    setBusy(true);
+    setStage("removing");
+    setProgress(40);
     try {
-      await removeOldLogo();
+      await removeStoredLogo();
+      setProgress(80);
       await updateClinic(null);
+      setProgress(100);
       toast.success("Logo removed");
     } catch (err: any) {
       toast.error(err?.message || "Failed to remove logo");
     } finally {
-      setBusy(false);
+      setStage("idle");
+      setProgress(0);
     }
   };
 
   const dimension = { width: size, height: size };
 
   return (
-    <div className={cn("relative group inline-block", className)} style={dimension}>
-      <Avatar className="rounded-full border border-border/60 shadow-sm" style={dimension}>
-        {currentUrl ? <AvatarImage src={currentUrl} alt={clinicName} className="object-cover" /> : null}
-        <AvatarFallback className="bg-primary/10 text-primary font-semibold" style={{ fontSize: size / 3 }}>
-          {initials(clinicName) || "?"}
-        </AvatarFallback>
-      </Avatar>
+    <>
+      <div className={cn("relative group inline-block", className)} style={dimension}>
+        <Avatar className="rounded-full border border-border/60 shadow-sm" style={dimension}>
+          {currentUrl ? <AvatarImage src={currentUrl} alt={clinicName} className="object-cover" /> : null}
+          <AvatarFallback className="bg-primary/10 text-primary font-semibold" style={{ fontSize: size / 3 }}>
+            {initials(clinicName) || "?"}
+          </AvatarFallback>
+        </Avatar>
 
-      {!readOnly && (
-        <>
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            disabled={busy}
-            className="absolute inset-0 rounded-full bg-background/70 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-foreground disabled:cursor-not-allowed"
-            aria-label="Change clinic logo"
-          >
-            {busy ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <>
-                <Camera className="h-5 w-5" />
-                <span className="text-[10px] font-medium mt-0.5">
-                  {currentUrl ? "Change" : "Upload"}
-                </span>
-              </>
-            )}
-          </button>
-          {currentUrl && !busy && (
+        {!readOnly && (
+          <>
             <button
               type="button"
-              onClick={onRemove}
-              className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-destructive text-destructive-foreground shadow-md opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-destructive/90"
-              aria-label="Remove clinic logo"
+              onClick={() => inputRef.current?.click()}
+              disabled={busy}
+              className={cn(
+                "absolute inset-0 rounded-full bg-background/70 backdrop-blur-sm flex flex-col items-center justify-center text-foreground transition-opacity disabled:cursor-not-allowed",
+                busy ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+              )}
+              aria-label="Change clinic logo"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              {busy ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <>
+                  <Camera className="h-5 w-5" />
+                  <span className="text-[10px] font-medium mt-0.5">
+                    {currentUrl ? "Change" : "Upload"}
+                  </span>
+                </>
+              )}
             </button>
-          )}
-          <input
-            ref={inputRef}
-            type="file"
-            accept={ACCEPTED_TYPES.join(",")}
-            className="hidden"
-            onChange={onFile}
-          />
-        </>
+            {currentUrl && !busy && (
+              <button
+                type="button"
+                onClick={onRemove}
+                className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-destructive text-destructive-foreground shadow-md opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-destructive/90"
+                aria-label="Remove clinic logo"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )}
+            <input
+              ref={inputRef}
+              type="file"
+              accept={ACCEPTED_TYPES.join(",")}
+              className="hidden"
+              onChange={onFile}
+              disabled={busy}
+            />
+          </>
+        )}
+      </div>
+
+      {busy && typeof document !== "undefined" && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] bg-background/60 backdrop-blur-sm flex items-center justify-center"
+          aria-live="polite"
+          aria-busy="true"
+          role="alertdialog"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.preventDefault()}
+        >
+          <div className="w-[320px] rounded-xl border border-border/60 bg-card shadow-xl p-5 space-y-3">
+            <div className="flex items-center gap-3">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">
+                  {stage !== "idle" ? stageLabel[stage] : ""}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Please wait — other actions are disabled.
+                </p>
+              </div>
+            </div>
+            <Progress value={progress} className="h-2" />
+          </div>
+        </div>,
+        document.body,
       )}
-    </div>
+    </>
   );
 }
 
