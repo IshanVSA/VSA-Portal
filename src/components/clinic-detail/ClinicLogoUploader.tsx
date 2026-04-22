@@ -229,7 +229,7 @@ export function ClinicLogoUploader({
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-foreground">
-                  {stage !== "idle" ? stageLabel[stage] : ""}
+                  {stage === "idle" ? "" : stageLabel[stage]}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Please wait — other actions are disabled.
