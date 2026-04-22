@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import UpcomingPosts from "./UpcomingPosts";
 import RecentActivity from "./RecentActivity";
+import { ClinicLogoUploader } from "@/components/clinic-detail/ClinicLogoUploader";
 
 interface Clinic {
   id: string;
