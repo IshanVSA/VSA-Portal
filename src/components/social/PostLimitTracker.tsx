@@ -8,7 +8,7 @@ interface Props {
   clinicId: string | undefined;
 }
 
-const STOCK_LIMIT = 12;
+const STOCK_LIMIT = 10;
 
 export default function PostLimitTracker({ clinicId }: Props) {
   const { signals } = useMonthlySignals(clinicId);

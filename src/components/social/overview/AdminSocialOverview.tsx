@@ -204,7 +204,7 @@ export function AdminSocialOverview({ clinicId }: AdminSocialOverviewProps) {
           )}
         </div>
         <div>
-          <StatsCard title="Posts (Month)" value={`${postsThisMonth}/12`} icon={CalendarDays} index={1} />
+          <StatsCard title="Posts (Month)" value={`${postsThisMonth}/10`} icon={CalendarDays} index={1} />
         </div>
         <StatsCard title="Pipeline Health" value={`${conversionPct}%`} icon={Workflow} index={2} change={`${finalApproved} of ${generated} converted`} changeType="neutral" />
         <div className="relative">

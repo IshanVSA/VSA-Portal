@@ -21,7 +21,7 @@ interface ClientSocialOverviewProps {
   clinicId?: string;
 }
 
-const MONTH_CAP = 12;
+const MONTH_CAP = 10;
 
 function greeting() {
   const h = new Date().getHours();

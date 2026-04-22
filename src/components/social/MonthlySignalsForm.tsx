@@ -70,7 +70,7 @@ export default function MonthlySignalsForm({ clinicId }: Props) {
   const [localNews, setLocalNews] = useState<string[]>([]);
   const [clinicNews, setClinicNews] = useState("");
   const [fbSpecific, setFbSpecific] = useState("");
-  const [stockCount, setStockCount] = useState(12);
+  const [stockCount, setStockCount] = useState(10);
   const [assetCount, setAssetCount] = useState(0);
   const [holidays, setHolidays] = useState<any[]>([]);
 
@@ -85,7 +85,7 @@ export default function MonthlySignalsForm({ clinicId }: Props) {
     setLocalNews((signals.local_news as string[]) || []);
     setClinicNews(signals.clinic_news_this_month ?? "");
     setFbSpecific(signals.facebook_specific_this_month ?? "");
-    setStockCount(signals.stock_post_count ?? 12);
+    setStockCount(signals.stock_post_count ?? 10);
     setAssetCount(signals.client_asset_post_count ?? 0);
     setHolidays((signals.statutory_holidays as any[]) || []);
   }, [signals]);
@@ -165,7 +165,7 @@ export default function MonthlySignalsForm({ clinicId }: Props) {
           <div className="space-y-1.5">
             <Label className="text-sm font-medium">Stock Post Count</Label>
             <Input type="number" min={0} max={20} value={stockCount} onChange={(e) => setStockCount(Number(e.target.value))} />
-            <p className="text-xs text-muted-foreground">AI-generated posts this month (max 12 default)</p>
+            <p className="text-xs text-muted-foreground">AI-generated posts this month (max 10 default)</p>
           </div>
           <div className="space-y-1.5">
             <Label className="text-sm font-medium">Client Asset Post Count</Label>
