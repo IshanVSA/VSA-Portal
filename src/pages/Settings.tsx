@@ -89,6 +89,7 @@ export default function Settings() {
 
   const baseTabs = [
     { value: "profile", label: "Profile", icon: User },
+    { value: "clinic", label: "Clinic", icon: Building2 },
     { value: "notifications", label: "Notifications", icon: Bell },
   ];
 
