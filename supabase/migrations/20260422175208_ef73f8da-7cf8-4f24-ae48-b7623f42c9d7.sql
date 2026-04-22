@@ -1,0 +1,1 @@
+ALTER TABLE public.sm2_posts ADD COLUMN IF NOT EXISTS image_paths text[] NOT NULL DEFAULT '{}'::text[];

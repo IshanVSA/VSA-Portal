@@ -2123,6 +2123,7 @@ export type Database = {
           hook_b: string | null
           id: string
           image_path: string | null
+          image_paths: string[]
           image_uploaded_at: string | null
           image_uploaded_by: string | null
           platform: string
@@ -2151,6 +2152,7 @@ export type Database = {
           hook_b?: string | null
           id?: string
           image_path?: string | null
+          image_paths?: string[]
           image_uploaded_at?: string | null
           image_uploaded_by?: string | null
           platform: string
@@ -2179,6 +2181,7 @@ export type Database = {
           hook_b?: string | null
           id?: string
           image_path?: string | null
+          image_paths?: string[]
           image_uploaded_at?: string | null
           image_uploaded_by?: string | null
           platform?: string
