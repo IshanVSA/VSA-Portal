@@ -65,6 +65,12 @@ export default function SM2CalendarView({
 }: Props) {
   const { posts, total, withImages, imagesComplete, getImageUrl, isLoading } = useSM2Posts(generationId);
   const [openDate, setOpenDate] = useState<string | null>(null);
+  const [confirmSendOpen, setConfirmSendOpen] = useState(false);
+
+  const missingPosts = useMemo(
+    () => posts.filter((p) => !postHasImage(p)),
+    [posts]
+  );
 
   const currentMonth = useMemo(() => {
     const [y, m] = monthYear.split("-");
