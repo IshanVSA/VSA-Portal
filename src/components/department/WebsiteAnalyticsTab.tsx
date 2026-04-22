@@ -8,6 +8,8 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar } from "rec
 import { Eye, Users, TrendingUp, FileText, Globe, Clock, Layers3, MapPin } from "lucide-react";
 import { Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
 import { StatsCard } from "@/components/StatsCard";
+import { Badge } from "@/components/ui/badge";
+import { useUserRole } from "@/hooks/useUserRole";
 import { DateRangeFilter } from "@/components/department/DateRangeFilter";
 import {
   buildDateKeys,
@@ -24,6 +26,8 @@ interface Props {
 }
 
 export function WebsiteAnalyticsTab({ clinicId }: Props) {
+  const { role } = useUserRole();
+  const isStaff = role === "admin" || role === "concierge";
   const [pageviews, setPageviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeZone, setTimeZone] = useState(DEFAULT_CLINIC_TIMEZONE);
@@ -189,7 +193,12 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
 
   return (
     <div className="space-y-6">
-      <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} referenceDate={clinicToday} />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} referenceDate={clinicToday} />
+        {isStaff && (
+          <Badge variant="outline" className="text-[10px]">Auto-tracked: Real-time</Badge>
+        )}
+      </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
