@@ -197,6 +197,7 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
             <p className="text-xs text-muted-foreground">
               {lastSynced ? `Last synced: ${format(new Date(lastSynced), "MMM d, yyyy 'at' h:mm a")}` : "Never synced"}
             </p>
+            <Badge variant="outline" className="text-[10px]">Auto-sync: Daily 07:00 UTC</Badge>
             <Button onClick={handleSync} disabled={syncing} size="sm" variant="outline" className="gap-2 text-xs">
               <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
               {syncing ? "Syncing…" : "Sync Data"}
