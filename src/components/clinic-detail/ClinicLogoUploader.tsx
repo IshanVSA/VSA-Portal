@@ -22,7 +22,23 @@ interface ClinicLogoUploaderProps {
 const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 const MAX_BYTES = 2 * 1024 * 1024;
 const TARGET_SIZE = 512;
+const MIN_DIMENSION = 128;
+const MAX_DIMENSION = 4096;
 const BUCKET = "department-files";
+
+async function readImageDimensions(file: File): Promise<{ width: number; height: number }> {
+  const url = URL.createObjectURL(file);
+  try {
+    return await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      img.onerror = () => reject(new Error("Could not read image"));
+      img.src = url;
+    });
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
 
 async function resizeImage(file: File): Promise<Blob> {
   const dataUrl = await new Promise<string>((resolve, reject) => {
