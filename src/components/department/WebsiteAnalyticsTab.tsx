@@ -26,8 +26,8 @@ interface Props {
 }
 
 export function WebsiteAnalyticsTab({ clinicId }: Props) {
-  const { isAdmin, isConcierge } = useUserRole();
-  const isStaff = isAdmin || isConcierge;
+  const { role } = useUserRole();
+  const isStaff = role === "admin" || role === "concierge";
   const [pageviews, setPageviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeZone, setTimeZone] = useState(DEFAULT_CLINIC_TIMEZONE);
