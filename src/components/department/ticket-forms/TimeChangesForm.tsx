@@ -32,6 +32,10 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
   const [schedule, setSchedule] = useState<WeekSchedule>(defaultSchedule);
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [startOpen, setStartOpen] = useState(false);
+  const [endOpen, setEndOpen] = useState(false);
+  const [tempStartDate, setTempStartDate] = useState<Date | undefined>(undefined);
+  const [tempEndDate, setTempEndDate] = useState<Date | undefined>(undefined);
   const [statHolidayOpen, setStatHolidayOpen] = useState(false);
   const [statHolidayOpenTime, setStatHolidayOpenTime] = useState("09:00");
   const [statHolidayCloseTime, setStatHolidayCloseTime] = useState("17:00");
