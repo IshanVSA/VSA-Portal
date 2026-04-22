@@ -8,8 +8,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Send, ThumbsUp, MessageSquare, CheckCircle, Clock, Facebook, Instagram } from "lucide-react";
-import { useSM2Posts, type SM2Post } from "@/hooks/useSM2Posts";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Send, ThumbsUp, MessageSquare, CheckCircle, Clock, Facebook, Instagram, AlertTriangle } from "lucide-react";
+import { useSM2Posts, type SM2Post, postHasImage } from "@/hooks/useSM2Posts";
 import PostDayDialog from "./PostDayDialog";
 
 interface Props {
