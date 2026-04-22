@@ -67,7 +67,14 @@ export default function Settings() {
     if (!user) return;
     setSaving(true);
     const { error } = await supabase.from("profiles").update({ full_name: fullName }).eq("id", user.id);
-    if (error) toast.error("Failed to save"); else toast.success("Profile updated");
+    if (error) {
+      toast.error("Failed to save");
+      setSaving(false);
+      return;
+    }
+    // Keep auth user_metadata in sync so greetings/headers update everywhere
+    await supabase.auth.updateUser({ data: { full_name: fullName } });
+    toast.success("Profile updated");
     setSaving(false);
   };
 
