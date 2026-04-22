@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { cn } from "@/lib/utils";
+import { FilePreviewDialog } from "@/components/FilePreviewDialog";
 
 interface UploadedFile {
   name: string;
@@ -37,6 +38,7 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [previewFile, setPreviewFile] = useState<UploadedFile | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const folder = `${department}/`;
@@ -198,7 +200,7 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
                       variant="outline"
                       size="sm"
                       className="h-8 text-xs"
-                      onClick={() => window.open(file.url, "_blank")}
+                      onClick={() => setPreviewFile(file)}
                     >
                       <Eye className="h-3.5 w-3.5 mr-1" />
                       View
