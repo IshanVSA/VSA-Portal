@@ -11,6 +11,7 @@ import { DollarSign, MousePointerClick, Eye, Percent, Megaphone, RefreshCw, Tren
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 import { DateRangeFilter, type DateRange } from "@/components/department/DateRangeFilter";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface DailyTrend {
   date: string;
@@ -39,6 +40,8 @@ interface Props {
 }
 
 export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
+  const { role } = useUserRole();
+  const isStaff = role === "admin" || role === "concierge";
   const [metricsData, setMetricsData] = useState<MetricsJson | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -53,15 +56,20 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
     if (!clinicId) { setLoading(false); return; }
     setLoading(true);
 
-    // Check if credentials exist
-    const { data: creds } = await supabase
-      .from("clinic_api_credentials")
-      .select("google_ads_customer_id, last_google_sync_at")
-      .eq("clinic_id", clinicId)
-      .maybeSingle();
+    // Credentials table is admin/concierge-only via RLS; skip for clients
+    if (isStaff) {
+      const { data: creds } = await supabase
+        .from("clinic_api_credentials")
+        .select("google_ads_customer_id, last_google_sync_at")
+        .eq("clinic_id", clinicId)
+        .maybeSingle();
 
-    setHasCredentials(!!creds?.google_ads_customer_id);
-    setLastSynced(creds?.last_google_sync_at || null);
+      setHasCredentials(!!creds?.google_ads_customer_id);
+      setLastSynced(creds?.last_google_sync_at || null);
+    } else {
+      // For clients: assume credentials exist if there is any analytics data
+      setHasCredentials(true);
+    }
 
     // Get latest analytics record
     const { data } = await supabase
@@ -78,11 +86,13 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
       setMetricsData(data.metrics_json as unknown as MetricsJson);
     } else {
       setMetricsData(null);
+      // For clients with no analytics data, fall back to "not connected" empty state
+      if (!isStaff) setHasCredentials(false);
     }
     setLoading(false);
   };
 
-  useEffect(() => { fetchAnalytics(); }, [clinicId]);
+  useEffect(() => { fetchAnalytics(); }, [clinicId, isStaff]);
 
   const handleSync = async () => {
     setSyncing(true);
