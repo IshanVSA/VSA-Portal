@@ -127,7 +127,7 @@ export default function SeoDepartment() {
   const isClient = role === "client";
   const isStaff = !isClient;
   const { unreadCount, markAsRead } = useDepartmentChatUnread("seo", selectedClinicId);
-  const tabs = isStaff ? [...commonTabs.slice(0, 1), ...staffOnlyTabs, ...commonTabs.slice(1), blogTab, chatTab] : [...commonTabs, blogTab];
+  const tabs = isStaff ? [...commonTabs, blogTab, chatTab] : [...commonTabs, blogTab];
   const [seoDialogOpen, setSeoDialogOpen] = useState(false);
 
   const selectedClinicName = selectedClinic?.clinic_name;
