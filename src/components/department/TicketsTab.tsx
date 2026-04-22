@@ -198,6 +198,17 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
   const completedCount = tickets.filter((t: any) => t.status === "completed").length;
   const emergencyCount = tickets.filter((t: any) => t.status === "emergency").length;
 
+  // Merge directory-resolved names into the team members list passed to children,
+  // so clients/staff can see assignee names even when their RLS hides full profiles.
+  const mergedTeamMembers = useMemo(() => {
+    const byId = new Map<string, { id: string; name: string }>();
+    teamMemberProfiles.forEach(m => byId.set(m.id, m));
+    Object.entries(assigneeNameMap).forEach(([id, name]) => {
+      if (!byId.has(id)) byId.set(id, { id, name: name as string });
+    });
+    return Array.from(byId.values());
+  }, [teamMemberProfiles, assigneeNameMap]);
+
   return (
     <div className="space-y-4">
       {isClient && <ClientReadOnlyBanner />}
