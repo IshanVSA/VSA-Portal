@@ -18,7 +18,7 @@ import {
   Megaphone,
 } from "lucide-react";
 import { format } from "date-fns";
-import { useSM2Posts, type SM2Post } from "@/hooks/useSM2Posts";
+import { useSM2Posts, type SM2Post, getPostImagePaths, SM2_MAX_IMAGES_PER_POST } from "@/hooks/useSM2Posts";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -51,9 +51,9 @@ export default function PostDayDialog({ open, onClose, date, generationId, isCli
                 key={post.id}
                 post={post}
                 isClient={isClient}
-                imageUrl={post.image_path ? getImageUrl(post.image_path) : null}
+                imageUrls={getPostImagePaths(post).map((p) => ({ path: p, url: getImageUrl(p) }))}
                 onUpload={(file) => uploadImage.mutate({ post, file })}
-                onRemove={() => removeImage.mutate(post)}
+                onRemoveImage={(path) => removeImage.mutate({ post, path })}
                 onSaveFeedback={(feedback) => saveFeedback.mutate({ postId: post.id, feedback })}
                 uploading={uploadImage.isPending}
                 savingFeedback={saveFeedback.isPending}
@@ -117,18 +117,18 @@ function KV({ k, v }: { k: string; v: any }) {
 function PostCard({
   post,
   isClient,
-  imageUrl,
+  imageUrls,
   onUpload,
-  onRemove,
+  onRemoveImage,
   onSaveFeedback,
   uploading,
   savingFeedback,
 }: {
   post: SM2Post;
   isClient: boolean;
-  imageUrl: string | null;
+  imageUrls: { path: string; url: string }[];
   onUpload: (file: File) => void;
-  onRemove: () => void;
+  onRemoveImage: (path: string) => void;
   onSaveFeedback: (feedback: string) => void;
   uploading: boolean;
   savingFeedback: boolean;
@@ -137,70 +137,121 @@ function PostCard({
   const [feedback, setFeedback] = useState(post.client_feedback || "");
   const [dragOver, setDragOver] = useState(false);
 
-  const handleFile = (file: File) => {
-    if (!file.type.startsWith("image/")) return;
-    onUpload(file);
+  const handleFiles = (files: FileList | File[]) => {
+    const arr = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    const remaining = SM2_MAX_IMAGES_PER_POST - imageUrls.length;
+    arr.slice(0, Math.max(0, remaining)).forEach((f) => onUpload(f));
   };
 
   const ad = post.art_direction || {};
   const stories = Array.isArray(post.stories) ? post.stories : [];
   const cb = post.concierge_brief || {};
+  const atLimit = imageUrls.length >= SM2_MAX_IMAGES_PER_POST;
 
   return (
     <Card className="overflow-hidden">
-      <CardContent className="p-4 grid md:grid-cols-[160px_1fr] gap-4">
-        {/* Image slot */}
-        <div>
-          {imageUrl ? (
-            <div className="relative group">
-              <img src={imageUrl} alt="Post" className="w-full aspect-square object-cover rounded-lg border" />
-              {!isClient && (
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-lg">
-                  <Button size="sm" variant="secondary" onClick={() => fileRef.current?.click()} disabled={uploading}>
-                    Replace
-                  </Button>
-                  <Button size="sm" variant="destructive" onClick={onRemove}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          ) : isClient ? (
-            <div className="w-full aspect-square rounded-lg border border-dashed flex items-center justify-center text-xs text-muted-foreground">
-              No image
-            </div>
+      <CardContent className="p-4 grid md:grid-cols-[200px_1fr] gap-4">
+        {/* Image gallery slot */}
+        <div className="space-y-2">
+          {imageUrls.length === 0 ? (
+            isClient ? (
+              <div className="w-full aspect-square rounded-lg border border-dashed flex items-center justify-center text-xs text-muted-foreground">
+                No image
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragOver(true);
+                }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragOver(false);
+                  if (e.dataTransfer.files?.length) handleFiles(e.dataTransfer.files);
+                }}
+                className={`w-full aspect-square rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-1 text-xs transition-colors ${
+                  dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                }`}
+                disabled={uploading}
+              >
+                <ImagePlus className="h-5 w-5 text-muted-foreground" />
+                <span className="text-muted-foreground">{uploading ? "Uploading..." : "Add image"}</span>
+                <span className="text-[10px] text-muted-foreground">Up to {SM2_MAX_IMAGES_PER_POST}</span>
+              </button>
+            )
           ) : (
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragOver(true);
-              }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={(e) => {
-                e.preventDefault();
-                setDragOver(false);
-                const f = e.dataTransfer.files?.[0];
-                if (f) handleFile(f);
-              }}
-              className={`w-full aspect-square rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-1 text-xs transition-colors ${
-                dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-              }`}
-              disabled={uploading}
-            >
-              <ImagePlus className="h-5 w-5 text-muted-foreground" />
-              <span className="text-muted-foreground">{uploading ? "Uploading..." : "Add image"}</span>
-            </button>
+            <>
+              <div className="relative group">
+                <img
+                  src={imageUrls[0].url}
+                  alt="Cover"
+                  className="w-full aspect-square object-cover rounded-lg border"
+                />
+                <Badge className="absolute top-1.5 left-1.5 text-[9px] py-0 px-1.5">Cover</Badge>
+                {!isClient && (
+                  <button
+                    type="button"
+                    onClick={() => onRemoveImage(imageUrls[0].path)}
+                    className="absolute top-1.5 right-1.5 h-6 w-6 rounded-md bg-destructive/90 text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                    title="Remove image"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-4 gap-1.5">
+                {imageUrls.slice(1).map((img) => (
+                  <div key={img.path} className="relative group">
+                    <img
+                      src={img.url}
+                      alt="Post image"
+                      className="w-full aspect-square object-cover rounded border"
+                    />
+                    {!isClient && (
+                      <button
+                        type="button"
+                        onClick={() => onRemoveImage(img.path)}
+                        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded"
+                        title="Remove"
+                      >
+                        <Trash2 className="h-3 w-3 text-white" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {!isClient && !atLimit && (
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={uploading}
+                    className="aspect-square rounded border-2 border-dashed border-border hover:border-primary/50 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"
+                    title="Add image"
+                  >
+                    <ImagePlus className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+
+              {!isClient && (
+                <p className="text-[10px] text-muted-foreground text-center">
+                  {imageUrls.length} / {SM2_MAX_IMAGES_PER_POST} images
+                </p>
+              )}
+            </>
           )}
+
           <input
             ref={fileRef}
             type="file"
             accept="image/*"
+            multiple
             className="hidden"
             onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) handleFile(f);
+              if (e.target.files?.length) handleFiles(e.target.files);
               e.target.value = "";
             }}
           />
