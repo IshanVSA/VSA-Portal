@@ -27,6 +27,7 @@ const AnalyticsContent = lazy(() => import("@/components/social/SocialAnalyticsT
 const BrandDNATab = lazy(() => import("@/components/social/BrandDNATab"));
 const ContentGenerationTab = lazy(() => import("@/components/social/ContentGenerationTab"));
 const ClientContentReview = lazy(() => import("@/components/social/ClientContentReview"));
+const ClientPostsTab = lazy(() => import("@/components/social/ClientPostsTab"));
 const ContentThemeSliders = lazy(() => import("@/components/social/ContentThemeSliders"));
 
 const TabFallback = () => (
