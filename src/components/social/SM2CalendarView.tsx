@@ -8,8 +8,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Send, ThumbsUp, MessageSquare, CheckCircle, Clock, Facebook, Instagram } from "lucide-react";
-import { useSM2Posts, type SM2Post } from "@/hooks/useSM2Posts";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Send, ThumbsUp, MessageSquare, CheckCircle, Clock, Facebook, Instagram, AlertTriangle } from "lucide-react";
+import { useSM2Posts, type SM2Post, postHasImage } from "@/hooks/useSM2Posts";
 import PostDayDialog from "./PostDayDialog";
 
 interface Props {
@@ -55,6 +65,12 @@ export default function SM2CalendarView({
 }: Props) {
   const { posts, total, withImages, imagesComplete, getImageUrl, isLoading } = useSM2Posts(generationId);
   const [openDate, setOpenDate] = useState<string | null>(null);
+  const [confirmSendOpen, setConfirmSendOpen] = useState(false);
+
+  const missingPosts = useMemo(
+    () => posts.filter((p) => !postHasImage(p)),
+    [posts]
+  );
 
   const currentMonth = useMemo(() => {
     const [y, m] = monthYear.split("-");
@@ -119,24 +135,15 @@ export default function SM2CalendarView({
           </div>
           <div className="flex items-center gap-2">
             {!isClient && approvalStatus === "pending" && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span>
-                    <Button
-                      size="sm"
-                      onClick={onSendToClient}
-                      disabled={!imagesComplete || sendPending}
-                      className="gap-2"
-                    >
-                      <Send className="h-3.5 w-3.5" />
-                      Send to client for review
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                {!imagesComplete && (
-                  <TooltipContent>Add images to all {total} posts first ({withImages}/{total})</TooltipContent>
-                )}
-              </Tooltip>
+              <Button
+                size="sm"
+                onClick={() => setConfirmSendOpen(true)}
+                disabled={sendPending}
+                className="gap-2"
+              >
+                <Send className="h-3.5 w-3.5" />
+                Send to client for review
+              </Button>
             )}
             {isClient && approvalStatus === "sent_to_client" && (
               <>
@@ -234,6 +241,85 @@ export default function SM2CalendarView({
           generationId={generationId}
           isClient={isClient}
         />
+
+        <AlertDialog open={confirmSendOpen} onOpenChange={setConfirmSendOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                {imagesComplete ? (
+                  <>
+                    <CheckCircle className="h-5 w-5 text-emerald-500" />
+                    Send calendar to client?
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="h-5 w-5 text-amber-500" />
+                    Visuals incomplete
+                  </>
+                )}
+              </AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-3">
+                  {imagesComplete ? (
+                    <p>
+                      All <span className="font-semibold text-foreground">{total}</span> posts have at least
+                      one image attached. The client will be notified and asked to review and approve the
+                      monthly calendar.
+                    </p>
+                  ) : (
+                    <>
+                      <p>
+                        <span className="font-semibold text-foreground">{missingPosts.length}</span> of{" "}
+                        <span className="font-semibold text-foreground">{total}</span> posts still don't have
+                        any image. Each post needs at least one visual before this calendar can be sent for
+                        client review.
+                      </p>
+                      <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 max-h-48 overflow-y-auto">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400 mb-2">
+                          Posts missing visuals
+                        </p>
+                        <ul className="space-y-1 text-sm">
+                          {missingPosts.slice(0, 12).map((p) => (
+                            <li key={p.id} className="flex items-center gap-2 text-foreground">
+                              <span className="text-xs font-mono text-muted-foreground">
+                                {p.post_number != null ? `#${p.post_number}` : "•"}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(p.scheduled_date + "T00:00:00"), "MMM d")}
+                              </span>
+                              <span className="truncate">
+                                {p.topic || p.theme || p.post_type || "Untitled post"}
+                              </span>
+                            </li>
+                          ))}
+                          {missingPosts.length > 12 && (
+                            <li className="text-xs text-muted-foreground pt-1">
+                              + {missingPosts.length - 12} more
+                            </li>
+                          )}
+                        </ul>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{imagesComplete ? "Cancel" : "Keep editing"}</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={!imagesComplete || sendPending}
+                onClick={() => {
+                  if (!imagesComplete) return;
+                  setConfirmSendOpen(false);
+                  onSendToClient?.();
+                }}
+              >
+                <Send className="h-3.5 w-3.5 mr-1.5" />
+                Confirm & send
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </TooltipProvider>
   );
