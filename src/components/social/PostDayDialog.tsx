@@ -16,6 +16,9 @@ import {
   Palette,
   Film,
   Megaphone,
+  Eye,
+  ChevronLeft,
+  X,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useSM2Posts, type SM2Post, getPostImagePaths, SM2_MAX_IMAGES_PER_POST } from "@/hooks/useSM2Posts";
