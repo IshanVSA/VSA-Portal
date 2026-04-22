@@ -85,43 +85,85 @@ export function useSM2Posts(generationId: string | undefined) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [generationId]);
 
+  // Uploads one or more files for a post in a single atomic DB update so
+  // multiple selected files don't race against each other or get overwritten.
   const uploadImage = useMutation({
-    mutationFn: async ({ post, file }: { post: SM2Post; file: File }) => {
-      const existing = getPostImagePaths(post);
-      if (existing.length >= SM2_MAX_IMAGES_PER_POST) {
+    mutationFn: async ({ post, file, files }: { post: SM2Post; file?: File; files?: File[] }) => {
+      const incoming = files && files.length > 0 ? files : file ? [file] : [];
+      if (incoming.length === 0) return;
+
+      // Re-read latest post state from DB so concurrent dialogs/realtime stay correct.
+      const { data: fresh, error: fetchErr } = await supabase
+        .from("sm2_posts")
+        .select("id, generation_id, image_path, image_paths")
+        .eq("id", post.id)
+        .single();
+      if (fetchErr) throw fetchErr;
+
+      const existingCover: string | null = fresh.image_path ?? null;
+      const existingGallery: string[] = fresh.image_paths || [];
+      const existingAll = [existingCover, ...existingGallery].filter((p): p is string => !!p);
+
+      const remaining = SM2_MAX_IMAGES_PER_POST - existingAll.length;
+      if (remaining <= 0) {
         throw new Error(`Maximum ${SM2_MAX_IMAGES_PER_POST} images per post`);
       }
-      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const slot = existing.length; // 0 = cover, 1..9 = gallery
-      const stamp = Date.now();
-      const path = `sm2/${post.generation_id}/${post.id}-${slot}-${stamp}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from("department-files")
-        .upload(path, file, { upsert: true, contentType: file.type });
-      if (upErr) throw upErr;
-      const { data: userData } = await supabase.auth.getUser();
+      const toUpload = incoming.slice(0, remaining);
+      const skipped = incoming.length - toUpload.length;
 
-      // First upload becomes the cover (image_path); rest go into image_paths gallery.
+      const uploadedPaths: string[] = [];
+      for (let i = 0; i < toUpload.length; i++) {
+        const f = toUpload[i];
+        const ext = f.name.split(".").pop()?.toLowerCase() || "jpg";
+        const slot = existingAll.length + i;
+        const stamp = Date.now();
+        const path = `sm2/${post.generation_id}/${post.id}-${slot}-${stamp}-${i}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("department-files")
+          .upload(path, f, { upsert: true, contentType: f.type });
+        if (upErr) throw upErr;
+        uploadedPaths.push(path);
+      }
+
+      const { data: userData } = await supabase.auth.getUser();
       const update: Record<string, any> = {
         image_uploaded_at: new Date().toISOString(),
         image_uploaded_by: userData.user?.id,
       };
-      if (!post.image_path) {
-        update.image_path = path;
-      } else {
-        const next = Array.from(new Set([...(post.image_paths || []), path]));
-        update.image_paths = next;
+
+      let nextCover = existingCover;
+      let nextGallery = [...existingGallery];
+      for (const path of uploadedPaths) {
+        if (!nextCover) {
+          nextCover = path;
+        } else {
+          nextGallery.push(path);
+        }
       }
+      nextGallery = Array.from(new Set(nextGallery));
+
+      update.image_path = nextCover;
+      update.image_paths = nextGallery;
 
       const { error: dbErr } = await supabase
         .from("sm2_posts")
         .update(update)
         .eq("id", post.id);
       if (dbErr) throw dbErr;
+
+      return { uploaded: uploadedPaths.length, skipped };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey });
-      toast.success("Image uploaded");
+      const uploaded = result?.uploaded ?? 1;
+      const skipped = result?.skipped ?? 0;
+      if (skipped > 0) {
+        toast.success(`${uploaded} image${uploaded === 1 ? "" : "s"} uploaded`, {
+          description: `${skipped} skipped (max ${SM2_MAX_IMAGES_PER_POST} per post).`,
+        });
+      } else {
+        toast.success(`${uploaded} image${uploaded === 1 ? "" : "s"} uploaded`);
+      }
     },
     onError: (e: Error) => toast.error("Upload failed", { description: e.message }),
   });
