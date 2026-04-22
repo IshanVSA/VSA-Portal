@@ -117,6 +117,24 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
         });
       }
 
+      // Fetch pool assignees for all tickets in one query
+      if (results.length > 0) {
+        const ticketIds = results.map((t: any) => t.id);
+        const { data: assigneeRows } = await (supabase
+          .from("ticket_assignees" as any)
+          .select("ticket_id, user_id")
+          .in("ticket_id", ticketIds) as any);
+
+        const poolMap = new Map<string, string[]>();
+        ((assigneeRows || []) as { ticket_id: string; user_id: string }[]).forEach(r => {
+          const arr = poolMap.get(r.ticket_id) || [];
+          arr.push(r.user_id);
+          poolMap.set(r.ticket_id, arr);
+        });
+
+        results = results.map((t: any) => ({ ...t, pool_user_ids: poolMap.get(t.id) || [] }));
+      }
+
       return results;
     },
   });
@@ -242,6 +260,7 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
               department={t.department}
               created_at={t.created_at}
               assigned_to={t.assigned_to}
+              pool_user_ids={t.pool_user_ids}
               void_reason={t.void_reason}
               teamMembers={teamMemberProfiles}
               onUpdated={() => refetch()}

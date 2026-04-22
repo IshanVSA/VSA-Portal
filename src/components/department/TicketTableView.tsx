@@ -31,6 +31,7 @@ interface TableTicket {
   department: string;
   created_at: string;
   assigned_to?: string | null;
+  pool_user_ids?: string[];
 }
 
 interface TicketTableViewProps {
@@ -155,6 +156,9 @@ export function TicketTableView({ tickets, teamMembers, onUpdated }: TicketTable
             const sc = statusConfig[t.status] || statusConfig.open;
             const pc = priorityConfig[t.priority] || priorityConfig.regular;
             const assignee = t.assigned_to ? teamMembers.find(m => m.id === t.assigned_to)?.name : null;
+            const poolNames = !t.assigned_to
+              ? (t.pool_user_ids || []).map(uid => teamMembers.find(m => m.id === uid)?.name).filter(Boolean) as string[]
+              : [];
             const isVoid = t.status === "void";
             return (
               <TableRow
@@ -184,10 +188,12 @@ export function TicketTableView({ tickets, teamMembers, onUpdated }: TicketTable
                   {isClient ? (
                     assignee ? (
                       <span className="text-xs text-foreground">{assignee}</span>
+                    ) : poolNames.length > 0 ? (
+                      <span className="text-xs text-primary" title={poolNames.join(", ")}>Pool: {poolNames.length}</span>
                     ) : (
                       <span className="text-xs text-muted-foreground italic">Unassigned</span>
                     )
-                  ) : (
+                  ) : assignee ? (
                     <Select value={t.assigned_to || "unassigned"} onValueChange={(v) => handleAssigneeChange(t.id, v)}>
                       <SelectTrigger className="h-7 text-xs w-[130px]">
                         <SelectValue placeholder="Unassigned" />
@@ -199,6 +205,23 @@ export function TicketTableView({ tickets, teamMembers, onUpdated }: TicketTable
                         ))}
                       </SelectContent>
                     </Select>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      {poolNames.length > 0 && (
+                        <span className="text-xs text-primary" title={poolNames.join(", ")}>Pool: {poolNames.length}</span>
+                      )}
+                      <Select value="unassigned" onValueChange={(v) => handleAssigneeChange(t.id, v)}>
+                        <SelectTrigger className="h-7 text-xs w-[110px]">
+                          <SelectValue placeholder="Claim" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unassigned" className="text-xs">Unassigned</SelectItem>
+                          {teamMembers.map(m => (
+                            <SelectItem key={m.id} value={m.id} className="text-xs">{m.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   )}
                 </TableCell>
                 <TableCell>

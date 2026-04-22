@@ -36,6 +36,7 @@ interface TicketCardProps {
   department: string;
   created_at: string;
   assigned_to?: string | null;
+  pool_user_ids?: string[];
   void_reason?: string | null;
   teamMembers?: TeamMemberOption[];
   onUpdated?: () => void;
@@ -62,7 +63,7 @@ const allDepartments = [
   { value: "social_media", label: "Social Media" },
 ];
 
-export function TicketCard({ id, title, ticket_type, priority, status, description, department, created_at, assigned_to, void_reason, teamMembers = [], onUpdated }: TicketCardProps) {
+export function TicketCard({ id, title, ticket_type, priority, status, description, department, created_at, assigned_to, pool_user_ids = [], void_reason, teamMembers = [], onUpdated }: TicketCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [voidDialogOpen, setVoidDialogOpen] = useState(false);
@@ -75,6 +76,11 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
   const StatusIcon = sc.icon;
   const deptLabel = allDepartments.find(d => d.value === department)?.label || department;
   const assigneeName = assigned_to ? teamMembers.find(m => m.id === assigned_to)?.name : null;
+  const poolNames = !assigned_to
+    ? pool_user_ids
+        .map(uid => teamMembers.find(m => m.id === uid)?.name)
+        .filter(Boolean) as string[]
+    : [];
 
   const statusOptions: { value: string; label: string }[] = [
     { value: "open", label: "Open" },
@@ -228,7 +234,12 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
                   <UserCircle className="h-2.5 w-2.5" />{assigneeName}
                 </Badge>
               )}
-              {!assigneeName && (
+              {!assigneeName && poolNames.length > 0 && (
+                <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-primary/5 text-primary border-primary/20 gap-1" title={poolNames.join(", ")}>
+                  <UserCircle className="h-2.5 w-2.5" />Pool: {poolNames.length} member{poolNames.length === 1 ? "" : "s"}
+                </Badge>
+              )}
+              {!assigneeName && poolNames.length === 0 && (
                 <Badge variant="outline" className="text-[10px] px-2 py-0.5 text-muted-foreground/60 border-dashed gap-1">
                   <UserCircle className="h-2.5 w-2.5" />Unassigned
                 </Badge>

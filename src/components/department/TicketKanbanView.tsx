@@ -29,6 +29,7 @@ interface KanbanTicket {
   department: string;
   created_at: string;
   assigned_to?: string | null;
+  pool_user_ids?: string[];
 }
 
 interface TicketKanbanViewProps {
@@ -181,6 +182,10 @@ export function TicketKanbanView({ tickets, teamMembers, onUpdated }: TicketKanb
               ) : (
                 colTickets.map(t => {
                   const assignee = t.assigned_to ? teamMembers.find(m => m.id === t.assigned_to)?.name : null;
+                  const poolCount = !t.assigned_to ? (t.pool_user_ids?.length || 0) : 0;
+                  const poolNames = !t.assigned_to
+                    ? (t.pool_user_ids || []).map(uid => teamMembers.find(m => m.id === uid)?.name).filter(Boolean) as string[]
+                    : [];
                   const isDragging = draggedId === t.id;
                   const isVoid = t.status === "void";
                   return (
@@ -220,6 +225,10 @@ export function TicketKanbanView({ tickets, teamMembers, onUpdated }: TicketKanb
                         {assignee ? (
                           <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-primary/5 text-primary border-primary/20">
                             <UserCircle className="h-2.5 w-2.5 mr-0.5" />{assignee}
+                          </Badge>
+                        ) : poolCount > 0 ? (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-primary/5 text-primary border-primary/20" title={poolNames.join(", ")}>
+                            <UserCircle className="h-2.5 w-2.5 mr-0.5" />Pool: {poolCount}
                           </Badge>
                         ) : (
                           <span className="text-[10px] text-muted-foreground italic">Unassigned</span>

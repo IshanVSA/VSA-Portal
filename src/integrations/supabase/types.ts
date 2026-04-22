@@ -2362,6 +2362,32 @@ export type Database = {
         }
         Relationships: []
       }
+      ticket_assignees: {
+        Row: {
+          created_at: string
+          ticket_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          ticket_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          ticket_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_assignees_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "department_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ticket_audit_log: {
         Row: {
           actor_id: string | null
