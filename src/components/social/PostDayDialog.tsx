@@ -529,7 +529,7 @@ function ImageLightbox({
       <img
         src={current.url}
         alt="Preview"
-        className="max-h-[85vh] max-w-[85vw] object-contain rounded-lg shadow-2xl"
+        className="max-h-[95vh] max-w-[95vw] w-auto h-auto object-contain rounded-lg shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       />
 
