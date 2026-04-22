@@ -82,12 +82,18 @@ export default function Login() {
 
           {forgotMode && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-              <div className="bg-background rounded-xl border p-6 w-full max-w-sm space-y-4 shadow-xl">
-                <h2 className="text-lg font-bold text-foreground">Reset your password</h2>
-                <p className="text-sm text-muted-foreground">Enter your email and we'll send you a reset link.</p>
-                <Input type="email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} placeholder="you@example.com" className="input-glow" />
+              <div className="bg-white rounded-xl border border-gray-200 p-6 w-full max-w-sm space-y-4 shadow-xl">
+                <h2 className="text-lg font-bold text-gray-900">Reset your password</h2>
+                <p className="text-sm text-gray-600">Enter your email and we'll send you a reset link.</p>
+                <Input
+                  type="email"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="input-glow border-gray-200 bg-white text-gray-900 placeholder:text-gray-400"
+                />
                 <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1" onClick={() => setForgotMode(false)}>Cancel</Button>
+                  <Button variant="outline" className="flex-1 bg-white text-gray-900 border-gray-200 hover:bg-gray-50" onClick={() => setForgotMode(false)}>Cancel</Button>
                   <Button className="flex-1" disabled={resetLoading} onClick={async () => {
                     if (!resetEmail) { toast.error("Enter your email"); return; }
                     setResetLoading(true);
