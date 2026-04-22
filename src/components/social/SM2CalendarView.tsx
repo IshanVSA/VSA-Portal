@@ -241,6 +241,85 @@ export default function SM2CalendarView({
           generationId={generationId}
           isClient={isClient}
         />
+
+        <AlertDialog open={confirmSendOpen} onOpenChange={setConfirmSendOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                {imagesComplete ? (
+                  <>
+                    <CheckCircle className="h-5 w-5 text-emerald-500" />
+                    Send calendar to client?
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="h-5 w-5 text-amber-500" />
+                    Visuals incomplete
+                  </>
+                )}
+              </AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-3">
+                  {imagesComplete ? (
+                    <p>
+                      All <span className="font-semibold text-foreground">{total}</span> posts have at least
+                      one image attached. The client will be notified and asked to review and approve the
+                      monthly calendar.
+                    </p>
+                  ) : (
+                    <>
+                      <p>
+                        <span className="font-semibold text-foreground">{missingPosts.length}</span> of{" "}
+                        <span className="font-semibold text-foreground">{total}</span> posts still don't have
+                        any image. Each post needs at least one visual before this calendar can be sent for
+                        client review.
+                      </p>
+                      <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 max-h-48 overflow-y-auto">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400 mb-2">
+                          Posts missing visuals
+                        </p>
+                        <ul className="space-y-1 text-sm">
+                          {missingPosts.slice(0, 12).map((p) => (
+                            <li key={p.id} className="flex items-center gap-2 text-foreground">
+                              <span className="text-xs font-mono text-muted-foreground">
+                                {p.post_number != null ? `#${p.post_number}` : "•"}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(p.scheduled_date + "T00:00:00"), "MMM d")}
+                              </span>
+                              <span className="truncate">
+                                {p.topic || p.theme || p.post_type || "Untitled post"}
+                              </span>
+                            </li>
+                          ))}
+                          {missingPosts.length > 12 && (
+                            <li className="text-xs text-muted-foreground pt-1">
+                              + {missingPosts.length - 12} more
+                            </li>
+                          )}
+                        </ul>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{imagesComplete ? "Cancel" : "Keep editing"}</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={!imagesComplete || sendPending}
+                onClick={() => {
+                  if (!imagesComplete) return;
+                  setConfirmSendOpen(false);
+                  onSendToClient?.();
+                }}
+              >
+                <Send className="h-3.5 w-3.5 mr-1.5" />
+                Confirm & send
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </TooltipProvider>
   );
