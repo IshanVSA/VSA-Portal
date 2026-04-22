@@ -176,10 +176,12 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
       <div className="text-center py-16 space-y-3">
         <Megaphone className="h-10 w-10 mx-auto text-muted-foreground/50" />
         <p className="text-muted-foreground text-sm">No analytics data yet.</p>
-        <Button onClick={handleSync} disabled={syncing} size="sm" className="gap-2">
-          <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
-          {syncing ? "Syncing…" : "Sync Now"}
-        </Button>
+        {isStaff && (
+          <Button onClick={handleSync} disabled={syncing} size="sm" className="gap-2">
+            <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Syncing…" : "Sync Now"}
+          </Button>
+        )}
       </div>
     );
   }
