@@ -118,6 +118,7 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
       }
 
       // Fetch pool assignees for all tickets in one query
+      let assigneeUserIds: string[] = [];
       if (results.length > 0) {
         const ticketIds = results.map((t: any) => t.id);
         const { data: assigneeRows } = await (supabase
@@ -133,10 +134,53 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
         });
 
         results = results.map((t: any) => ({ ...t, pool_user_ids: poolMap.get(t.id) || [] }));
+
+        // Collect all referenced assignee user IDs (assigned_to + pool members)
+        const idSet = new Set<string>();
+        results.forEach((t: any) => {
+          if (t.assigned_to) idSet.add(t.assigned_to);
+          (t.pool_user_ids || []).forEach((uid: string) => idSet.add(uid));
+        });
+        assigneeUserIds = Array.from(idSet);
       }
 
-      return results;
+      return { results, assigneeUserIds };
     },
+  });
+
+  const tickets = (ticketsQuery as any)?.results ?? [];
+  const assigneeUserIds: string[] = (ticketsQuery as any)?.assigneeUserIds ?? [];
+
+  // Resolve display names for every assignee referenced by any ticket in the list
+  // (handles client/staff users who can't query profiles directly via RLS).
+  const { data: assigneeNameMap = {} } = useQuery({
+    queryKey: ["ticket-assignee-names", clinicId, assigneeUserIds.sort().join(",")],
+    queryFn: async () => {
+      if (!assigneeUserIds.length) return {};
+      // Use the per-ticket RPC for the first ticket as a fallback resolver,
+      // but most names will already be in teamMemberProfiles for staff.
+      // For maximum coverage we run the RPC per ticket that has pool/assignee data.
+      const map: Record<string, string> = {};
+      teamMemberProfiles.forEach(m => { map[m.id] = m.name; });
+
+      // Fill any remaining via RPC (clients/staff with limited profile access)
+      const missing = assigneeUserIds.filter(id => !map[id]);
+      if (missing.length) {
+        const ticketsWithMissing = tickets.filter((t: any) =>
+          (t.assigned_to && missing.includes(t.assigned_to)) ||
+          (t.pool_user_ids || []).some((uid: string) => missing.includes(uid))
+        ).slice(0, 20);
+        await Promise.all(ticketsWithMissing.map(async (t: any) => {
+          const { data } = await (supabase
+            .rpc("get_ticket_user_directory" as any, { _ticket_id: t.id }) as any);
+          ((data ?? []) as { user_id: string; full_name: string }[]).forEach(p => {
+            if (!map[p.user_id]) map[p.user_id] = p.full_name || "Unknown user";
+          });
+        }));
+      }
+      return map;
+    },
+    enabled: assigneeUserIds.length > 0,
   });
 
   // Client-side search filtering
