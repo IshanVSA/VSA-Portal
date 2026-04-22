@@ -88,7 +88,7 @@ export default function SM2CalendarView({
     if (!isClient && total > 0) {
       return imagesComplete
         ? <Badge className="gap-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"><CheckCircle className="h-3 w-3" />Ready to send</Badge>
-        : <Badge variant="outline" className="gap-1 border-amber-500/30 text-amber-700 dark:text-amber-400">Pending images {withImages}/{total}</Badge>;
+        : <Badge variant="outline" className="gap-1 border-amber-500/30 text-amber-700 dark:text-amber-400">Awaiting visuals · {withImages}/{total} posts</Badge>;
     }
     return null;
   })();
