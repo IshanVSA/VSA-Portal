@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import SM2CalendarView from "./SM2CalendarView";
+import PostDetailsDrawer from "./PostDetailsDrawer";
 
 interface Props {
   clinicId: string | undefined;
@@ -44,6 +45,7 @@ export default function ClientContentReview({ clinicId }: Props) {
   const { generations, isLoading, approveContent, submitFeedback, getHtmlUrl } =
     useSM2Generation(clinicId);
   const [viewingGen, setViewingGen] = useState<SM2Generation | null>(null);
+  const [drawerGen, setDrawerGen] = useState<SM2Generation | null>(null);
   const [feedbackGen, setFeedbackGen] = useState<SM2Generation | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
   const [approveConfirm, setApproveConfirm] = useState<SM2Generation | null>(null);
@@ -111,6 +113,7 @@ export default function ClientContentReview({ clinicId }: Props) {
             key={gen.id}
             generation={gen}
             onView={() => setViewingGen(gen)}
+            onPreviewPosts={() => setDrawerGen(gen)}
             onApprove={() => setApproveConfirm(gen)}
             onFeedback={() => {
               setFeedbackGen(gen);
@@ -120,6 +123,26 @@ export default function ClientContentReview({ clinicId }: Props) {
           />
         ))}
       </div>
+
+      {/* Post Details Drawer */}
+      {drawerGen && (
+        <PostDetailsDrawer
+          open
+          onClose={() => setDrawerGen(null)}
+          generationId={drawerGen.id}
+          monthYear={drawerGen.month_year}
+          approvalStatus={drawerGen.approval_status}
+          onApprove={() => {
+            setApproveConfirm(drawerGen);
+            setDrawerGen(null);
+          }}
+          onRequestChanges={() => {
+            setFeedbackGen(drawerGen);
+            setFeedbackText(drawerGen.client_feedback || "");
+            setDrawerGen(null);
+          }}
+        />
+      )}
 
       {/* Calendar Preview Dialog */}
       {viewingGen && (
@@ -222,12 +245,14 @@ export default function ClientContentReview({ clinicId }: Props) {
 function ContentReviewCard({
   generation,
   onView,
+  onPreviewPosts,
   onApprove,
   onFeedback,
   isPendingApproval,
 }: {
   generation: SM2Generation;
   onView: () => void;
+  onPreviewPosts: () => void;
   onApprove: () => void;
   onFeedback: () => void;
   isPendingApproval: boolean;
@@ -278,10 +303,14 @@ function ContentReviewCard({
         )}
 
         {/* Actions */}
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={onView} className="gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="default" size="sm" onClick={onPreviewPosts} className="gap-2">
             <Eye className="h-4 w-4" />
-            View Content
+            Preview Posts
+          </Button>
+          <Button variant="outline" size="sm" onClick={onView} className="gap-2">
+            <FileText className="h-4 w-4" />
+            Calendar View
           </Button>
           {isActionable && (
             <>
@@ -298,7 +327,7 @@ function ContentReviewCard({
                 size="sm"
                 onClick={onApprove}
                 disabled={isPendingApproval}
-                className="gap-2"
+                className="gap-2 ml-auto"
               >
                 <ThumbsUp className="h-4 w-4" />
                 Approve
