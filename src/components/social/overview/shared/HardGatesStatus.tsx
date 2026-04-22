@@ -58,11 +58,11 @@ export function HardGatesStatus({ gates, variant = "pills" }: HardGatesStatusPro
         return (
           <div
             key={g.key}
-            className={cn("flex flex-col items-start gap-1 p-2.5 rounded-lg border", tone)}
+            className={cn("flex flex-col items-start gap-1 p-2.5 rounded-lg border min-w-0", tone)}
           >
-            <div className="flex items-center gap-1.5">
-              <Shield className="h-3 w-3" />
-              <span className="text-[10px] font-semibold uppercase tracking-wide truncate">
+            <div className="flex items-center gap-1.5 w-full min-w-0">
+              <Shield className="h-3 w-3 shrink-0" />
+              <span className="text-[10px] font-semibold uppercase tracking-tight leading-tight break-words">
                 {g.label}
               </span>
             </div>
