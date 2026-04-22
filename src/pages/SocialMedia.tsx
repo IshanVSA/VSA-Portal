@@ -27,6 +27,7 @@ const AnalyticsContent = lazy(() => import("@/components/social/SocialAnalyticsT
 const BrandDNATab = lazy(() => import("@/components/social/BrandDNATab"));
 const ContentGenerationTab = lazy(() => import("@/components/social/ContentGenerationTab"));
 const ClientContentReview = lazy(() => import("@/components/social/ClientContentReview"));
+const ClientPostsTab = lazy(() => import("@/components/social/ClientPostsTab"));
 const ContentThemeSliders = lazy(() => import("@/components/social/ContentThemeSliders"));
 
 const TabFallback = () => (
@@ -50,7 +51,7 @@ const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
 const dnaTab = { value: "brand-dna", label: "Brand DNA", icon: Dna };
 const generationTab = { value: "generation", label: "Generate", icon: Sparkles };
 const gbpPostsTab = { value: "gbp-posts", label: "GBP Posts", icon: MapPin };
-const contentReviewTab = { value: "content-review", label: "My Content", icon: Eye };
+const contentReviewTab = { value: "my-posts", label: "My Posts", icon: Eye };
 const themeSlidersTab = { value: "preferences", label: "Preferences", icon: SlidersHorizontal };
 const metaAdsTab = { value: "meta-ads", label: "Meta Ads", icon: Megaphone };
 
@@ -72,6 +73,7 @@ export default function SocialMedia() {
   const visibleTabs = isClient
     ? [
         baseTabs.find(t => t.value === "overview")!,
+        contentReviewTab,
         baseTabs.find(t => t.value === "tickets")!,
         baseTabs.find(t => t.value === "promotions")!,
         baseTabs.find(t => t.value === "analytics")!,
@@ -144,7 +146,7 @@ export default function SocialMedia() {
                 <TabsContent value="overview" className="mt-4"><SocialOverview clinicId={selectedClinicId} /></TabsContent>
                 
                 <TabsContent value="tickets" className="mt-4"><TicketsTab department="social_media" services={socialServices} clinicId={selectedClinicId} /></TabsContent>
-                <TabsContent value="content-review" className="mt-4"><Suspense fallback={<TabFallback />}><ClientContentReview clinicId={selectedClinicId} /></Suspense></TabsContent>
+                <TabsContent value="my-posts" className="mt-4"><Suspense fallback={<TabFallback />}><ClientPostsTab clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="preferences" className="mt-4"><Suspense fallback={<TabFallback />}><ContentThemeSliders clinicId={selectedClinicId} /></Suspense></TabsContent>
                 <TabsContent value="promotions" className="mt-4"><Suspense fallback={<TabFallback />}><PromotionModule clinicId={selectedClinicId} /></Suspense></TabsContent>
                 
