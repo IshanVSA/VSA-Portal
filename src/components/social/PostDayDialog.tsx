@@ -52,7 +52,7 @@ export default function PostDayDialog({ open, onClose, date, generationId, isCli
                 post={post}
                 isClient={isClient}
                 imageUrls={getPostImagePaths(post).map((p) => ({ path: p, url: getImageUrl(p) }))}
-                onUpload={(file) => uploadImage.mutate({ post, file })}
+                onUpload={(files) => uploadImage.mutate({ post, files })}
                 onRemoveImage={(path) => removeImage.mutate({ post, path })}
                 onSaveFeedback={(feedback) => saveFeedback.mutate({ postId: post.id, feedback })}
                 uploading={uploadImage.isPending}
