@@ -22,7 +22,23 @@ interface ClinicLogoUploaderProps {
 const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 const MAX_BYTES = 2 * 1024 * 1024;
 const TARGET_SIZE = 512;
+const MIN_DIMENSION = 128;
+const MAX_DIMENSION = 4096;
 const BUCKET = "department-files";
+
+async function readImageDimensions(file: File): Promise<{ width: number; height: number }> {
+  const url = URL.createObjectURL(file);
+  try {
+    return await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      img.onerror = () => reject(new Error("Could not read image"));
+      img.src = url;
+    });
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
 
 async function resizeImage(file: File): Promise<Blob> {
   const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -115,8 +131,33 @@ export function ClinicLogoUploader({
     }
 
     setStage("resizing");
-    setProgress(15);
+    setProgress(10);
     try {
+      let dims: { width: number; height: number };
+      try {
+        dims = await readImageDimensions(file);
+      } catch {
+        toast.error("Could not read image — file may be corrupted");
+        setStage("idle");
+        setProgress(0);
+        return;
+      }
+      const minSide = Math.min(dims.width, dims.height);
+      const maxSide = Math.max(dims.width, dims.height);
+      if (minSide < MIN_DIMENSION) {
+        toast.error(`Image is too small (${dims.width}×${dims.height}px). Use at least ${MIN_DIMENSION}×${MIN_DIMENSION}px.`);
+        setStage("idle");
+        setProgress(0);
+        return;
+      }
+      if (maxSide > MAX_DIMENSION) {
+        toast.error(`Image is too large (${dims.width}×${dims.height}px). Maximum is ${MAX_DIMENSION}×${MAX_DIMENSION}px.`);
+        setStage("idle");
+        setProgress(0);
+        return;
+      }
+
+      setProgress(20);
       const blob = await resizeImage(file);
       setStage("uploading");
       setProgress(50);
