@@ -97,9 +97,16 @@ export default function Login() {
                   <Button className="flex-1" disabled={resetLoading} onClick={async () => {
                     if (!resetEmail) { toast.error("Enter your email"); return; }
                     setResetLoading(true);
-                    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, { redirectTo: `${window.location.origin}/reset-password` });
-                    if (error) toast.error(error.message);
-                    else { toast.success("Check your email for the reset link"); setForgotMode(false); }
+                    const { data, error } = await supabase.functions.invoke("request-password-reset", {
+                      body: { email: resetEmail, redirectTo: `${window.location.origin}/reset-password` },
+                    });
+                    if (error || (data && (data as any).error)) {
+                      const msg = (data as any)?.error || error?.message || "Failed to send reset link";
+                      toast.error(msg);
+                    } else {
+                      toast.success("Check your email for the reset link");
+                      setForgotMode(false);
+                    }
                     setResetLoading(false);
                   }}>{resetLoading ? "Sending..." : "Send Reset Link"}</Button>
                 </div>
