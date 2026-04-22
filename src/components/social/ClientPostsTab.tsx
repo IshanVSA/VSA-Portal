@@ -7,7 +7,7 @@ import { lazy, Suspense } from "react";
 import { useSM2Generation } from "@/hooks/useSM2Generation";
 
 const ClientContentReview = lazy(() => import("./ClientContentReview"));
-const ContentCalendarContent = lazy(() => import("./ContentCalendarContent"));
+const ClientContentCalendar = lazy(() => import("./ClientContentCalendar"));
 
 interface Props {
   clinicId: string | undefined;
@@ -79,7 +79,7 @@ export default function ClientPostsTab({ clinicId }: Props) {
 
         <TabsContent value="calendar" className="mt-4">
           <Suspense fallback={<Fallback />}>
-            <ContentCalendarContent clinicId={clinicId} />
+            <ClientContentCalendar clinicId={clinicId} />
           </Suspense>
         </TabsContent>
       </Tabs>
