@@ -381,6 +381,15 @@ export default function ClinicDetail() {
       <div className="space-y-6">
         <div className="flex items-center gap-4">
           <Link to="/clinics"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button></Link>
+          {id && (
+            <ClinicLogoUploader
+              clinicId={id}
+              clinicName={clinic?.clinic_name || ""}
+              logoUrl={clinic?.logo_url ?? null}
+              onChange={(url) => setClinic((prev) => (prev ? { ...prev, logo_url: url } : prev))}
+              size={72}
+            />
+          )}
           <div>
             <h1 className="text-2xl font-bold text-foreground">{clinic?.clinic_name || "Loading..."}</h1>
             <p className="text-muted-foreground">Clinic Analytics & Performance</p>
