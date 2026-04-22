@@ -1,9 +1,13 @@
 import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Camera, Loader2, Trash2 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+type Stage = "idle" | "resizing" | "uploading" | "saving" | "removing";
 
 interface ClinicLogoUploaderProps {
   clinicId: string;
