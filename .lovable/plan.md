@@ -1,85 +1,46 @@
 
 
-## Plan: Automate publishing of approved GBP posts
+## Plan: Add clinic profile picture (logo) upload
 
-### How GBP auto-posting actually works
+### What you'll get
 
-Approved posts in `gbp_post_history` (status `approved`) currently just sit in the "Scheduled Posts" tab as a preview. Nothing pushes them to Google. To automate this we need three pieces:
+A new circular profile picture slot at the top of every clinic's detail page. Anyone with access to the clinic — admin, concierge, or the client owner — can click it to upload, replace, or remove the image. The picture will also show up wherever the clinic is listed (clinic list, dashboard cards, sidebar selector) instead of the current letter avatar.
 
-1. **Google Business Profile API access** — a separate Google API from Ads, with its own OAuth scope (`https://www.googleapis.com/auth/business.manage`).
-2. **Per-clinic OAuth connection** — each clinic owner must authorize us to post to their GBP location once. We store a `refresh_token` + the GBP `account_id` and `location_id`.
-3. **A scheduler** — a cron job that wakes up, finds approved posts whose scheduled date has arrived, and calls the GBP API for each one.
+### How it works
 
-### ⚠ Important prerequisite (Google approval)
+- **Storage**: reuse the existing public `department-files` bucket under a new folder `clinic-logos/{clinic_id}/logo.{ext}` — no new bucket needed.
+- **Database**: the `clinics.logo_url` column already exists. We just need to start writing to it. No migration required.
+- **Permissions**: the upload component only renders for users who can already view the clinic (admins via RLS, the assigned concierge, or the owner client). Storage RLS on `department-files` is already public-read; we add an INSERT/UPDATE/DELETE policy on `storage.objects` scoped to that path so admins, the assigned concierge, and the clinic owner can write.
 
-The Google Business Profile API is **gated** — Google must approve your project for production access (form: "Business Profile APIs access request"). Without approval, calls return 403 even with a valid OAuth token. This usually takes 1–4 weeks. We can **build everything now and test on the approved test clinic**, then flip to all clinics once Google approves you. I'll flag this clearly in the UI.
+### UI changes
 
-### 1. Database (one migration)
+1. **New component** `src/components/clinic-detail/ClinicLogoUploader.tsx`
+   - 96×96 circular avatar with hover overlay ("Change photo")
+   - Click → file picker (accepts `image/png, image/jpeg, image/webp`, max 2 MB, client-side resize to 512×512)
+   - Shows a small "Remove" button when a logo exists
+   - Optimistic update + toast feedback
+   - Uses existing `Avatar` primitive from `src/components/ui/avatar.tsx` for fallback initials when no image
 
-Extend `clinic_api_credentials` with GBP fields:
-- `gbp_refresh_token` (text, encrypted with existing `enc:` AES-256-GCM)
-- `gbp_account_id` (text) — e.g. `accounts/12345`
-- `gbp_location_id` (text) — e.g. `locations/67890`
-- `gbp_location_name` (text) — friendly label
-- `gbp_connected_at`, `last_gbp_sync_at` (timestamptz)
+2. **Mount points** (display the logo where the clinic appears):
+   - `src/pages/ClinicDetail.tsx` — interactive uploader at the top of the page header, replacing the current text-only title block
+   - `src/pages/Clinics.tsx` — read-only avatar in each clinic row
+   - `src/components/dashboard/ClientDashboard.tsx` — replace the letter circle with the logo
+   - Global clinic selector in the navbar (if present) — read-only avatar next to the name
 
-Extend `gbp_post_history` with publishing state:
-- `scheduled_publish_at` (timestamptz) — when to publish (auto-set when approved)
-- `published_at` (timestamptz)
-- `gbp_post_resource_name` (text) — Google's returned ID, used to update/delete later
-- `publish_error` (text) — last failure reason for the UI
-- `publish_attempts` (int, default 0)
-- Add `'scheduled'`, `'failed'` to the `gbp_post_status` enum (alongside existing `published`)
-
-### 2. Connection flow — new edge function `gbp-oauth`
-
-Mirrors the existing `google-oauth` pattern (authorize → callback → store token):
-- `?action=authorize&clinic_id=...` → redirects to Google with scope `business.manage`
-- `?action=callback` → exchanges code, lists the user's GBP accounts + locations via `mybusinessaccountmanagement.googleapis.com` and `mybusinessbusinessinformation.googleapis.com`, opens a **location selection dialog** (reuse the `GoogleAccountSelectionDialog` pattern), then encrypts and stores the refresh token + selected location
-
-New UI card: `src/components/clinic-detail/GBPConnectionCard.tsx` — sits in Clinic Detail next to the existing Google Ads / Meta cards. Shows connection state, location, "Connect / Reconnect / Disconnect".
-
-### 3. Scheduling logic
-
-When a staff member clicks **Approve** in `PostHistory`, we now also set `scheduled_publish_at`:
-- Default schedule = **Monday of the post's `week_number`, 9:00 AM in the clinic's timezone**
-- Staff can override the date/time inline on the post card before approval (small datetime picker added to `PostHistory`)
-- `status` becomes `scheduled` once a publish time is set; stays `approved` only if no time is set yet
-
-### 4. Publishing worker — new edge function `gbp-publish-cron`
-
-Runs every 15 minutes via `pg_cron` + `pg_net` (existing pattern from `google-ads-cron` and `pagespeed-cron`):
-- Selects rows from `gbp_post_history` where `status = 'scheduled'` AND `scheduled_publish_at <= now()` AND `publish_attempts < 5`
-- For each post: refresh the access token, build the GBP `localPosts.create` payload (summary = `post_content`, optional CTA with `cta_text` + `cta_url`, topic type from `post_type`), POST to `https://mybusiness.googleapis.com/v4/{account}/{location}/localPosts`
-- On success: set `status='published'`, `published_at=now()`, `gbp_post_resource_name=...`
-- On failure: increment `publish_attempts`, save `publish_error`, set `status='failed'` after 5 attempts
-- Uses `CRON_SECRET` (already configured) for auth
-
-### 5. UI updates (small)
-
-- **`ScheduledPosts.tsx`** — add `scheduled_publish_at` display, "Publish now" button (admin/concierge), and a status badge (`Scheduled` / `Published` / `Failed — retry`)
-- **`PostHistory.tsx`** — datetime picker in the approval flow, "Republish" action for failed posts
-- **`GBPConnectionCard.tsx`** — new component on Clinic Detail page
-- **Banner** at the top of GBP Posts tab if the clinic has approved posts but no GBP connection: *"Connect Google Business Profile to enable auto-publishing"*
-
-### 6. Files touched
+### Files touched
 
 **New**
-- `supabase/functions/gbp-oauth/index.ts`
-- `supabase/functions/gbp-publish-cron/index.ts`
-- `src/components/clinic-detail/GBPConnectionCard.tsx`
-- `src/components/clinic-detail/GBPLocationSelectionDialog.tsx`
-- 1 migration (schema + cron schedule)
+- `src/components/clinic-detail/ClinicLogoUploader.tsx`
+- 1 storage RLS migration (policies on `storage.objects` for the `clinic-logos/` path)
 
 **Edited**
-- `src/components/seo/gbp/ScheduledPosts.tsx` — schedule time + publish state
-- `src/components/seo/gbp/PostHistory.tsx` — datetime picker on approve, retry button
-- `src/pages/ClinicDetail.tsx` — mount `GBPConnectionCard`
-- `supabase/config.toml` — register the two new functions with `verify_jwt = false`
+- `src/pages/ClinicDetail.tsx` — mount uploader in header
+- `src/pages/Clinics.tsx` — show logo in list
+- `src/components/dashboard/ClientDashboard.tsx` — show logo in clinic cards
 
-### 7. Required from you
+### Notes
 
-- **Confirm**: should we add a "Connect GBP" card on the Clinic Detail page (same place as Meta / Google Ads), or inside the GBP Posts tab itself?
-- **Confirm**: default publish time = **Monday 9:00 AM clinic-local** for the post's week — sound right? (Otherwise tell me preferred default.)
-- **Action you'll need to take**: submit Google's "Business Profile APIs" access form — I'll give you the exact link and pre-filled justification text in the implementation step. Until approved, auto-publishing will work only on accounts whitelisted by Google.
+- Old logos are deleted from storage when replaced, so we don't accumulate orphans.
+- Image is resized client-side before upload to keep storage small and load times fast.
+- No edge function needed — the browser uploads directly to Supabase Storage using the existing client.
 
