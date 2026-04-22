@@ -32,6 +32,7 @@ interface ClinicData {
   clinic_name: string;
   website: string | null;
   timezone: string | null;
+  logo_url: string | null;
   website_enabled?: boolean;
   seo_enabled?: boolean;
   google_ads_enabled?: boolean;
