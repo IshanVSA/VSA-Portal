@@ -193,7 +193,12 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
 
   return (
     <div className="space-y-6">
-      <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} referenceDate={clinicToday} />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} referenceDate={clinicToday} />
+        {isStaff && (
+          <Badge variant="outline" className="text-[10px]">Auto-tracked: Real-time</Badge>
+        )}
+      </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
