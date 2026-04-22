@@ -17,6 +17,7 @@ export default function Login() {
   const [resetEmail, setResetEmail] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [resetSentInfo, setResetSentInfo] = useState<{ expiresAt: string; minutes: number } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,6 +26,20 @@ export default function Login() {
     if (error) toast.error(error.message);
     else navigate("/");
     setLoading(false);
+  };
+
+  const formatExpiry = (iso: string) => {
+    try {
+      return new Date(iso).toLocaleString(undefined, {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+        month: "short",
+        day: "numeric",
+      });
+    } catch {
+      return iso;
+    }
   };
 
   return (
@@ -84,32 +99,53 @@ export default function Login() {
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
               <div className="bg-white rounded-xl border border-gray-200 p-6 w-full max-w-sm space-y-4 shadow-xl">
                 <h2 className="text-lg font-bold text-gray-900">Reset your password</h2>
-                <p className="text-sm text-gray-600">Enter your email and we'll send you a reset link.</p>
-                <Input
-                  type="email"
-                  value={resetEmail}
-                  onChange={(e) => setResetEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="input-glow border-gray-200 bg-white text-gray-900 placeholder:text-gray-400"
-                />
-                <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1 bg-white text-gray-900 border-gray-200 hover:bg-gray-50" onClick={() => setForgotMode(false)}>Cancel</Button>
-                  <Button className="flex-1" disabled={resetLoading} onClick={async () => {
-                    if (!resetEmail) { toast.error("Enter your email"); return; }
-                    setResetLoading(true);
-                    const { data, error } = await supabase.functions.invoke("request-password-reset", {
-                      body: { email: resetEmail, redirectTo: `${window.location.origin}/reset-password` },
-                    });
-                    if (error || (data && (data as any).error)) {
-                      const msg = (data as any)?.error || error?.message || "Failed to send reset link";
-                      toast.error(msg);
-                    } else {
-                      toast.success("Check your email for the reset link");
-                      setForgotMode(false);
-                    }
-                    setResetLoading(false);
-                  }}>{resetLoading ? "Sending..." : "Send Reset Link"}</Button>
-                </div>
+                {resetSentInfo ? (
+                  <>
+                    <p className="text-sm text-gray-600">
+                      We've sent a reset link to <span className="font-medium text-gray-900">{resetEmail}</span>.
+                    </p>
+                    <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                      ⏱ This link expires in about <strong>{resetSentInfo.minutes} minutes</strong>
+                      {" "}(around <strong>{formatExpiry(resetSentInfo.expiresAt)}</strong>). Request a new one if it expires.
+                    </div>
+                    <Button className="w-full" onClick={() => { setForgotMode(false); setResetSentInfo(null); setResetEmail(""); }}>
+                      Done
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-gray-600">Enter your email and we'll send you a reset link. Links expire after about 60 minutes.</p>
+                    <Input
+                      type="email"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      className="input-glow border-gray-200 bg-white text-gray-900 placeholder:text-gray-400"
+                    />
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="flex-1 bg-white text-gray-900 border-gray-200 hover:bg-gray-50" onClick={() => setForgotMode(false)}>Cancel</Button>
+                      <Button className="flex-1" disabled={resetLoading} onClick={async () => {
+                        if (!resetEmail) { toast.error("Enter your email"); return; }
+                        setResetLoading(true);
+                        const { data, error } = await supabase.functions.invoke("request-password-reset", {
+                          body: { email: resetEmail, redirectTo: `${window.location.origin}/reset-password` },
+                        });
+                        if (error || (data && (data as any).error)) {
+                          const msg = (data as any)?.error || error?.message || "Failed to send reset link";
+                          toast.error(msg);
+                        } else {
+                          const d = data as any;
+                          toast.success("Reset link sent");
+                          setResetSentInfo({
+                            expiresAt: d?.expiresAt ?? new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+                            minutes: d?.expiresInMinutes ?? 60,
+                          });
+                        }
+                        setResetLoading(false);
+                      }}>{resetLoading ? "Sending..." : "Send Reset Link"}</Button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
