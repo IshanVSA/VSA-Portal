@@ -51,8 +51,16 @@ export function ClientSocialOverview({ clinicId }: ClientSocialOverviewProps) {
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
   const [bulkUploadsOpen, setBulkUploadsOpen] = useState(false);
   const [activeQuickAction, setActiveQuickAction] = useState("");
+  const [profileName, setProfileName] = useState<string | null>(null);
 
-  const firstName = (user?.user_metadata as any)?.full_name?.split(" ")[0]
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle()
+      .then(({ data }) => { if (data?.full_name) setProfileName(data.full_name); });
+  }, [user?.id]);
+
+  const firstName = profileName?.split(" ")[0]
+    || (user?.user_metadata as any)?.full_name?.split(" ")[0]
     || user?.email?.split("@")[0]
     || "there";
 
