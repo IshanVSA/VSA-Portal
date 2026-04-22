@@ -185,6 +185,8 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
       department,
       ticket_type: ticketType,
       priority,
+      // Emergency-priority tickets land directly in the Emergency category
+      status: priority === "emergency" ? "emergency" : "open",
       description: finalDescription,
       notes: notes.trim() || null,
       created_by: user.id,
