@@ -63,7 +63,7 @@ const allDepartments = [
   { value: "social_media", label: "Social Media" },
 ];
 
-export function TicketCard({ id, title, ticket_type, priority, status, description, department, created_at, assigned_to, void_reason, teamMembers = [], onUpdated }: TicketCardProps) {
+export function TicketCard({ id, title, ticket_type, priority, status, description, department, created_at, assigned_to, pool_user_ids = [], void_reason, teamMembers = [], onUpdated }: TicketCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [voidDialogOpen, setVoidDialogOpen] = useState(false);
@@ -76,6 +76,11 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
   const StatusIcon = sc.icon;
   const deptLabel = allDepartments.find(d => d.value === department)?.label || department;
   const assigneeName = assigned_to ? teamMembers.find(m => m.id === assigned_to)?.name : null;
+  const poolNames = !assigned_to
+    ? pool_user_ids
+        .map(uid => teamMembers.find(m => m.id === uid)?.name)
+        .filter(Boolean) as string[]
+    : [];
 
   const statusOptions: { value: string; label: string }[] = [
     { value: "open", label: "Open" },
