@@ -36,13 +36,6 @@ const statusLabels: Record<string, string> = {
   final_approved: "Completed",
 };
 
-const QUICK_ACTIONS: { type: string; title: string; helper: string; icon: typeof FileText; color: string }[] = [
-  { type: "Content Request",   title: "Content Request",   helper: "Request a custom post or campaign",      icon: FileText,    color: "text-blue-500 bg-blue-500/10" },
-  { type: "Client Visit",      title: "Client Visit",      helper: "Share a recent visit worth featuring",   icon: PawPrint,    color: "text-emerald-500 bg-emerald-500/10" },
-  { type: "Bulk Uploads",      title: "Bulk Uploads",      helper: "Upload up to 20 photos or files at once", icon: UploadCloud, color: "text-amber-500 bg-amber-500/10" },
-  { type: "Special Promotion", title: "Special Promotion", helper: "Launch a time-bound offer",              icon: Tag,         color: "text-violet-500 bg-violet-500/10" },
-  { type: "Boost",             title: "Boost",             helper: "Spotlight a service that needs traction", icon: Rocket,      color: "text-rose-500 bg-rose-500/10" },
-];
 
 export function SocialOverview({ clinicId }: { clinicId?: string }) {
   const { role } = useUserRole();
