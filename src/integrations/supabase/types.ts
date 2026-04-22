@@ -2426,6 +2426,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_manage_clinic_logo: {
+        Args: { _clinic_id: string; _user_id: string }
+        Returns: boolean
+      }
       get_concierge_clinic_ids: {
         Args: { _user_id: string }
         Returns: string[]

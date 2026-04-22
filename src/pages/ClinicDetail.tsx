@@ -26,12 +26,14 @@ import { GBPConnectionCard } from "@/components/clinic-detail/GBPConnectionCard"
 import { GBPLocationSelectionDialog } from "@/components/clinic-detail/GBPLocationSelectionDialog";
 import { TrackingSetupCard } from "@/components/clinic-detail/TrackingSetupCard";
 import { ClientJourney } from "@/components/clinic-detail/ClientJourney";
+import { ClinicLogoUploader } from "@/components/clinic-detail/ClinicLogoUploader";
 import { COMMON_TIMEZONES, DEFAULT_CLINIC_TIMEZONE, getSafeTimeZone } from "@/lib/website-analytics";
 
 interface ClinicData {
   clinic_name: string;
   website: string | null;
   timezone: string | null;
+  logo_url: string | null;
   website_enabled?: boolean;
   seo_enabled?: boolean;
   google_ads_enabled?: boolean;
@@ -212,7 +214,7 @@ export default function ClinicDetail() {
 
   useEffect(() => {
     if (!id) return;
-    (supabase.from("clinics" as any).select("clinic_name, website, timezone, website_enabled, seo_enabled, google_ads_enabled, ai_seo_enabled, social_media_enabled").eq("id", id).maybeSingle() as any).then(({ data }: { data: ClinicData | null }) => {
+    (supabase.from("clinics" as any).select("clinic_name, website, timezone, logo_url, website_enabled, seo_enabled, google_ads_enabled, ai_seo_enabled, social_media_enabled").eq("id", id).maybeSingle() as any).then(({ data }: { data: ClinicData | null }) => {
       setClinic(data);
     });
     fetchCredentials();
@@ -379,6 +381,15 @@ export default function ClinicDetail() {
       <div className="space-y-6">
         <div className="flex items-center gap-4">
           <Link to="/clinics"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button></Link>
+          {id && (
+            <ClinicLogoUploader
+              clinicId={id}
+              clinicName={clinic?.clinic_name || ""}
+              logoUrl={clinic?.logo_url ?? null}
+              onChange={(url) => setClinic((prev) => (prev ? { ...prev, logo_url: url } : prev))}
+              size={72}
+            />
+          )}
           <div>
             <h1 className="text-2xl font-bold text-foreground">{clinic?.clinic_name || "Loading..."}</h1>
             <p className="text-muted-foreground">Clinic Analytics & Performance</p>
