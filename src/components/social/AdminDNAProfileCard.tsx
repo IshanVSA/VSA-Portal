@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useBrandDNA } from "@/hooks/useBrandDNA";
 import { useMonthlySignals } from "@/hooks/useMonthlySignals";
 import { useUserRole } from "@/hooks/useUserRole";
