@@ -19,7 +19,7 @@ async function loadLogoBase64(): Promise<string> {
 /**
  * Adds the VSA logo to the top-right of the current page of a jsPDF doc.
  */
-export async function addVSALogo(doc: any, x = 160, y = 8, width = 36, height = 7): Promise<void> {
+export async function addVSALogo(doc: any, x = 180, y = 6, width = 14, height = 14): Promise<void> {
   try {
     const dataUrl = await loadLogoBase64();
     doc.addImage(dataUrl, "JPEG", x, y, width, height);
@@ -32,7 +32,7 @@ export async function addVSALogo(doc: any, x = 160, y = 8, width = 36, height = 
  * Adds the VSA logo to every page of a finalized jsPDF doc.
  * Call this right before doc.save().
  */
-export async function addVSALogoToAllPages(doc: any, x?: number, y = 8, width = 36, height = 7): Promise<void> {
+export async function addVSALogoToAllPages(doc: any, x?: number, y = 6, width = 14, height = 14): Promise<void> {
   try {
     const dataUrl = await loadLogoBase64();
     const pageCount = doc.getNumberOfPages();
