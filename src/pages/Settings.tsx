@@ -15,9 +15,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import {
   Settings as SettingsIcon, User, Key, Sparkles, Bell, Palette,
-  Shield, Save, Mail, Eye, EyeOff,
+  Shield, Save, Mail, Eye, EyeOff, Building2,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { ClinicLogoUploader } from "@/components/clinic-detail/ClinicLogoUploader";
+
+type ClinicLite = { id: string; clinic_name: string; logo_url: string | null };
 
 const fadeUp = {
   hidden: { opacity: 0, y: 12 },
@@ -38,12 +41,27 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [showMetaKey, setShowMetaKey] = useState(false);
   const [showGoogleKey, setShowGoogleKey] = useState(false);
+  const [clinics, setClinics] = useState<ClinicLite[]>([]);
+  const [clinicsLoading, setClinicsLoading] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle()
       .then(({ data }) => { if (data?.full_name) setFullName(data.full_name); });
   }, [user]);
+
+  useEffect(() => {
+    if (!user || role === "admin" || !role) return;
+    setClinicsLoading(true);
+    supabase
+      .from("clinics")
+      .select("id, clinic_name, logo_url")
+      .order("clinic_name", { ascending: true })
+      .then(({ data }) => {
+        setClinics((data ?? []) as ClinicLite[]);
+        setClinicsLoading(false);
+      });
+  }, [user, role]);
 
   const saveProfile = async () => {
     if (!user) return;
@@ -71,6 +89,7 @@ export default function Settings() {
 
   const baseTabs = [
     { value: "profile", label: "Profile", icon: User },
+    { value: "clinic", label: "Clinic", icon: Building2 },
     { value: "notifications", label: "Notifications", icon: Bell },
   ];
 
@@ -159,7 +178,68 @@ export default function Settings() {
             </motion.div>
           </TabsContent>
 
-          {/* ─── Integrations (admin) ─── */}
+          {/* ─── Clinic Photo (client/concierge) ─── */}
+          {role !== "admin" && (
+            <TabsContent value="clinic" className="mt-4 space-y-4">
+              <motion.div variants={fadeUp} initial="hidden" animate="visible" custom={0}>
+                <Card className="glass-card overflow-hidden">
+                  <CardHeader className="border-b border-border/40 bg-muted/20">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Building2 className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-base">Clinic Photo</CardTitle>
+                        <CardDescription className="text-xs">
+                          Upload or replace the profile picture for your clinic. Shown across the dashboard.
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-5">
+                    {clinicsLoading ? (
+                      <p className="text-sm text-muted-foreground">Loading your clinics…</p>
+                    ) : clinics.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        No clinics linked to your account yet. Please contact your account manager.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {clinics.map((c) => (
+                          <div
+                            key={c.id}
+                            className="flex items-center gap-4 p-3 rounded-lg border border-border/50 bg-card/50"
+                          >
+                            <ClinicLogoUploader
+                              clinicId={c.id}
+                              clinicName={c.clinic_name}
+                              logoUrl={c.logo_url}
+                              size={72}
+                              onChange={(url) =>
+                                setClinics((prev) =>
+                                  prev.map((x) => (x.id === c.id ? { ...x, logo_url: url } : x)),
+                                )
+                              }
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-semibold text-foreground truncate">
+                                {c.clinic_name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Hover the photo to upload, change, or remove. PNG, JPEG, or WebP up to 2 MB.
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </TabsContent>
+          )}
+
+
           {role === "admin" && (
             <TabsContent value="integrations" className="mt-4 space-y-4">
               <motion.div variants={fadeUp} initial="hidden" animate="visible" custom={0}>
