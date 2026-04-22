@@ -98,9 +98,12 @@ export function TicketAuditLog({ ticketId }: TicketAuditLogProps) {
           {entries.map(entry => {
             const meta = fieldMeta[entry.field] || { label: entry.field, icon: Activity };
             const Icon = meta.icon;
-            const actorName = entry.actor_id
-              ? (profilesMap[entry.actor_id] || "Unknown user")
-              : "System";
+            const actorName = isSystemAssignment(entry)
+              ? "System"
+              : entry.actor_id
+                ? (profilesMap[entry.actor_id] || "Unknown user")
+                : "System";
+            const actionVerb = isSystemAssignment(entry) ? "assigned" : "changed";
             return (
               <li key={entry.id} className="flex items-start gap-2 text-[11px]">
                 <div className={cn("h-5 w-5 rounded-md bg-background border border-border flex items-center justify-center shrink-0 mt-0.5")}>
