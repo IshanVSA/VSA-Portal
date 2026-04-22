@@ -178,7 +178,68 @@ export default function Settings() {
             </motion.div>
           </TabsContent>
 
-          {/* ─── Integrations (admin) ─── */}
+          {/* ─── Clinic Photo (client/concierge) ─── */}
+          {role !== "admin" && (
+            <TabsContent value="clinic" className="mt-4 space-y-4">
+              <motion.div variants={fadeUp} initial="hidden" animate="visible" custom={0}>
+                <Card className="glass-card overflow-hidden">
+                  <CardHeader className="border-b border-border/40 bg-muted/20">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Building2 className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-base">Clinic Photo</CardTitle>
+                        <CardDescription className="text-xs">
+                          Upload or replace the profile picture for your clinic. Shown across the dashboard.
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-5">
+                    {clinicsLoading ? (
+                      <p className="text-sm text-muted-foreground">Loading your clinics…</p>
+                    ) : clinics.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        No clinics linked to your account yet. Please contact your account manager.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {clinics.map((c) => (
+                          <div
+                            key={c.id}
+                            className="flex items-center gap-4 p-3 rounded-lg border border-border/50 bg-card/50"
+                          >
+                            <ClinicLogoUploader
+                              clinicId={c.id}
+                              clinicName={c.clinic_name}
+                              logoUrl={c.logo_url}
+                              size={72}
+                              onChange={(url) =>
+                                setClinics((prev) =>
+                                  prev.map((x) => (x.id === c.id ? { ...x, logo_url: url } : x)),
+                                )
+                              }
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-semibold text-foreground truncate">
+                                {c.clinic_name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Hover the photo to upload, change, or remove. PNG, JPEG, or WebP up to 2 MB.
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </TabsContent>
+          )}
+
+
           {role === "admin" && (
             <TabsContent value="integrations" className="mt-4 space-y-4">
               <motion.div variants={fadeUp} initial="hidden" animate="visible" custom={0}>
