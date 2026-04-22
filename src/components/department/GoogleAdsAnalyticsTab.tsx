@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar } from "recharts";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { StatsCard } from "@/components/StatsCard";
 import { DollarSign, MousePointerClick, Eye, Percent, Megaphone, RefreshCw, TrendingUp } from "lucide-react";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
