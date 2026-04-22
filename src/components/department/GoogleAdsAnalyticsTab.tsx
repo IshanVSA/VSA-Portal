@@ -189,15 +189,17 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
       {/* Date Filter + Sync Controls */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
-        <div className="flex items-center gap-3">
-          <p className="text-xs text-muted-foreground">
-            {lastSynced ? `Last synced: ${format(new Date(lastSynced), "MMM d, yyyy 'at' h:mm a")}` : "Never synced"}
-          </p>
-          <Button onClick={handleSync} disabled={syncing} size="sm" variant="outline" className="gap-2 text-xs">
-            <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
-            {syncing ? "Syncing…" : "Sync Data"}
-          </Button>
-        </div>
+        {isStaff && (
+          <div className="flex items-center gap-3">
+            <p className="text-xs text-muted-foreground">
+              {lastSynced ? `Last synced: ${format(new Date(lastSynced), "MMM d, yyyy 'at' h:mm a")}` : "Never synced"}
+            </p>
+            <Button onClick={handleSync} disabled={syncing} size="sm" variant="outline" className="gap-2 text-xs">
+              <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
+              {syncing ? "Syncing…" : "Sync Data"}
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* KPI Cards */}
