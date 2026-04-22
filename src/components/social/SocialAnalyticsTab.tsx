@@ -10,6 +10,7 @@ import { RefreshCw, Loader2, AlertTriangle, CheckCircle2, ExternalLink, Heart, M
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface Props { clinicId?: string | null }
 
@@ -52,6 +53,8 @@ function KPI({ label, value, icon: Icon, sublabel }: { label: string; value: str
 }
 
 export default function SocialAnalyticsTab({ clinicId }: Props) {
+  const { role } = useUserRole();
+  const isStaff = role === "admin" || role === "concierge";
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [fb, setFb] = useState<any>(null);
@@ -63,13 +66,20 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
   const load = async () => {
     if (!clinicId) { setLoading(false); return; }
     setLoading(true);
-    const { data: creds } = await supabase
-      .from("clinic_api_credentials")
-      .select("meta_page_id, last_meta_sync_at")
-      .eq("clinic_id", clinicId)
-      .maybeSingle();
-    setHasMeta(!!creds?.meta_page_id);
-    setLastSync(creds?.last_meta_sync_at || null);
+
+    // Credentials table is admin/concierge-only via RLS; skip for clients
+    if (isStaff) {
+      const { data: creds } = await supabase
+        .from("clinic_api_credentials")
+        .select("meta_page_id, last_meta_sync_at")
+        .eq("clinic_id", clinicId)
+        .maybeSingle();
+      setHasMeta(!!creds?.meta_page_id);
+      setLastSync(creds?.last_meta_sync_at || null);
+    } else {
+      // For clients: assume connected; will fall back if no analytics rows
+      setHasMeta(true);
+    }
 
     const { data } = await supabase
       .from("analytics")
@@ -83,10 +93,14 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
     const igRow = data?.find((r: any) => r.platform === "instagram");
     setFb(fbRow?.metrics_json || null);
     setIg(igRow?.metrics_json || null);
+
+    // For clients with no analytics data, fall back to "not connected" empty state
+    if (!isStaff && !fbRow && !igRow) setHasMeta(false);
+
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [clinicId]);
+  useEffect(() => { load(); }, [clinicId, isStaff]);
 
   const handleSync = async () => {
     if (!clinicId) return;
