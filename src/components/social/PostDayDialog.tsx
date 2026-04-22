@@ -503,7 +503,7 @@ function ImageLightbox({
 
   return (
     <div
-      className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in"
+      className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-sm flex items-center justify-center p-2 animate-in fade-in"
       onClick={onClose}
     >
       <button
