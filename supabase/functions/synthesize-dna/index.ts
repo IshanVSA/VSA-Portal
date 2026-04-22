@@ -318,18 +318,21 @@ Deno.serve(async (req) => {
     profile.synthesized_at = new Date().toISOString();
     profile.synthesized_by = authData.user.id;
 
-    // Save to DB
+    // Save to DB — auto-activate when completeness score is sufficient (>=50)
+    const roundedScore = Math.round(profile.completeness_score || 0);
+    const nextStatus = roundedScore >= 50 ? "active" : "synthesized";
     const { error: updateError } = await serviceClient
       .from("clinic_brand_dna")
       .update({
         synthesized_profile: profile,
-        completeness_score: Math.round(profile.completeness_score || 0),
+        completeness_score: roundedScore,
         confidence_flags: profile.confidence_flags || [],
-        status: "synthesized",
+        status: nextStatus,
       })
       .eq("clinic_id", clinic_id);
 
     if (updateError) throw updateError;
+    console.log(`Profile status set to "${nextStatus}" (score: ${roundedScore})`);
 
     // ── Auto-sync synthesized DNA fields into clinic_gbp_config ──
     try {
