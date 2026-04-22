@@ -461,6 +461,94 @@ function PostCard({
           )}
         </div>
       </CardContent>
+
+      {viewerIndex !== null && imageUrls[viewerIndex] && (
+        <ImageLightbox
+          images={imageUrls}
+          index={viewerIndex}
+          onClose={() => setViewerIndex(null)}
+          onPrev={() => setViewerIndex((i) => (i === null ? 0 : (i - 1 + imageUrls.length) % imageUrls.length))}
+          onNext={() => setViewerIndex((i) => (i === null ? 0 : (i + 1) % imageUrls.length))}
+        />
+      )}
     </Card>
+  );
+}
+
+function ImageLightbox({
+  images,
+  index,
+  onClose,
+  onPrev,
+  onNext,
+}: {
+  images: { path: string; url: string }[];
+  index: number;
+  onClose: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+}) {
+  const current = images[index];
+  const hasMany = images.length > 1;
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") onPrev();
+      else if (e.key === "ArrowRight") onNext();
+      else if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onPrev, onNext, onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in"
+      onClick={onClose}
+    >
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onClose(); }}
+        className="absolute top-4 right-4 h-10 w-10 rounded-full bg-card border flex items-center justify-center hover:bg-muted transition-colors"
+        title="Close"
+      >
+        <X className="h-5 w-5" />
+      </button>
+
+      {hasMany && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onPrev(); }}
+          className="absolute left-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-card border flex items-center justify-center hover:bg-muted transition-colors"
+          title="Previous"
+        >
+          <ChevronLeft className="h-6 w-6" />
+        </button>
+      )}
+
+      <img
+        src={current.url}
+        alt="Preview"
+        className="max-h-[85vh] max-w-[85vw] object-contain rounded-lg shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      />
+
+      {hasMany && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onNext(); }}
+          className="absolute right-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-card border flex items-center justify-center hover:bg-muted transition-colors"
+          title="Next"
+        >
+          <ChevronRight className="h-6 w-6" />
+        </button>
+      )}
+
+      {hasMany && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full bg-card border text-xs font-medium">
+          {index + 1} / {images.length}
+        </div>
+      )}
+    </div>
   );
 }
