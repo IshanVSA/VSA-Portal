@@ -213,7 +213,7 @@ export default function ClinicDetail() {
 
   useEffect(() => {
     if (!id) return;
-    (supabase.from("clinics" as any).select("clinic_name, website, timezone, website_enabled, seo_enabled, google_ads_enabled, ai_seo_enabled, social_media_enabled").eq("id", id).maybeSingle() as any).then(({ data }: { data: ClinicData | null }) => {
+    (supabase.from("clinics" as any).select("clinic_name, website, timezone, logo_url, website_enabled, seo_enabled, google_ads_enabled, ai_seo_enabled, social_media_enabled").eq("id", id).maybeSingle() as any).then(({ data }: { data: ClinicData | null }) => {
       setClinic(data);
     });
     fetchCredentials();
