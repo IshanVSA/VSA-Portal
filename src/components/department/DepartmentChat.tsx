@@ -17,6 +17,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import { FilePreviewDialog } from "@/components/FilePreviewDialog";
 
 type DepartmentType = Database["public"]["Enums"]["department_type"];
 
@@ -362,10 +363,12 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
 
   const removePendingFile = (index: number) => setPendingFiles((prev) => prev.filter((_, i) => i !== index));
 
+  const [previewAttachment, setPreviewAttachment] = useState<{ url: string; name: string } | null>(null);
+
   const handleDownload = async (attachment: FileAttachment) => {
     const { data } = await supabase.storage.from("department-files").createSignedUrl(attachment.path, 300);
-    if (data?.signedUrl) window.open(data.signedUrl, "_blank");
-    else toast.error("Failed to get download link");
+    if (data?.signedUrl) setPreviewAttachment({ url: data.signedUrl, name: attachment.name });
+    else toast.error("Failed to get file link");
   };
 
   const handleToggleReaction = async (messageId: string, emoji: string) => {
@@ -760,6 +763,13 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <FilePreviewDialog
+        open={!!previewAttachment}
+        onOpenChange={(o) => { if (!o) setPreviewAttachment(null); }}
+        url={previewAttachment?.url || ""}
+        filename={previewAttachment?.name || ""}
+      />
     </Card>
   );
 }
