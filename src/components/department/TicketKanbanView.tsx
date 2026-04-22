@@ -29,6 +29,7 @@ interface KanbanTicket {
   department: string;
   created_at: string;
   assigned_to?: string | null;
+  pool_user_ids?: string[];
 }
 
 interface TicketKanbanViewProps {
