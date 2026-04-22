@@ -139,6 +139,7 @@ function PostCard({
   const fileRef = useRef<HTMLInputElement>(null);
   const [feedback, setFeedback] = useState(post.client_feedback || "");
   const [dragOver, setDragOver] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
 
   const handleFiles = (files: FileList | File[]) => {
     const arr = Array.from(files).filter((f) => f.type.startsWith("image/"));
