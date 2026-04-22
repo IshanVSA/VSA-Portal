@@ -77,19 +77,26 @@ Deno.serve(async (req) => {
         },
       });
 
-      if (linkError || !linkData.properties?.action_link) {
+      if (linkError || !linkData.properties?.hashed_token) {
         return json({ error: linkError?.message ?? "Failed to generate recovery link" }, 500);
       }
 
-      const finalActionLink = withCanonicalRedirect(linkData.properties.action_link, expectedResetUrl);
+      const resetUrl = new URL(expectedResetUrl);
+      resetUrl.searchParams.set("token_hash", linkData.properties.hashed_token);
+      resetUrl.searchParams.set("type", "recovery");
+      const finalActionLink = withCanonicalRedirect(resetUrl.toString(), expectedResetUrl);
       const parsed = new URL(finalActionLink);
       const redirectTo = parsed.searchParams.get("redirect_to");
+      const tokenHash = parsed.searchParams.get("token_hash");
+      const type = parsed.searchParams.get("type");
       const pointsToLocalhost = /localhost|127\.0\.0\.1|0\.0\.0\.0/i.test(finalActionLink);
 
       return json({
-        ok: redirectTo === expectedResetUrl && !pointsToLocalhost,
+        ok: redirectTo === expectedResetUrl && type === "recovery" && Boolean(tokenHash) && !pointsToLocalhost,
         expectedResetUrl,
         redirectTo,
+        tokenHashPresent: Boolean(tokenHash),
+        type,
         pointsToLocalhost,
         finalActionLink,
       });

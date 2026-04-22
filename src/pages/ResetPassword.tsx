@@ -21,12 +21,29 @@ export default function ResetPassword() {
       try {
         const url = new URL(window.location.href);
         const code = url.searchParams.get("code");
+        const tokenHash = url.searchParams.get("token_hash");
+        const type = url.searchParams.get("type");
         const errorDescription =
           url.searchParams.get("error_description") ||
           new URLSearchParams(window.location.hash.replace(/^#/, "")).get("error_description");
 
         if (errorDescription) {
           toast.error(decodeURIComponent(errorDescription));
+        }
+
+        if (tokenHash && type === "recovery") {
+          const { error } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: "recovery",
+          });
+
+          if (error) {
+            toast.error(error.message);
+          } else {
+            window.history.replaceState({}, document.title, "/reset-password");
+            if (mounted) setReady(true);
+            return;
+          }
         }
 
         // PKCE flow: exchange ?code= for a session

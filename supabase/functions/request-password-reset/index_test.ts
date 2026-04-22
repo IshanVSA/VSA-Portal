@@ -48,12 +48,17 @@ Deno.test({
       });
 
       assert(!linkError, linkError?.message ?? "Failed to generate recovery link");
-      assertExists(linkData.properties?.action_link, "Expected an action_link in the recovery response");
+      assertExists(linkData.properties?.hashed_token, "Expected a hashed_token in the recovery response");
 
-      const finalActionLink = withCanonicalRedirect(linkData.properties.action_link, expectedResetUrl);
+      const resetUrl = new URL(expectedResetUrl);
+      resetUrl.searchParams.set("token_hash", linkData.properties.hashed_token);
+      resetUrl.searchParams.set("type", "recovery");
+      const finalActionLink = withCanonicalRedirect(resetUrl.toString(), expectedResetUrl);
       const url = new URL(finalActionLink);
 
       assertEquals(url.searchParams.get("redirect_to"), expectedResetUrl);
+      assertEquals(url.searchParams.get("type"), "recovery");
+      assertExists(url.searchParams.get("token_hash"));
       assertNotMatch(finalActionLink, /localhost|127\.0\.0\.1|0\.0\.0\.0/i);
     } finally {
       await admin.auth.admin.deleteUser(createdUser.user.id);
