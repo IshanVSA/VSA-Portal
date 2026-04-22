@@ -280,6 +280,7 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
             </div>
           )}
 
+          {role !== "client" && (
           <div className="px-4 py-3 flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
               <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Status</label>
@@ -328,6 +329,7 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
               </Select>
             </div>
           </div>
+          )}
         </div>
       )}
     </Card>

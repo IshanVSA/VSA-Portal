@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { moveBulkUploadsToDepartmentFolder } from "@/lib/ticket-bulk-uploads";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface TeamMemberOption {
   id: string;
@@ -62,6 +63,8 @@ export function TicketKanbanView({ tickets, teamMembers, onUpdated }: TicketKanb
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
   const [voidPending, setVoidPending] = useState<string | null>(null);
   const [voidReason, setVoidReason] = useState("");
+  const { role } = useUserRole();
+  const isClient = role === "client";
 
   const handleStatusChange = async (ticketId: string, newStatus: string) => {
     const ticket = tickets.find(t => t.id === ticketId);
@@ -155,9 +158,9 @@ export function TicketKanbanView({ tickets, teamMembers, onUpdated }: TicketKanb
               "flex flex-col min-h-[300px] rounded-xl transition-all duration-200",
               isOver && "ring-2 ring-primary/40 bg-primary/5"
             )}
-            onDragOver={(e) => handleDragOver(e, col.key)}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => handleDrop(e, col.key)}
+            onDragOver={isClient ? undefined : (e) => handleDragOver(e, col.key)}
+            onDragLeave={isClient ? undefined : handleDragLeave}
+            onDrop={isClient ? undefined : (e) => handleDrop(e, col.key)}
           >
             <div className={cn("flex items-center gap-2 px-3 py-2.5 rounded-lg border mb-3", col.headerBg)}>
               <Icon className={cn("h-4 w-4", col.color)} />
@@ -173,7 +176,7 @@ export function TicketKanbanView({ tickets, teamMembers, onUpdated }: TicketKanb
                   "flex items-center justify-center h-24 rounded-lg border border-dashed text-xs text-muted-foreground transition-colors",
                   isOver ? "border-primary/40 bg-primary/5" : "border-border/60"
                 )}>
-                  {isOver ? "Drop here" : "No tickets"}
+                  {isOver && !isClient ? "Drop here" : "No tickets"}
                 </div>
               ) : (
                 colTickets.map(t => {
@@ -183,17 +186,20 @@ export function TicketKanbanView({ tickets, teamMembers, onUpdated }: TicketKanb
                   return (
                     <Card
                       key={t.id}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, t.id)}
-                      onDragEnd={handleDragEnd}
+                      draggable={!isClient}
+                      onDragStart={isClient ? undefined : (e) => handleDragStart(e, t.id)}
+                      onDragEnd={isClient ? undefined : handleDragEnd}
                       className={cn(
-                        "p-3 hover:shadow-md transition-all cursor-grab active:cursor-grabbing group",
+                        "p-3 hover:shadow-md transition-all group",
+                        isClient ? "cursor-default" : "cursor-grab active:cursor-grabbing",
                         isDragging && "opacity-40 scale-95",
                         isVoid && "opacity-70"
                       )}
                     >
                       <div className="flex items-start gap-2 mb-2">
-                        <GripVertical className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
+                        {!isClient && (
+                          <GripVertical className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
+                        )}
                         <div className={cn("h-2 w-2 rounded-full mt-1.5 shrink-0", priorityDot[t.priority])} />
                         <h4 className={cn("text-sm font-medium text-foreground leading-tight line-clamp-2", isVoid && "line-through text-muted-foreground")}>{t.title}</h4>
                       </div>
