@@ -26,6 +26,7 @@ import { GBPConnectionCard } from "@/components/clinic-detail/GBPConnectionCard"
 import { GBPLocationSelectionDialog } from "@/components/clinic-detail/GBPLocationSelectionDialog";
 import { TrackingSetupCard } from "@/components/clinic-detail/TrackingSetupCard";
 import { ClientJourney } from "@/components/clinic-detail/ClientJourney";
+import { ClinicLogoUploader } from "@/components/clinic-detail/ClinicLogoUploader";
 import { COMMON_TIMEZONES, DEFAULT_CLINIC_TIMEZONE, getSafeTimeZone } from "@/lib/website-analytics";
 
 interface ClinicData {
