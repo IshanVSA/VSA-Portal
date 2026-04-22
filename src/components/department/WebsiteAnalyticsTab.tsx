@@ -8,6 +8,8 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar } from "rec
 import { Eye, Users, TrendingUp, FileText, Globe, Clock, Layers3, MapPin } from "lucide-react";
 import { Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
 import { StatsCard } from "@/components/StatsCard";
+import { Badge } from "@/components/ui/badge";
+import { useUserRole } from "@/hooks/useUserRole";
 import { DateRangeFilter } from "@/components/department/DateRangeFilter";
 import {
   buildDateKeys,
