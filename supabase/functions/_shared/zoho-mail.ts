@@ -1,9 +1,26 @@
 // Shared Zoho Mail sender — used by all edge functions that send email.
 // All emails are sent from support@vsavetmedia.ca via the Zoho Mail API.
+//
+// Hardened with:
+//   - per-request timeouts (AbortController)
+//   - bounded retries with exponential backoff + jitter on transient errors
+//   - structured error categories (auth | rate_limited | timeout | network | upstream | config)
+//   - safe handling of token cache invalidation on 401
 
 const ZOHO_ACCOUNTS_URL = "https://accounts.zohocloud.ca/oauth/v2/token";
 const ZOHO_MAIL_API = "https://mail.zohocloud.ca/api/accounts";
 const FROM_ADDRESS = "support@vsavetmedia.ca";
+
+const DEFAULT_TIMEOUT_MS = 10_000;
+const DEFAULT_MAX_ATTEMPTS = 3;
+
+export type SendErrorKind =
+  | "config"
+  | "auth"
+  | "rate_limited"
+  | "timeout"
+  | "network"
+  | "upstream";
 
 export interface SendEmailParams {
   to: string | string[];
@@ -17,14 +34,38 @@ export interface SendEmailResult {
   ok: boolean;
   skipped?: boolean;
   error?: string;
+  errorKind?: SendErrorKind;
+  attempts?: number;
+  status?: number;
   result?: unknown;
 }
 
 let cachedToken: { token: string; expiresAt: number } | null = null;
 
-async function getAccessToken(): Promise<string | null> {
-  // Reuse cached token if still valid (with 60s safety buffer)
-  if (cachedToken && cachedToken.expiresAt > Date.now() + 60_000) {
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function getAccessToken(forceRefresh = false): Promise<string | null> {
+  if (
+    !forceRefresh &&
+    cachedToken &&
+    cachedToken.expiresAt > Date.now() + 60_000
+  ) {
     return cachedToken.token;
   }
 
@@ -34,33 +75,47 @@ async function getAccessToken(): Promise<string | null> {
 
   if (!clientId || !clientSecret || !refreshToken) return null;
 
-  const res = await fetch(
-    `${ZOHO_ACCOUNTS_URL}?grant_type=refresh_token&client_id=${clientId}&client_secret=${clientSecret}&refresh_token=${refreshToken}`,
-    { method: "POST" }
-  );
-  const data = await res.json();
-  const token = data?.access_token as string | undefined;
-  const expiresIn = (data?.expires_in as number | undefined) ?? 3600;
+  try {
+    const res = await fetchWithTimeout(
+      `${ZOHO_ACCOUNTS_URL}?grant_type=refresh_token&client_id=${clientId}&client_secret=${clientSecret}&refresh_token=${refreshToken}`,
+      { method: "POST" },
+      DEFAULT_TIMEOUT_MS,
+    );
+    const data = await res.json().catch(() => ({}));
+    const token = data?.access_token as string | undefined;
+    const expiresIn = (data?.expires_in as number | undefined) ?? 3600;
 
-  if (!token) {
-    console.error("[zoho-mail] Failed to fetch access token", data);
+    if (!token) {
+      console.error("[zoho-mail] Failed to fetch access token", data);
+      return null;
+    }
+
+    cachedToken = { token, expiresAt: Date.now() + expiresIn * 1000 };
+    return token;
+  } catch (err) {
+    console.error("[zoho-mail] Token fetch error", err);
     return null;
   }
-
-  cachedToken = { token, expiresAt: Date.now() + expiresIn * 1000 };
-  return token;
 }
 
-export async function sendZohoEmail(params: SendEmailParams): Promise<SendEmailResult> {
+function backoffDelay(attempt: number): number {
+  // Exponential: 500ms, 1.5s, 4.5s + up to 250ms jitter
+  const base = 500 * Math.pow(3, attempt - 1);
+  const jitter = Math.floor(Math.random() * 250);
+  return base + jitter;
+}
+
+export async function sendZohoEmail(
+  params: SendEmailParams,
+  opts: { maxAttempts?: number; timeoutMs?: number } = {},
+): Promise<SendEmailResult> {
+  const maxAttempts = opts.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
+  const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+
   const accountId = Deno.env.get("ZOHO_ACCOUNT_ID")?.trim();
   if (!accountId) {
     console.warn("[zoho-mail] ZOHO_ACCOUNT_ID not configured — skipping email");
     return { ok: true, skipped: true };
-  }
-
-  const accessToken = await getAccessToken();
-  if (!accessToken) {
-    return { ok: false, error: "Zoho auth failed" };
   }
 
   const toAddress = Array.isArray(params.to) ? params.to.join(",") : params.to;
@@ -77,22 +132,108 @@ export async function sendZohoEmail(params: SendEmailParams): Promise<SendEmailR
   if (ccAddress) body.ccAddress = ccAddress;
   if (bccAddress) body.bccAddress = bccAddress;
 
-  const res = await fetch(`${ZOHO_MAIL_API}/${accountId}/messages`, {
-    method: "POST",
-    headers: {
-      Authorization: `Zoho-oauthtoken ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  const url = `${ZOHO_MAIL_API}/${accountId}/messages`;
 
-  const result = await res.json();
-  if (!res.ok || result?.status?.code >= 400) {
-    console.error("[zoho-mail] Send failed", result);
-    return { ok: false, error: JSON.stringify(result), result };
+  let lastError: SendEmailResult = {
+    ok: false,
+    error: "Unknown error",
+    errorKind: "upstream",
+    attempts: 0,
+  };
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    // Refresh token forcibly on retry-after-auth-fail
+    const forceRefresh = attempt > 1 && lastError.errorKind === "auth";
+    const accessToken = await getAccessToken(forceRefresh);
+    if (!accessToken) {
+      lastError = {
+        ok: false,
+        error: "Zoho auth failed",
+        errorKind: "auth",
+        attempts: attempt,
+      };
+      // Auth failures may be transient (network during refresh); retry
+      if (attempt < maxAttempts) {
+        await sleep(backoffDelay(attempt));
+        continue;
+      }
+      break;
+    }
+
+    try {
+      const res = await fetchWithTimeout(
+        url,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Zoho-oauthtoken ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        },
+        timeoutMs,
+      );
+
+      const result = await res.json().catch(() => ({}));
+      const upstreamCode = (result as any)?.status?.code;
+      const failed = !res.ok || (typeof upstreamCode === "number" && upstreamCode >= 400);
+
+      if (!failed) {
+        return { ok: true, result, attempts: attempt, status: res.status };
+      }
+
+      // Categorize the failure
+      let kind: SendErrorKind = "upstream";
+      if (res.status === 401 || res.status === 403) {
+        kind = "auth";
+        // Invalidate token so next attempt refreshes it
+        cachedToken = null;
+      } else if (res.status === 429) {
+        kind = "rate_limited";
+      } else if (res.status >= 500) {
+        kind = "upstream";
+      }
+
+      lastError = {
+        ok: false,
+        error: typeof result === "string" ? result : JSON.stringify(result),
+        errorKind: kind,
+        attempts: attempt,
+        status: res.status,
+        result,
+      };
+
+      console.error(
+        `[zoho-mail] Send failed (attempt ${attempt}/${maxAttempts}, kind=${kind}, status=${res.status})`,
+        result,
+      );
+
+      // Retry only on transient classes
+      const retryable =
+        kind === "auth" || kind === "rate_limited" || kind === "upstream";
+      if (!retryable || attempt >= maxAttempts) break;
+
+      await sleep(backoffDelay(attempt));
+      continue;
+    } catch (err: any) {
+      const isAbort = err?.name === "AbortError";
+      const kind: SendErrorKind = isAbort ? "timeout" : "network";
+      lastError = {
+        ok: false,
+        error: err?.message ?? String(err),
+        errorKind: kind,
+        attempts: attempt,
+      };
+      console.error(
+        `[zoho-mail] Network error (attempt ${attempt}/${maxAttempts}, kind=${kind})`,
+        err,
+      );
+      if (attempt >= maxAttempts) break;
+      await sleep(backoffDelay(attempt));
+    }
   }
 
-  return { ok: true, result };
+  return lastError;
 }
 
 export function brandedEmailWrapper(opts: { heading: string; bodyHtml: string; preheader?: string }) {
