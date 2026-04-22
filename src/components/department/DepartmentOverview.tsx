@@ -5,6 +5,7 @@ import { BarChart3, CheckCircle2, Clock, AlertTriangle, Inbox, Sparkles, LucideI
 import { ReactNode, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
+import { BulkUploadsDialog } from "@/components/department/BulkUploadsDialog";
 import { getTicketTypeLabel } from "@/lib/ticket-display-labels";
 import { getQuickActionMeta } from "@/lib/quick-actions";
 import { cn } from "@/lib/utils";
@@ -102,6 +103,7 @@ export function DepartmentOverview({
 }: DepartmentOverviewProps) {
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
   const [prefilledService, setPrefilledService] = useState("");
+  const [bulkUploadsOpen, setBulkUploadsOpen] = useState(false);
   const ticketSummary = useTicketCounts(department, clinicId);
   const ticketRows = [
     { label: "Open", count: ticketSummary.open, icon: Inbox, color: "text-primary" },
@@ -144,7 +146,14 @@ export function DepartmentOverview({
                   return (
                     <button
                       key={s}
-                      onClick={() => { setPrefilledService(s); setTicketDialogOpen(true); }}
+                      onClick={() => {
+                        if (s === "Bulk Uploads") {
+                          setBulkUploadsOpen(true);
+                        } else {
+                          setPrefilledService(s);
+                          setTicketDialogOpen(true);
+                        }
+                      }}
                       className="group flex flex-col items-start gap-2 p-3 rounded-lg border border-border/60 bg-card hover:border-primary/40 hover:bg-muted/30 hover:shadow-sm transition-all text-left"
                     >
                       <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center", color)}>
@@ -164,7 +173,10 @@ export function DepartmentOverview({
       )}
 
       {!hideQuickActions && (
-        <NewTicketDialog open={ticketDialogOpen} onOpenChange={setTicketDialogOpen} department={department} services={services} onCreated={() => {}} defaultType={prefilledService} clinicId={clinicId} />
+        <>
+          <NewTicketDialog open={ticketDialogOpen} onOpenChange={setTicketDialogOpen} department={department} services={services} onCreated={() => {}} defaultType={prefilledService} clinicId={clinicId} />
+          <BulkUploadsDialog open={bulkUploadsOpen} onOpenChange={setBulkUploadsOpen} department={department} />
+        </>
       )}
 
       {/* Chart + Ticket Summary */}

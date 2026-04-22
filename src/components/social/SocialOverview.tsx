@@ -10,6 +10,7 @@ import { FileCheck, CalendarDays, BarChart3, Building2, Users, CheckCircle2, Clo
 import { SOCIAL_QUICK_ACTIONS as QUICK_ACTIONS } from "@/lib/quick-actions";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
+import { BulkUploadsDialog } from "@/components/department/BulkUploadsDialog";
 import { format, subDays, startOfDay } from "date-fns";
 
 interface RequestSummary {
@@ -47,6 +48,7 @@ export function SocialOverview({ clinicId }: { clinicId?: string }) {
   const [weeklyData, setWeeklyData] = useState<{ day: string; posts: number }[]>([]);
   const { team: departmentTeam } = useDepartmentTeam("social_media", clinicId);
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
+  const [bulkUploadsOpen, setBulkUploadsOpen] = useState(false);
   const [activeQuickAction, setActiveQuickAction] = useState<string>("");
   const [requestSummary, setRequestSummary] = useState<RequestSummary>({
     generated: 0, concierge_preferred: 0, admin_approved: 0, client_selected: 0, final_approved: 0,
@@ -252,7 +254,14 @@ export function SocialOverview({ clinicId }: { clinicId?: string }) {
               return (
                 <button
                   key={action.type}
-                  onClick={() => { setActiveQuickAction(action.type); setTicketDialogOpen(true); }}
+                  onClick={() => {
+                    if (action.type === "Bulk Uploads") {
+                      setBulkUploadsOpen(true);
+                    } else {
+                      setActiveQuickAction(action.type);
+                      setTicketDialogOpen(true);
+                    }
+                  }}
                   className="group flex flex-col items-start gap-2 p-3 rounded-lg border border-border/60 bg-card hover:border-primary/40 hover:bg-muted/30 hover:shadow-sm transition-all text-left"
                 >
                   <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${action.color}`}>
@@ -277,6 +286,12 @@ export function SocialOverview({ clinicId }: { clinicId?: string }) {
         onCreated={() => {}}
         defaultType={activeQuickAction}
         clinicId={clinicId}
+      />
+
+      <BulkUploadsDialog
+        open={bulkUploadsOpen}
+        onOpenChange={setBulkUploadsOpen}
+        department="social_media"
       />
 
       {/* Charts + Panels Row */}
