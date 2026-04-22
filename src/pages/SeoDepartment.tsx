@@ -27,9 +27,8 @@ import { DepartmentChat } from "@/components/department/DepartmentChat";
 import { useDepartmentChatUnread } from "@/hooks/useDepartmentChatUnread";
 import { BlogTab } from "@/components/seo/blog/BlogTab";
 
-const staffOnlyTabs = [
-  { value: "tickets", label: "Tickets", icon: Ticket },
-];
+
+
 
 const commonTabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
