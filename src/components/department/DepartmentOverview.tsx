@@ -39,7 +39,7 @@ interface TrafficDataPoint {
 
 interface DepartmentOverviewProps {
   kpis: KPI[];
-  services: string[];
+  services?: string[];
   trafficData: TrafficDataPoint[];
   trafficLabel?: string;
   team: TeamMember[];
@@ -98,7 +98,7 @@ const staggerItem = {
 };
 
 export function DepartmentOverview({
-  kpis, services, trafficData, trafficLabel = "Traffic Trend", team, department, accentColor = "hsl(var(--primary))", extraSection, clinicId, hideQuickActions = false,
+  kpis, services = [], trafficData, trafficLabel = "Traffic Trend", team, department, accentColor = "hsl(var(--primary))", extraSection, clinicId, hideQuickActions = false,
 }: DepartmentOverviewProps) {
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
   const [prefilledService, setPrefilledService] = useState("");

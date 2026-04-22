@@ -39,9 +39,6 @@ const commonTabs = [
 ];
 const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
 const blogTab = { value: "blog", label: "Blog", icon: BookOpen };
-
-const services = ["Backlinking", "Ranking Reports", "Keyword Research", "Manual Work Reports", "Search Atlas Integration", "SEO Thread Updates", "Others"];
-
 function TopKeywordsCard({ keywords }: { keywords: SeoKeyword[] }) {
   if (keywords.length === 0) {
     return (
@@ -195,7 +192,7 @@ export default function SeoDepartment() {
                 </TabsList>
 
                 <TabsContent value="overview" className="mt-4">
-                  <DepartmentOverview kpis={kpis} services={services} trafficData={trafficData.length > 0 ? trafficData : [{ label: "No data", value: 0 }]} trafficLabel="Organic Traffic Trend" team={team} department="seo" accentColor="hsl(var(--dept-seo))" extraSection={<TopKeywordsCard keywords={topKeywords} />} clinicId={selectedClinicId} hideQuickActions />
+                  <DepartmentOverview kpis={kpis} trafficData={trafficData.length > 0 ? trafficData : [{ label: "No data", value: 0 }]} trafficLabel="Organic Traffic Trend" team={team} department="seo" accentColor="hsl(var(--dept-seo))" extraSection={<TopKeywordsCard keywords={topKeywords} />} clinicId={selectedClinicId} hideQuickActions />
                 </TabsContent>
                 <TabsContent value="analytics" className="mt-4"><SeoAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="reports" className="mt-4"><SeoReportsTab clinicId={selectedClinicId} /></TabsContent>
