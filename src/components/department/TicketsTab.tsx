@@ -260,6 +260,7 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
               department={t.department}
               created_at={t.created_at}
               assigned_to={t.assigned_to}
+              pool_user_ids={t.pool_user_ids}
               void_reason={t.void_reason}
               teamMembers={teamMemberProfiles}
               onUpdated={() => refetch()}
