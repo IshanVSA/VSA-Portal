@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { moveBulkUploadsToDepartmentFolder } from "@/lib/ticket-bulk-uploads";
 import { useUserRole } from "@/hooks/useUserRole";
+import { TicketAuditLog } from "./TicketAuditLog";
 
 interface TeamMemberOption {
   id: string;
@@ -330,6 +331,8 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
             </div>
           </div>
           )}
+
+          <TicketAuditLog ticketId={id} />
         </div>
       )}
     </Card>

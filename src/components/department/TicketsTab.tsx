@@ -12,6 +12,8 @@ import { NewTicketDialog } from "./NewTicketDialog";
 import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { getVisibleTicketTypes } from "@/lib/ticket-department-map";
 import { cn } from "@/lib/utils";
+import { useUserRole } from "@/hooks/useUserRole";
+import { ClientReadOnlyBanner } from "./ClientReadOnlyBanner";
 
 interface TicketsTabProps {
   department: string;
@@ -41,6 +43,8 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
   const [viewMode, setViewMode] = useState<ViewMode>("cards");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const { role } = useUserRole();
+  const isClient = role === "client";
 
   // Fetch team members for assignment dropdown
   const { data: teamMemberProfiles = [] } = useQuery({
@@ -136,6 +140,8 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
 
   return (
     <div className="space-y-4">
+      {isClient && <ClientReadOnlyBanner />}
+
       {/* Search bar */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
