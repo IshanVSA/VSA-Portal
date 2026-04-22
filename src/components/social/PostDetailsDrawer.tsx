@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { useSM2Posts, type SM2Post } from "@/hooks/useSM2Posts";
+import { useSM2Posts, type SM2Post, getPostImagePaths } from "@/hooks/useSM2Posts";
 
 interface Props {
   open: boolean;
@@ -121,34 +121,37 @@ export default function PostDetailsDrawer({
                   All posts
                 </p>
                 <div className="grid grid-cols-6 gap-2">
-                  {posts.map((p, idx) => (
-                    <button
-                      key={p.id}
-                      onClick={() => setActiveIndex(idx)}
-                      className={cn(
-                        "relative aspect-square rounded-md overflow-hidden border-2 transition-all bg-muted",
-                        idx === activeIndex
-                          ? "border-primary ring-2 ring-primary/30"
-                          : "border-border hover:border-primary/50"
-                      )}
-                      title={`Post ${idx + 1}`}
-                    >
-                      {p.image_path ? (
-                        <img
-                          src={getImageUrl(p.image_path)}
-                          alt={`Post ${idx + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      )}
-                      <span className="absolute top-0.5 left-0.5 text-[10px] font-bold bg-background/80 text-foreground rounded px-1 tabular-nums">
-                        {idx + 1}
-                      </span>
-                    </button>
-                  ))}
+                  {posts.map((p, idx) => {
+                    const cover = getPostImagePaths(p)[0];
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => setActiveIndex(idx)}
+                        className={cn(
+                          "relative aspect-square rounded-md overflow-hidden border-2 transition-all bg-muted",
+                          idx === activeIndex
+                            ? "border-primary ring-2 ring-primary/30"
+                            : "border-border hover:border-primary/50"
+                        )}
+                        title={`Post ${idx + 1}`}
+                      >
+                        {cover ? (
+                          <img
+                            src={getImageUrl(cover)}
+                            alt={`Post ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        )}
+                        <span className="absolute top-0.5 left-0.5 text-[10px] font-bold bg-background/80 text-foreground rounded px-1 tabular-nums">
+                          {idx + 1}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -180,13 +183,14 @@ function PostDetail({
   post: SM2Post;
   getImageUrl: (path: string) => string;
 }) {
+  const images = getPostImagePaths(post);
   return (
     <div className="space-y-4 animate-fade-in">
-      {/* Image / placeholder */}
+      {/* Cover image / placeholder */}
       <div className="relative rounded-lg overflow-hidden bg-muted border aspect-[4/5] max-h-96">
-        {post.image_path ? (
+        {images[0] ? (
           <img
-            src={getImageUrl(post.image_path)}
+            src={getImageUrl(images[0])}
             alt={post.topic || "Post image"}
             className="w-full h-full object-contain bg-background"
           />
@@ -197,6 +201,20 @@ function PostDetail({
           </div>
         )}
       </div>
+
+      {/* Additional images strip */}
+      {images.length > 1 && (
+        <div className="grid grid-cols-5 gap-1.5">
+          {images.slice(1).map((p) => (
+            <img
+              key={p}
+              src={getImageUrl(p)}
+              alt="Additional"
+              className="w-full aspect-square object-cover rounded border"
+            />
+          ))}
+        </div>
+      )}
 
       {/* Meta row */}
       <div className="flex flex-wrap items-center gap-2">

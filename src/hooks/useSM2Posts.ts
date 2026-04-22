@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+export const SM2_MAX_IMAGES_PER_POST = 10;
+
 export interface SM2Post {
   id: string;
   generation_id: string;
@@ -17,6 +19,7 @@ export interface SM2Post {
   hook: string | null;
   compliance_notes: string | null;
   image_path: string | null;
+  image_paths: string[] | null;
   image_uploaded_at: string | null;
   image_uploaded_by: string | null;
   client_feedback: string | null;
@@ -30,6 +33,18 @@ export interface SM2Post {
   concierge_brief: Record<string, any> | null;
   created_at: string;
   updated_at: string;
+}
+
+// Returns the unified list of images for a post (cover first, then gallery, deduped)
+export function getPostImagePaths(post: SM2Post): string[] {
+  const all = [post.image_path, ...(post.image_paths || [])].filter(
+    (p): p is string => !!p
+  );
+  return Array.from(new Set(all));
+}
+
+export function postHasImage(post: SM2Post): boolean {
+  return getPostImagePaths(post).length > 0;
 }
 
 export function useSM2Posts(generationId: string | undefined) {
@@ -72,20 +87,35 @@ export function useSM2Posts(generationId: string | undefined) {
 
   const uploadImage = useMutation({
     mutationFn: async ({ post, file }: { post: SM2Post; file: File }) => {
+      const existing = getPostImagePaths(post);
+      if (existing.length >= SM2_MAX_IMAGES_PER_POST) {
+        throw new Error(`Maximum ${SM2_MAX_IMAGES_PER_POST} images per post`);
+      }
       const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const path = `sm2/${post.generation_id}/${post.id}.${ext}`;
+      const slot = existing.length; // 0 = cover, 1..9 = gallery
+      const stamp = Date.now();
+      const path = `sm2/${post.generation_id}/${post.id}-${slot}-${stamp}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("department-files")
         .upload(path, file, { upsert: true, contentType: file.type });
       if (upErr) throw upErr;
       const { data: userData } = await supabase.auth.getUser();
+
+      // First upload becomes the cover (image_path); rest go into image_paths gallery.
+      const update: Record<string, any> = {
+        image_uploaded_at: new Date().toISOString(),
+        image_uploaded_by: userData.user?.id,
+      };
+      if (!post.image_path) {
+        update.image_path = path;
+      } else {
+        const next = Array.from(new Set([...(post.image_paths || []), path]));
+        update.image_paths = next;
+      }
+
       const { error: dbErr } = await supabase
         .from("sm2_posts")
-        .update({
-          image_path: path,
-          image_uploaded_at: new Date().toISOString(),
-          image_uploaded_by: userData.user?.id,
-        })
+        .update(update)
         .eq("id", post.id);
       if (dbErr) throw dbErr;
     },
@@ -96,14 +126,38 @@ export function useSM2Posts(generationId: string | undefined) {
     onError: (e: Error) => toast.error("Upload failed", { description: e.message }),
   });
 
+  // Remove a single image by path. Promotes the next gallery image to cover when needed.
   const removeImage = useMutation({
-    mutationFn: async (post: SM2Post) => {
-      if (post.image_path) {
-        await supabase.storage.from("department-files").remove([post.image_path]);
+    mutationFn: async ({ post, path }: { post: SM2Post; path?: string }) => {
+      const targetPath = path ?? post.image_path ?? (post.image_paths || [])[0];
+      if (!targetPath) return;
+
+      // Remove from storage (best-effort)
+      await supabase.storage.from("department-files").remove([targetPath]);
+
+      let nextCover: string | null = post.image_path;
+      let nextGallery: string[] = post.image_paths || [];
+
+      if (post.image_path === targetPath) {
+        // Promote first gallery image to cover
+        nextCover = nextGallery[0] ?? null;
+        nextGallery = nextGallery.slice(1);
+      } else {
+        nextGallery = nextGallery.filter((p) => p !== targetPath);
       }
+
+      const update: Record<string, any> = {
+        image_path: nextCover,
+        image_paths: nextGallery,
+      };
+      if (!nextCover && nextGallery.length === 0) {
+        update.image_uploaded_at = null;
+        update.image_uploaded_by = null;
+      }
+
       const { error } = await supabase
         .from("sm2_posts")
-        .update({ image_path: null, image_uploaded_at: null, image_uploaded_by: null })
+        .update(update)
         .eq("id", post.id);
       if (error) throw error;
     },
@@ -134,7 +188,7 @@ export function useSM2Posts(generationId: string | undefined) {
   };
 
   const total = posts?.length || 0;
-  const withImages = posts?.filter((p) => !!p.image_path).length || 0;
+  const withImages = posts?.filter((p) => postHasImage(p)).length || 0;
   const imagesComplete = total > 0 && withImages === total;
 
   return {

@@ -159,13 +159,15 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
       // Gate: every sm2_post must have an image_path
       const { data: posts, error: postsErr } = await supabase
         .from("sm2_posts")
-        .select("id, image_path")
+        .select("id, image_path, image_paths")
         .eq("generation_id", generationId);
       if (postsErr) throw postsErr;
       if (posts && posts.length > 0) {
-        const missing = posts.filter((p) => !p.image_path).length;
+        const missing = posts.filter(
+          (p: any) => !p.image_path && !(Array.isArray(p.image_paths) && p.image_paths.length > 0)
+        ).length;
         if (missing > 0) {
-          throw new Error(`Add images to all posts before sending. ${missing} of ${posts.length} still missing.`);
+          throw new Error(`Each post needs at least 1 image before sending. ${missing} of ${posts.length} still missing.`);
         }
       }
 
