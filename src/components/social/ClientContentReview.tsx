@@ -303,10 +303,14 @@ function ContentReviewCard({
         )}
 
         {/* Actions */}
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={onView} className="gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="default" size="sm" onClick={onPreviewPosts} className="gap-2">
             <Eye className="h-4 w-4" />
-            View Content
+            Preview Posts
+          </Button>
+          <Button variant="outline" size="sm" onClick={onView} className="gap-2">
+            <FileText className="h-4 w-4" />
+            Calendar View
           </Button>
           {isActionable && (
             <>
@@ -323,7 +327,7 @@ function ContentReviewCard({
                 size="sm"
                 onClick={onApprove}
                 disabled={isPendingApproval}
-                className="gap-2"
+                className="gap-2 ml-auto"
               >
                 <ThumbsUp className="h-4 w-4" />
                 Approve
