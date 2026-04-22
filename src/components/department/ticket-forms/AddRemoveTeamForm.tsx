@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { UserPlus, UserMinus } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { VoiceDictation } from "./VoiceDictation";
 
 interface AddRemoveTeamFormProps {
@@ -37,26 +35,20 @@ export function AddRemoveTeamForm({ onChange }: AddRemoveTeamFormProps) {
 
       <div className="space-y-1.5">
         <Label>Action *</Label>
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            type="button"
-            variant={action === "add" ? "default" : "outline"}
-            className={cn("gap-2", action !== "add" && "text-muted-foreground")}
-            onClick={() => setAction("add")}
-          >
-            <UserPlus className="h-4 w-4" />
-            Add Member
-          </Button>
-          <Button
-            type="button"
-            variant={action === "remove" ? "default" : "outline"}
-            className={cn("gap-2", action !== "remove" && "text-muted-foreground")}
-            onClick={() => setAction("remove")}
-          >
-            <UserMinus className="h-4 w-4" />
-            Remove Member
-          </Button>
-        </div>
+        <RadioGroup
+          value={action}
+          onValueChange={(v) => setAction(v as "add" | "remove")}
+          className="space-y-2"
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="add" id="action-add" />
+            <Label htmlFor="action-add" className="font-normal cursor-pointer">Add Member</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="remove" id="action-remove" />
+            <Label htmlFor="action-remove" className="font-normal cursor-pointer">Remove Member</Label>
+          </div>
+        </RadioGroup>
       </div>
       <div className="space-y-1.5">
         <Label>Member Name *</Label>
