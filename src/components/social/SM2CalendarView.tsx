@@ -135,24 +135,15 @@ export default function SM2CalendarView({
           </div>
           <div className="flex items-center gap-2">
             {!isClient && approvalStatus === "pending" && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span>
-                    <Button
-                      size="sm"
-                      onClick={onSendToClient}
-                      disabled={!imagesComplete || sendPending}
-                      className="gap-2"
-                    >
-                      <Send className="h-3.5 w-3.5" />
-                      Send to client for review
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                {!imagesComplete && (
-                  <TooltipContent>Add images to all {total} posts first ({withImages}/{total})</TooltipContent>
-                )}
-              </Tooltip>
+              <Button
+                size="sm"
+                onClick={() => setConfirmSendOpen(true)}
+                disabled={sendPending}
+                className="gap-2"
+              >
+                <Send className="h-3.5 w-3.5" />
+                Send to client for review
+              </Button>
             )}
             {isClient && approvalStatus === "sent_to_client" && (
               <>
