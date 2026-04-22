@@ -13,6 +13,7 @@ const people = [
     calendarUrl: "https://calendar.app.google/ZxnqGTX5kbz9939c9",
     gradient: "from-primary to-primary/60",
     photo: vedantPhoto,
+    inactive: true,
   },
   {
     name: "Avi Adhikari",
@@ -23,6 +24,7 @@ const people = [
     calendarUrl: "https://calendar.app.google/a5tNn8E145UNmT7f8",
     gradient: "from-accent to-accent/60",
     photo: aviPhoto,
+    inactive: false,
   },
 ];
 
