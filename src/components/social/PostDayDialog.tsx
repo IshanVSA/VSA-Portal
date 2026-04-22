@@ -127,7 +127,7 @@ function PostCard({
   post: SM2Post;
   isClient: boolean;
   imageUrls: { path: string; url: string }[];
-  onUpload: (file: File) => void;
+  onUpload: (files: File[]) => void;
   onRemoveImage: (path: string) => void;
   onSaveFeedback: (feedback: string) => void;
   uploading: boolean;
@@ -139,8 +139,8 @@ function PostCard({
 
   const handleFiles = (files: FileList | File[]) => {
     const arr = Array.from(files).filter((f) => f.type.startsWith("image/"));
-    const remaining = SM2_MAX_IMAGES_PER_POST - imageUrls.length;
-    arr.slice(0, Math.max(0, remaining)).forEach((f) => onUpload(f));
+    if (arr.length === 0) return;
+    onUpload(arr);
   };
 
   const ad = post.art_direction || {};
