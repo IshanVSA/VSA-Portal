@@ -1,12 +1,12 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import KPICard from "@/components/dashboard/KPICard";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { BarChart3, CheckCircle2, Clock, AlertTriangle, Inbox, LucideIcon } from "lucide-react";
+import { BarChart3, CheckCircle2, Clock, AlertTriangle, Inbox, Sparkles, LucideIcon } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { getTicketTypeLabel } from "@/lib/ticket-display-labels";
+import { getQuickActionMeta } from "@/lib/quick-actions";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -131,20 +131,32 @@ export function DepartmentOverview({
           <Card className="border-border/50">
             <div className="px-5 py-3.5 border-b border-border/30 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-foreground">Quick Actions</h3>
-              <span className="text-[11px] text-muted-foreground">Click to create ticket</span>
+              <span className="text-[11px] text-muted-foreground">Click to create a ticket</span>
             </div>
-            <CardContent className="pt-3 pb-3">
-              <div className="flex flex-wrap gap-1.5">
-                {services.map(s => (
-                  <Badge
-                    key={s}
-                    variant="secondary"
-                    className="text-xs font-medium px-3 py-1.5 cursor-pointer hover:bg-primary/8 hover:text-primary transition-all duration-200 hover:shadow-sm"
-                    onClick={() => { setPrefilledService(s); setTicketDialogOpen(true); }}
-                  >
-                    {getTicketTypeLabel(s)}
-                  </Badge>
-                ))}
+            <CardContent className="pt-4 pb-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                {services.map(s => {
+                  const meta = getQuickActionMeta(department, s);
+                  const Icon = meta?.icon ?? Sparkles;
+                  const title = meta?.title ?? getTicketTypeLabel(s);
+                  const helper = meta?.helper ?? "Create a ticket for this request";
+                  const color = meta?.color ?? "text-primary bg-primary/10";
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => { setPrefilledService(s); setTicketDialogOpen(true); }}
+                      className="group flex flex-col items-start gap-2 p-3 rounded-lg border border-border/60 bg-card hover:border-primary/40 hover:bg-muted/30 hover:shadow-sm transition-all text-left"
+                    >
+                      <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center", color)}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 w-full">
+                        <p className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">{title}</p>
+                        <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">{helper}</p>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
