@@ -434,6 +434,7 @@ export function BlogTab({ clinicId }: { clinicId: string | undefined }) {
         </TabsList>
 
         {/* ─── Staff: Overview ─── */}
+        {!isClient && (<>
         <TabsContent value="overview" className="mt-3 space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Card className="border-border/60">
@@ -616,6 +617,7 @@ export function BlogTab({ clinicId }: { clinicId: string | undefined }) {
         <TabsContent value="prompts" className="mt-3">
           <PromptManager versions={promptVersions || []} isAdmin={isAdmin} />
         </TabsContent>
+        </>)}
 
         {/* ─── Client: My Blogs ─── */}
         <TabsContent value="my-blogs" className="mt-3">
