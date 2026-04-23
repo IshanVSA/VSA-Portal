@@ -163,8 +163,6 @@ export function TicketKanbanView({ tickets, teamMembers, currentDepartment, onUp
     }
   };
 
-  return (
-    <>
   const renderColumn = (col: typeof columns[number]) => {
     const Icon = col.icon;
     const colTickets = tickets.filter(t => t.status === col.key);
