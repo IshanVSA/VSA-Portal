@@ -23,8 +23,8 @@ export async function logComplianceOverride(entry: ComplianceOverrideEntry) {
       compliance_body: entry.complianceBody ?? null,
       issues: entry.issues ?? [],
       override_reason: entry.overrideReason,
-      metadata: entry.metadata ?? {},
-    }]);
+      metadata: (entry.metadata ?? {}) as never,
+    }] as never);
     if (error) console.error("Compliance override log failed:", error);
   } catch (err) {
     console.error("Compliance override log exception:", err);
