@@ -26,6 +26,15 @@ interface TeamMemberOption {
   name: string;
 }
 
+interface DeptAssignment {
+  id?: string;
+  ticket_id?: string;
+  department: string;
+  assigned_to: string | null;
+  status: "open" | "in_progress" | "completed" | "emergency" | "void";
+  completed_at?: string | null;
+}
+
 interface TicketCardProps {
   id: string;
   title: string;
@@ -34,6 +43,12 @@ interface TicketCardProps {
   status: "open" | "in_progress" | "completed" | "emergency" | "void";
   description?: string | null;
   department: string;
+  /** The department whose perspective this card is being viewed from (current page). */
+  currentDepartment?: string;
+  /** The id of the per-department assignment row for `currentDepartment` (staff only). */
+  dept_assignment_id?: string;
+  /** All per-department assignment rows for this ticket. */
+  dept_assignments?: DeptAssignment[];
   created_at: string;
   assigned_to?: string | null;
   pool_user_ids?: string[];
