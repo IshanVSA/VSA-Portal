@@ -15,7 +15,7 @@ export async function logComplianceOverride(entry: ComplianceOverrideEntry) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { error } = await supabase.from("compliance_override_log").insert({
+    const { error } = await supabase.from("compliance_override_log").insert([{
       user_id: user.id,
       clinic_id: entry.clinicId ?? null,
       context: entry.context,
@@ -24,7 +24,7 @@ export async function logComplianceOverride(entry: ComplianceOverrideEntry) {
       issues: entry.issues ?? [],
       override_reason: entry.overrideReason,
       metadata: entry.metadata ?? {},
-    });
+    }]);
     if (error) console.error("Compliance override log failed:", error);
   } catch (err) {
     console.error("Compliance override log exception:", err);
