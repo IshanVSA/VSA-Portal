@@ -2599,6 +2599,7 @@ export type Database = {
         Args: { _ticket_id: string }
         Returns: Database["public"]["Enums"]["ticket_status"]
       }
+      delete_clinic_by_id: { Args: { _clinic_id: string }; Returns: undefined }
       get_concierge_clinic_ids: {
         Args: { _user_id: string }
         Returns: string[]
