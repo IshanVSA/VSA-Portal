@@ -164,6 +164,20 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
   const handleConsentChange = (checked: boolean) => {
     setConsented(checked);
     onConsentChange(checked);
+    if (checked && overridden && overrideReason.trim()) {
+      logComplianceOverride({
+        context: "Pop-up Offer",
+        clinicId,
+        offerName: offerTitle,
+        complianceBody,
+        issues: verificationResult?.issues ?? [],
+        overrideReason: overrideReason.trim(),
+        metadata: {
+          start_date: dateRange.from ? format(dateRange.from, "yyyy-MM-dd") : null,
+          end_date: dateRange.to ? format(dateRange.to, "yyyy-MM-dd") : null,
+        },
+      });
+    }
   };
 
   const canVerify = offerTitle.trim() && dateRange.from && dateRange.to;
