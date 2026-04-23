@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowRight, Facebook, Instagram } from "lucide-react";
+import type { DashboardFilter } from "./AdminDashboard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ interface UpcomingPost {
   platform: string;
   status: string;
   scheduled_date: string;
+  clinic_id: string | null;
   clinic_name: string;
 }
 
@@ -33,19 +35,20 @@ const statusVariant = (status: string): "default" | "secondary" | "destructive" 
   }
 };
 
-export default function UpcomingPosts() {
-  const [posts, setPosts] = useState<UpcomingPost[]>([]);
+export default function UpcomingPosts({ filter }: { filter?: DashboardFilter } = {}) {
+  const [allPosts, setAllPosts] = useState<UpcomingPost[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetch = async () => {
       const today = new Date().toISOString().split("T")[0];
+      // Fetch a bit more so client-side filter still has rows to show
       const { data } = await supabase
         .from("content_posts")
         .select("id, title, platform, status, scheduled_date, clinic_id, clinics(clinic_name)")
         .gte("scheduled_date", today)
         .order("scheduled_date", { ascending: true })
-        .limit(7);
+        .limit(40);
 
       const mapped: UpcomingPost[] = (data || []).map((p: any) => ({
         id: p.id,
@@ -53,13 +56,22 @@ export default function UpcomingPosts() {
         platform: p.platform,
         status: p.status,
         scheduled_date: p.scheduled_date,
+        clinic_id: p.clinic_id || null,
         clinic_name: p.clinics?.clinic_name || "Unknown",
       }));
-      setPosts(mapped);
+      setAllPosts(mapped);
       setLoading(false);
     };
     fetch();
   }, []);
+
+  const posts = allPosts
+    .filter(p => {
+      if (filter?.clinicId && p.clinic_id !== filter.clinicId) return false;
+      if (filter?.status === "pending" && p.status !== "pending") return false;
+      return true;
+    })
+    .slice(0, 7);
 
   if (loading) return null;
 

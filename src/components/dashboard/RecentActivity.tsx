@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   CheckCircle2, Send, Sparkles, Ticket, FileText,
 } from "lucide-react";
+import type { DashboardFilter } from "./AdminDashboard";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -15,6 +16,9 @@ interface UnifiedActivity {
   created_at: string;
   icon: React.ElementType;
   color: string;
+  clinic_id: string | null;
+  department: string | null;
+  status: string | null;
 }
 
 const priorityLabels: Record<string, string> = {
