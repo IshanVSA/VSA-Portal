@@ -309,12 +309,41 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
         </div>
       )}
 
-      <div className={`flex items-start gap-2 rounded-md border p-3 ${!verified ? "opacity-50" : ""}`}>
-        <Checkbox id="popup-consent" checked={consented} onCheckedChange={(checked) => handleConsentChange(checked === true)} disabled={!verified} className="mt-0.5" />
+      {verificationResult && !verificationResult.compliant && !locked && (
+        <div className="rounded-lg border border-amber-300/40 bg-amber-50/20 p-3 space-y-2">
+          <div className="flex items-start gap-2">
+            <Checkbox
+              id="popup-override"
+              checked={overridden}
+              onCheckedChange={(c) => setOverridden(c === true)}
+              className="mt-0.5"
+            />
+            <label htmlFor="popup-override" className="text-xs cursor-pointer leading-relaxed">
+              <span className="font-medium text-amber-800">Override compliance check</span>
+              <span className="block text-muted-foreground mt-0.5">
+                I acknowledge the issues above and take full responsibility for proceeding with this offer.
+              </span>
+            </label>
+          </div>
+          {overridden && (
+            <Textarea
+              placeholder="Reason for override (required, min 5 characters)..."
+              value={overrideReason}
+              onChange={(e) => setOverrideReason(e.target.value)}
+              rows={2}
+              maxLength={500}
+              className="text-xs"
+            />
+          )}
+        </div>
+      )}
+
+      <div className={`flex items-start gap-2 rounded-md border p-3 ${!complianceCleared ? "opacity-50" : ""}`}>
+        <Checkbox id="popup-consent" checked={consented} onCheckedChange={(checked) => handleConsentChange(checked === true)} disabled={!complianceCleared} className="mt-0.5" />
         <label htmlFor="popup-consent" className="text-xs leading-relaxed cursor-pointer select-none">
           I acknowledge that all information provided for this pop-up offer is correct and compliant
           with <strong>{complianceBody || "applicable regulatory"}</strong> regulations. I confirm
-          the offer details, terms, and dates are accurate.
+          the offer details, terms, and dates are accurate{overridden ? " (compliance override applied)" : ""}.
         </label>
       </div>
     </div>
