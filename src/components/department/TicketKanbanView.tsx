@@ -174,6 +174,16 @@ export function TicketKanbanView({ tickets, teamMembers, currentDepartment, onUp
       if (newStatus === "completed" && ticket?.ticket_type === "Bulk Uploads") {
         await moveBulkUploadsToDepartmentFolder(ticketId, currentDepartment || ticket.department);
       }
+      if (newStatus === "completed" && ticket?.ticket_type === "Special Promotion") {
+        const res = await syncSpecialPromotionFromTicket({
+          ticketId,
+          ticketType: ticket.ticket_type,
+          newStatus,
+          description: ticket.description,
+          clinicId: ticket.clinic_id,
+        });
+        if (res.inserted) toast.success("Promotion added to Active Promotions");
+      }
       toast.success(`Status updated`);
       onUpdated();
     }
