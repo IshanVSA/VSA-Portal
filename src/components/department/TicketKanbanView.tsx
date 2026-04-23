@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -72,9 +72,32 @@ export function TicketKanbanView({ tickets, teamMembers, currentDepartment, onUp
   const [voidPending, setVoidPending] = useState<string | null>(null);
   const [voidReason, setVoidReason] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
+  // Optimistic status overrides keyed by ticket id
+  const [optimisticStatus, setOptimisticStatus] = useState<Record<string, KanbanTicket["status"]>>({});
   const { role } = useUserRole();
   const isClient = role === "client";
-  const editingTicket = editingId ? tickets.find(t => t.id === editingId) ?? null : null;
+
+  // Drop overrides for ids whose incoming server status now matches the optimistic value
+  useEffect(() => {
+    setOptimisticStatus(prev => {
+      const next = { ...prev };
+      let changed = false;
+      for (const t of tickets) {
+        if (next[t.id] && next[t.id] === t.status) {
+          delete next[t.id];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [tickets]);
+
+  const displayTickets = useMemo(
+    () => tickets.map(t => (optimisticStatus[t.id] ? { ...t, status: optimisticStatus[t.id] } : t)),
+    [tickets, optimisticStatus]
+  );
+
+  const editingTicket = editingId ? displayTickets.find(t => t.id === editingId) ?? null : null;
 
   const updateAssignmentOrTicket = async (ticket: KanbanTicket, patch: Record<string, any>) => {
     if (ticket.dept_assignment_id) {
@@ -92,8 +115,20 @@ export function TicketKanbanView({ tickets, teamMembers, currentDepartment, onUp
   const handleStatusChange = async (ticketId: string, newStatus: string) => {
     const ticket = tickets.find(t => t.id === ticketId);
     if (!ticket) return;
+    const previousStatus = ticket.status;
+    // Optimistically move the card
+    setOptimisticStatus(prev => ({ ...prev, [ticketId]: newStatus as KanbanTicket["status"] }));
     const { error } = await updateAssignmentOrTicket(ticket, { status: newStatus });
     if (error) {
+      // Rollback
+      setOptimisticStatus(prev => {
+        const next = { ...prev };
+        if (next[ticketId] === newStatus) {
+          if (previousStatus) next[ticketId] = previousStatus;
+          else delete next[ticketId];
+        }
+        return next;
+      });
       toast.error("Failed to update status");
     } else {
       if (newStatus === "completed" && ticket?.ticket_type === "Bulk Uploads") {
@@ -122,7 +157,7 @@ export function TicketKanbanView({ tickets, teamMembers, currentDepartment, onUp
     e.preventDefault();
     setDragOverCol(null);
     const ticketId = e.dataTransfer.getData("text/plain");
-    const ticket = tickets.find(t => t.id === ticketId);
+    const ticket = displayTickets.find(t => t.id === ticketId);
     if (!ticket || ticket.status === colKey) {
       setDraggedId(null);
       return;
@@ -148,6 +183,9 @@ export function TicketKanbanView({ tickets, teamMembers, currentDepartment, onUp
     }
     const ticket = tickets.find(t => t.id === voidPending);
     if (!ticket) return;
+    const previousStatus = ticket.status;
+    const ticketId = voidPending;
+    setOptimisticStatus(prev => ({ ...prev, [ticketId]: "void" }));
     const { data: { user } } = await supabase.auth.getUser();
     const { error: aErr } = await updateAssignmentOrTicket(ticket, { status: "void", notes: voidReason.trim() });
     const { error: pErr } = await supabase
@@ -157,8 +195,16 @@ export function TicketKanbanView({ tickets, teamMembers, currentDepartment, onUp
         voided_by: user?.id ?? null,
         voided_at: new Date().toISOString(),
       } as any)
-      .eq("id", voidPending);
+      .eq("id", ticketId);
     if (aErr || pErr) {
+      setOptimisticStatus(prev => {
+        const next = { ...prev };
+        if (next[ticketId] === "void") {
+          if (previousStatus) next[ticketId] = previousStatus;
+          else delete next[ticketId];
+        }
+        return next;
+      });
       toast.error("Failed to void ticket");
     } else {
       toast.success("Ticket voided");
@@ -169,7 +215,7 @@ export function TicketKanbanView({ tickets, teamMembers, currentDepartment, onUp
 
   const renderColumn = (col: typeof columns[number]) => {
     const Icon = col.icon;
-    const colTickets = tickets.filter(t => t.status === col.key);
+    const colTickets = displayTickets.filter(t => t.status === col.key);
     const isOver = dragOverCol === col.key;
     return (
       <div
