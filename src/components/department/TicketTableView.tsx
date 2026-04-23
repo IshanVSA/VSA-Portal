@@ -32,11 +32,13 @@ interface TableTicket {
   created_at: string;
   assigned_to?: string | null;
   pool_user_ids?: string[];
+  dept_assignment_id?: string;
 }
 
 interface TicketTableViewProps {
   tickets: TableTicket[];
   teamMembers: TeamMemberOption[];
+  currentDepartment?: string;
   onUpdated: () => void;
 }
 
