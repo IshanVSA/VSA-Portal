@@ -253,6 +253,8 @@ export function TicketKanbanView({ tickets, teamMembers, currentDepartment, onUp
                 : [];
               const isDragging = draggedId === t.id;
               const isVoid = t.status === "void";
+              const isCompleted = t.status === "completed";
+              const isResolved = isVoid || isCompleted;
               return (
                 <Card
                   key={t.id}
