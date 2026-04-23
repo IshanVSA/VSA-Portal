@@ -380,10 +380,6 @@ export default function AdminDashboard() {
         <div className="pointer-events-none absolute -bottom-32 left-1/3 h-72 w-72 rounded-full bg-[hsl(var(--dept-social))]/10 blur-3xl" />
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/60 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground backdrop-blur">
-              <Sparkles className="h-3 w-3 text-primary" />
-              Command Center
-            </div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
               {userName ? `Welcome back, ${userName.split(" ")[0]}` : "Welcome back"}
             </h1>
