@@ -460,13 +460,10 @@ export default function Clinics() {
     }
     const targetId = deleteTarget.id;
     setDeleting(true);
-    const { error } = await supabase
-      .from("clinics")
-      .delete()
-      .eq("id", targetId);
+    const { error } = await (supabase.rpc("delete_clinic_by_id" as any, { _clinic_id: targetId }) as any);
     setDeleting(false);
     if (error) {
-      toast.error(error.message);
+      toast.error(error.message || "Failed to delete clinic");
     } else {
       toast.success("Clinic deleted");
       setClinics(prev => prev.filter(c => c.id !== targetId));
