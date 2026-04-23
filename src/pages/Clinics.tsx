@@ -454,19 +454,22 @@ export default function Clinics() {
   };
 
   const confirmDeleteClinic = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget?.id) {
+      toast.error("Missing clinic ID");
+      return;
+    }
+    const targetId = deleteTarget.id;
     setDeleting(true);
     const { error } = await supabase
       .from("clinics")
       .delete()
-      .eq("id", deleteTarget.id)
-      .select();
+      .eq("id", targetId);
     setDeleting(false);
     if (error) {
       toast.error(error.message);
     } else {
       toast.success("Clinic deleted");
-      setClinics(prev => prev.filter(c => c.id !== deleteTarget.id));
+      setClinics(prev => prev.filter(c => c.id !== targetId));
       setDeleteTarget(null);
     }
   };
