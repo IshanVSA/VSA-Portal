@@ -982,6 +982,53 @@ export type Database = {
         }
         Relationships: []
       }
+      compliance_override_log: {
+        Row: {
+          clinic_id: string | null
+          compliance_body: string | null
+          context: string
+          created_at: string
+          id: string
+          issues: Json
+          metadata: Json
+          offer_name: string | null
+          override_reason: string
+          user_id: string
+        }
+        Insert: {
+          clinic_id?: string | null
+          compliance_body?: string | null
+          context: string
+          created_at?: string
+          id?: string
+          issues?: Json
+          metadata?: Json
+          offer_name?: string | null
+          override_reason: string
+          user_id: string
+        }
+        Update: {
+          clinic_id?: string | null
+          compliance_body?: string | null
+          context?: string
+          created_at?: string
+          id?: string
+          issues?: Json
+          metadata?: Json
+          offer_name?: string | null
+          override_reason?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_override_log_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content_calendar: {
         Row: {
           clinic_id: string
