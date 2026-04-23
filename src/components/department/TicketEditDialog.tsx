@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
 import { formatDistanceToNow } from "date-fns";
+import { syncSpecialPromotionFromTicket } from "@/lib/special-promotion-sync";
 
 interface TeamMemberOption { id: string; name: string; }
 
@@ -21,6 +22,7 @@ interface EditableTicket {
   status: "open" | "in_progress" | "completed" | "emergency" | "void";
   description?: string | null;
   department: string;
+  clinic_id?: string | null;
   created_at: string;
   assigned_to?: string | null;
   dept_assignment_id?: string;
@@ -109,6 +111,18 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, onUp
           .update(deptPatch as any)
           .eq("id", ticket.id);
         if (deptErr) throw deptErr;
+      }
+
+      // Side-effect: completing a Special Promotion ticket adds it to Active Promotions
+      if (status === "completed" && ticket.ticket_type === "Special Promotion") {
+        const res = await syncSpecialPromotionFromTicket({
+          ticketId: ticket.id,
+          ticketType: ticket.ticket_type,
+          newStatus: status,
+          description: description.trim() || ticket.description,
+          clinicId: ticket.clinic_id,
+        });
+        if (res.inserted) toast.success("Promotion added to Active Promotions");
       }
 
       toast.success("Ticket updated");
