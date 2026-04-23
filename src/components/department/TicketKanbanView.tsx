@@ -319,6 +319,14 @@ export function TicketKanbanView({ tickets, teamMembers, currentDepartment, onUp
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    <TicketEditDialog
+      open={!!editingId}
+      onOpenChange={(o) => !o && setEditingId(null)}
+      ticket={editingTicket as any}
+      teamMembers={teamMembers}
+      onUpdated={onUpdated}
+    />
     </>
   );
 }
