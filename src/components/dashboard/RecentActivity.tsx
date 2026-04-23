@@ -27,8 +27,8 @@ const priorityLabels: Record<string, string> = {
   emergency: " (Emergency)",
 };
 
-export default function RecentActivity() {
-  const [items, setItems] = useState<UnifiedActivity[]>([]);
+export default function RecentActivity({ filter }: { filter?: DashboardFilter } = {}) {
+  const [allItems, setAllItems] = useState<UnifiedActivity[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,8 +41,8 @@ export default function RecentActivity() {
       const clinicMap = new Map((clinicsRes.data || []).map(c => [c.id, c.clinic_name]));
 
       const [ticketsRes, contentRequestsRes] = await Promise.all([
-        supabase.from("department_tickets").select("id, title, department, priority, status, created_at, created_by, clinic_id").order("created_at", { ascending: false }).limit(10),
-        supabase.from("content_requests").select("id, status, created_at, created_by_concierge_id, clinic_id, intake_data").order("created_at", { ascending: false }).limit(10),
+        supabase.from("department_tickets").select("id, title, department, priority, status, created_at, created_by, clinic_id").order("created_at", { ascending: false }).limit(40),
+        supabase.from("content_requests").select("id, status, created_at, created_by_concierge_id, clinic_id, intake_data").order("created_at", { ascending: false }).limit(40),
       ]);
 
       const activities: UnifiedActivity[] = [];
@@ -69,6 +69,9 @@ export default function RecentActivity() {
           created_at: cr.created_at,
           icon: cfg.icon,
           color: cfg.color,
+          clinic_id: cr.clinic_id || null,
+          department: null,
+          status: cr.status || null,
         });
       });
 
@@ -89,15 +92,27 @@ export default function RecentActivity() {
           created_at: t.created_at,
           icon: Ticket,
           color: t.priority === "emergency" ? "text-destructive" : t.priority === "urgent" ? "text-warning" : "text-primary",
+          clinic_id: t.clinic_id || null,
+          department: t.department || null,
+          status: t.status || null,
         });
       });
 
       activities.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      setItems(activities.slice(0, 12));
+      setAllItems(activities);
       setLoading(false);
     };
     fetchAll();
   }, []);
+
+  const items = allItems
+    .filter(i => {
+      if (filter?.clinicId && i.clinic_id !== filter.clinicId) return false;
+      if (filter?.department && i.department !== filter.department) return false;
+      if (filter?.status && i.status !== filter.status) return false;
+      return true;
+    })
+    .slice(0, 12);
 
   if (loading) return null;
 
