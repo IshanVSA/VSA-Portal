@@ -706,7 +706,7 @@ export default function Clinics() {
                             <Button variant="ghost" size="sm" className="h-8 text-xs"><Eye className="h-3.5 w-3.5 sm:mr-1" /> <span className="hidden sm:inline">View</span></Button>
                           </Link>
                           {role === "admin" && (
-                            <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => deleteClinic(clinic.id, clinic.clinic_name)}>
+                            <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => setDeleteTarget({ id: clinic.id, name: clinic.clinic_name })}>
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           )}
