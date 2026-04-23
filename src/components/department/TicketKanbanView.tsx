@@ -71,8 +71,10 @@ export function TicketKanbanView({ tickets, teamMembers, currentDepartment, onUp
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
   const [voidPending, setVoidPending] = useState<string | null>(null);
   const [voidReason, setVoidReason] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
   const { role } = useUserRole();
   const isClient = role === "client";
+  const editingTicket = editingId ? tickets.find(t => t.id === editingId) ?? null : null;
 
   const updateAssignmentOrTicket = async (ticket: KanbanTicket, patch: Record<string, any>) => {
     if (ticket.dept_assignment_id) {
