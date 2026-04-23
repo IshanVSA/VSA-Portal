@@ -265,7 +265,7 @@ export function TicketKanbanView({ tickets, teamMembers, currentDepartment, onUp
                     "p-3 hover:shadow-md transition-all group",
                     isClient ? "cursor-default" : "cursor-grab active:cursor-grabbing",
                     isDragging && "opacity-40 scale-95",
-                    isVoid && "opacity-70"
+                    isResolved && "opacity-70"
                   )}
                 >
                   <div className="flex items-start gap-2 mb-2">
@@ -273,7 +273,7 @@ export function TicketKanbanView({ tickets, teamMembers, currentDepartment, onUp
                       <GripVertical className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
                     )}
                     <div className={cn("h-2 w-2 rounded-full mt-1.5 shrink-0", priorityDot[t.priority])} />
-                    <h4 className={cn("flex-1 text-sm font-medium text-foreground leading-tight line-clamp-2", isVoid && "line-through text-muted-foreground")}>{t.title}</h4>
+                    <h4 className={cn("flex-1 text-sm font-medium text-foreground leading-tight line-clamp-2", isResolved && "line-through text-muted-foreground")}>{t.title}</h4>
                     <Button
                       type="button"
                       variant="ghost"
