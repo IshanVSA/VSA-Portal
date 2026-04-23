@@ -88,6 +88,8 @@ export default function PromotionModule({ clinicId, jurisdiction }: Props) {
   const [complianceBody, setComplianceBody] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [verified, setVerified] = useState(false);
+  const [overridden, setOverridden] = useState(false);
+  const [overrideReason, setOverrideReason] = useState("");
   const [verificationResult, setVerificationResult] = useState<{
     compliant: boolean; issues: string[]; suggestions: string[];
   } | null>(null);
@@ -107,9 +109,11 @@ export default function PromotionModule({ clinicId, jurisdiction }: Props) {
 
   // Reset verification when key fields change
   const resetVerification = () => {
-    if (verified || verificationResult) {
+    if (verified || verificationResult || overridden) {
       setVerified(false);
       setVerificationResult(null);
+      setOverridden(false);
+      setOverrideReason("");
     }
   };
 
@@ -181,6 +185,8 @@ export default function PromotionModule({ clinicId, jurisdiction }: Props) {
       setForm({ offer_name: "", inclusions: "", exclusions: "", start_date: "", end_date: "", governing_body_confirmed: false });
       setVerified(false);
       setVerificationResult(null);
+      setOverridden(false);
+      setOverrideReason("");
     },
     onError: (e: Error) => toast.error("Failed", { description: e.message }),
   });
@@ -197,8 +203,9 @@ export default function PromotionModule({ clinicId, jurisdiction }: Props) {
   });
 
   const canVerify = form.offer_name.trim() && form.start_date && form.end_date;
+  const complianceCleared = verified || (overridden && overrideReason.trim().length >= 5);
   const isValid = form.offer_name.trim() && form.start_date && form.end_date &&
-    verified && (!isCVBC || form.governing_body_confirmed);
+    complianceCleared && (!isCVBC || form.governing_body_confirmed);
 
   return (
     <Card>
@@ -293,6 +300,35 @@ export default function PromotionModule({ clinicId, jurisdiction }: Props) {
                           </div>
                         ))}
                       </div>
+                    )}
+                  </div>
+                )}
+
+                {verificationResult && !verificationResult.compliant && (
+                  <div className="rounded-lg border border-amber-300/40 bg-amber-50/20 p-3 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <Checkbox
+                        id="override-compliance"
+                        checked={overridden}
+                        onCheckedChange={(c) => setOverridden(c === true)}
+                        className="mt-0.5"
+                      />
+                      <label htmlFor="override-compliance" className="text-xs cursor-pointer leading-relaxed">
+                        <span className="font-medium text-amber-800">Override compliance check</span>
+                        <span className="block text-muted-foreground mt-0.5">
+                          I acknowledge the issues above and take full responsibility for publishing this promotion.
+                        </span>
+                      </label>
+                    </div>
+                    {overridden && (
+                      <Textarea
+                        placeholder="Reason for override (required, min 5 characters)..."
+                        value={overrideReason}
+                        onChange={(e) => setOverrideReason(e.target.value)}
+                        rows={2}
+                        maxLength={500}
+                        className="text-xs"
+                      />
                     )}
                   </div>
                 )}

@@ -69,6 +69,8 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
   const [complianceBody, setComplianceBody] = useState("");
   const [verified, setVerified] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [overridden, setOverridden] = useState(false);
+  const [overrideReason, setOverrideReason] = useState("");
   const [verificationResult, setVerificationResult] = useState<{
     compliant: boolean;
     issues: string[];
@@ -99,19 +101,21 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
       `Start Date: ${dateRange.from ? format(dateRange.from, "PPP") : "N/A"}`,
       `End Date: ${dateRange.to ? format(dateRange.to, "PPP") : "N/A"}`,
       `Compliance Body: ${complianceBody || "N/A"}`,
-      `Verified: ${verified ? "Yes" : "No"}`,
+      `Verified: ${verified ? "Yes" : overridden ? `Overridden — ${overrideReason}` : "No"}`,
     ];
     onChange("Pop-up Offer Details:\n" + parts.join("\n"));
-  }, [offerTitle, offerText, termsAndConditions, additionalNotes, dateRange, complianceBody, verified, onChange]);
+  }, [offerTitle, offerText, termsAndConditions, additionalNotes, dateRange, complianceBody, verified, overridden, overrideReason, onChange]);
 
   const handleFieldChange = useCallback(() => {
-    if (verified) {
+    if (verified || overridden) {
       setVerified(false);
       setVerificationResult(null);
+      setOverridden(false);
+      setOverrideReason("");
       setConsented(false);
       onConsentChange(false);
     }
-  }, [verified, onConsentChange]);
+  }, [verified, overridden, onConsentChange]);
 
   const handleAutofill = useCallback((fields: Record<string, any>) => {
     if (fields.offerTitle) { setOfferTitle(fields.offerTitle); handleFieldChange(); }
@@ -162,6 +166,7 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
   };
 
   const canVerify = offerTitle.trim() && dateRange.from && dateRange.to;
+  const complianceCleared = verified || (overridden && overrideReason.trim().length >= 5);
   const locked = consented;
 
   return (
@@ -304,12 +309,41 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
         </div>
       )}
 
-      <div className={`flex items-start gap-2 rounded-md border p-3 ${!verified ? "opacity-50" : ""}`}>
-        <Checkbox id="popup-consent" checked={consented} onCheckedChange={(checked) => handleConsentChange(checked === true)} disabled={!verified} className="mt-0.5" />
+      {verificationResult && !verificationResult.compliant && !locked && (
+        <div className="rounded-lg border border-amber-300/40 bg-amber-50/20 p-3 space-y-2">
+          <div className="flex items-start gap-2">
+            <Checkbox
+              id="popup-override"
+              checked={overridden}
+              onCheckedChange={(c) => setOverridden(c === true)}
+              className="mt-0.5"
+            />
+            <label htmlFor="popup-override" className="text-xs cursor-pointer leading-relaxed">
+              <span className="font-medium text-amber-800">Override compliance check</span>
+              <span className="block text-muted-foreground mt-0.5">
+                I acknowledge the issues above and take full responsibility for proceeding with this offer.
+              </span>
+            </label>
+          </div>
+          {overridden && (
+            <Textarea
+              placeholder="Reason for override (required, min 5 characters)..."
+              value={overrideReason}
+              onChange={(e) => setOverrideReason(e.target.value)}
+              rows={2}
+              maxLength={500}
+              className="text-xs"
+            />
+          )}
+        </div>
+      )}
+
+      <div className={`flex items-start gap-2 rounded-md border p-3 ${!complianceCleared ? "opacity-50" : ""}`}>
+        <Checkbox id="popup-consent" checked={consented} onCheckedChange={(checked) => handleConsentChange(checked === true)} disabled={!complianceCleared} className="mt-0.5" />
         <label htmlFor="popup-consent" className="text-xs leading-relaxed cursor-pointer select-none">
           I acknowledge that all information provided for this pop-up offer is correct and compliant
           with <strong>{complianceBody || "applicable regulatory"}</strong> regulations. I confirm
-          the offer details, terms, and dates are accurate.
+          the offer details, terms, and dates are accurate{overridden ? " (compliance override applied)" : ""}.
         </label>
       </div>
     </div>
