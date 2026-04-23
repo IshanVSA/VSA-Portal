@@ -101,10 +101,10 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
       `Start Date: ${dateRange.from ? format(dateRange.from, "PPP") : "N/A"}`,
       `End Date: ${dateRange.to ? format(dateRange.to, "PPP") : "N/A"}`,
       `Compliance Body: ${complianceBody || "N/A"}`,
-      `Verified: ${verified ? "Yes" : "No"}`,
+      `Verified: ${verified ? "Yes" : overridden ? `Overridden — ${overrideReason}` : "No"}`,
     ];
     onChange("Pop-up Offer Details:\n" + parts.join("\n"));
-  }, [offerTitle, offerText, termsAndConditions, additionalNotes, dateRange, complianceBody, verified, onChange]);
+  }, [offerTitle, offerText, termsAndConditions, additionalNotes, dateRange, complianceBody, verified, overridden, overrideReason, onChange]);
 
   const handleFieldChange = useCallback(() => {
     if (verified || overridden) {
