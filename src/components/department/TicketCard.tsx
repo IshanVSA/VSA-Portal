@@ -131,12 +131,9 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
       return;
     }
     setUpdating(true);
-    const { error } = await supabase
-      .from("department_tickets" as any)
-      .update({ status: newStatus } as any)
-      .eq("id", id);
+    const { error } = await updateAssignmentOrTicket({ status: newStatus });
     if (!error && newStatus === "completed" && ticket_type === "Bulk Uploads") {
-      await moveBulkUploadsToDepartmentFolder(id, department);
+      await moveBulkUploadsToDepartmentFolder(id, currentDepartment || department);
     }
     setUpdating(false);
     if (error) {
@@ -154,17 +151,22 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
     }
     setUpdating(true);
     const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase
+    // Mark THIS dept's assignment as void (rollup will surface void to client)
+    const { error: assignErr } = await updateAssignmentOrTicket({
+      status: "void",
+      notes: voidReason.trim(),
+    });
+    // Also stamp the parent ticket with the void reason metadata for visibility
+    const { error: parentErr } = await supabase
       .from("department_tickets" as any)
       .update({
-        status: "void",
         void_reason: voidReason.trim(),
         voided_by: user?.id ?? null,
         voided_at: new Date().toISOString(),
       } as any)
       .eq("id", id);
     setUpdating(false);
-    if (error) {
+    if (assignErr || parentErr) {
       toast.error("Failed to void ticket");
     } else {
       toast.success("Ticket voided");
