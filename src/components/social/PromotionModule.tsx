@@ -109,9 +109,11 @@ export default function PromotionModule({ clinicId, jurisdiction }: Props) {
 
   // Reset verification when key fields change
   const resetVerification = () => {
-    if (verified || verificationResult) {
+    if (verified || verificationResult || overridden) {
       setVerified(false);
       setVerificationResult(null);
+      setOverridden(false);
+      setOverrideReason("");
     }
   };
 
