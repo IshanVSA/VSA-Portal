@@ -69,6 +69,8 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
   const [complianceBody, setComplianceBody] = useState("");
   const [verified, setVerified] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [overridden, setOverridden] = useState(false);
+  const [overrideReason, setOverrideReason] = useState("");
   const [verificationResult, setVerificationResult] = useState<{
     compliant: boolean;
     issues: string[];
