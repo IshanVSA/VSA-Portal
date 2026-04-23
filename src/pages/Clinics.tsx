@@ -453,18 +453,21 @@ export default function Clinics() {
     fetchTeamAssignments();
   };
 
-  const deleteClinic = async (clinicId: string, clinicName: string) => {
-    if (!clinicId) return;
-    const confirmed = window.confirm(`Are you sure you want to delete "${clinicName}"? This will permanently remove all associated data including team members, content, analytics, and tickets.`);
-    if (!confirmed) return;
+  const confirmDeleteClinic = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     const { error } = await supabase
       .from("clinics")
       .delete()
-      .eq("id", clinicId)
+      .eq("id", deleteTarget.id)
       .select();
-    if (error) { toast.error(error.message); } else {
+    setDeleting(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
       toast.success("Clinic deleted");
-      setClinics(prev => prev.filter(c => c.id !== clinicId));
+      setClinics(prev => prev.filter(c => c.id !== deleteTarget.id));
+      setDeleteTarget(null);
     }
   };
 
