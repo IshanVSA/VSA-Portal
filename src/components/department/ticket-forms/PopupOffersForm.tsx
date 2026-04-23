@@ -107,13 +107,15 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
   }, [offerTitle, offerText, termsAndConditions, additionalNotes, dateRange, complianceBody, verified, onChange]);
 
   const handleFieldChange = useCallback(() => {
-    if (verified) {
+    if (verified || overridden) {
       setVerified(false);
       setVerificationResult(null);
+      setOverridden(false);
+      setOverrideReason("");
       setConsented(false);
       onConsentChange(false);
     }
-  }, [verified, onConsentChange]);
+  }, [verified, overridden, onConsentChange]);
 
   const handleAutofill = useCallback((fields: Record<string, any>) => {
     if (fields.offerTitle) { setOfferTitle(fields.offerTitle); handleFieldChange(); }
