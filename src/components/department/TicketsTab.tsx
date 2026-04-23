@@ -127,7 +127,7 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
         // Per-department assignment rows (the new model)
         const { data: dtaRows } = await (supabase
           .from("department_ticket_assignments" as any)
-          .select("ticket_id, department, assigned_to, status, completed_at")
+          .select("id, ticket_id, department, assigned_to, status, completed_at")
           .in("ticket_id", ticketIds) as any);
         const dtaByTicket = new Map<string, any[]>();
         ((dtaRows || []) as any[]).forEach(r => {
