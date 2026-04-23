@@ -28,17 +28,8 @@ const statusFilters = [
   { value: "void", label: "Void" },
 ];
 
-type ViewMode = "cards" | "kanban" | "table";
-
-const viewOptions: { value: ViewMode; label: string; icon: React.ElementType }[] = [
-  { value: "cards", label: "Cards", icon: LayoutGrid },
-  { value: "kanban", label: "Kanban", icon: Kanban },
-  { value: "table", label: "Table", icon: TableProperties },
-];
-
 export function TicketsTab({ department, services, clinicId }: TicketsTabProps) {
   const [filter, setFilter] = useState("all");
-  const [viewMode, setViewMode] = useState<ViewMode>("cards");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { role } = useUserRole();
