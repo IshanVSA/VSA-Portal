@@ -4,10 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Plus, Inbox, LayoutGrid, Kanban, TableProperties, Search, X } from "lucide-react";
-import { TicketCard } from "./TicketCard";
+import { Plus, Inbox, Search, X } from "lucide-react";
 import { TicketKanbanView } from "./TicketKanbanView";
-import { TicketTableView } from "./TicketTableView";
 import { NewTicketDialog } from "./NewTicketDialog";
 import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { getVisibleTicketTypes } from "@/lib/ticket-department-map";
@@ -30,17 +28,8 @@ const statusFilters = [
   { value: "void", label: "Void" },
 ];
 
-type ViewMode = "cards" | "kanban" | "table";
-
-const viewOptions: { value: ViewMode; label: string; icon: React.ElementType }[] = [
-  { value: "cards", label: "Cards", icon: LayoutGrid },
-  { value: "kanban", label: "Kanban", icon: Kanban },
-  { value: "table", label: "Table", icon: TableProperties },
-];
-
 export function TicketsTab({ department, services, clinicId }: TicketsTabProps) {
   const [filter, setFilter] = useState("all");
-  const [viewMode, setViewMode] = useState<ViewMode>("cards");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { role } = useUserRole();
@@ -291,28 +280,6 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
           ))}
         </div>
         <div className="flex items-center gap-2">
-          {/* View toggle */}
-          <div className="flex items-center border border-border rounded-lg p-0.5 bg-muted/30">
-            {viewOptions.map(v => {
-              const Icon = v.icon;
-              return (
-                <button
-                  key={v.value}
-                  onClick={() => setViewMode(v.value)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all",
-                    viewMode === v.value
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                  title={v.label}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  <span className="hidden md:inline">{v.label}</span>
-                </button>
-              );
-            })}
-          </div>
           <Button size="sm" onClick={() => setDialogOpen(true)} className="shrink-0 gap-1.5">
             <Plus className="h-3.5 w-3.5" />
             New Ticket
@@ -331,44 +298,13 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
           <p className="text-sm font-medium">{searchQuery ? "No matching tickets" : "No tickets found"}</p>
           <p className="text-xs mt-1">{searchQuery ? "Try a different search term." : "Create a new ticket to get started."}</p>
         </div>
-      ) : viewMode === "kanban" ? (
+      ) : (
         <TicketKanbanView
           tickets={filteredTickets}
           teamMembers={mergedTeamMembers}
           currentDepartment={department}
           onUpdated={() => refetch()}
         />
-      ) : viewMode === "table" ? (
-        <TicketTableView
-          tickets={filteredTickets}
-          teamMembers={mergedTeamMembers}
-          currentDepartment={department}
-          onUpdated={() => refetch()}
-        />
-      ) : (
-        <div className="space-y-2">
-          {filteredTickets.map((t: any) => (
-            <TicketCard
-              key={t.id}
-              id={t.id}
-              title={t.title}
-              ticket_type={t.ticket_type}
-              priority={t.priority}
-              status={t.status}
-              description={t.description}
-              department={t.department}
-              currentDepartment={department}
-              dept_assignment_id={t.dept_assignment_id}
-              dept_assignments={t.dept_assignments}
-              created_at={t.created_at}
-              assigned_to={t.assigned_to}
-              pool_user_ids={t.pool_user_ids}
-              void_reason={t.void_reason}
-              teamMembers={mergedTeamMembers}
-              onUpdated={() => refetch()}
-            />
-          ))}
-        </div>
       )}
 
       <NewTicketDialog
