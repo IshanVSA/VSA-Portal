@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { moveBulkUploadsToDepartmentFolder } from "@/lib/ticket-bulk-uploads";
+import { syncSpecialPromotionFromTicket } from "@/lib/special-promotion-sync";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { TicketEditDialog } from "./TicketEditDialog";
@@ -29,6 +30,7 @@ interface KanbanTicket {
   status: "open" | "in_progress" | "completed" | "emergency" | "void";
   description?: string | null;
   department: string;
+  clinic_id?: string | null;
   created_at: string;
   assigned_to?: string | null;
   pool_user_ids?: string[];
