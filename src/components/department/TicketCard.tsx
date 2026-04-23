@@ -78,13 +78,14 @@ const allDepartments = [
   { value: "social_media", label: "Social Media" },
 ];
 
-export function TicketCard({ id, title, ticket_type, priority, status, description, department, created_at, assigned_to, pool_user_ids = [], void_reason, teamMembers = [], onUpdated }: TicketCardProps) {
+export function TicketCard({ id, title, ticket_type, priority, status, description, department, currentDepartment, dept_assignment_id, dept_assignments = [], created_at, assigned_to, pool_user_ids = [], void_reason, teamMembers = [], onUpdated }: TicketCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [voidDialogOpen, setVoidDialogOpen] = useState(false);
   const [voidReason, setVoidReason] = useState("");
   const { role } = useUserRole();
   const canVoid = role === "admin" || role === "concierge";
+  const isClient = role === "client";
 
   const sc = statusConfig[status] || statusConfig.open;
   const pc = priorityConfig[priority];
@@ -97,12 +98,31 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
         .filter(Boolean) as string[]
     : [];
 
+  // Cross-department status strip
+  const showCrossDeptStrip = (dept_assignments?.length || 0) > 1;
+  const completedDeptCount = dept_assignments?.filter(d => d.status === "completed").length || 0;
+  const totalDeptCount = dept_assignments?.length || 0;
+
   const statusOptions: { value: string; label: string }[] = [
     { value: "open", label: "Open" },
     { value: "in_progress", label: "In Progress" },
     { value: "completed", label: "Completed" },
     ...(canVoid ? [{ value: "void", label: "Void" }] : []),
   ];
+
+  // Update either the per-dept assignment row (preferred) or fall back to the parent ticket.
+  const updateAssignmentOrTicket = async (patch: Record<string, any>) => {
+    if (dept_assignment_id) {
+      return await supabase
+        .from("department_ticket_assignments" as any)
+        .update(patch as any)
+        .eq("id", dept_assignment_id);
+    }
+    return await supabase
+      .from("department_tickets" as any)
+      .update(patch as any)
+      .eq("id", id);
+  };
 
   const handleStatusChange = async (newStatus: string) => {
     if (newStatus === "void") {
