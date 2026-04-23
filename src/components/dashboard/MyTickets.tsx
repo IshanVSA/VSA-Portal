@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import type { DashboardFilter } from "./AdminDashboard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -30,10 +31,10 @@ const deptLabels: Record<string, string> = {
   social_media: "Social Media",
 };
 
-export default function MyTickets() {
+export default function MyTickets({ filter }: { filter?: DashboardFilter } = {}) {
   const { user } = useAuth();
 
-  const { data: tickets = [], refetch } = useQuery({
+  const { data: rawTickets = [], refetch } = useQuery({
     queryKey: ["my-assigned-tickets", user?.id],
     enabled: !!user,
     queryFn: async () => {
@@ -50,7 +51,7 @@ export default function MyTickets() {
       const ticketIds = Array.from(new Set(rows.map(r => r.ticket_id)));
       const { data: parents } = await (supabase
         .from("department_tickets" as any)
-        .select("id, title, ticket_type, priority, created_at")
+        .select("id, title, ticket_type, priority, created_at, clinic_id")
         .in("id", ticketIds) as any);
       const pMap = new Map<string, any>();
       ((parents || []) as any[]).forEach(p => pMap.set(p.id, p));
@@ -62,12 +63,20 @@ export default function MyTickets() {
           ticket_id: r.ticket_id,
           status: r.status,
           department: r.department,
+          clinic_id: p.clinic_id || null,
           title: p.title || "",
           priority: p.priority || "regular",
           created_at: p.created_at || new Date().toISOString(),
         };
       });
     },
+  });
+
+  const tickets = rawTickets.filter((t: any) => {
+    if (filter?.clinicId && t.clinic_id !== filter.clinicId) return false;
+    if (filter?.department && t.department !== filter.department) return false;
+    if (filter?.status && t.status !== filter.status) return false;
+    return true;
   });
 
   const handleStatusChange = async (assignmentId: string, newStatus: string) => {

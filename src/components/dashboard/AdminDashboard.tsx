@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,6 +17,8 @@ import {
   Sparkles,
   Activity,
   TrendingUp,
+  X,
+  Filter as FilterIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +51,27 @@ interface TrendPoint {
   posts: number;
 }
 
+interface TicketRow {
+  id: string;
+  department: string;
+  status: string;
+  priority: string;
+  clinic_id: string | null;
+}
+
+interface PostRow {
+  id: string;
+  status: string;
+  scheduled_date: string | null;
+  clinic_id: string | null;
+}
+
+interface RequestRow {
+  id: string;
+  status: string;
+  clinic_id: string | null;
+}
+
 interface TicketSummary {
   department: string;
   open: number;
@@ -61,6 +84,14 @@ interface PipelineStage {
   status: string;
   count: number;
   tone: "muted" | "warning" | "primary" | "success";
+}
+
+export interface DashboardFilter {
+  clinicId?: string;
+  clinicName?: string;
+  department?: string;
+  status?: string;
+  statusLabel?: string;
 }
 
 const deptConfig: Record<string, { icon: React.ElementType; label: string; path: string; ring: string; text: string }> = {
@@ -116,48 +147,57 @@ interface HeroStatProps {
   tone: "primary" | "warning" | "success" | "destructive" | "neutral";
   href?: string;
   index: number;
+  active?: boolean;
+  onClick?: () => void;
 }
 
-const toneStyles: Record<HeroStatProps["tone"], { accent: string; chip: string; glow: string }> = {
+const toneStyles: Record<HeroStatProps["tone"], { accent: string; chip: string; glow: string; ring: string }> = {
   primary: {
     accent: "from-primary/20 via-primary/5 to-transparent",
     chip: "bg-primary/15 text-primary",
     glow: "shadow-[0_0_0_1px_hsl(var(--primary)/0.15)]",
+    ring: "ring-primary/60",
   },
   warning: {
     accent: "from-warning/20 via-warning/5 to-transparent",
     chip: "bg-warning/15 text-warning",
     glow: "shadow-[0_0_0_1px_hsl(var(--warning)/0.15)]",
+    ring: "ring-warning/60",
   },
   success: {
     accent: "from-success/20 via-success/5 to-transparent",
     chip: "bg-success/15 text-success",
     glow: "shadow-[0_0_0_1px_hsl(var(--success)/0.15)]",
+    ring: "ring-success/60",
   },
   destructive: {
     accent: "from-destructive/20 via-destructive/5 to-transparent",
     chip: "bg-destructive/15 text-destructive",
     glow: "shadow-[0_0_0_1px_hsl(var(--destructive)/0.15)]",
+    ring: "ring-destructive/60",
   },
   neutral: {
     accent: "from-muted/40 via-muted/10 to-transparent",
     chip: "bg-muted text-muted-foreground",
     glow: "shadow-[0_0_0_1px_hsl(var(--border))]",
+    ring: "ring-foreground/40",
   },
 };
 
-function HeroStat({ label, value, caption, icon: Icon, tone, href, index }: HeroStatProps) {
+function HeroStat({ label, value, caption, icon: Icon, tone, href, index, active, onClick }: HeroStatProps) {
   const t = toneStyles[tone];
+  const interactive = !!(onClick || href);
   const card = (
     <motion.div
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, delay: index * 0.06, ease: [0.16, 1, 0.3, 1] }}
-      whileHover={href ? { y: -2 } : undefined}
+      whileHover={interactive ? { y: -2 } : undefined}
       className={cn(
         "group relative overflow-hidden rounded-2xl border border-border/60 bg-card p-5 transition-all",
         t.glow,
-        href && "cursor-pointer hover:border-border"
+        interactive && "cursor-pointer hover:border-border",
+        active && cn("ring-2", t.ring)
       )}
     >
       <div className={cn("pointer-events-none absolute inset-0 bg-gradient-to-br opacity-80", t.accent)} />
@@ -172,15 +212,29 @@ function HeroStat({ label, value, caption, icon: Icon, tone, href, index }: Hero
           <span className="text-4xl font-bold leading-none tracking-tight tabular-nums text-foreground">
             {value}
           </span>
-          {href && (
+          {interactive && (
             <ArrowUpRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground" />
           )}
         </div>
         {caption && <p className="mt-2 text-xs text-muted-foreground">{caption}</p>}
+        {active && (
+          <span className="absolute -right-1 -top-1 inline-flex h-4 items-center rounded-full bg-foreground px-1.5 text-[9px] font-bold uppercase tracking-wider text-background">
+            Filter
+          </span>
+        )}
       </div>
     </motion.div>
   );
-  return href ? <Link to={href} className="block">{card}</Link> : card;
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className="block w-full text-left">
+        {card}
+      </button>
+    );
+  }
+  if (href) return <Link to={href} className="block">{card}</Link>;
+  return card;
 }
 
 export default function AdminDashboard() {
@@ -189,14 +243,15 @@ export default function AdminDashboard() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [userName, setUserName] = useState<string | null>(null);
   const [teamCount, setTeamCount] = useState(0);
-  const [pendingPosts, setPendingPosts] = useState(0);
-  const [openTickets, setOpenTickets] = useState(0);
-  const [urgentTickets, setUrgentTickets] = useState(0);
-  const [ticketSummary, setTicketSummary] = useState<TicketSummary[]>([]);
-  const [trendData, setTrendData] = useState<TrendPoint[]>([]);
-  const [pipeline, setPipeline] = useState<PipelineStage[]>([]);
-  const [pendingRequests, setPendingRequests] = useState(0);
+
+  // raw datasets so we can recompute under filters
+  const [tickets, setTickets] = useState<TicketRow[]>([]);
+  const [posts, setPosts] = useState<PostRow[]>([]);
+  const [contentRequests, setContentRequests] = useState<RequestRow[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // active drill-down filter
+  const [filter, setFilter] = useState<DashboardFilter>({});
 
   useEffect(() => {
     if (!user) return;
@@ -206,70 +261,111 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const fetchAll = async () => {
-      const [clinicsRes, profilesRes, rolesRes, postsRes, pendingRes, ticketsRes, contentReqRes] = await Promise.all([
+      const [clinicsRes, profilesRes, rolesRes, postsRes, ticketsRes, contentReqRes] = await Promise.all([
         supabase.from("clinics").select("id, clinic_name, status, assigned_concierge_id, website_enabled, seo_enabled, google_ads_enabled, social_media_enabled"),
         supabase.from("profiles").select("id, full_name"),
         supabase.from("user_roles").select("user_id, role"),
-        supabase.from("content_posts").select("id, scheduled_date"),
-        supabase.from("content_posts").select("id").eq("status", "pending"),
-        supabase.from("department_tickets").select("id, department, status, priority"),
-        supabase.from("content_requests").select("id, status"),
+        supabase.from("content_posts").select("id, status, scheduled_date, clinic_id"),
+        supabase.from("department_tickets").select("id, department, status, priority, clinic_id"),
+        supabase.from("content_requests").select("id, status, clinic_id"),
       ]);
 
       setClinics((clinicsRes.data || []) as Clinic[]);
       setProfiles(profilesRes.data || []);
-      setPendingPosts((pendingRes.data || []).length);
-
-      const roles = rolesRes.data || [];
-      setTeamCount(roles.length);
-
-      const tickets = ticketsRes.data || [];
-      setOpenTickets(tickets.filter(t => t.status === "open" || t.status === "in_progress").length);
-      setUrgentTickets(tickets.filter(t => t.priority === "urgent" || t.priority === "emergency").length);
-
-      const deptMap: Record<string, { open: number; in_progress: number; total: number }> = {};
-      tickets.forEach(t => {
-        if (!deptMap[t.department]) deptMap[t.department] = { open: 0, in_progress: 0, total: 0 };
-        deptMap[t.department].total++;
-        if (t.status === "open") deptMap[t.department].open++;
-        if (t.status === "in_progress") deptMap[t.department].in_progress++;
-      });
-      setTicketSummary(Object.entries(deptMap).map(([department, counts]) => ({ department, ...counts })));
-
-      const reqs = contentReqRes.data || [];
-      const statusCounts: Record<string, number> = {};
-      reqs.forEach(r => { statusCounts[r.status] = (statusCounts[r.status] || 0) + 1; });
-      setPipeline([
-        { label: "Generated", status: "generated", count: statusCounts["generated"] || 0, tone: "muted" },
-        { label: "Concierge Preferred", status: "concierge_preferred", count: statusCounts["concierge_preferred"] || 0, tone: "warning" },
-        { label: "Admin Approved", status: "admin_approved", count: statusCounts["admin_approved"] || 0, tone: "primary" },
-        { label: "Client Selected", status: "client_selected", count: statusCounts["client_selected"] || 0, tone: "success" },
-        { label: "Finalized", status: "final_approved", count: statusCounts["final_approved"] || 0, tone: "success" },
-      ]);
-      setPendingRequests((statusCounts["concierge_preferred"] || 0) + (statusCounts["client_selected"] || 0));
-
-      const posts = postsRes.data || [];
-      const monthMap: Record<string, number> = {};
-      posts.forEach(p => {
-        const month = (p as any).scheduled_date?.slice(0, 7);
-        if (month) monthMap[month] = (monthMap[month] || 0) + 1;
-      });
-      setTrendData(Object.entries(monthMap).sort(([a], [b]) => a.localeCompare(b)).slice(-6).map(([date, posts]) => ({ date, posts })));
-
+      setTeamCount((rolesRes.data || []).length);
+      setTickets((ticketsRes.data || []) as TicketRow[]);
+      setPosts((postsRes.data || []) as PostRow[]);
+      setContentRequests((contentReqRes.data || []) as RequestRow[]);
       setLoading(false);
     };
     fetchAll();
   }, []);
 
+  // ----- Apply filter to raw datasets -----
+  const filteredTickets = useMemo(() => {
+    return tickets.filter(t => {
+      if (filter.clinicId && t.clinic_id !== filter.clinicId) return false;
+      if (filter.department && t.department !== filter.department) return false;
+      if (filter.status && t.status !== filter.status) return false;
+      return true;
+    });
+  }, [tickets, filter]);
+
+  const filteredPosts = useMemo(() => {
+    return posts.filter(p => {
+      if (filter.clinicId && p.clinic_id !== filter.clinicId) return false;
+      return true;
+    });
+  }, [posts, filter]);
+
+  const filteredRequests = useMemo(() => {
+    return contentRequests.filter(r => {
+      if (filter.clinicId && r.clinic_id !== filter.clinicId) return false;
+      return true;
+    });
+  }, [contentRequests, filter]);
+
+  // ----- Derived metrics under current filter -----
+  const activeClinics = clinics.filter(c => c.status === "active").length;
+  const openTickets = filteredTickets.filter(t => t.status === "open" || t.status === "in_progress").length;
+  const urgentTickets = filteredTickets.filter(t => t.priority === "urgent" || t.priority === "emergency").length;
+  const pendingPosts = filteredPosts.filter(p => p.status === "pending").length;
+
+  const ticketSummary: TicketSummary[] = useMemo(() => {
+    const deptMap: Record<string, { open: number; in_progress: number; total: number }> = {};
+    filteredTickets.forEach(t => {
+      if (!deptMap[t.department]) deptMap[t.department] = { open: 0, in_progress: 0, total: 0 };
+      deptMap[t.department].total++;
+      if (t.status === "open") deptMap[t.department].open++;
+      if (t.status === "in_progress") deptMap[t.department].in_progress++;
+    });
+    return Object.entries(deptMap).map(([department, counts]) => ({ department, ...counts }));
+  }, [filteredTickets]);
+
+  const pipeline: PipelineStage[] = useMemo(() => {
+    const sc: Record<string, number> = {};
+    filteredRequests.forEach(r => { sc[r.status] = (sc[r.status] || 0) + 1; });
+    return [
+      { label: "Generated", status: "generated", count: sc["generated"] || 0, tone: "muted" },
+      { label: "Concierge Preferred", status: "concierge_preferred", count: sc["concierge_preferred"] || 0, tone: "warning" },
+      { label: "Admin Approved", status: "admin_approved", count: sc["admin_approved"] || 0, tone: "primary" },
+      { label: "Client Selected", status: "client_selected", count: sc["client_selected"] || 0, tone: "success" },
+      { label: "Finalized", status: "final_approved", count: sc["final_approved"] || 0, tone: "success" },
+    ];
+  }, [filteredRequests]);
+
+  const pendingRequests =
+    (filteredRequests.filter(r => r.status === "concierge_preferred").length) +
+    (filteredRequests.filter(r => r.status === "client_selected").length);
+
+  const trendData: TrendPoint[] = useMemo(() => {
+    const monthMap: Record<string, number> = {};
+    filteredPosts.forEach(p => {
+      const month = p.scheduled_date?.slice(0, 7);
+      if (month) monthMap[month] = (monthMap[month] || 0) + 1;
+    });
+    return Object.entries(monthMap).sort(([a], [b]) => a.localeCompare(b)).slice(-6).map(([date, n]) => ({ date, posts: n }));
+  }, [filteredPosts]);
+
+  // ----- Drill-down handlers -----
+  const toggleClinic = (id: string, name: string) =>
+    setFilter(f => f.clinicId === id ? { ...f, clinicId: undefined, clinicName: undefined } : { ...f, clinicId: id, clinicName: name });
+  const toggleDepartment = (dept: string) =>
+    setFilter(f => f.department === dept ? { ...f, department: undefined } : { ...f, department: dept });
+  const toggleStatus = (status: string, label?: string) =>
+    setFilter(f => f.status === status ? { ...f, status: undefined, statusLabel: undefined } : { ...f, status, statusLabel: label });
+  const clearFilter = () => setFilter({});
+
   if (loading) return <DashboardSkeleton />;
 
-  const activeClinics = clinics.filter(c => c.status === "active").length;
   const maxPipeline = Math.max(...pipeline.map(p => p.count), 1);
   const totalPipeline = pipeline.reduce((s, p) => s + p.count, 0);
   const totalPostsTrend = trendData.reduce((s, p) => s + p.posts, 0);
   const trendDelta = trendData.length >= 2
     ? trendData[trendData.length - 1].posts - trendData[trendData.length - 2].posts
     : 0;
+
+  const hasFilter = !!(filter.clinicId || filter.department || filter.status);
 
   return (
     <motion.div
@@ -328,6 +424,37 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        {/* Active Filter Bar */}
+        {hasFilter && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative mt-5 flex flex-wrap items-center gap-2 rounded-2xl border border-primary/30 bg-primary/5 px-3 py-2"
+          >
+            <FilterIcon className="h-3.5 w-3.5 text-primary" />
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-primary">Filtered by</span>
+            {filter.clinicName && (
+              <FilterChip label="Clinic" value={filter.clinicName} onClear={() => setFilter(f => ({ ...f, clinicId: undefined, clinicName: undefined }))} />
+            )}
+            {filter.department && (
+              <FilterChip
+                label="Dept"
+                value={deptConfig[filter.department]?.label || filter.department}
+                onClear={() => setFilter(f => ({ ...f, department: undefined }))}
+              />
+            )}
+            {filter.status && (
+              <FilterChip label="Status" value={filter.statusLabel || filter.status} onClear={() => setFilter(f => ({ ...f, status: undefined, statusLabel: undefined }))} />
+            )}
+            <button
+              onClick={clearFilter}
+              className="ml-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
+            >
+              Clear all
+            </button>
+          </motion.div>
+        )}
+
         {/* Hero stats grid */}
         <div className="relative mt-7 grid grid-cols-2 gap-3 lg:grid-cols-5">
           <HeroStat
@@ -342,19 +469,21 @@ export default function AdminDashboard() {
           <HeroStat
             label="Open Tickets"
             value={openTickets}
-            caption={urgentTickets > 0 ? `${urgentTickets} urgent` : "no urgent flags"}
+            caption={urgentTickets > 0 ? `${urgentTickets} urgent · click to filter` : "click to filter"}
             icon={Ticket}
             tone={urgentTickets > 0 ? "destructive" : "neutral"}
-            href="/website?tab=tickets"
+            onClick={() => toggleStatus("open", "Open")}
+            active={filter.status === "open"}
             index={1}
           />
           <HeroStat
             label="Pending Review"
             value={pendingPosts}
-            caption={pendingPosts > 0 ? "needs attention" : "all caught up"}
+            caption={pendingPosts > 0 ? "click to filter" : "all caught up"}
             icon={FileText}
             tone={pendingPosts > 0 ? "warning" : "success"}
-            href="/review"
+            onClick={() => toggleStatus("pending", "Pending")}
+            active={filter.status === "pending"}
             index={2}
           />
           <HeroStat
@@ -369,10 +498,11 @@ export default function AdminDashboard() {
           <HeroStat
             label="Content Requests"
             value={pendingRequests}
-            caption={pendingRequests > 0 ? "needs action" : "all clear"}
+            caption={pendingRequests > 0 ? "click to filter" : "all clear"}
             icon={AlertTriangle}
             tone={pendingRequests > 0 ? "warning" : "neutral"}
-            href="/social?tab=requests"
+            onClick={() => toggleStatus("concierge_preferred", "Concierge Preferred")}
+            active={filter.status === "concierge_preferred"}
             index={4}
           />
         </div>
@@ -385,7 +515,7 @@ export default function AdminDashboard() {
           <header className="flex items-center justify-between border-b border-border/50 px-5 py-4">
             <div>
               <h3 className="text-sm font-bold tracking-tight text-foreground">Tickets by Department</h3>
-              <p className="text-[11px] text-muted-foreground">Distribution across teams</p>
+              <p className="text-[11px] text-muted-foreground">Click a row to filter the dashboard</p>
             </div>
             <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
               {openTickets} active
@@ -410,28 +540,41 @@ export default function AdminDashboard() {
                     text: "text-muted-foreground",
                   };
                   const Icon = cfg.icon;
+                  const isActive = filter.department === dept.department;
                   return (
                     <li key={dept.department}>
-                      <Link
-                        to={cfg.path}
-                        className="group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-muted/50"
+                      <div
+                        className={cn(
+                          "group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors",
+                          isActive ? "bg-primary/10 ring-1 ring-primary/30" : "hover:bg-muted/50"
+                        )}
                       >
-                        <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl", cfg.ring)}>
-                          <Icon className="h-4 w-4" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-foreground">{cfg.label}</p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {dept.open} open · {dept.in_progress} in progress
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleDepartment(dept.department)}
+                          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                        >
+                          <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl", cfg.ring)}>
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-foreground">{cfg.label}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {dept.open} open · {dept.in_progress} in progress
+                            </p>
+                          </div>
                           <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-bold tabular-nums text-foreground">
                             {dept.total}
                           </span>
-                          <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground" />
-                        </div>
-                      </Link>
+                        </button>
+                        <Link
+                          to={cfg.path}
+                          title="Open department"
+                          className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
+                        >
+                          <ArrowUpRight className="h-3.5 w-3.5" />
+                        </Link>
+                      </div>
                     </li>
                   );
                 })}
@@ -445,7 +588,7 @@ export default function AdminDashboard() {
           <header className="flex items-center justify-between border-b border-border/50 px-5 py-4">
             <div>
               <h3 className="text-sm font-bold tracking-tight text-foreground">Clinic Health</h3>
-              <p className="text-[11px] text-muted-foreground">Active services per clinic</p>
+              <p className="text-[11px] text-muted-foreground">Click a clinic to filter the dashboard</p>
             </div>
             <Link to="/clinics">
               <Button variant="ghost" size="sm" className="h-7 rounded-full text-xs text-muted-foreground hover:text-foreground">
@@ -460,46 +603,65 @@ export default function AdminDashboard() {
               </div>
             ) : (
               <ul className="space-y-0.5">
-                {clinics.slice(0, 8).map((clinic) => (
-                  <li key={clinic.id}>
-                    <Link
-                      to={`/clinics/${clinic.id}`}
-                      className="group flex items-center justify-between gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-muted/50"
-                    >
-                      <div className="flex min-w-0 items-center gap-3">
-                        <span
-                          className={cn(
-                            "h-2 w-2 shrink-0 rounded-full",
-                            clinic.status === "active" ? "bg-success shadow-[0_0_0_3px_hsl(var(--success)/0.18)]" : "bg-muted-foreground"
-                          )}
-                        />
-                        <span className="truncate text-sm font-semibold text-foreground group-hover:text-primary">
-                          {clinic.clinic_name}
-                        </span>
+                {clinics.slice(0, 8).map((clinic) => {
+                  const isActive = filter.clinicId === clinic.id;
+                  return (
+                    <li key={clinic.id}>
+                      <div
+                        className={cn(
+                          "group flex items-center justify-between gap-3 rounded-xl px-3 py-2 transition-colors",
+                          isActive ? "bg-primary/10 ring-1 ring-primary/30" : "hover:bg-muted/50"
+                        )}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => toggleClinic(clinic.id, clinic.clinic_name)}
+                          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                        >
+                          <span
+                            className={cn(
+                              "h-2 w-2 shrink-0 rounded-full",
+                              clinic.status === "active" ? "bg-success shadow-[0_0_0_3px_hsl(var(--success)/0.18)]" : "bg-muted-foreground"
+                            )}
+                          />
+                          <span className={cn(
+                            "truncate text-sm font-semibold",
+                            isActive ? "text-primary" : "text-foreground group-hover:text-primary"
+                          )}>
+                            {clinic.clinic_name}
+                          </span>
+                        </button>
+                        <div className="flex shrink-0 items-center gap-1">
+                          {serviceIcons.map((s) => {
+                            const enabled = (clinic as any)[s.key];
+                            return (
+                              <span
+                                key={s.key}
+                                title={`${s.label}: ${enabled ? "Enabled" : "Disabled"}`}
+                                className={cn(
+                                  "inline-flex h-5 min-w-[34px] items-center justify-center rounded-md px-1.5 text-[9px] font-bold uppercase tracking-wider transition-colors",
+                                  enabled
+                                    ? "border border-border/70 text-foreground"
+                                    : "border border-dashed border-border/40 text-muted-foreground/40 line-through"
+                                )}
+                                style={enabled ? { color: `hsl(var(${s.varName}))`, borderColor: `hsl(var(${s.varName}) / 0.4)`, backgroundColor: `hsl(var(${s.varName}) / 0.08)` } : undefined}
+                              >
+                                {s.label}
+                              </span>
+                            );
+                          })}
+                          <Link
+                            to={`/clinics/${clinic.id}`}
+                            title="Open clinic"
+                            className="ml-1 rounded-md p-1 text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
+                          >
+                            <ArrowUpRight className="h-3.5 w-3.5" />
+                          </Link>
+                        </div>
                       </div>
-                      <div className="flex shrink-0 items-center gap-1">
-                        {serviceIcons.map((s) => {
-                          const enabled = (clinic as any)[s.key];
-                          return (
-                            <span
-                              key={s.key}
-                              title={`${s.label}: ${enabled ? "Enabled" : "Disabled"}`}
-                              className={cn(
-                                "inline-flex h-5 min-w-[34px] items-center justify-center rounded-md px-1.5 text-[9px] font-bold uppercase tracking-wider transition-colors",
-                                enabled
-                                  ? "border border-border/70 text-foreground"
-                                  : "border border-dashed border-border/40 text-muted-foreground/40 line-through"
-                              )}
-                              style={enabled ? { color: `hsl(var(${s.varName}))`, borderColor: `hsl(var(${s.varName}) / 0.4)`, backgroundColor: `hsl(var(${s.varName}) / 0.08)` } : undefined}
-                            >
-                              {s.label}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </Link>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
@@ -513,18 +675,27 @@ export default function AdminDashboard() {
           <header className="flex items-center justify-between border-b border-border/50 px-5 py-4">
             <div>
               <h3 className="text-sm font-bold tracking-tight text-foreground">Content Pipeline</h3>
-              <p className="text-[11px] text-muted-foreground">Active items by stage</p>
+              <p className="text-[11px] text-muted-foreground">Click a stage to filter</p>
             </div>
             <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
               {totalPipeline} total
             </span>
           </header>
-          <div className="space-y-3 px-5 py-5">
+          <div className="space-y-2 px-3 py-3">
             {pipeline.map((stage) => {
               const c = pipelineToneClasses[stage.tone];
               const pct = (stage.count / maxPipeline) * 100;
+              const isActive = filter.status === stage.status;
               return (
-                <div key={stage.status}>
+                <button
+                  key={stage.status}
+                  type="button"
+                  onClick={() => toggleStatus(stage.status, stage.label)}
+                  className={cn(
+                    "block w-full rounded-lg px-2 py-1.5 text-left transition-colors",
+                    isActive ? "bg-primary/10 ring-1 ring-primary/30" : "hover:bg-muted/40"
+                  )}
+                >
                   <div className="mb-1 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className={cn("h-1.5 w-1.5 rounded-full", c.dot)} />
@@ -541,7 +712,7 @@ export default function AdminDashboard() {
                       style={{ minWidth: stage.count > 0 ? "6px" : "0" }}
                     />
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -552,7 +723,9 @@ export default function AdminDashboard() {
           <header className="flex items-center justify-between border-b border-border/50 px-5 py-4">
             <div>
               <h3 className="text-sm font-bold tracking-tight text-foreground">Content Trend</h3>
-              <p className="text-[11px] text-muted-foreground">Posts scheduled · last 6 months</p>
+              <p className="text-[11px] text-muted-foreground">
+                Posts scheduled · last 6 months{filter.clinicName ? ` · ${filter.clinicName}` : ""}
+              </p>
             </div>
             <div className="flex items-center gap-3 text-right">
               <div>
@@ -617,10 +790,26 @@ export default function AdminDashboard() {
 
       {/* ROW: Tickets / Posts / Activity */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <MyTickets />
-        <UpcomingPosts />
-        <RecentActivity />
+        <MyTickets filter={filter} />
+        <UpcomingPosts filter={filter} />
+        <RecentActivity filter={filter} />
       </div>
     </motion.div>
+  );
+}
+
+function FilterChip({ label, value, onClear }: { label: string; value: string; onClear: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-background px-2 py-0.5 text-[11px] font-medium text-foreground">
+      <span className="text-muted-foreground">{label}:</span>
+      <span className="max-w-[160px] truncate">{value}</span>
+      <button
+        onClick={onClear}
+        className="ml-0.5 rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        aria-label={`Clear ${label} filter`}
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </span>
   );
 }
