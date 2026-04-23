@@ -194,10 +194,7 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
   const handleAssigneeChange = async (userId: string) => {
     const value = userId === "unassigned" ? null : userId;
     setUpdating(true);
-    const { error } = await supabase
-      .from("department_tickets" as any)
-      .update({ assigned_to: value } as any)
-      .eq("id", id);
+    const { error } = await updateAssignmentOrTicket({ assigned_to: value });
     setUpdating(false);
     if (error) {
       toast.error("Failed to assign team member");
