@@ -175,6 +175,10 @@ export default function Clinics() {
   const [teamDialogClinic, setTeamDialogClinic] = useState<Clinic | null>(null);
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
 
+  // Delete confirmation
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   const fetchTeamAssignments = async () => {
     const { data } = await (supabase.from("clinic_team_members" as any).select("clinic_id, user_id") as any);
     setTeamAssignments((data as TeamAssignment[]) || []);
