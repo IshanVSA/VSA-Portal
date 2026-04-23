@@ -37,23 +37,44 @@ export default function MyTickets() {
     queryKey: ["my-assigned-tickets", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("department_tickets")
-        .select("*")
+      // Read per-department assignments where I'm assigned (new model)
+      const { data: dta, error } = await (supabase
+        .from("department_ticket_assignments" as any)
+        .select("id, ticket_id, department, status")
         .eq("assigned_to", user!.id)
-        .in("status", ["open", "in_progress", "emergency"] as any)
-        .order("priority", { ascending: true })
-        .order("created_at", { ascending: false });
+        .in("status", ["open", "in_progress", "emergency"]) as any);
       if (error) throw error;
-      return data || [];
+      const rows = (dta || []) as { id: string; ticket_id: string; department: string; status: string }[];
+      if (rows.length === 0) return [];
+
+      const ticketIds = Array.from(new Set(rows.map(r => r.ticket_id)));
+      const { data: parents } = await (supabase
+        .from("department_tickets" as any)
+        .select("id, title, ticket_type, priority, created_at")
+        .in("id", ticketIds) as any);
+      const pMap = new Map<string, any>();
+      ((parents || []) as any[]).forEach(p => pMap.set(p.id, p));
+
+      return rows.map(r => {
+        const p = pMap.get(r.ticket_id) || {};
+        return {
+          id: r.id,                  // assignment row id (used for status updates)
+          ticket_id: r.ticket_id,
+          status: r.status,
+          department: r.department,
+          title: p.title || "",
+          priority: p.priority || "regular",
+          created_at: p.created_at || new Date().toISOString(),
+        };
+      });
     },
   });
 
-  const handleStatusChange = async (ticketId: string, newStatus: string) => {
+  const handleStatusChange = async (assignmentId: string, newStatus: string) => {
     const { error } = await supabase
-      .from("department_tickets")
+      .from("department_ticket_assignments" as any)
       .update({ status: newStatus } as any)
-      .eq("id", ticketId);
+      .eq("id", assignmentId);
     if (error) {
       toast.error("Failed to update status");
     } else {
