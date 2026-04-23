@@ -203,8 +203,9 @@ export default function PromotionModule({ clinicId, jurisdiction }: Props) {
   });
 
   const canVerify = form.offer_name.trim() && form.start_date && form.end_date;
+  const complianceCleared = verified || (overridden && overrideReason.trim().length >= 5);
   const isValid = form.offer_name.trim() && form.start_date && form.end_date &&
-    verified && (!isCVBC || form.governing_body_confirmed);
+    complianceCleared && (!isCVBC || form.governing_body_confirmed);
 
   return (
     <Card>
