@@ -25,13 +25,12 @@ const COLORS = [
 ];
 
 const WEBSITE: QuickAction[] = [
-  { type: "Time Changes",            title: "Time Changes",            helper: "Update clinic hours or holiday schedule",     icon: Clock,           color: COLORS[0] },
-  { type: "Pop-up Offers",           title: "Pop-up Offers",           helper: "Launch a promo banner on the website",         icon: Megaphone,       color: COLORS[1] },
+  { type: "Time Changes",            title: "Time Change",             helper: "Update clinic hours or holiday schedule",     icon: Clock,           color: COLORS[0] },
+  { type: "Pop-up Offers",           title: "Pop-Up Offer",            helper: "Launch a promo banner on the website",         icon: Megaphone,       color: COLORS[1] },
   { type: "Third Party Integrations",title: "Third Party Integrations",helper: "Connect booking, chat, or analytics tools",    icon: Plug,            color: COLORS[2] },
-  { type: "Payment Options",         title: "Payment Options",         helper: "Add or update payment methods displayed",      icon: CreditCard,      color: COLORS[3] },
-  { type: "Add/Remove Team Members", title: "Team Members",            helper: "Update the team page with new staff",          icon: UserPlus,        color: COLORS[4] },
+  { type: "Add/Remove Team Members", title: "Add/Remove Team Member",  helper: "Update the team page with new staff",          icon: UserPlus,        color: COLORS[4] },
   { type: "New Forms",               title: "New Forms",                helper: "Add intake or contact forms",                 icon: FileText,        color: COLORS[5] },
-  { type: "Price List Updates",      title: "Price List Updates",      helper: "Update service prices on the site",            icon: DollarSign,      color: COLORS[6] },
+  { type: "Price List Updates",      title: "Price List Update",       helper: "Update service prices on the site",            icon: DollarSign,      color: COLORS[6] },
   { type: "Emergency",               title: "Emergency",                helper: "Urgent change needed on the website",         icon: AlertTriangle,   color: "text-destructive bg-destructive/10" },
   { type: "Others",                  title: "Others",                   helper: "Anything else not listed above",              icon: Sparkles,        color: COLORS[0] },
 ];
