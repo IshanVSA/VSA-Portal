@@ -1,135 +1,75 @@
 
 
-# Social Media Department Dashboard Redesign
+## Per-Department Ticket Assignment & Completion
 
-Replace the single `SocialOverview` with three purpose-built dashboards — one per role — that surface the data each user actually needs based on the SM2 v2.1 engine, Brand DNA system, Hard Gates, Promotions, GBP Posts, and content workflow.
+Today, a cross-department ticket (e.g. "Time Change" → Website + SEO + Google Ads + Social Media) is a **single row** with one `assigned_to` and one `status`. Whichever department changes the status changes it for everyone, and there's no concept of each dept having its own assignee.
 
-## Architecture
+We'll change this so each department gets its **own assignee + own status** for the same ticket, and the client only sees "Completed" once **every** involved department marks it complete.
+
+---
+
+### What changes for each role
+
+**Admin / Concierge / Department Staff**
+- Open a "Time Change" ticket in the Website department → see the Website assignee, Website status, and a small badge `Website ✓ · SEO ⏳ · Ads ⏳ · Social ⏳` showing other depts' progress.
+- Each dept's assign / status dropdown only updates **that department's** record.
+- Each department auto-assigns to a clinic team member with the matching role (Developer, SEO Lead, Ads Strategist, Social & Concierge) for that clinic — same logic as today, but applied per department.
+
+**Client**
+- Sees one ticket card per ticket (not 4 copies).
+- Status shown is the **rollup**:
+  - `Completed` only when every involved department is completed
+  - `In Progress` if any dept is in progress
+  - `Open` otherwise
+  - `Void` if any dept voids it (with reason)
+- A small footer shows: `Progress: 2 of 4 departments complete`.
+
+---
+
+### Data model
+
+Add a new table `department_ticket_assignments` (one row per ticket × department):
 
 ```text
-SocialOverview.tsx (router shell)
- ├─ if role === "admin"     → AdminSocialOverview
- ├─ if role === "concierge" → ConciergeSocialOverview
- └─ if role === "client"    → ClientSocialOverview
+id              uuid pk
+ticket_id       uuid  → department_tickets(id) on delete cascade
+department      department_type
+assigned_to     uuid  null → profiles(id)
+status          ticket_status default 'open'
+completed_at    timestamptz null
+notes           text null
+created_at, updated_at
+unique (ticket_id, department)
 ```
 
-Shared building blocks stay reusable: `StatsCard`, `BulkUploadsDialog`, `NewTicketDialog`, `Card` family, `recharts`. Quick Actions row stays available for client + concierge (admin gets a different command bar).
+- On ticket insert, a trigger fans out: for each department in the ticket-type's visibility list, create a row and auto-assign to a clinic-scoped team member with the right role (reuses logic from `auto_assign_ticket_pool`).
+- A view/function `ticket_rollup_status(ticket_id)` returns `completed` only when all assignment rows are `completed`; otherwise the most-progressed non-void status. Voids surface as `void`.
+- A trigger updates `department_tickets.status` to the rollup whenever an assignment row changes — so existing client queries continue to work without rewrites.
+- RLS on the new table mirrors `department_tickets`: dept members see their dept's row; admins see all; clients see read-only via the parent ticket.
 
----
+### Frontend
 
-## 1. Admin Dashboard — "Network Command Center"
+- **`TicketsTab`**: query joins `department_ticket_assignments` filtered by current `department`, so the assignee/status shown is the per-dept row (not the parent).
+- **`TicketCard`** (staff view): status & assign dropdowns write to the assignment row, not the parent. Add an "Other departments" mini-strip showing each involved dept + its status icon.
+- **`TicketCard`** (client view): hides per-dept controls, shows rollup status + "X of Y departments complete" progress.
+- **`NewTicketDialog`**: unchanged from user perspective — fan-out happens server-side on insert.
+- Keep the conditional rule for "Add/Remove Team Members" → social_media (only when `Promote on Social Media: Yes`); the fan-out trigger respects this.
 
-For oversight across the clinic + cluster.
+### Migration of existing tickets
 
-**Row 1 — Network KPIs (5 cards)**
-- DNA Profile Score (with `<50 = blocked` warning chip)
-- Posts Generated (this month) / 12 stock cap progress bar
-- Pipeline Health (Generated → Final Approved funnel mini-stat)
-- Active Promotions (live count, jurisdiction badge if CVBC)
-- Open Tickets + Emergency badge
+A one-shot SQL block backfills `department_ticket_assignments` for every existing ticket using the same visibility map, copying the current `assigned_to` and `status` into the row matching the ticket's `department` field, and creating `open`/unassigned rows for the other involved departments.
 
-**Row 2 — Content Pipeline Funnel** (full-width)
-Horizontal funnel: Generated → Under Review → Approved → Client Selected → Final Approved with counts + drop-off %. Click stage → routes to Generation/Review tab.
+### Files to change
 
-**Row 3 — Two columns**
-- **SM2 Engine Health**: Last generation timestamp, last `failure_reason` (from error reporting layer), Hard Gates pass-rate (5 gates as colored pills), 8-agent pipeline status if a job is running.
-- **Multi-Location Cluster** (existing): each clinic's DNA score, last-generated date, collision-prevention status.
+- **DB migration**: new table, fan-out trigger, rollup trigger, RLS policies, backfill.
+- `src/lib/ticket-department-map.ts` — export helper used server-side mirror; no behaviour change.
+- `src/components/department/TicketsTab.tsx` — query assignments instead of parent for status/assignee.
+- `src/components/department/TicketCard.tsx` — write to assignment row; render cross-dept strip; client rollup view.
+- `src/components/department/TicketKanbanView.tsx` and `TicketTableView.tsx` — same per-dept read/write swap.
+- `src/components/dashboard/MyTickets.tsx` — show only assignments where `assigned_to = me`.
 
-**Row 4 — Two columns**
-- **Weekly Content Trend** (existing bar chart, kept)
-- **GBP Posts Snapshot**: scheduled / published / failed last 7 days + collision risk indicator
+### Out of scope (confirm if you want these too)
 
-**Row 5 — Team & Recent Activity**
-- Team members (existing)
-- Recent activity feed: last 5 events (post generated, DNA updated, ticket opened, promotion created)
-
----
-
-## 2. Concierge Dashboard — "Operator Workspace"
-
-Focused on day-to-day execution.
-
-**Row 1 — Action KPIs (4 cards)**
-- Pending Review (posts needing concierge action — clickable → Generation tab)
-- Awaiting Client Approval (with auto-approval countdown badge)
-- Open Tickets assigned to me
-- Posts Scheduled This Week
-
-**Row 2 — Quick Actions** (existing 5-tile grid, kept)
-
-**Row 3 — Two columns**
-- **My Review Queue**: top 5 content requests in `generated` / `concierge_preferred` with DNA score, platform mix, "Review" CTA → ContentGenerationTab
-- **Hard Gates Alerts**: any posts flagged by the 5 gates (Promotion / Pricing / Patient Consent / Team Spotlight / Compliance) requiring manual override
-
-**Row 4 — Two columns**
-- **Weekly Content Trend** (kept)
-- **Ticket Summary** (kept, existing 4-status block) + "New Ticket" CTA
-
-**Row 5 — Brand DNA Snapshot**
-DNA completeness ring + Vedant Checklist progress + "Activate Profile" CTA if score ≥50 but not activated. Compact card.
-
----
-
-## 3. Client Dashboard — "My Social Media"
-
-Friendly, outcomes-focused, no internal jargon.
-
-**Row 1 — Welcome KPIs (3 cards)**
-- DNA Profile Score (animated ring; if `<50` → big "Complete your Brand DNA" CTA card replaces the row)
-- Posts Awaiting My Review (count + "Review now" button → My Content tab)
-- Posts Live This Month
-
-**Row 2 — Two columns**
-- **This Month at a Glance**: monthly signal theme distribution (mini horizontal bars from `MonthlySignalsForm` data), holiday highlights, active promotion card if any
-- **My Content Status**: simple progress bar — "X of 12 posts ready", review countdown if auto-approval is pending
-
-**Row 3 — Quick Actions** (existing 5-tile grid: Bulk Uploads, Content Request, etc., kept)
-
-**Row 4 — Two columns**
-- **Recent Posts Preview**: 4 most recent `final_approved` post thumbnails (from versioned HTML deliverables) — click → opens in `FilePreviewDialog`
-- **Need Help?**: concierge contact card (avatar + name + "Open Ticket" button) using `useDepartmentTeam`
-
-Hide from client: Hard Gates, SM2 engine health, cluster, ticket summary breakdown, generation pipeline internals, failure reasons.
-
----
-
-## Data Sources (already available, no schema changes)
-
-- `content_posts`, `content_requests` — pipeline + counts
-- `clinic_brand_dna` — score + activation status
-- `clinic_promotions` — active promos
-- `sm2_generations` + `failure_reason` — engine health
-- `sm2_post_performance` — engagement (admin)
-- `gbp_posts` — GBP snapshot
-- `monthly_signals` — theme distribution
-- `department_tickets` — tickets, realtime
-- `geo_clusters` + `clinics` — multi-location
-- `department_team` (via hook) — team
-
-No migrations required.
-
----
-
-## Files
-
-**Created**
-- `src/components/social/overview/AdminSocialOverview.tsx`
-- `src/components/social/overview/ConciergeSocialOverview.tsx`
-- `src/components/social/overview/ClientSocialOverview.tsx`
-- `src/components/social/overview/shared/PipelineFunnel.tsx`
-- `src/components/social/overview/shared/HardGatesStatus.tsx`
-- `src/components/social/overview/shared/DNAScoreRing.tsx`
-- `src/components/social/overview/shared/RecentPostsPreview.tsx` (client)
-
-**Edited**
-- `src/components/social/SocialOverview.tsx` — becomes a thin router that picks the right role component (keeps existing `clinicId` prop API so `SocialMedia.tsx` doesn't change)
-
-**Unchanged**
-- `src/pages/SocialMedia.tsx` (consumer API stays the same)
-- Existing dialogs (`NewTicketDialog`, `BulkUploadsDialog`)
-- Quick actions registry in `@/lib/quick-actions`
-
-## Visual language
-
-Follows existing standards: glass cards, `dept-tint-social` background, `hsl(var(--dept-social))` accent, 2px glow on KPI hover, fade-in stagger (`animationDelay` 0/160/200/300/400ms), tabular-nums for counts, no emojis, Inter font. Loading state uses skeleton blocks identical to current implementation.
+- Notifying the client when each individual dept completes (currently silent until full rollup).
+- Letting one department "skip" itself (e.g. SEO says "no change needed") — today they'd have to mark Completed.
 
