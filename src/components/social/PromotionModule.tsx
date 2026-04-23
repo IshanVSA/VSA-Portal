@@ -185,6 +185,8 @@ export default function PromotionModule({ clinicId, jurisdiction }: Props) {
       setForm({ offer_name: "", inclusions: "", exclusions: "", start_date: "", end_date: "", governing_body_confirmed: false });
       setVerified(false);
       setVerificationResult(null);
+      setOverridden(false);
+      setOverrideReason("");
     },
     onError: (e: Error) => toast.error("Failed", { description: e.message }),
   });
