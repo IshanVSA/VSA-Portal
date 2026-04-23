@@ -225,7 +225,19 @@ export function TicketKanbanView({ tickets, teamMembers, currentDepartment, onUp
                       <GripVertical className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
                     )}
                     <div className={cn("h-2 w-2 rounded-full mt-1.5 shrink-0", priorityDot[t.priority])} />
-                    <h4 className={cn("text-sm font-medium text-foreground leading-tight line-clamp-2", isVoid && "line-through text-muted-foreground")}>{t.title}</h4>
+                    <h4 className={cn("flex-1 text-sm font-medium text-foreground leading-tight line-clamp-2", isVoid && "line-through text-muted-foreground")}>{t.title}</h4>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 shrink-0 -mt-1 -mr-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => { e.stopPropagation(); setEditingId(t.id); }}
+                      title={isClient ? "View details" : "Edit ticket"}
+                    >
+                      {isClient ? <Eye className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+                    </Button>
                   </div>
 
                   {t.description && (
