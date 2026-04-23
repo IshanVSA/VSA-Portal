@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -104,6 +104,36 @@ export function TicketKanbanView({ tickets, teamMembers, currentDepartment, onUp
     () => tickets.map(t => (optimisticStatus[t.id] ? { ...t, status: optimisticStatus[t.id] } : t)),
     [tickets, optimisticStatus]
   );
+
+  // Pulse animation when a ticket's status changes
+  const prevStatusRef = useRef<Record<string, string>>({});
+  const [pulsingIds, setPulsingIds] = useState<Record<string, number>>({});
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    const changed: string[] = [];
+    for (const t of displayTickets) {
+      if (prev[t.id] !== undefined && prev[t.id] !== t.status) {
+        changed.push(t.id);
+      }
+      prev[t.id] = t.status;
+    }
+    if (changed.length) {
+      const stamp = Date.now();
+      setPulsingIds(p => {
+        const next = { ...p };
+        for (const id of changed) next[id] = stamp;
+        return next;
+      });
+      const timeout = setTimeout(() => {
+        setPulsingIds(p => {
+          const next = { ...p };
+          for (const id of changed) if (next[id] === stamp) delete next[id];
+          return next;
+        });
+      }, 750);
+      return () => clearTimeout(timeout);
+    }
+  }, [displayTickets]);
 
   const editingTicket = editingId ? displayTickets.find(t => t.id === editingId) ?? null : null;
 
