@@ -291,6 +291,39 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
             {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           </Button>
         </div>
+
+        {showCrossDeptStrip && (
+          <div className="mt-3 ml-[2.375rem] pt-2.5 border-t border-border/40 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+              {isClient ? "Progress" : "All depts"}
+            </span>
+            {dept_assignments.map((d) => {
+              const dLabel = allDepartments.find(x => x.value === d.department)?.label || d.department;
+              const dSc = statusConfig[d.status as keyof typeof statusConfig] || statusConfig.open;
+              const DIcon = dSc.icon;
+              const isCurrent = d.department === currentDepartment;
+              return (
+                <span
+                  key={d.department}
+                  className={cn(
+                    "inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded",
+                    dSc.bg, dSc.color,
+                    isCurrent && "ring-1 ring-primary/40"
+                  )}
+                  title={`${dLabel}: ${dSc.label}`}
+                >
+                  <DIcon className="h-2.5 w-2.5" />
+                  {dLabel}
+                </span>
+              );
+            })}
+            {isClient && (
+              <span className="ml-auto text-[10px] text-muted-foreground">
+                {completedDeptCount} of {totalDeptCount} departments complete
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {expanded && (
