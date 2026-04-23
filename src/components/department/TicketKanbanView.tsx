@@ -30,11 +30,14 @@ interface KanbanTicket {
   created_at: string;
   assigned_to?: string | null;
   pool_user_ids?: string[];
+  dept_assignment_id?: string;
+  dept_assignments?: { department: string; status: string; assigned_to: string | null }[];
 }
 
 interface TicketKanbanViewProps {
   tickets: KanbanTicket[];
   teamMembers: TeamMemberOption[];
+  currentDepartment?: string;
   onUpdated: () => void;
 }
 
