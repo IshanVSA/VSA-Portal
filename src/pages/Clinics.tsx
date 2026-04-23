@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -173,6 +174,10 @@ export default function Clinics() {
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
   const [teamDialogClinic, setTeamDialogClinic] = useState<Clinic | null>(null);
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+
+  // Delete confirmation
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchTeamAssignments = async () => {
     const { data } = await (supabase.from("clinic_team_members" as any).select("clinic_id, user_id") as any);
@@ -448,18 +453,21 @@ export default function Clinics() {
     fetchTeamAssignments();
   };
 
-  const deleteClinic = async (clinicId: string, clinicName: string) => {
-    if (!clinicId) return;
-    const confirmed = window.confirm(`Are you sure you want to delete "${clinicName}"? This will permanently remove all associated data including team members, content, analytics, and tickets.`);
-    if (!confirmed) return;
+  const confirmDeleteClinic = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     const { error } = await supabase
       .from("clinics")
       .delete()
-      .eq("id", clinicId)
+      .eq("id", deleteTarget.id)
       .select();
-    if (error) { toast.error(error.message); } else {
+    setDeleting(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
       toast.success("Clinic deleted");
-      setClinics(prev => prev.filter(c => c.id !== clinicId));
+      setClinics(prev => prev.filter(c => c.id !== deleteTarget.id));
+      setDeleteTarget(null);
     }
   };
 
@@ -698,7 +706,7 @@ export default function Clinics() {
                             <Button variant="ghost" size="sm" className="h-8 text-xs"><Eye className="h-3.5 w-3.5 sm:mr-1" /> <span className="hidden sm:inline">View</span></Button>
                           </Link>
                           {role === "admin" && (
-                            <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => deleteClinic(clinic.id, clinic.clinic_name)}>
+                            <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => setDeleteTarget({ id: clinic.id, name: clinic.clinic_name })}>
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           )}
@@ -793,6 +801,27 @@ export default function Clinics() {
             </Button>
           </DialogContent>
         </Dialog>
+
+        <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && !deleting && setDeleteTarget(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete clinic?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete <span className="font-semibold text-foreground">"{deleteTarget?.name}"</span>? This will permanently remove all associated data including team members, content, analytics, and tickets.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => { e.preventDefault(); confirmDeleteClinic(); }}
+                disabled={deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Deleting…</> : "Delete clinic"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </>
   );
