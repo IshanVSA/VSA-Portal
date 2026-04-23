@@ -83,7 +83,7 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
   const visibleTypes = getVisibleTicketTypes(department);
 
   const { data: ticketsQuery, refetch, isLoading } = useQuery({
-    queryKey: ["department-tickets", department, filter, clinicId],
+    queryKey: ["department-tickets", department, filter, clinicId, isClient],
     queryFn: async () => {
       const orClauses = [`department.eq.${department}`];
       if (visibleTypes.length > 0) {
@@ -100,7 +100,9 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
         query = query.eq("clinic_id", clinicId);
       }
 
-      if (filter !== "all") {
+      // For clients, filter on parent (rollup) status. For staff, we re-filter
+      // post-merge against the per-department status.
+      if (filter !== "all" && isClient) {
         query = query.eq("status", filter);
       }
 
