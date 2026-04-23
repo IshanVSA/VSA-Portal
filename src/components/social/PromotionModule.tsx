@@ -88,6 +88,8 @@ export default function PromotionModule({ clinicId, jurisdiction }: Props) {
   const [complianceBody, setComplianceBody] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [verified, setVerified] = useState(false);
+  const [overridden, setOverridden] = useState(false);
+  const [overrideReason, setOverrideReason] = useState("");
   const [verificationResult, setVerificationResult] = useState<{
     compliant: boolean; issues: string[]; suggestions: string[];
   } | null>(null);
