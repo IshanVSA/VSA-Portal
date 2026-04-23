@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { logComplianceOverride } from "@/lib/compliance-override-log";
 
 interface Promotion {
   id: string;
