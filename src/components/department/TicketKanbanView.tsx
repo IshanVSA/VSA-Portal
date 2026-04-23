@@ -165,101 +165,121 @@ export function TicketKanbanView({ tickets, teamMembers, currentDepartment, onUp
 
   return (
     <>
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
-      {columns.map(col => {
-        const Icon = col.icon;
-        const colTickets = tickets.filter(t => t.status === col.key);
-        const isOver = dragOverCol === col.key;
-        return (
-          <div
-            key={col.key}
-            className={cn(
-              "flex flex-col min-h-[300px] rounded-xl transition-all duration-200",
-              isOver && "ring-2 ring-primary/40 bg-primary/5"
-            )}
-            onDragOver={isClient ? undefined : (e) => handleDragOver(e, col.key)}
-            onDragLeave={isClient ? undefined : handleDragLeave}
-            onDrop={isClient ? undefined : (e) => handleDrop(e, col.key)}
-          >
-            <div className={cn("flex items-center gap-2 px-3 py-2.5 rounded-lg border mb-3", col.headerBg)}>
-              <Icon className={cn("h-4 w-4", col.color)} />
-              <span className="text-sm font-semibold text-foreground">{col.label}</span>
-              <span className="ml-auto text-xs font-medium text-muted-foreground bg-background/60 px-2 py-0.5 rounded-full">
-                {colTickets.length}
-              </span>
+  const renderColumn = (col: typeof columns[number]) => {
+    const Icon = col.icon;
+    const colTickets = tickets.filter(t => t.status === col.key);
+    const isOver = dragOverCol === col.key;
+    return (
+      <div
+        key={col.key}
+        className={cn(
+          "flex flex-col min-h-[300px] rounded-xl transition-all duration-200",
+          isOver && "ring-2 ring-primary/40 bg-primary/5"
+        )}
+        onDragOver={isClient ? undefined : (e) => handleDragOver(e, col.key)}
+        onDragLeave={isClient ? undefined : handleDragLeave}
+        onDrop={isClient ? undefined : (e) => handleDrop(e, col.key)}
+      >
+        <div className={cn("flex items-center gap-2 px-3 py-2.5 rounded-lg border mb-3", col.headerBg)}>
+          <Icon className={cn("h-4 w-4", col.color)} />
+          <span className="text-sm font-semibold text-foreground">{col.label}</span>
+          <span className="ml-auto text-xs font-medium text-muted-foreground bg-background/60 px-2 py-0.5 rounded-full">
+            {colTickets.length}
+          </span>
+        </div>
+
+        <div className="flex-1 space-y-2">
+          {colTickets.length === 0 ? (
+            <div className={cn(
+              "flex items-center justify-center h-24 rounded-lg border border-dashed text-xs text-muted-foreground transition-colors",
+              isOver ? "border-primary/40 bg-primary/5" : "border-border/60"
+            )}>
+              {isOver && !isClient ? "Drop here" : "No tickets"}
             </div>
+          ) : (
+            colTickets.map(t => {
+              const assignee = t.assigned_to ? teamMembers.find(m => m.id === t.assigned_to)?.name : null;
+              const poolCount = !t.assigned_to ? (t.pool_user_ids?.length || 0) : 0;
+              const poolNames = !t.assigned_to
+                ? (t.pool_user_ids || []).map(uid => teamMembers.find(m => m.id === uid)?.name).filter(Boolean) as string[]
+                : [];
+              const isDragging = draggedId === t.id;
+              const isVoid = t.status === "void";
+              return (
+                <Card
+                  key={t.id}
+                  draggable={!isClient}
+                  onDragStart={isClient ? undefined : (e) => handleDragStart(e, t.id)}
+                  onDragEnd={isClient ? undefined : handleDragEnd}
+                  className={cn(
+                    "p-3 hover:shadow-md transition-all group",
+                    isClient ? "cursor-default" : "cursor-grab active:cursor-grabbing",
+                    isDragging && "opacity-40 scale-95",
+                    isVoid && "opacity-70"
+                  )}
+                >
+                  <div className="flex items-start gap-2 mb-2">
+                    {!isClient && (
+                      <GripVertical className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
+                    )}
+                    <div className={cn("h-2 w-2 rounded-full mt-1.5 shrink-0", priorityDot[t.priority])} />
+                    <h4 className={cn("text-sm font-medium text-foreground leading-tight line-clamp-2", isVoid && "line-through text-muted-foreground")}>{t.title}</h4>
+                  </div>
 
-            <div className="flex-1 space-y-2">
-              {colTickets.length === 0 ? (
-                <div className={cn(
-                  "flex items-center justify-center h-24 rounded-lg border border-dashed text-xs text-muted-foreground transition-colors",
-                  isOver ? "border-primary/40 bg-primary/5" : "border-border/60"
-                )}>
-                  {isOver && !isClient ? "Drop here" : "No tickets"}
-                </div>
-              ) : (
-                colTickets.map(t => {
-                  const assignee = t.assigned_to ? teamMembers.find(m => m.id === t.assigned_to)?.name : null;
-                  const poolCount = !t.assigned_to ? (t.pool_user_ids?.length || 0) : 0;
-                  const poolNames = !t.assigned_to
-                    ? (t.pool_user_ids || []).map(uid => teamMembers.find(m => m.id === uid)?.name).filter(Boolean) as string[]
-                    : [];
-                  const isDragging = draggedId === t.id;
-                  const isVoid = t.status === "void";
-                  return (
-                    <Card
-                      key={t.id}
-                      draggable={!isClient}
-                      onDragStart={isClient ? undefined : (e) => handleDragStart(e, t.id)}
-                      onDragEnd={isClient ? undefined : handleDragEnd}
-                      className={cn(
-                        "p-3 hover:shadow-md transition-all group",
-                        isClient ? "cursor-default" : "cursor-grab active:cursor-grabbing",
-                        isDragging && "opacity-40 scale-95",
-                        isVoid && "opacity-70"
-                      )}
-                    >
-                      <div className="flex items-start gap-2 mb-2">
-                        {!isClient && (
-                          <GripVertical className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
-                        )}
-                        <div className={cn("h-2 w-2 rounded-full mt-1.5 shrink-0", priorityDot[t.priority])} />
-                        <h4 className={cn("text-sm font-medium text-foreground leading-tight line-clamp-2", isVoid && "line-through text-muted-foreground")}>{t.title}</h4>
-                      </div>
+                  {t.description && (
+                    <p className="text-[11px] text-muted-foreground line-clamp-2 mb-2 pl-[2.25rem]">{t.description}</p>
+                  )}
 
-                      {t.description && (
-                        <p className="text-[11px] text-muted-foreground line-clamp-2 mb-2 pl-[2.25rem]">{t.description}</p>
-                      )}
+                  <div className="flex flex-wrap items-center gap-1 mb-2 pl-[2.25rem]">
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{t.ticket_type}</Badge>
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">{deptLabels[t.department] || t.department}</Badge>
+                  </div>
 
-                      <div className="flex flex-wrap items-center gap-1 mb-2 pl-[2.25rem]">
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{t.ticket_type}</Badge>
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">{deptLabels[t.department] || t.department}</Badge>
-                      </div>
+                  <div className="flex items-center justify-between pl-[2.25rem]">
+                    <span className="text-[10px] text-muted-foreground">
+                      {formatDistanceToNow(new Date(t.created_at), { addSuffix: true })}
+                    </span>
+                    {assignee ? (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-primary/5 text-primary border-primary/20">
+                        <UserCircle className="h-2.5 w-2.5 mr-0.5" />{assignee}
+                      </Badge>
+                    ) : poolCount > 0 ? (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-primary/5 text-primary border-primary/20" title={poolNames.join(", ")}>
+                        <UserCircle className="h-2.5 w-2.5 mr-0.5" />Pool: {poolCount}
+                      </Badge>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground italic">Unassigned</span>
+                    )}
+                  </div>
+                </Card>
+              );
+            })
+          )}
+        </div>
+      </div>
+    );
+  };
 
-                      <div className="flex items-center justify-between pl-[2.25rem]">
-                        <span className="text-[10px] text-muted-foreground">
-                          {formatDistanceToNow(new Date(t.created_at), { addSuffix: true })}
-                        </span>
-                        {assignee ? (
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-primary/5 text-primary border-primary/20">
-                            <UserCircle className="h-2.5 w-2.5 mr-0.5" />{assignee}
-                          </Badge>
-                        ) : poolCount > 0 ? (
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-primary/5 text-primary border-primary/20" title={poolNames.join(", ")}>
-                            <UserCircle className="h-2.5 w-2.5 mr-0.5" />Pool: {poolCount}
-                          </Badge>
-                        ) : (
-                          <span className="text-[10px] text-muted-foreground italic">Unassigned</span>
-                        )}
-                      </div>
-                    </Card>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        );
-      })}
+  const activeColumns = columns.filter(c => !RESOLVED_KEYS.has(c.key));
+  const resolvedColumns = columns.filter(c => RESOLVED_KEYS.has(c.key));
+
+  return (
+    <>
+    <div className="flex flex-col xl:flex-row gap-4 items-stretch">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 min-w-0">
+        {activeColumns.map(col => renderColumn(col))}
+      </div>
+      <div className="hidden xl:flex items-stretch">
+        <div className="w-px bg-border my-2" />
+      </div>
+      <div className="xl:hidden flex items-center gap-3 py-1">
+        <div className="h-px flex-1 bg-border" />
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Resolved</span>
+        <div className="h-px flex-1 bg-border" />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 xl:w-[36%] xl:min-w-[420px] min-w-0">
+        {resolvedColumns.map(col => renderColumn(col))}
+      </div>
     </div>
 
     <AlertDialog open={!!voidPending} onOpenChange={(o) => !o && setVoidPending(null)}>
