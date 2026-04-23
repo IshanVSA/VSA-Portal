@@ -44,10 +44,12 @@ interface TicketKanbanViewProps {
 const columns: { key: string; label: string; icon: React.ElementType; color: string; headerBg: string }[] = [
   { key: "open", label: "Open", icon: Inbox, color: "text-blue-500", headerBg: "bg-blue-500/10 border-blue-500/30" },
   { key: "in_progress", label: "In Progress", icon: Clock, color: "text-amber-500", headerBg: "bg-amber-500/10 border-amber-500/30" },
-  { key: "completed", label: "Completed", icon: CheckCircle2, color: "text-emerald-500", headerBg: "bg-emerald-500/10 border-emerald-500/30" },
   { key: "emergency", label: "Emergency", icon: AlertTriangle, color: "text-destructive", headerBg: "bg-destructive/10 border-destructive/30" },
+  { key: "completed", label: "Completed", icon: CheckCircle2, color: "text-emerald-500", headerBg: "bg-emerald-500/10 border-emerald-500/30" },
   { key: "void", label: "Void", icon: Ban, color: "text-slate-500", headerBg: "bg-slate-500/10 border-slate-500/30" },
 ];
+
+const RESOLVED_KEYS = new Set(["completed", "void"]);
 
 const priorityDot: Record<string, string> = {
   regular: "bg-muted-foreground",
