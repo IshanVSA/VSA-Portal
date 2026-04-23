@@ -43,13 +43,21 @@ interface TicketKanbanViewProps {
   onUpdated: () => void;
 }
 
-const columns: { key: string; label: string; icon: React.ElementType; color: string; headerBg: string }[] = [
-  { key: "open", label: "Open", icon: Inbox, color: "text-blue-500", headerBg: "bg-blue-500/10 border-blue-500/30" },
-  { key: "in_progress", label: "In Progress", icon: Clock, color: "text-amber-500", headerBg: "bg-amber-500/10 border-amber-500/30" },
-  { key: "emergency", label: "Emergency", icon: AlertTriangle, color: "text-destructive", headerBg: "bg-destructive/10 border-destructive/30" },
-  { key: "completed", label: "Completed", icon: CheckCircle2, color: "text-emerald-500", headerBg: "bg-emerald-500/10 border-emerald-500/30" },
-  { key: "void", label: "Void", icon: Ban, color: "text-slate-500", headerBg: "bg-slate-500/10 border-slate-500/30" },
+const columns: { key: string; label: string; icon: React.ElementType; color: string; headerBg: string; cardBg: string }[] = [
+  { key: "open", label: "Open", icon: Inbox, color: "text-blue-500", headerBg: "bg-blue-500/10 border-blue-500/30", cardBg: "bg-blue-500/5 border-blue-500/20" },
+  { key: "in_progress", label: "In Progress", icon: Clock, color: "text-amber-500", headerBg: "bg-amber-500/10 border-amber-500/30", cardBg: "bg-amber-500/5 border-amber-500/20" },
+  { key: "emergency", label: "Emergency", icon: AlertTriangle, color: "text-destructive", headerBg: "bg-destructive/10 border-destructive/30", cardBg: "bg-destructive/5 border-destructive/20" },
+  { key: "completed", label: "Completed", icon: CheckCircle2, color: "text-emerald-500", headerBg: "bg-emerald-500/10 border-emerald-500/30", cardBg: "bg-emerald-500/5 border-emerald-500/20" },
+  { key: "void", label: "Void", icon: Ban, color: "text-slate-500", headerBg: "bg-slate-500/10 border-slate-500/30", cardBg: "bg-slate-500/5 border-slate-500/20" },
 ];
+
+const cardBgByStatus: Record<string, string> = {
+  open: "bg-blue-500/5 border-blue-500/20",
+  in_progress: "bg-amber-500/5 border-amber-500/20",
+  emergency: "bg-destructive/5 border-destructive/20",
+  completed: "bg-emerald-500/5 border-emerald-500/20",
+  void: "bg-slate-500/5 border-slate-500/20",
+};
 
 const RESOLVED_KEYS = new Set(["completed", "void"]);
 
@@ -262,7 +270,8 @@ export function TicketKanbanView({ tickets, teamMembers, currentDepartment, onUp
                   onDragStart={isClient ? undefined : (e) => handleDragStart(e, t.id)}
                   onDragEnd={isClient ? undefined : handleDragEnd}
                   className={cn(
-                    "p-3 hover:shadow-md transition-all group",
+                    "p-3 hover:shadow-md transition-all group border",
+                    cardBgByStatus[t.status],
                     isClient ? "cursor-default" : "cursor-grab active:cursor-grabbing",
                     isDragging && "opacity-40 scale-95",
                     isResolved && "opacity-70"
