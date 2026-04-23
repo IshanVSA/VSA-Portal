@@ -179,7 +179,22 @@ export default function PromotionModule({ clinicId, jurisdiction }: Props) {
       });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      if (overridden && overrideReason.trim()) {
+        await logComplianceOverride({
+          context: "Promotion",
+          clinicId,
+          offerName: form.offer_name,
+          complianceBody,
+          issues: verificationResult?.issues ?? [],
+          overrideReason: overrideReason.trim(),
+          metadata: {
+            start_date: form.start_date,
+            end_date: form.end_date,
+            jurisdiction,
+          },
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ["promotions", clinicId] });
       toast.success("Promotion created");
       setDialogOpen(false);
