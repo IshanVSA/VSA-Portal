@@ -112,6 +112,11 @@ export default {
           from: { transform: "scale(1)", opacity: "1" },
           to: { transform: "scale(0.95)", opacity: "0" },
         },
+        "status-pulse": {
+          "0%": { transform: "scale(1)", boxShadow: "0 0 0 0 hsl(var(--ring) / 0.5)" },
+          "30%": { transform: "scale(1.03)", boxShadow: "0 0 0 8px hsl(var(--ring) / 0.25)" },
+          "100%": { transform: "scale(1)", boxShadow: "0 0 0 0 hsl(var(--ring) / 0)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -122,6 +127,7 @@ export default {
         "scale-out": "scale-out 0.2s ease-out",
         enter: "fade-in 0.3s ease-out, scale-in 0.2s ease-out",
         exit: "fade-out 0.3s ease-out, scale-out 0.2s ease-out",
+        "status-pulse": "status-pulse 0.7s ease-out",
       },
       backgroundImage: {
         "gradient-hero": "linear-gradient(135deg, hsl(var(--primary) / 0.05), transparent 60%)",
