@@ -2,12 +2,25 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import KPICard from "./KPICard";
-import { Building2, FileText, UserCheck, Ticket, AlertTriangle, Globe, Search, Megaphone, Share2, ArrowRight, Clock, Plus, ShieldCheck, Lock, Users } from "lucide-react";
+import {
+  Building2,
+  FileText,
+  Ticket,
+  AlertTriangle,
+  Globe,
+  Search,
+  Megaphone,
+  Share2,
+  ArrowUpRight,
+  Clock,
+  Users,
+  Sparkles,
+  Activity,
+  TrendingUp,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
+import { XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { motion } from "framer-motion";
 import UpcomingPosts from "./UpcomingPosts";
@@ -47,22 +60,128 @@ interface PipelineStage {
   label: string;
   status: string;
   count: number;
-  color: string;
+  tone: "muted" | "warning" | "primary" | "success";
 }
 
-const deptConfig: Record<string, { icon: React.ElementType; label: string; path: string; dotClass: string }> = {
-  website: { icon: Globe, label: "Website", path: "/website?tab=tickets", dotClass: "bg-[hsl(var(--dept-website))]" },
-  seo: { icon: Search, label: "SEO", path: "/seo?tab=tickets", dotClass: "bg-[hsl(var(--dept-seo))]" },
-  google_ads: { icon: Megaphone, label: "Google Ads", path: "/google-ads?tab=tickets", dotClass: "bg-[hsl(var(--dept-ads))]" },
-  social_media: { icon: Share2, label: "Social Media", path: "/social?tab=tickets", dotClass: "bg-[hsl(var(--dept-social))]" },
+const deptConfig: Record<string, { icon: React.ElementType; label: string; path: string; ring: string; text: string }> = {
+  website: {
+    icon: Globe,
+    label: "Website",
+    path: "/website?tab=tickets",
+    ring: "bg-[hsl(var(--dept-website))]/15 text-[hsl(var(--dept-website))]",
+    text: "text-[hsl(var(--dept-website))]",
+  },
+  seo: {
+    icon: Search,
+    label: "SEO",
+    path: "/seo?tab=tickets",
+    ring: "bg-[hsl(var(--dept-seo))]/15 text-[hsl(var(--dept-seo))]",
+    text: "text-[hsl(var(--dept-seo))]",
+  },
+  google_ads: {
+    icon: Megaphone,
+    label: "Google Ads",
+    path: "/google-ads?tab=tickets",
+    ring: "bg-[hsl(var(--dept-ads))]/15 text-[hsl(var(--dept-ads))]",
+    text: "text-[hsl(var(--dept-ads))]",
+  },
+  social_media: {
+    icon: Share2,
+    label: "Social Media",
+    path: "/social?tab=tickets",
+    ring: "bg-[hsl(var(--dept-social))]/15 text-[hsl(var(--dept-social))]",
+    text: "text-[hsl(var(--dept-social))]",
+  },
 };
 
 const serviceIcons = [
-  { key: "website_enabled", label: "Web", color: "hsl(var(--dept-website))" },
-  { key: "seo_enabled", label: "SEO", color: "hsl(var(--dept-seo))" },
-  { key: "google_ads_enabled", label: "Ads", color: "hsl(var(--dept-ads))" },
-  { key: "social_media_enabled", label: "Social", color: "hsl(var(--dept-social))" },
+  { key: "website_enabled", label: "Web", varName: "--dept-website" },
+  { key: "seo_enabled", label: "SEO", varName: "--dept-seo" },
+  { key: "google_ads_enabled", label: "Ads", varName: "--dept-ads" },
+  { key: "social_media_enabled", label: "Social", varName: "--dept-social" },
 ];
+
+const pipelineToneClasses: Record<PipelineStage["tone"], { bar: string; dot: string; text: string }> = {
+  muted: { bar: "bg-muted-foreground/40", dot: "bg-muted-foreground/60", text: "text-muted-foreground" },
+  warning: { bar: "bg-warning", dot: "bg-warning", text: "text-warning" },
+  primary: { bar: "bg-primary", dot: "bg-primary", text: "text-primary" },
+  success: { bar: "bg-success", dot: "bg-success", text: "text-success" },
+};
+
+interface HeroStatProps {
+  label: string;
+  value: number | string;
+  caption?: string;
+  icon: React.ElementType;
+  tone: "primary" | "warning" | "success" | "destructive" | "neutral";
+  href?: string;
+  index: number;
+}
+
+const toneStyles: Record<HeroStatProps["tone"], { accent: string; chip: string; glow: string }> = {
+  primary: {
+    accent: "from-primary/20 via-primary/5 to-transparent",
+    chip: "bg-primary/15 text-primary",
+    glow: "shadow-[0_0_0_1px_hsl(var(--primary)/0.15)]",
+  },
+  warning: {
+    accent: "from-warning/20 via-warning/5 to-transparent",
+    chip: "bg-warning/15 text-warning",
+    glow: "shadow-[0_0_0_1px_hsl(var(--warning)/0.15)]",
+  },
+  success: {
+    accent: "from-success/20 via-success/5 to-transparent",
+    chip: "bg-success/15 text-success",
+    glow: "shadow-[0_0_0_1px_hsl(var(--success)/0.15)]",
+  },
+  destructive: {
+    accent: "from-destructive/20 via-destructive/5 to-transparent",
+    chip: "bg-destructive/15 text-destructive",
+    glow: "shadow-[0_0_0_1px_hsl(var(--destructive)/0.15)]",
+  },
+  neutral: {
+    accent: "from-muted/40 via-muted/10 to-transparent",
+    chip: "bg-muted text-muted-foreground",
+    glow: "shadow-[0_0_0_1px_hsl(var(--border))]",
+  },
+};
+
+function HeroStat({ label, value, caption, icon: Icon, tone, href, index }: HeroStatProps) {
+  const t = toneStyles[tone];
+  const card = (
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, delay: index * 0.06, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={href ? { y: -2 } : undefined}
+      className={cn(
+        "group relative overflow-hidden rounded-2xl border border-border/60 bg-card p-5 transition-all",
+        t.glow,
+        href && "cursor-pointer hover:border-border"
+      )}
+    >
+      <div className={cn("pointer-events-none absolute inset-0 bg-gradient-to-br opacity-80", t.accent)} />
+      <div className="relative">
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
+          <div className={cn("flex h-7 w-7 items-center justify-center rounded-lg", t.chip)}>
+            <Icon className="h-3.5 w-3.5" />
+          </div>
+        </div>
+        <div className="mt-4 flex items-baseline gap-2">
+          <span className="text-4xl font-bold leading-none tracking-tight tabular-nums text-foreground">
+            {value}
+          </span>
+          {href && (
+            <ArrowUpRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground" />
+          )}
+        </div>
+        {caption && <p className="mt-2 text-xs text-muted-foreground">{caption}</p>}
+      </div>
+    </motion.div>
+  );
+  return href ? <Link to={href} className="block">{card}</Link> : card;
+}
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -70,7 +189,6 @@ export default function AdminDashboard() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [userName, setUserName] = useState<string | null>(null);
   const [teamCount, setTeamCount] = useState(0);
-  const [totalPosts, setTotalPosts] = useState(0);
   const [pendingPosts, setPendingPosts] = useState(0);
   const [openTickets, setOpenTickets] = useState(0);
   const [urgentTickets, setUrgentTickets] = useState(0);
@@ -100,7 +218,6 @@ export default function AdminDashboard() {
 
       setClinics((clinicsRes.data || []) as Clinic[]);
       setProfiles(profilesRes.data || []);
-      setTotalPosts((postsRes.data || []).length);
       setPendingPosts((pendingRes.data || []).length);
 
       const roles = rolesRes.data || [];
@@ -119,20 +236,18 @@ export default function AdminDashboard() {
       });
       setTicketSummary(Object.entries(deptMap).map(([department, counts]) => ({ department, ...counts })));
 
-      // Content pipeline
       const reqs = contentReqRes.data || [];
       const statusCounts: Record<string, number> = {};
       reqs.forEach(r => { statusCounts[r.status] = (statusCounts[r.status] || 0) + 1; });
       setPipeline([
-        { label: "Generated", status: "generated", count: statusCounts["generated"] || 0, color: "hsl(var(--muted-foreground))" },
-        { label: "Concierge Preferred", status: "concierge_preferred", count: statusCounts["concierge_preferred"] || 0, color: "hsl(var(--warning))" },
-        { label: "Admin Approved", status: "admin_approved", count: statusCounts["admin_approved"] || 0, color: "hsl(var(--primary))" },
-        { label: "Client Selected", status: "client_selected", count: statusCounts["client_selected"] || 0, color: "hsl(var(--success))" },
-        { label: "Finalized", status: "final_approved", count: statusCounts["final_approved"] || 0, color: "hsl(var(--success))" },
+        { label: "Generated", status: "generated", count: statusCounts["generated"] || 0, tone: "muted" },
+        { label: "Concierge Preferred", status: "concierge_preferred", count: statusCounts["concierge_preferred"] || 0, tone: "warning" },
+        { label: "Admin Approved", status: "admin_approved", count: statusCounts["admin_approved"] || 0, tone: "primary" },
+        { label: "Client Selected", status: "client_selected", count: statusCounts["client_selected"] || 0, tone: "success" },
+        { label: "Finalized", status: "final_approved", count: statusCounts["final_approved"] || 0, tone: "success" },
       ]);
       setPendingRequests((statusCounts["concierge_preferred"] || 0) + (statusCounts["client_selected"] || 0));
 
-      // Content trend
       const posts = postsRes.data || [];
       const monthMap: Record<string, number> = {};
       posts.forEach(p => {
@@ -146,202 +261,362 @@ export default function AdminDashboard() {
     fetchAll();
   }, []);
 
-  const getConciergeName = (id: string | null) => {
-    if (!id) return "Unassigned";
-    return profiles.find(p => p.id === id)?.full_name || "Unknown";
-  };
-
   if (loading) return <DashboardSkeleton />;
 
   const activeClinics = clinics.filter(c => c.status === "active").length;
-  const statusLine = [
-    pendingPosts > 0 && `${pendingPosts} pending review`,
-    urgentTickets > 0 && `${urgentTickets} urgent ticket${urgentTickets > 1 ? "s" : ""}`,
-    `${activeClinics} active clinics`,
-  ].filter(Boolean).join(" · ");
-
   const maxPipeline = Math.max(...pipeline.map(p => p.count), 1);
+  const totalPipeline = pipeline.reduce((s, p) => s + p.count, 0);
+  const totalPostsTrend = trendData.reduce((s, p) => s + p.posts, 0);
+  const trendDelta = trendData.length >= 2
+    ? trendData[trendData.length - 1].posts - trendData[trendData.length - 2].posts
+    : 0;
 
   return (
-    <motion.div className="space-y-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 pb-4 border-b border-border/60">
-        <div>
-          <h1 className="text-xl font-bold text-foreground tracking-tight">
-            {userName ? `Welcome back, ${userName.split(" ")[0]}` : "Dashboard"}
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">{statusLine}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link to="/review">
-            <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5">
-              <Clock className="h-3.5 w-3.5" /> Review Queue
-              {pendingPosts > 0 && <Badge variant="destructive" className="ml-1 h-4 px-1 text-[10px] rounded-full">{pendingPosts}</Badge>}
-            </Button>
-          </Link>
-          <Link to="/clinics">
-            <Button size="sm" className="h-8 text-xs gap-1.5">
-              <Building2 className="h-3.5 w-3.5" /> Clinics
-            </Button>
-          </Link>
-        </div>
-      </div>
-
-      {/* 5 KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <KPICard label="Active Clinics" value={activeClinics} change={`${clinics.length} total`} changeType="neutral" icon={Building2} index={0} gradient="blue" href="/clinics" />
-        <KPICard label="Open Tickets" value={openTickets} change={urgentTickets > 0 ? `${urgentTickets} urgent` : undefined} changeType={urgentTickets > 0 ? "negative" : "neutral"} icon={Ticket} index={1} gradient="purple" href="/website?tab=tickets" />
-        <KPICard label="Pending Review" value={pendingPosts} icon={FileText} index={2} gradient="amber" href="/review" />
-        <KPICard label="Team Members" value={teamCount} icon={Users} index={3} gradient="green" href="/employees" />
-        <KPICard label="Content Requests" value={pendingRequests} change={pendingRequests > 0 ? "needs action" : "all clear"} changeType={pendingRequests > 0 ? "negative" : "neutral"} icon={AlertTriangle} index={4} gradient="amber" href="/social?tab=requests" />
-      </div>
-
-      {/* Row 2: Tickets by Dept + Clinic Health */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Department Tickets */}
-        <Card className="border-border/60">
-          <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-foreground">Tickets by Department</h3>
-            <span className="text-xs text-muted-foreground">{openTickets} active</span>
+    <motion.div
+      className="space-y-6"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.25 }}
+    >
+      {/* HERO */}
+      <section className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-card via-card to-muted/30 px-6 py-7 sm:px-8 sm:py-8">
+        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 left-1/3 h-72 w-72 rounded-full bg-[hsl(var(--dept-social))]/10 blur-3xl" />
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/60 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground backdrop-blur">
+              <Sparkles className="h-3 w-3 text-primary" />
+              Command Center
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+              {userName ? `Welcome back, ${userName.split(" ")[0]}` : "Welcome back"}
+            </h1>
+            <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-success" />
+                {activeClinics} active clinics
+              </span>
+              {urgentTickets > 0 && (
+                <span className="inline-flex items-center gap-1.5 text-destructive">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  {urgentTickets} urgent ticket{urgentTickets > 1 ? "s" : ""}
+                </span>
+              )}
+              {pendingPosts > 0 && (
+                <span className="inline-flex items-center gap-1.5 text-warning">
+                  <FileText className="h-3.5 w-3.5" />
+                  {pendingPosts} awaiting review
+                </span>
+              )}
+            </p>
           </div>
-          <CardContent className="p-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <Link to="/review">
+              <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-full border-border/70 bg-background/60 backdrop-blur">
+                <Clock className="h-3.5 w-3.5" />
+                Review Queue
+                {pendingPosts > 0 && (
+                  <Badge variant="destructive" className="ml-1 h-5 rounded-full px-1.5 text-[10px]">{pendingPosts}</Badge>
+                )}
+              </Button>
+            </Link>
+            <Link to="/clinics">
+              <Button size="sm" className="h-9 gap-1.5 rounded-full">
+                <Building2 className="h-3.5 w-3.5" /> Clinics
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Hero stats grid */}
+        <div className="relative mt-7 grid grid-cols-2 gap-3 lg:grid-cols-5">
+          <HeroStat
+            label="Active Clinics"
+            value={activeClinics}
+            caption={`${clinics.length} total`}
+            icon={Building2}
+            tone="primary"
+            href="/clinics"
+            index={0}
+          />
+          <HeroStat
+            label="Open Tickets"
+            value={openTickets}
+            caption={urgentTickets > 0 ? `${urgentTickets} urgent` : "no urgent flags"}
+            icon={Ticket}
+            tone={urgentTickets > 0 ? "destructive" : "neutral"}
+            href="/website?tab=tickets"
+            index={1}
+          />
+          <HeroStat
+            label="Pending Review"
+            value={pendingPosts}
+            caption={pendingPosts > 0 ? "needs attention" : "all caught up"}
+            icon={FileText}
+            tone={pendingPosts > 0 ? "warning" : "success"}
+            href="/review"
+            index={2}
+          />
+          <HeroStat
+            label="Team Members"
+            value={teamCount}
+            caption="active accounts"
+            icon={Users}
+            tone="success"
+            href="/employees"
+            index={3}
+          />
+          <HeroStat
+            label="Content Requests"
+            value={pendingRequests}
+            caption={pendingRequests > 0 ? "needs action" : "all clear"}
+            icon={AlertTriangle}
+            tone={pendingRequests > 0 ? "warning" : "neutral"}
+            href="/social?tab=requests"
+            index={4}
+          />
+        </div>
+      </section>
+
+      {/* ROW: Tickets & Clinic Health */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        {/* Tickets by Department */}
+        <section className="rounded-2xl border border-border/60 bg-card lg:col-span-2">
+          <header className="flex items-center justify-between border-b border-border/50 px-5 py-4">
+            <div>
+              <h3 className="text-sm font-bold tracking-tight text-foreground">Tickets by Department</h3>
+              <p className="text-[11px] text-muted-foreground">Distribution across teams</p>
+            </div>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+              {openTickets} active
+            </span>
+          </header>
+          <div className="p-2">
             {ticketSummary.length === 0 ? (
-              <div className="py-8 text-center">
-                <p className="text-sm text-muted-foreground">All clear - no open tickets</p>
+              <div className="py-10 text-center">
+                <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-success/10">
+                  <Activity className="h-4 w-4 text-success" />
+                </div>
+                <p className="text-sm text-muted-foreground">All clear — no open tickets</p>
               </div>
             ) : (
-              <ul className="divide-y divide-border/40">
+              <ul className="space-y-1">
                 {ticketSummary.map((dept) => {
-                  const cfg = deptConfig[dept.department] || { icon: Ticket, label: dept.department, path: "/", dotClass: "bg-muted-foreground" };
+                  const cfg = deptConfig[dept.department] || {
+                    icon: Ticket,
+                    label: dept.department,
+                    path: "/",
+                    ring: "bg-muted text-muted-foreground",
+                    text: "text-muted-foreground",
+                  };
+                  const Icon = cfg.icon;
                   return (
-                    <li key={dept.department} className="flex items-center justify-between px-4 py-2.5 hover:bg-muted/30 transition-colors">
-                      <div className="flex items-center gap-2.5">
-                        <div className={cn("h-2 w-2 rounded-full", cfg.dotClass)} />
-                        <span className="text-sm font-medium text-foreground">{cfg.label}</span>
-                        <span className="text-xs text-muted-foreground">{dept.open} open · {dept.in_progress} active</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-foreground tabular-nums">{dept.total}</span>
-                        <Link to={cfg.path}><ArrowRight className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground transition-colors" /></Link>
-                      </div>
+                    <li key={dept.department}>
+                      <Link
+                        to={cfg.path}
+                        className="group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-muted/50"
+                      >
+                        <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl", cfg.ring)}>
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-foreground">{cfg.label}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {dept.open} open · {dept.in_progress} in progress
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-bold tabular-nums text-foreground">
+                            {dept.total}
+                          </span>
+                          <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground" />
+                        </div>
+                      </Link>
                     </li>
                   );
                 })}
               </ul>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
         {/* Clinic Health */}
-        <Card className="border-border/60">
-          <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-foreground">Clinic Health</h3>
+        <section className="rounded-2xl border border-border/60 bg-card lg:col-span-3">
+          <header className="flex items-center justify-between border-b border-border/50 px-5 py-4">
+            <div>
+              <h3 className="text-sm font-bold tracking-tight text-foreground">Clinic Health</h3>
+              <p className="text-[11px] text-muted-foreground">Active services per clinic</p>
+            </div>
             <Link to="/clinics">
-              <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-foreground">View All</Button>
+              <Button variant="ghost" size="sm" className="h-7 rounded-full text-xs text-muted-foreground hover:text-foreground">
+                View all <ArrowUpRight className="ml-1 h-3 w-3" />
+              </Button>
             </Link>
-          </div>
-          <CardContent className="p-0">
+          </header>
+          <div className="p-2">
             {clinics.length === 0 ? (
-              <div className="py-8 text-center">
+              <div className="py-10 text-center">
                 <p className="text-sm text-muted-foreground">No clinics yet</p>
               </div>
             ) : (
-              <ul className="divide-y divide-border/40">
+              <ul className="space-y-0.5">
                 {clinics.slice(0, 8).map((clinic) => (
-                  <li key={clinic.id} className="flex items-center justify-between px-4 py-2 hover:bg-muted/30 transition-colors">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className={cn("h-2 w-2 rounded-full shrink-0", clinic.status === "active" ? "bg-success" : "bg-muted-foreground")} />
-                      <Link to={`/clinics/${clinic.id}`} className="text-sm font-medium text-foreground truncate hover:underline">
-                        {clinic.clinic_name}
-                      </Link>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0 ml-3">
-                      {serviceIcons.map(s => {
-                        const enabled = (clinic as any)[s.key];
-                        return (
-                          <span
-                            key={s.key}
-                            title={`${s.label}: ${enabled ? "Enabled" : "Disabled"}`}
-                            className={cn(
-                              "inline-flex items-center justify-center h-5 min-w-[28px] px-1 rounded text-[9px] font-bold border",
-                              enabled
-                                ? "border-border/60 text-foreground"
-                                : "border-transparent text-muted-foreground/40 line-through"
-                            )}
-                          >
-                            {s.label}
-                          </span>
-                        );
-                      })}
-                    </div>
+                  <li key={clinic.id}>
+                    <Link
+                      to={`/clinics/${clinic.id}`}
+                      className="group flex items-center justify-between gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-muted/50"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span
+                          className={cn(
+                            "h-2 w-2 shrink-0 rounded-full",
+                            clinic.status === "active" ? "bg-success shadow-[0_0_0_3px_hsl(var(--success)/0.18)]" : "bg-muted-foreground"
+                          )}
+                        />
+                        <span className="truncate text-sm font-semibold text-foreground group-hover:text-primary">
+                          {clinic.clinic_name}
+                        </span>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
+                        {serviceIcons.map((s) => {
+                          const enabled = (clinic as any)[s.key];
+                          return (
+                            <span
+                              key={s.key}
+                              title={`${s.label}: ${enabled ? "Enabled" : "Disabled"}`}
+                              className={cn(
+                                "inline-flex h-5 min-w-[34px] items-center justify-center rounded-md px-1.5 text-[9px] font-bold uppercase tracking-wider transition-colors",
+                                enabled
+                                  ? "border border-border/70 text-foreground"
+                                  : "border border-dashed border-border/40 text-muted-foreground/40 line-through"
+                              )}
+                              style={enabled ? { color: `hsl(var(${s.varName}))`, borderColor: `hsl(var(${s.varName}) / 0.4)`, backgroundColor: `hsl(var(${s.varName}) / 0.08)` } : undefined}
+                            >
+                              {s.label}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </Link>
                   </li>
                 ))}
               </ul>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </div>
 
-      {/* Row 3: Content Pipeline + Content Trend */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Content Pipeline */}
-        <Card className="border-border/60">
-          <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-foreground">Content Pipeline</h3>
-            <span className="text-xs text-muted-foreground">{pipeline.reduce((s, p) => s + p.count, 0)} total</span>
-          </div>
-          <CardContent className="py-3 px-4 space-y-2.5">
-            {pipeline.map((stage) => (
-              <div key={stage.status} className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground w-[120px] shrink-0 truncate">{stage.label}</span>
-                <div className="flex-1 h-2 bg-muted/50 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      width: `${maxPipeline > 0 ? (stage.count / maxPipeline) * 100 : 0}%`,
-                      backgroundColor: stage.color,
-                      minWidth: stage.count > 0 ? "8px" : "0px",
-                    }}
-                  />
+      {/* ROW: Pipeline & Trend */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        {/* Pipeline */}
+        <section className="rounded-2xl border border-border/60 bg-card lg:col-span-2">
+          <header className="flex items-center justify-between border-b border-border/50 px-5 py-4">
+            <div>
+              <h3 className="text-sm font-bold tracking-tight text-foreground">Content Pipeline</h3>
+              <p className="text-[11px] text-muted-foreground">Active items by stage</p>
+            </div>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+              {totalPipeline} total
+            </span>
+          </header>
+          <div className="space-y-3 px-5 py-5">
+            {pipeline.map((stage) => {
+              const c = pipelineToneClasses[stage.tone];
+              const pct = (stage.count / maxPipeline) * 100;
+              return (
+                <div key={stage.status}>
+                  <div className="mb-1 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className={cn("h-1.5 w-1.5 rounded-full", c.dot)} />
+                      <span className="text-xs font-medium text-foreground">{stage.label}</span>
+                    </div>
+                    <span className="text-xs font-bold tabular-nums text-foreground">{stage.count}</span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-muted/60">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                      className={cn("h-full rounded-full", c.bar)}
+                      style={{ minWidth: stage.count > 0 ? "6px" : "0" }}
+                    />
+                  </div>
                 </div>
-                <span className="text-xs font-bold text-foreground tabular-nums w-6 text-right">{stage.count}</span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* Content Trend */}
-        <Card className="border-border/60">
-          <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-foreground">Content Trend</h3>
-            <span className="text-xs text-muted-foreground">Last 6 months</span>
+              );
+            })}
           </div>
-          <CardContent className="pt-4 pb-2">
+        </section>
+
+        {/* Trend */}
+        <section className="rounded-2xl border border-border/60 bg-card lg:col-span-3">
+          <header className="flex items-center justify-between border-b border-border/50 px-5 py-4">
+            <div>
+              <h3 className="text-sm font-bold tracking-tight text-foreground">Content Trend</h3>
+              <p className="text-[11px] text-muted-foreground">Posts scheduled · last 6 months</p>
+            </div>
+            <div className="flex items-center gap-3 text-right">
+              <div>
+                <p className="text-xs text-muted-foreground">Total</p>
+                <p className="text-sm font-bold tabular-nums text-foreground">{totalPostsTrend}</p>
+              </div>
+              {trendData.length >= 2 && (
+                <div className={cn(
+                  "flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold",
+                  trendDelta >= 0 ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
+                )}>
+                  <TrendingUp className={cn("h-3 w-3", trendDelta < 0 && "rotate-180")} />
+                  {trendDelta >= 0 ? "+" : ""}{trendDelta}
+                </div>
+              )}
+            </div>
+          </header>
+          <div className="px-2 pt-4 pb-2">
             {trendData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={180}>
-                <AreaChart data={trendData}>
+              <ResponsiveContainer width="100%" height={200}>
+                <AreaChart data={trendData} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
                   <defs>
-                    <linearGradient id="colorPosts" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.12}/>
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                    <linearGradient id="adminTrend" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.32} />
+                      <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                  <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
-                  <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "0.5rem", fontSize: "12px" }} />
-                  <Area type="monotone" dataKey="posts" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#colorPosts)" dot={{ r: 3, fill: "hsl(var(--card))", stroke: "hsl(var(--primary))", strokeWidth: 2 }} />
+                  <XAxis
+                    dataKey="date"
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} width={28} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "0.75rem",
+                      fontSize: "12px",
+                      boxShadow: "var(--shadow-lg)",
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="posts"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2.5}
+                    fill="url(#adminTrend)"
+                    dot={{ r: 3, fill: "hsl(var(--card))", stroke: "hsl(var(--primary))", strokeWidth: 2 }}
+                    activeDot={{ r: 5 }}
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="py-8 text-center text-muted-foreground text-sm">No post data yet</div>
+              <div className="py-12 text-center text-sm text-muted-foreground">No post data yet</div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </div>
 
-      {/* Row 4: My Tickets + Upcoming Posts + Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* ROW: Tickets / Posts / Activity */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <MyTickets />
         <UpcomingPosts />
         <RecentActivity />
