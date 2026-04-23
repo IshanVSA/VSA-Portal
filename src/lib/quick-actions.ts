@@ -1,5 +1,5 @@
 import {
-  Clock, Megaphone, Plug, CreditCard, UserPlus, FileText, DollarSign, AlertTriangle, Sparkles,
+  Clock, Megaphone, Plug, UserPlus, FileText, DollarSign, AlertTriangle, Sparkles,
   Phone, PhoneOff, MoreHorizontal,
   Link2, BarChart3, Search, ClipboardList, Zap, MessageSquare,
   PawPrint, UploadCloud, Tag, Rocket,

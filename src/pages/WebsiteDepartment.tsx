@@ -31,7 +31,7 @@ const healthTab = { value: "health", label: "Health", icon: HeartPulse };
 const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
 
 const services = [
-  "Time Changes", "Pop-up Offers", "Third Party Integrations", "Payment Options",
+  "Time Changes", "Pop-up Offers", "Third Party Integrations",
   "Add/Remove Team Members", "New Forms", "Price List Updates", "Emergency", "Others",
 ];
 
