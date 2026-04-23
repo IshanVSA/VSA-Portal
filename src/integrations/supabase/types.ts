@@ -1303,6 +1303,57 @@ export type Database = {
         }
         Relationships: []
       }
+      department_ticket_assignments: {
+        Row: {
+          assigned_to: string | null
+          completed_at: string | null
+          created_at: string
+          department: Database["public"]["Enums"]["department_type"]
+          id: string
+          notes: string | null
+          status: Database["public"]["Enums"]["ticket_status"]
+          ticket_id: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          department: Database["public"]["Enums"]["department_type"]
+          id?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["ticket_status"]
+          ticket_id: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          department?: Database["public"]["Enums"]["department_type"]
+          id?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["ticket_status"]
+          ticket_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_ticket_assignments_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_ticket_assignments_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "department_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       department_tickets: {
         Row: {
           assigned_to: string | null
@@ -2497,6 +2548,10 @@ export type Database = {
         Args: { _clinic_id: string; _user_id: string }
         Returns: boolean
       }
+      compute_ticket_rollup_status: {
+        Args: { _ticket_id: string }
+        Returns: Database["public"]["Enums"]["ticket_status"]
+      }
       get_concierge_clinic_ids: {
         Args: { _user_id: string }
         Returns: string[]
@@ -2507,6 +2562,10 @@ export type Database = {
           full_name: string
           user_id: string
         }[]
+      }
+      get_ticket_visibility_departments: {
+        Args: { _description: string; _ticket_type: string }
+        Returns: Database["public"]["Enums"]["department_type"][]
       }
       get_user_role: {
         Args: { _user_id: string }
@@ -2533,6 +2592,13 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      pick_assignee_for_dept: {
+        Args: {
+          _clinic_id: string
+          _department: Database["public"]["Enums"]["department_type"]
+        }
+        Returns: string
       }
       populate_monthly_holidays: {
         Args: { _clinic_id: string; _month: number; _province: string }

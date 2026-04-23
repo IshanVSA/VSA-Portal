@@ -83,7 +83,7 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
   const visibleTypes = getVisibleTicketTypes(department);
 
   const { data: ticketsQuery, refetch, isLoading } = useQuery({
-    queryKey: ["department-tickets", department, filter, clinicId],
+    queryKey: ["department-tickets", department, filter, clinicId, isClient],
     queryFn: async () => {
       const orClauses = [`department.eq.${department}`];
       if (visibleTypes.length > 0) {
@@ -100,7 +100,9 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
         query = query.eq("clinic_id", clinicId);
       }
 
-      if (filter !== "all") {
+      // For clients, filter on parent (rollup) status. For staff, we re-filter
+      // post-merge against the per-department status.
+      if (filter !== "all" && isClient) {
         query = query.eq("status", filter);
       }
 
@@ -120,11 +122,12 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
       let assigneeUserIds: string[] = [];
       if (results.length > 0) {
         const ticketIds = results.map((t: any) => t.id);
+
+        // Legacy pool (kept for back-compat where it still exists)
         const { data: assigneeRows } = await (supabase
           .from("ticket_assignees" as any)
           .select("ticket_id, user_id")
           .in("ticket_id", ticketIds) as any);
-
         const poolMap = new Map<string, string[]>();
         ((assigneeRows || []) as { ticket_id: string; user_id: string }[]).forEach(r => {
           const arr = poolMap.get(r.ticket_id) || [];
@@ -132,12 +135,53 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
           poolMap.set(r.ticket_id, arr);
         });
 
-        results = results.map((t: any) => ({ ...t, pool_user_ids: poolMap.get(t.id) || [] }));
+        // Per-department assignment rows (the new model)
+        const { data: dtaRows } = await (supabase
+          .from("department_ticket_assignments" as any)
+          .select("ticket_id, department, assigned_to, status, completed_at")
+          .in("ticket_id", ticketIds) as any);
+        const dtaByTicket = new Map<string, any[]>();
+        ((dtaRows || []) as any[]).forEach(r => {
+          const arr = dtaByTicket.get(r.ticket_id) || [];
+          arr.push(r);
+          dtaByTicket.set(r.ticket_id, arr);
+        });
+
+        // Filter results: only show tickets that fan out to this department.
+        // (Backfill guarantees a row exists per involved dept.)
+        if (!isClient) {
+          results = results.filter((t: any) => {
+            const rows = dtaByTicket.get(t.id) || [];
+            // If no rows yet (legacy edge case), fall back to original dept match
+            if (rows.length === 0) return t.department === department;
+            return rows.some((r: any) => r.department === department);
+          });
+        }
+
+        results = results.map((t: any) => {
+          const rows = dtaByTicket.get(t.id) || [];
+          const myDeptRow = rows.find((r: any) => r.department === department);
+          // Override assigned_to + status with the per-department row when available (staff view).
+          // Clients keep the parent rollup status.
+          const merged: any = { ...t, pool_user_ids: poolMap.get(t.id) || [], dept_assignments: rows };
+          if (!isClient && myDeptRow) {
+            merged.assigned_to = myDeptRow.assigned_to;
+            merged.status = myDeptRow.status;
+            merged.dept_assignment_id = myDeptRow.id;
+          }
+          return merged;
+        });
+
+        // Re-apply status filter against the (now per-dept) status for staff
+        if (!isClient && filter !== "all") {
+          results = results.filter((t: any) => t.status === filter);
+        }
 
         const idSet = new Set<string>();
         results.forEach((t: any) => {
           if (t.assigned_to) idSet.add(t.assigned_to);
           (t.pool_user_ids || []).forEach((uid: string) => idSet.add(uid));
+          (t.dept_assignments || []).forEach((r: any) => { if (r.assigned_to) idSet.add(r.assigned_to); });
         });
         assigneeUserIds = Array.from(idSet);
       }
@@ -291,12 +335,14 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
         <TicketKanbanView
           tickets={filteredTickets}
           teamMembers={mergedTeamMembers}
+          currentDepartment={department}
           onUpdated={() => refetch()}
         />
       ) : viewMode === "table" ? (
         <TicketTableView
           tickets={filteredTickets}
           teamMembers={mergedTeamMembers}
+          currentDepartment={department}
           onUpdated={() => refetch()}
         />
       ) : (
@@ -311,6 +357,9 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
               status={t.status}
               description={t.description}
               department={t.department}
+              currentDepartment={department}
+              dept_assignment_id={t.dept_assignment_id}
+              dept_assignments={t.dept_assignments}
               created_at={t.created_at}
               assigned_to={t.assigned_to}
               pool_user_ids={t.pool_user_ids}

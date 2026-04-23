@@ -30,11 +30,14 @@ interface KanbanTicket {
   created_at: string;
   assigned_to?: string | null;
   pool_user_ids?: string[];
+  dept_assignment_id?: string;
+  dept_assignments?: { department: string; status: string; assigned_to: string | null }[];
 }
 
 interface TicketKanbanViewProps {
   tickets: KanbanTicket[];
   teamMembers: TeamMemberOption[];
+  currentDepartment?: string;
   onUpdated: () => void;
 }
 
@@ -59,7 +62,7 @@ const deptLabels: Record<string, string> = {
   social_media: "Social Media",
 };
 
-export function TicketKanbanView({ tickets, teamMembers, onUpdated }: TicketKanbanViewProps) {
+export function TicketKanbanView({ tickets, teamMembers, currentDepartment, onUpdated }: TicketKanbanViewProps) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
   const [voidPending, setVoidPending] = useState<string | null>(null);
@@ -67,17 +70,28 @@ export function TicketKanbanView({ tickets, teamMembers, onUpdated }: TicketKanb
   const { role } = useUserRole();
   const isClient = role === "client";
 
+  const updateAssignmentOrTicket = async (ticket: KanbanTicket, patch: Record<string, any>) => {
+    if (ticket.dept_assignment_id) {
+      return await supabase
+        .from("department_ticket_assignments" as any)
+        .update(patch as any)
+        .eq("id", ticket.dept_assignment_id);
+    }
+    return await supabase
+      .from("department_tickets" as any)
+      .update(patch as any)
+      .eq("id", ticket.id);
+  };
+
   const handleStatusChange = async (ticketId: string, newStatus: string) => {
     const ticket = tickets.find(t => t.id === ticketId);
-    const { error } = await supabase
-      .from("department_tickets" as any)
-      .update({ status: newStatus } as any)
-      .eq("id", ticketId);
+    if (!ticket) return;
+    const { error } = await updateAssignmentOrTicket(ticket, { status: newStatus });
     if (error) {
       toast.error("Failed to update status");
     } else {
       if (newStatus === "completed" && ticket?.ticket_type === "Bulk Uploads") {
-        await moveBulkUploadsToDepartmentFolder(ticketId, ticket.department);
+        await moveBulkUploadsToDepartmentFolder(ticketId, currentDepartment || ticket.department);
       }
       toast.success(`Status updated`);
       onUpdated();
@@ -126,17 +140,19 @@ export function TicketKanbanView({ tickets, teamMembers, onUpdated }: TicketKanb
       toast.error("A reason is required to void a ticket");
       return;
     }
+    const ticket = tickets.find(t => t.id === voidPending);
+    if (!ticket) return;
     const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase
+    const { error: aErr } = await updateAssignmentOrTicket(ticket, { status: "void", notes: voidReason.trim() });
+    const { error: pErr } = await supabase
       .from("department_tickets" as any)
       .update({
-        status: "void",
         void_reason: voidReason.trim(),
         voided_by: user?.id ?? null,
         voided_at: new Date().toISOString(),
       } as any)
       .eq("id", voidPending);
-    if (error) {
+    if (aErr || pErr) {
       toast.error("Failed to void ticket");
     } else {
       toast.success("Ticket voided");

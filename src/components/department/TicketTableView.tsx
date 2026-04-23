@@ -32,11 +32,13 @@ interface TableTicket {
   created_at: string;
   assigned_to?: string | null;
   pool_user_ids?: string[];
+  dept_assignment_id?: string;
 }
 
 interface TicketTableViewProps {
   tickets: TableTicket[];
   teamMembers: TeamMemberOption[];
+  currentDepartment?: string;
   onUpdated: () => void;
 }
 
@@ -69,11 +71,24 @@ const statusBorder: Record<string, string> = {
   void: "border-l-slate-500",
 };
 
-export function TicketTableView({ tickets, teamMembers, onUpdated }: TicketTableViewProps) {
+export function TicketTableView({ tickets, teamMembers, currentDepartment, onUpdated }: TicketTableViewProps) {
   const [voidPending, setVoidPending] = useState<string | null>(null);
   const [voidReason, setVoidReason] = useState("");
   const { role } = useUserRole();
   const isClient = role === "client";
+
+  const updateAssignmentOrTicket = async (ticket: TableTicket, patch: Record<string, any>) => {
+    if (ticket.dept_assignment_id) {
+      return await supabase
+        .from("department_ticket_assignments" as any)
+        .update(patch as any)
+        .eq("id", ticket.dept_assignment_id);
+    }
+    return await supabase
+      .from("department_tickets" as any)
+      .update(patch as any)
+      .eq("id", ticket.id);
+  };
 
   const handleStatusChange = async (ticketId: string, newStatus: string) => {
     if (newStatus === "void") {
@@ -82,15 +97,13 @@ export function TicketTableView({ tickets, teamMembers, onUpdated }: TicketTable
       return;
     }
     const ticket = tickets.find(t => t.id === ticketId);
-    const { error } = await supabase
-      .from("department_tickets" as any)
-      .update({ status: newStatus } as any)
-      .eq("id", ticketId);
+    if (!ticket) return;
+    const { error } = await updateAssignmentOrTicket(ticket, { status: newStatus });
     if (error) {
       toast.error("Failed to update status");
     } else {
       if (newStatus === "completed" && ticket?.ticket_type === "Bulk Uploads") {
-        await moveBulkUploadsToDepartmentFolder(ticketId, ticket.department);
+        await moveBulkUploadsToDepartmentFolder(ticketId, currentDepartment || ticket.department);
       }
       toast.success(`Status updated`);
       onUpdated();
@@ -102,17 +115,19 @@ export function TicketTableView({ tickets, teamMembers, onUpdated }: TicketTable
       toast.error("A reason is required to void a ticket");
       return;
     }
+    const ticket = tickets.find(t => t.id === voidPending);
+    if (!ticket) return;
     const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase
+    const { error: aErr } = await updateAssignmentOrTicket(ticket, { status: "void", notes: voidReason.trim() });
+    const { error: pErr } = await supabase
       .from("department_tickets" as any)
       .update({
-        status: "void",
         void_reason: voidReason.trim(),
         voided_by: user?.id ?? null,
         voided_at: new Date().toISOString(),
       } as any)
       .eq("id", voidPending);
-    if (error) toast.error("Failed to void ticket");
+    if (aErr || pErr) toast.error("Failed to void ticket");
     else {
       toast.success("Ticket voided");
       setVoidPending(null);
@@ -122,10 +137,9 @@ export function TicketTableView({ tickets, teamMembers, onUpdated }: TicketTable
 
   const handleAssigneeChange = async (ticketId: string, userId: string) => {
     const value = userId === "unassigned" ? null : userId;
-    const { error } = await supabase
-      .from("department_tickets" as any)
-      .update({ assigned_to: value } as any)
-      .eq("id", ticketId);
+    const ticket = tickets.find(t => t.id === ticketId);
+    if (!ticket) return;
+    const { error } = await updateAssignmentOrTicket(ticket, { assigned_to: value });
     if (error) {
       toast.error("Failed to assign");
     } else {

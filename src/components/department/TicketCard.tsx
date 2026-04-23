@@ -26,6 +26,15 @@ interface TeamMemberOption {
   name: string;
 }
 
+interface DeptAssignment {
+  id?: string;
+  ticket_id?: string;
+  department: string;
+  assigned_to: string | null;
+  status: "open" | "in_progress" | "completed" | "emergency" | "void";
+  completed_at?: string | null;
+}
+
 interface TicketCardProps {
   id: string;
   title: string;
@@ -34,6 +43,12 @@ interface TicketCardProps {
   status: "open" | "in_progress" | "completed" | "emergency" | "void";
   description?: string | null;
   department: string;
+  /** The department whose perspective this card is being viewed from (current page). */
+  currentDepartment?: string;
+  /** The id of the per-department assignment row for `currentDepartment` (staff only). */
+  dept_assignment_id?: string;
+  /** All per-department assignment rows for this ticket. */
+  dept_assignments?: DeptAssignment[];
   created_at: string;
   assigned_to?: string | null;
   pool_user_ids?: string[];
@@ -63,13 +78,14 @@ const allDepartments = [
   { value: "social_media", label: "Social Media" },
 ];
 
-export function TicketCard({ id, title, ticket_type, priority, status, description, department, created_at, assigned_to, pool_user_ids = [], void_reason, teamMembers = [], onUpdated }: TicketCardProps) {
+export function TicketCard({ id, title, ticket_type, priority, status, description, department, currentDepartment, dept_assignment_id, dept_assignments = [], created_at, assigned_to, pool_user_ids = [], void_reason, teamMembers = [], onUpdated }: TicketCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [voidDialogOpen, setVoidDialogOpen] = useState(false);
   const [voidReason, setVoidReason] = useState("");
   const { role } = useUserRole();
   const canVoid = role === "admin" || role === "concierge";
+  const isClient = role === "client";
 
   const sc = statusConfig[status] || statusConfig.open;
   const pc = priorityConfig[priority];
@@ -82,12 +98,31 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
         .filter(Boolean) as string[]
     : [];
 
+  // Cross-department status strip
+  const showCrossDeptStrip = (dept_assignments?.length || 0) > 1;
+  const completedDeptCount = dept_assignments?.filter(d => d.status === "completed").length || 0;
+  const totalDeptCount = dept_assignments?.length || 0;
+
   const statusOptions: { value: string; label: string }[] = [
     { value: "open", label: "Open" },
     { value: "in_progress", label: "In Progress" },
     { value: "completed", label: "Completed" },
     ...(canVoid ? [{ value: "void", label: "Void" }] : []),
   ];
+
+  // Update either the per-dept assignment row (preferred) or fall back to the parent ticket.
+  const updateAssignmentOrTicket = async (patch: Record<string, any>) => {
+    if (dept_assignment_id) {
+      return await supabase
+        .from("department_ticket_assignments" as any)
+        .update(patch as any)
+        .eq("id", dept_assignment_id);
+    }
+    return await supabase
+      .from("department_tickets" as any)
+      .update(patch as any)
+      .eq("id", id);
+  };
 
   const handleStatusChange = async (newStatus: string) => {
     if (newStatus === "void") {
@@ -96,12 +131,9 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
       return;
     }
     setUpdating(true);
-    const { error } = await supabase
-      .from("department_tickets" as any)
-      .update({ status: newStatus } as any)
-      .eq("id", id);
+    const { error } = await updateAssignmentOrTicket({ status: newStatus });
     if (!error && newStatus === "completed" && ticket_type === "Bulk Uploads") {
-      await moveBulkUploadsToDepartmentFolder(id, department);
+      await moveBulkUploadsToDepartmentFolder(id, currentDepartment || department);
     }
     setUpdating(false);
     if (error) {
@@ -119,17 +151,22 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
     }
     setUpdating(true);
     const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase
+    // Mark THIS dept's assignment as void (rollup will surface void to client)
+    const { error: assignErr } = await updateAssignmentOrTicket({
+      status: "void",
+      notes: voidReason.trim(),
+    });
+    // Also stamp the parent ticket with the void reason metadata for visibility
+    const { error: parentErr } = await supabase
       .from("department_tickets" as any)
       .update({
-        status: "void",
         void_reason: voidReason.trim(),
         voided_by: user?.id ?? null,
         voided_at: new Date().toISOString(),
       } as any)
       .eq("id", id);
     setUpdating(false);
-    if (error) {
+    if (assignErr || parentErr) {
       toast.error("Failed to void ticket");
     } else {
       toast.success("Ticket voided");
@@ -157,10 +194,7 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
   const handleAssigneeChange = async (userId: string) => {
     const value = userId === "unassigned" ? null : userId;
     setUpdating(true);
-    const { error } = await supabase
-      .from("department_tickets" as any)
-      .update({ assigned_to: value } as any)
-      .eq("id", id);
+    const { error } = await updateAssignmentOrTicket({ assigned_to: value });
     setUpdating(false);
     if (error) {
       toast.error("Failed to assign team member");
@@ -257,6 +291,39 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
             {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           </Button>
         </div>
+
+        {showCrossDeptStrip && (
+          <div className="mt-3 ml-[2.375rem] pt-2.5 border-t border-border/40 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+              {isClient ? "Progress" : "All depts"}
+            </span>
+            {dept_assignments.map((d) => {
+              const dLabel = allDepartments.find(x => x.value === d.department)?.label || d.department;
+              const dSc = statusConfig[d.status as keyof typeof statusConfig] || statusConfig.open;
+              const DIcon = dSc.icon;
+              const isCurrent = d.department === currentDepartment;
+              return (
+                <span
+                  key={d.department}
+                  className={cn(
+                    "inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded",
+                    dSc.bg, dSc.color,
+                    isCurrent && "ring-1 ring-primary/40"
+                  )}
+                  title={`${dLabel}: ${dSc.label}`}
+                >
+                  <DIcon className="h-2.5 w-2.5" />
+                  {dLabel}
+                </span>
+              );
+            })}
+            {isClient && (
+              <span className="ml-auto text-[10px] text-muted-foreground">
+                {completedDeptCount} of {totalDeptCount} departments complete
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {expanded && (
