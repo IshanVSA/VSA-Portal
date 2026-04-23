@@ -140,17 +140,19 @@ export function TicketKanbanView({ tickets, teamMembers, currentDepartment, onUp
       toast.error("A reason is required to void a ticket");
       return;
     }
+    const ticket = tickets.find(t => t.id === voidPending);
+    if (!ticket) return;
     const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase
+    const { error: aErr } = await updateAssignmentOrTicket(ticket, { status: "void", notes: voidReason.trim() });
+    const { error: pErr } = await supabase
       .from("department_tickets" as any)
       .update({
-        status: "void",
         void_reason: voidReason.trim(),
         voided_by: user?.id ?? null,
         voided_at: new Date().toISOString(),
       } as any)
       .eq("id", voidPending);
-    if (error) {
+    if (aErr || pErr) {
       toast.error("Failed to void ticket");
     } else {
       toast.success("Ticket voided");
