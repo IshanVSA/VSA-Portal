@@ -6,13 +6,15 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Clock, AlertTriangle, CheckCircle2, Inbox, UserCircle, GripVertical, Ban } from "lucide-react";
+import { Clock, AlertTriangle, CheckCircle2, Inbox, UserCircle, GripVertical, Ban, Pencil, Eye } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { moveBulkUploadsToDepartmentFolder } from "@/lib/ticket-bulk-uploads";
 import { useUserRole } from "@/hooks/useUserRole";
+import { Button } from "@/components/ui/button";
+import { TicketEditDialog } from "./TicketEditDialog";
 
 interface TeamMemberOption {
   id: string;
