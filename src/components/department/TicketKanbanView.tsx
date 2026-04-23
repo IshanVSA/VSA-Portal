@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { moveBulkUploadsToDepartmentFolder } from "@/lib/ticket-bulk-uploads";
+import { syncSpecialPromotionFromTicket } from "@/lib/special-promotion-sync";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { TicketEditDialog } from "./TicketEditDialog";
@@ -29,6 +30,7 @@ interface KanbanTicket {
   status: "open" | "in_progress" | "completed" | "emergency" | "void";
   description?: string | null;
   department: string;
+  clinic_id?: string | null;
   created_at: string;
   assigned_to?: string | null;
   pool_user_ids?: string[];
@@ -171,6 +173,16 @@ export function TicketKanbanView({ tickets, teamMembers, currentDepartment, onUp
     } else {
       if (newStatus === "completed" && ticket?.ticket_type === "Bulk Uploads") {
         await moveBulkUploadsToDepartmentFolder(ticketId, currentDepartment || ticket.department);
+      }
+      if (newStatus === "completed" && ticket?.ticket_type === "Special Promotion") {
+        const res = await syncSpecialPromotionFromTicket({
+          ticketId,
+          ticketType: ticket.ticket_type,
+          newStatus,
+          description: ticket.description,
+          clinicId: ticket.clinic_id,
+        });
+        if (res.inserted) toast.success("Promotion added to Active Promotions");
       }
       toast.success(`Status updated`);
       onUpdated();
