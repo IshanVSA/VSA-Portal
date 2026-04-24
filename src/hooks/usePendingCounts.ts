@@ -21,9 +21,6 @@ export function usePendingCounts(clinicId?: string | null) {
   useEffect(() => {
     if (!role) return;
 
-    const scoped = <T extends { eq: (col: string, val: string) => T }>(q: T) =>
-      clinicId ? q.eq("clinic_id", clinicId) : q;
-
     const fetchCounts = async () => {
       const cr = (status: string) => {
         const q = supabase
