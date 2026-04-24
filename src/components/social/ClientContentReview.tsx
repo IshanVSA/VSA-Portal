@@ -412,12 +412,15 @@ function ContentReviewCard({
 
 function ReviewStatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive"; icon: typeof CheckCircle }> = {
-    sent_to_client: { label: "Awaiting Your Review", variant: "outline", icon: Clock },
+    sent_for_copy_review: { label: "Awaiting Copy Review", variant: "outline", icon: Clock },
+    copy_approved: { label: "Copy Approved · Awaiting Visuals", variant: "secondary", icon: CheckCircle },
+    copy_changes_requested: { label: "Copy Changes Sent", variant: "secondary", icon: MessageSquare },
+    sent_for_final_review: { label: "Awaiting Final Approval", variant: "outline", icon: Clock },
+    final_changes_requested: { label: "Final Changes Sent", variant: "secondary", icon: MessageSquare },
     approved_client: { label: "Approved", variant: "default", icon: CheckCircle },
     approved_auto: { label: "Auto-Approved", variant: "secondary", icon: CheckCircle },
-    feedback_submitted: { label: "Feedback Sent", variant: "secondary", icon: MessageSquare },
   };
-  const c = map[status] || map.sent_to_client;
+  const c = map[status] || map.sent_for_copy_review;
   return (
     <Badge variant={c.variant} className="text-xs gap-1">
       <c.icon className="h-3 w-3" />
