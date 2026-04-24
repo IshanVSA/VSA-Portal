@@ -148,6 +148,9 @@ function PostCard({
   onUpload,
   onRemoveImage,
   onSaveFeedback,
+  onToggleMetaAd,
+  metaAdSelectedCount,
+  togglingMetaAd,
   uploading,
   savingFeedback,
 }: {
@@ -158,6 +161,9 @@ function PostCard({
   onUpload: (files: File[]) => void;
   onRemoveImage: (path: string) => void;
   onSaveFeedback: (feedback: string) => void;
+  onToggleMetaAd: (value: boolean) => void;
+  metaAdSelectedCount: number;
+  togglingMetaAd: boolean;
   uploading: boolean;
   savingFeedback: boolean;
 }) {
@@ -165,6 +171,7 @@ function PostCard({
   const [feedback, setFeedback] = useState(post.client_feedback || "");
   const [dragOver, setDragOver] = useState(false);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const metaAdLimitReached = metaAdSelectedCount >= 2 && !post.run_meta_ad;
 
   const handleFiles = (files: FileList | File[]) => {
     const arr = Array.from(files).filter((f) => f.type.startsWith("image/"));
