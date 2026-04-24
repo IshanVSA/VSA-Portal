@@ -69,8 +69,8 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
     if (!clinicId) { setLoading(false); return; }
     setLoading(true);
 
-    // Credentials table is admin/concierge-only via RLS; skip for clients
-    if (isStaff) {
+    // Credentials table is admin-only via RLS; skip for concierge/clients
+    if (canReadCreds) {
       const { data: creds } = await supabase
         .from("clinic_api_credentials")
         .select("meta_page_id, last_meta_sync_at")
@@ -79,7 +79,7 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
       setHasMeta(!!creds?.meta_page_id);
       setLastSync(creds?.last_meta_sync_at || null);
     } else {
-      // For clients: assume connected; will fall back if no analytics rows
+      // For concierge/clients: assume connected; will fall back if no analytics rows
       setHasMeta(true);
     }
 
@@ -96,8 +96,8 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
     setFb(fbRow?.metrics_json || null);
     setIg(igRow?.metrics_json || null);
 
-    // For clients with no analytics data, fall back to "not connected" empty state
-    if (!isStaff && !fbRow && !igRow) setHasMeta(false);
+    // For non-admin with no analytics data, fall back to "not connected" empty state
+    if (!canReadCreds && !fbRow && !igRow) setHasMeta(false);
 
     setLoading(false);
   };
