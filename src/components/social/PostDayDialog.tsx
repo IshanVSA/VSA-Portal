@@ -78,6 +78,9 @@ export default function PostDayDialog({ open, onClose, date, generationId, isCli
                 onUpload={(files) => uploadImage.mutate({ post, files })}
                 onRemoveImage={(path) => removeImage.mutate({ post, path })}
                 onSaveFeedback={(feedback) => saveFeedback.mutate({ postId: post.id, feedback })}
+                onToggleMetaAd={(value) => toggleMetaAd.mutate({ postId: post.id, value })}
+                metaAdSelectedCount={metaAdSelectedCount}
+                togglingMetaAd={toggleMetaAd.isPending}
                 uploading={uploadImage.isPending}
                 savingFeedback={saveFeedback.isPending}
               />
