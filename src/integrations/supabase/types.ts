@@ -2228,6 +2228,7 @@ export type Database = {
           position: number
           post_number: number | null
           post_type: string | null
+          run_meta_ad: boolean
           scheduled_date: string
           status: string | null
           stories: Json | null
@@ -2257,6 +2258,7 @@ export type Database = {
           position?: number
           post_number?: number | null
           post_type?: string | null
+          run_meta_ad?: boolean
           scheduled_date: string
           status?: string | null
           stories?: Json | null
@@ -2286,6 +2288,7 @@ export type Database = {
           position?: number
           post_number?: number | null
           post_type?: string | null
+          run_meta_ad?: boolean
           scheduled_date?: string
           status?: string | null
           stories?: Json | null

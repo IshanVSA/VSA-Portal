@@ -23,6 +23,7 @@ export interface SM2Post {
   image_uploaded_at: string | null;
   image_uploaded_by: string | null;
   client_feedback: string | null;
+  run_meta_ad: boolean;
   position: number;
   post_number: number | null;
   topic: string | null;
