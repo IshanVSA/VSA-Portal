@@ -50,7 +50,7 @@ const DEFAULT_SETTINGS: ContentSettings = {
 export default function ContentGenerationTab({ clinicId }: Props) {
   const { dna } = useBrandDNA(clinicId);
   const { signals, upsertSignals, currentMonth } = useMonthlySignals(clinicId);
-  const { generations, currentGeneration, generate, sendToClient, isLoading, pollForCompletion } = useSM2Generation(clinicId);
+  const { generations, currentGeneration, generate, sendCopyForReview, sendFinalForReview, isLoading, pollForCompletion } = useSM2Generation(clinicId);
   const [preflightOpen, setPreflightOpen] = useState(false);
   const [clinicNews, setClinicNews] = useState("");
   const [fbSpecific, setFbSpecific] = useState("");
