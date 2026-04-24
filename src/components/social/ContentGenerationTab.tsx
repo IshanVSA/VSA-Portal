@@ -322,16 +322,22 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                           </Button>
                         </>
                       )}
-                      {(gen.approval_status === "feedback_submitted" || gen.client_feedback) && (
+                      {(gen.approval_status === "copy_changes_requested" || gen.approval_status === "final_changes_requested") && (
                         <Button variant="outline" size="sm" onClick={() => { setPreflightOpen(true); }} className="gap-1.5 text-xs">
                           <RefreshCw className="h-3.5 w-3.5" />
                           Regenerate
                         </Button>
                       )}
-                      {gen.approval_status === "pending" && gen.html_file_path && (
-                        <Button variant="outline" size="sm" onClick={() => sendToClient.mutate(gen.id)} disabled={sendToClient.isPending} className="gap-1.5 text-xs">
+                      {(gen.approval_status === "pending" || gen.approval_status === "copy_changes_requested") && gen.html_file_path && (
+                        <Button variant="outline" size="sm" onClick={() => sendCopyForReview.mutate(gen.id)} disabled={sendCopyForReview.isPending} className="gap-1.5 text-xs">
                           <Send className="h-3.5 w-3.5" />
-                          Send to Client
+                          {gen.approval_status === "copy_changes_requested" ? "Resend copy" : "Send copy to client"}
+                        </Button>
+                      )}
+                      {(gen.approval_status === "copy_approved" || gen.approval_status === "final_changes_requested") && gen.html_file_path && (
+                        <Button variant="outline" size="sm" onClick={() => sendFinalForReview.mutate(gen.id)} disabled={sendFinalForReview.isPending} className="gap-1.5 text-xs">
+                          <Send className="h-3.5 w-3.5" />
+                          Send final for approval
                         </Button>
                       )}
                       {gen.sent_to_client_at && (
