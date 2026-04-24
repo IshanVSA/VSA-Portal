@@ -136,7 +136,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
   const [clinicAccessLoading, setClinicAccessLoading] = useState(true);
   const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
   const [userDepartments, setUserDepartments] = useState<string[] | null>(null);
-  const { pendingRequests, pendingReview, socialPending } = usePendingCounts();
+  
 
   const [deptPickerOpen, setDeptPickerOpen] = useState(false);
   const [globalTicketOpen, setGlobalTicketOpen] = useState(false);
