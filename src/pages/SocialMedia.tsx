@@ -17,6 +17,7 @@ import { useClinicServiceAccess } from "@/hooks/useClinicServiceAccess";
 import { DepartmentAccessLocked } from "@/components/department/DepartmentAccessLocked";
 import { DepartmentChat } from "@/components/department/DepartmentChat";
 import { useDepartmentChatUnread } from "@/hooks/useDepartmentChatUnread";
+import { usePendingCounts } from "@/hooks/usePendingCounts";
 import { useBrandDNA } from "@/hooks/useBrandDNA";
 import { BrandDNAForm } from "@/components/social/BrandDNAForm";
 
@@ -67,6 +68,7 @@ export default function SocialMedia() {
   const isStaff = role === "admin" || role === "concierge";
   const isClient = role === "client";
   const { unreadCount, markAsRead } = useDepartmentChatUnread("social_media", selectedClinicId);
+  const { socialPending } = usePendingCounts();
 
   // Client gate: if DNA not completed, show the form instead
   const showDNAGate = isClient && !dnaLoading && !dnaCompleted && !isLocked;
@@ -130,18 +132,34 @@ export default function SocialMedia() {
             <motion.div key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
               <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
                 <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto">
-                  {visibleTabs.map(tab => (
-                    <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm relative">
-                      <tab.icon className="h-3.5 w-3.5" />
-                      <span className="hidden sm:inline">{tab.label}</span>
-                      <span className="sm:hidden">{tab.label.split(" ").pop()}</span>
-                      {tab.value === "chat" && unreadCount > 0 && currentTab !== "chat" && (
-                        <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
-                          {unreadCount > 99 ? "99+" : unreadCount}
-                        </span>
-                      )}
-                    </TabsTrigger>
-                  ))}
+                  {visibleTabs.map(tab => {
+                    // Show actionable count on the tab the user owns:
+                    //  • client → "My Posts"
+                    //  • staff  → "Generate"
+                    const showSocialBadge =
+                      socialPending > 0 &&
+                      ((isClient && tab.value === "my-posts") ||
+                        (isStaff && tab.value === "generation")) &&
+                      currentTab !== tab.value;
+                    const showChatBadge = tab.value === "chat" && unreadCount > 0 && currentTab !== "chat";
+                    return (
+                      <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm relative">
+                        <tab.icon className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">{tab.label}</span>
+                        <span className="sm:hidden">{tab.label.split(" ").pop()}</span>
+                        {showChatBadge && (
+                          <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                            {unreadCount > 99 ? "99+" : unreadCount}
+                          </span>
+                        )}
+                        {showSocialBadge && (
+                          <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center px-1">
+                            {socialPending > 99 ? "99+" : socialPending}
+                          </span>
+                        )}
+                      </TabsTrigger>
+                    );
+                  })}
                 </TabsList>
 
                 <TabsContent value="overview" className="mt-4"><SocialOverview clinicId={selectedClinicId} /></TabsContent>
