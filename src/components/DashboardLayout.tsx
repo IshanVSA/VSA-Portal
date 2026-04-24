@@ -214,6 +214,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
 
   const selectedClinicId = searchParams.get("clinic") || "";
   const activeClinicId = role === "client" ? clientSelectedId : selectedClinicId || null;
+  const { pendingRequests, pendingReview, socialPending } = usePendingCounts(activeClinicId);
 
   const [clinicAccessId, setClinicAccessId] = useState<string | null>(null);
 
