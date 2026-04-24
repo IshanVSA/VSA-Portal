@@ -525,15 +525,15 @@ function ClientHtmlPreview({
           />
         )}
         <DialogFooter>
-          {approvalStatus === "sent_to_client" && (
+          {(approvalStatus === "sent_for_copy_review" || approvalStatus === "sent_for_final_review") && (
             <div className="flex gap-2 w-full justify-end">
               <Button variant="outline" onClick={onRequestChanges} className="gap-2">
                 <MessageSquare className="h-4 w-4" />
-                Request Changes
+                {approvalStatus === "sent_for_copy_review" ? "Request copy changes" : "Request changes"}
               </Button>
               <Button onClick={onApprove} className="gap-2">
                 <ThumbsUp className="h-4 w-4" />
-                Approve Content
+                {approvalStatus === "sent_for_copy_review" ? "Approve copy" : "Approve final"}
               </Button>
             </div>
           )}
