@@ -299,9 +299,13 @@ function ContentReviewCard({
   isPendingApproval: boolean;
 }) {
   const monthLabel = format(new Date(generation.month_year + "-01"), "MMMM yyyy");
-  const isActionable = generation.approval_status === "sent_to_client";
-  const isApproved = ["approved_client", "approved_auto"].includes(generation.approval_status);
-  const hasFeedback = generation.approval_status === "feedback_submitted";
+  const status = generation.approval_status;
+  const isCopyActionable = status === "sent_for_copy_review";
+  const isFinalActionable = status === "sent_for_final_review";
+  const isActionable = isCopyActionable || isFinalActionable;
+  const isApproved = ["approved_client", "approved_auto"].includes(status);
+  const hasFeedback = status === "copy_changes_requested" || status === "final_changes_requested";
+  const isCopyApprovedWaiting = status === "copy_approved";
 
   return (
     <Card
@@ -318,8 +322,10 @@ function ContentReviewCard({
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <FileText className="h-4 w-4" />
             {monthLabel} Content
+            {isCopyActionable && <Badge variant="outline" className="text-[10px] ml-1">Round 1 · Copy</Badge>}
+            {isFinalActionable && <Badge variant="outline" className="text-[10px] ml-1">Round 2 · Final</Badge>}
           </CardTitle>
-          <ReviewStatusBadge status={generation.approval_status} />
+          <ReviewStatusBadge status={status} />
         </div>
         {generation.sent_to_client_at && (
           <p className="text-xs text-muted-foreground">
@@ -328,7 +334,30 @@ function ContentReviewCard({
         )}
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Auto-approval countdown for sent_to_client */}
+        {/* Round-specific helper text */}
+        {isCopyActionable && (
+          <div className="rounded-lg border border-blue-200/50 bg-blue-50/30 p-3">
+            <p className="text-sm">
+              <strong>Round 1: Review the copy.</strong> Check captions, hooks and hashtags. Visuals will be added by your concierge after you approve the copy.
+            </p>
+          </div>
+        )}
+        {isCopyApprovedWaiting && (
+          <div className="rounded-lg border border-blue-200/50 bg-blue-50/30 p-3">
+            <p className="text-sm">
+              <strong>Copy approved.</strong> Your concierge is now adding visuals. You'll be asked for final approval shortly.
+            </p>
+          </div>
+        )}
+        {isFinalActionable && (
+          <div className="rounded-lg border border-blue-200/50 bg-blue-50/30 p-3">
+            <p className="text-sm">
+              <strong>Round 2: Final approval.</strong> Review the visuals alongside the approved copy. Approving here unlocks scheduling.
+            </p>
+          </div>
+        )}
+
+        {/* Auto-approval countdown */}
         {isActionable && generation.sent_to_client_at && (
           <AutoApprovalNotice sentAt={generation.sent_to_client_at} />
         )}
@@ -362,7 +391,7 @@ function ContentReviewCard({
                 className="gap-2"
               >
                 <MessageSquare className="h-4 w-4" />
-                Request Changes
+                {isCopyActionable ? "Request copy changes" : "Request changes"}
               </Button>
               <Button
                 size="sm"
@@ -371,7 +400,7 @@ function ContentReviewCard({
                 className="gap-2 ml-auto"
               >
                 <ThumbsUp className="h-4 w-4" />
-                Approve
+                {isCopyActionable ? "Approve copy" : "Approve final"}
               </Button>
             </>
           )}
