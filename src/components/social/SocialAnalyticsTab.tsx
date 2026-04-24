@@ -102,7 +102,7 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [clinicId, isStaff]);
+  useEffect(() => { load(); }, [clinicId, canReadCreds]);
 
   const handleSync = async () => {
     if (!clinicId) return;
