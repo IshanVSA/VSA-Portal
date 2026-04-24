@@ -136,7 +136,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
   const [clinicAccessLoading, setClinicAccessLoading] = useState(true);
   const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
   const [userDepartments, setUserDepartments] = useState<string[] | null>(null);
-  const { pendingRequests, pendingReview, socialPending } = usePendingCounts();
+  
 
   const [deptPickerOpen, setDeptPickerOpen] = useState(false);
   const [globalTicketOpen, setGlobalTicketOpen] = useState(false);
@@ -214,6 +214,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
 
   const selectedClinicId = searchParams.get("clinic") || "";
   const activeClinicId = role === "client" ? clientSelectedId : selectedClinicId || null;
+  const { pendingRequests, pendingReview, socialPending } = usePendingCounts(activeClinicId);
 
   const [clinicAccessId, setClinicAccessId] = useState<string | null>(null);
 
