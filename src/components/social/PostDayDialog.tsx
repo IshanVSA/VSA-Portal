@@ -282,7 +282,7 @@ function PostCard({
                     </div>
                   );
                 })}
-                {!isClient && !atLimit && (
+                {!isClient && !atLimit && !uploadDisabled && (
                   <button
                     type="button"
                     onClick={() => fileRef.current?.click()}
