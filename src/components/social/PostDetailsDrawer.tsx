@@ -164,11 +164,11 @@ export default function PostDetailsDrawer({
           <div className="border-t p-4 flex items-center justify-end gap-2 bg-background">
             <Button variant="outline" size="sm" onClick={onRequestChanges} className="gap-2">
               <MessageSquare className="h-4 w-4" />
-              Request Changes
+              {isCopyRound ? "Request copy changes" : "Request changes"}
             </Button>
             <Button size="sm" onClick={onApprove} className="gap-2">
               <ThumbsUp className="h-4 w-4" />
-              Approve All
+              {isCopyRound ? "Approve copy" : "Approve final"}
             </Button>
           </div>
         )}
