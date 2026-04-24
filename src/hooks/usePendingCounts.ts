@@ -25,26 +25,25 @@ export function usePendingCounts(clinicId?: string | null) {
       clinicId ? q.eq("clinic_id", clinicId) : q;
 
     const fetchCounts = async () => {
+      const cr = (status: string) => {
+        const q = supabase
+          .from("content_requests")
+          .select("*", { count: "exact", head: true })
+          .eq("status", status);
+        return clinicId ? q.eq("clinic_id", clinicId) : q;
+      };
+
       // ── Legacy content_requests workflow ──────────────────────────
       if (role === "admin") {
-        const { count: reqCount } = await scoped(
-          supabase.from("content_requests").select("*", { count: "exact", head: true })
-        ).eq("status", "concierge_preferred");
+        const { count: reqCount } = await cr("concierge_preferred");
         setPendingRequests(reqCount || 0);
-
-        const { count: revCount } = await scoped(
-          supabase.from("content_requests").select("*", { count: "exact", head: true })
-        ).eq("status", "client_selected");
+        const { count: revCount } = await cr("client_selected");
         setPendingReview(revCount || 0);
       } else if (role === "concierge") {
-        const { count: reqCount } = await scoped(
-          supabase.from("content_requests").select("*", { count: "exact", head: true })
-        ).eq("status", "generated");
+        const { count: reqCount } = await cr("generated");
         setPendingRequests(reqCount || 0);
       } else if (role === "client") {
-        const { count: reqCount } = await scoped(
-          supabase.from("content_requests").select("*", { count: "exact", head: true })
-        ).eq("status", "admin_approved");
+        const { count: reqCount } = await cr("admin_approved");
         setPendingRequests(reqCount || 0);
       }
 
