@@ -23,9 +23,12 @@ export default function ClientPostsTab({ clinicId }: Props) {
   const [tab, setTab] = useState("review");
   const { generations } = useSM2Generation(clinicId);
 
-  // Count generations awaiting client action
+  // Count generations awaiting client action (either copy or final round)
   const pendingCount = (generations || []).filter(
-    (g) => g.sent_to_client_at && g.approval_status === "sent_to_client"
+    (g) =>
+      g.sent_to_client_at &&
+      (g.approval_status === "sent_for_copy_review" ||
+        g.approval_status === "sent_for_final_review")
   ).length;
 
   return (

@@ -27,9 +27,14 @@ interface Props {
   monthYear: string; // YYYY-MM
   approvalStatus: string;
   isClient: boolean;
-  onSendToClient?: () => void;
-  onApprove?: () => void;
-  onRequestChanges?: () => void;
+  // Concierge actions
+  onSendCopyForReview?: () => void;
+  onSendFinalForReview?: () => void;
+  // Client actions — context-aware (copy round vs final round)
+  onApproveCopy?: () => void;
+  onRequestCopyChanges?: () => void;
+  onApproveFinal?: () => void;
+  onRequestFinalChanges?: () => void;
   sendPending?: boolean;
 }
 
@@ -58,14 +63,23 @@ export default function SM2CalendarView({
   monthYear,
   approvalStatus,
   isClient,
-  onSendToClient,
-  onApprove,
-  onRequestChanges,
+  onSendCopyForReview,
+  onSendFinalForReview,
+  onApproveCopy,
+  onRequestCopyChanges,
+  onApproveFinal,
+  onRequestFinalChanges,
   sendPending,
 }: Props) {
   const { posts, total, withImages, imagesComplete, getImageUrl, isLoading } = useSM2Posts(generationId);
   const [openDate, setOpenDate] = useState<string | null>(null);
   const [confirmSendOpen, setConfirmSendOpen] = useState(false);
+
+  // Are we in the copy round or final round?
+  const isCopyRound =
+    approvalStatus === "pending" || approvalStatus === "copy_changes_requested";
+  const isFinalRound =
+    approvalStatus === "copy_approved" || approvalStatus === "final_changes_requested";
 
   const missingPosts = useMemo(
     () => posts.filter((p) => !postHasImage(p)),
@@ -97,13 +111,19 @@ export default function SM2CalendarView({
   const statusPill = (() => {
     if (approvalStatus === "approved_client" || approvalStatus === "approved_auto")
       return <Badge className="gap-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"><CheckCircle className="h-3 w-3" />Approved</Badge>;
-    if (approvalStatus === "sent_to_client")
-      return <Badge variant="outline" className="gap-1"><Clock className="h-3 w-3" />Sent to client</Badge>;
-    if (approvalStatus === "feedback_submitted")
-      return <Badge variant="secondary" className="gap-1"><MessageSquare className="h-3 w-3" />Feedback received</Badge>;
-    if (!isClient && total > 0) {
+    if (approvalStatus === "sent_for_copy_review")
+      return <Badge variant="outline" className="gap-1"><Clock className="h-3 w-3" />Awaiting client copy approval</Badge>;
+    if (approvalStatus === "copy_changes_requested")
+      return <Badge variant="secondary" className="gap-1"><MessageSquare className="h-3 w-3" />Copy changes requested</Badge>;
+    if (approvalStatus === "copy_approved")
+      return <Badge className="gap-1 bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30"><CheckCircle className="h-3 w-3" />Copy approved · add visuals</Badge>;
+    if (approvalStatus === "sent_for_final_review")
+      return <Badge variant="outline" className="gap-1"><Clock className="h-3 w-3" />Awaiting final approval</Badge>;
+    if (approvalStatus === "final_changes_requested")
+      return <Badge variant="secondary" className="gap-1"><MessageSquare className="h-3 w-3" />Final changes requested</Badge>;
+    if (!isClient && total > 0 && isFinalRound) {
       return imagesComplete
-        ? <Badge className="gap-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"><CheckCircle className="h-3 w-3" />Ready to send</Badge>
+        ? <Badge className="gap-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"><CheckCircle className="h-3 w-3" />Ready for final send</Badge>
         : <Badge variant="outline" className="gap-1 border-amber-500/30 text-amber-700 dark:text-amber-400">Awaiting visuals · {withImages}/{total} posts</Badge>;
     }
     return null;
@@ -124,6 +144,10 @@ export default function SM2CalendarView({
     );
   }
 
+  // Whether the staff "send" CTA should require image completeness
+  const sendRequiresImages = isFinalRound;
+  const sendDisabled = sendPending || (sendRequiresImages && !imagesComplete);
+
   return (
     <TooltipProvider delayDuration={200}>
       <div className="space-y-4">
@@ -134,7 +158,7 @@ export default function SM2CalendarView({
             {statusPill}
           </div>
           <div className="flex items-center gap-2">
-            {!isClient && approvalStatus === "pending" && (
+            {!isClient && isCopyRound && (
               <Button
                 size="sm"
                 onClick={() => setConfirmSendOpen(true)}
@@ -142,18 +166,41 @@ export default function SM2CalendarView({
                 className="gap-2"
               >
                 <Send className="h-3.5 w-3.5" />
-                Send to client for review
+                {approvalStatus === "copy_changes_requested" ? "Resend copy" : "Send copy to client"}
               </Button>
             )}
-            {isClient && approvalStatus === "sent_to_client" && (
+            {!isClient && isFinalRound && (
+              <Button
+                size="sm"
+                onClick={() => setConfirmSendOpen(true)}
+                disabled={sendDisabled}
+                className="gap-2"
+              >
+                <Send className="h-3.5 w-3.5" />
+                Send for final approval
+              </Button>
+            )}
+            {isClient && approvalStatus === "sent_for_copy_review" && (
               <>
-                <Button size="sm" variant="outline" onClick={onRequestChanges} className="gap-2">
+                <Button size="sm" variant="outline" onClick={onRequestCopyChanges} className="gap-2">
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  Request copy changes
+                </Button>
+                <Button size="sm" onClick={onApproveCopy} className="gap-2">
+                  <ThumbsUp className="h-3.5 w-3.5" />
+                  Approve copy
+                </Button>
+              </>
+            )}
+            {isClient && approvalStatus === "sent_for_final_review" && (
+              <>
+                <Button size="sm" variant="outline" onClick={onRequestFinalChanges} className="gap-2">
                   <MessageSquare className="h-3.5 w-3.5" />
                   Request changes
                 </Button>
-                <Button size="sm" onClick={onApprove} className="gap-2">
+                <Button size="sm" onClick={onApproveFinal} className="gap-2">
                   <ThumbsUp className="h-3.5 w-3.5" />
-                  Approve
+                  Approve final
                 </Button>
               </>
             )}
@@ -246,10 +293,15 @@ export default function SM2CalendarView({
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle className="flex items-center gap-2">
-                {imagesComplete ? (
+                {isCopyRound ? (
+                  <>
+                    <Send className="h-5 w-5 text-primary" />
+                    Send copy to client?
+                  </>
+                ) : imagesComplete ? (
                   <>
                     <CheckCircle className="h-5 w-5 text-emerald-500" />
-                    Send calendar to client?
+                    Send for final approval?
                   </>
                 ) : (
                   <>
@@ -260,10 +312,15 @@ export default function SM2CalendarView({
               </AlertDialogTitle>
               <AlertDialogDescription asChild>
                 <div className="space-y-3">
-                  {imagesComplete ? (
+                  {isCopyRound ? (
+                    <p>
+                      The client will review captions, hooks, and hashtags only — no images required at this stage.
+                      Once they approve the copy, you'll upload visuals and send back for final approval.
+                    </p>
+                  ) : imagesComplete ? (
                     <p>
                       All <span className="font-semibold text-foreground">{total}</span> posts have at least
-                      one image attached. The client will be notified and asked to review and approve the
+                      one image attached. The client will be asked to give final approval on the complete
                       monthly calendar.
                     </p>
                   ) : (
@@ -271,8 +328,7 @@ export default function SM2CalendarView({
                       <p>
                         <span className="font-semibold text-foreground">{missingPosts.length}</span> of{" "}
                         <span className="font-semibold text-foreground">{total}</span> posts still don't have
-                        any image. Each post needs at least one visual before this calendar can be sent for
-                        client review.
+                        any image. Each post needs at least one visual before final approval can be requested.
                       </p>
                       <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 max-h-48 overflow-y-auto">
                         <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400 mb-2">
@@ -305,13 +361,16 @@ export default function SM2CalendarView({
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>{imagesComplete ? "Cancel" : "Keep editing"}</AlertDialogCancel>
+              <AlertDialogCancel>
+                {isCopyRound || imagesComplete ? "Cancel" : "Keep editing"}
+              </AlertDialogCancel>
               <AlertDialogAction
-                disabled={!imagesComplete || sendPending}
+                disabled={sendPending || (isFinalRound && !imagesComplete)}
                 onClick={() => {
-                  if (!imagesComplete) return;
+                  if (isFinalRound && !imagesComplete) return;
                   setConfirmSendOpen(false);
-                  onSendToClient?.();
+                  if (isCopyRound) onSendCopyForReview?.();
+                  else if (isFinalRound) onSendFinalForReview?.();
                 }}
               >
                 <Send className="h-3.5 w-3.5 mr-1.5" />

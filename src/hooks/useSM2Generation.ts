@@ -153,10 +153,72 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
     },
   });
 
-  // Staff action: mark as sent to client (gated on all posts having images)
-  const sendToClient = useMutation({
+  // ─── Two-step approval workflow ─────────────────────────────────
+  // Round 1: Concierge sends copy (no images required) for client copy review.
+  const sendCopyForReview = useMutation({
     mutationFn: async (generationId: string) => {
-      // Gate: every sm2_post must have an image_path
+      const { error } = await supabase
+        .from("sm2_generations")
+        .update({
+          approval_status: "sent_for_copy_review",
+          sent_to_client_at: new Date().toISOString(),
+          client_feedback: null, // clear prior feedback when re-sending after edits
+        })
+        .eq("id", generationId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sm2-generations", clinicId] });
+      toast.success("Copy sent to client for review");
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to send copy to client", { description: error.message });
+    },
+  });
+
+  // Client approves the copy → unlocks image upload for concierge.
+  const approveCopy = useMutation({
+    mutationFn: async (generationId: string) => {
+      const { error } = await supabase
+        .from("sm2_generations")
+        .update({ approval_status: "copy_approved" })
+        .eq("id", generationId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sm2-generations", clinicId] });
+      toast.success("Copy approved! Your concierge will now add visuals.");
+    },
+    onError: (error: Error) => {
+      toast.error("Approval failed", { description: error.message });
+    },
+  });
+
+  // Client requests copy changes.
+  const requestCopyChanges = useMutation({
+    mutationFn: async ({ generationId, feedback }: { generationId: string; feedback: string }) => {
+      const { error } = await supabase
+        .from("sm2_generations")
+        .update({
+          approval_status: "copy_changes_requested",
+          client_feedback: feedback,
+        })
+        .eq("id", generationId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sm2-generations", clinicId] });
+      toast.success("Feedback submitted. Your concierge will revise the copy.");
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to submit feedback", { description: error.message });
+    },
+  });
+
+  // Round 2: Concierge sends final (with images) for client final review.
+  const sendFinalForReview = useMutation({
+    mutationFn: async (generationId: string) => {
+      // Gate: every sm2_post must have at least one image
       const { data: posts, error: postsErr } = await supabase
         .from("sm2_posts")
         .select("id, image_path, image_paths")
@@ -174,23 +236,24 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
       const { error } = await supabase
         .from("sm2_generations")
         .update({
-          approval_status: "sent_to_client",
+          approval_status: "sent_for_final_review",
           sent_to_client_at: new Date().toISOString(),
+          client_feedback: null,
         })
         .eq("id", generationId);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sm2-generations", clinicId] });
-      toast.success("Content sent to client for review");
+      toast.success("Final calendar sent to client for approval");
     },
     onError: (error: Error) => {
       toast.error("Failed to send to client", { description: error.message });
     },
   });
 
-  // Client action: approve
-  const approveContent = useMutation({
+  // Client final approval → unlocks downstream scheduling.
+  const approveFinal = useMutation({
     mutationFn: async (generationId: string) => {
       const { error } = await supabase
         .from("sm2_generations")
@@ -210,13 +273,13 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
     },
   });
 
-  // Client action: submit feedback (request changes)
-  const submitFeedback = useMutation({
+  // Client requests changes on final (visuals).
+  const requestFinalChanges = useMutation({
     mutationFn: async ({ generationId, feedback }: { generationId: string; feedback: string }) => {
       const { error } = await supabase
         .from("sm2_generations")
         .update({
-          approval_status: "feedback_submitted",
+          approval_status: "final_changes_requested",
           client_feedback: feedback,
         })
         .eq("id", generationId);
@@ -224,7 +287,7 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sm2-generations", clinicId] });
-      toast.success("Feedback submitted. Your concierge will review and revise.");
+      toast.success("Feedback submitted. Your concierge will revise.");
     },
     onError: (error: Error) => {
       toast.error("Failed to submit feedback", { description: error.message });
@@ -241,9 +304,13 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
     currentGeneration,
     isLoading,
     generate,
-    sendToClient,
-    approveContent,
-    submitFeedback,
+    // Two-step approval workflow
+    sendCopyForReview,
+    approveCopy,
+    requestCopyChanges,
+    sendFinalForReview,
+    approveFinal,
+    requestFinalChanges,
     getHtmlUrl,
     currentMonth,
     pollForCompletion,

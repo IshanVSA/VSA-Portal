@@ -50,7 +50,7 @@ const DEFAULT_SETTINGS: ContentSettings = {
 export default function ContentGenerationTab({ clinicId }: Props) {
   const { dna } = useBrandDNA(clinicId);
   const { signals, upsertSignals, currentMonth } = useMonthlySignals(clinicId);
-  const { generations, currentGeneration, generate, sendToClient, isLoading, pollForCompletion } = useSM2Generation(clinicId);
+  const { generations, currentGeneration, generate, sendCopyForReview, sendFinalForReview, isLoading, pollForCompletion } = useSM2Generation(clinicId);
   const [preflightOpen, setPreflightOpen] = useState(false);
   const [clinicNews, setClinicNews] = useState("");
   const [fbSpecific, setFbSpecific] = useState("");
@@ -230,8 +230,9 @@ export default function ContentGenerationTab({ clinicId }: Props) {
               monthYear={currentGeneration.month_year}
               approvalStatus={currentGeneration.approval_status}
               isClient={false}
-              onSendToClient={() => sendToClient.mutate(currentGeneration.id)}
-              sendPending={sendToClient.isPending}
+              onSendCopyForReview={() => sendCopyForReview.mutate(currentGeneration.id)}
+              onSendFinalForReview={() => sendFinalForReview.mutate(currentGeneration.id)}
+              sendPending={sendCopyForReview.isPending || sendFinalForReview.isPending}
             />
           </CardContent>
         </Card>
@@ -321,16 +322,22 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                           </Button>
                         </>
                       )}
-                      {(gen.approval_status === "feedback_submitted" || gen.client_feedback) && (
+                      {(gen.approval_status === "copy_changes_requested" || gen.approval_status === "final_changes_requested") && (
                         <Button variant="outline" size="sm" onClick={() => { setPreflightOpen(true); }} className="gap-1.5 text-xs">
                           <RefreshCw className="h-3.5 w-3.5" />
                           Regenerate
                         </Button>
                       )}
-                      {gen.approval_status === "pending" && gen.html_file_path && (
-                        <Button variant="outline" size="sm" onClick={() => sendToClient.mutate(gen.id)} disabled={sendToClient.isPending} className="gap-1.5 text-xs">
+                      {(gen.approval_status === "pending" || gen.approval_status === "copy_changes_requested") && gen.html_file_path && (
+                        <Button variant="outline" size="sm" onClick={() => sendCopyForReview.mutate(gen.id)} disabled={sendCopyForReview.isPending} className="gap-1.5 text-xs">
                           <Send className="h-3.5 w-3.5" />
-                          Send to Client
+                          {gen.approval_status === "copy_changes_requested" ? "Resend copy" : "Send copy to client"}
+                        </Button>
+                      )}
+                      {(gen.approval_status === "copy_approved" || gen.approval_status === "final_changes_requested") && gen.html_file_path && (
+                        <Button variant="outline" size="sm" onClick={() => sendFinalForReview.mutate(gen.id)} disabled={sendFinalForReview.isPending} className="gap-1.5 text-xs">
+                          <Send className="h-3.5 w-3.5" />
+                          Send final for approval
                         </Button>
                       )}
                       {gen.sent_to_client_at && (
@@ -386,10 +393,13 @@ function StatusBadge({ status, stage }: { status: string; stage?: string | null 
     processing: { label: "Pipeline Running", variant: "secondary", icon: RefreshCw },
     retrying: { label: "Retrying", variant: "secondary", icon: RefreshCw },
     pending: { label: "Pending Review", variant: "outline", icon: Clock },
-    sent_to_client: { label: "Sent to Client", variant: "secondary", icon: Send },
+    sent_for_copy_review: { label: "Awaiting Client Copy Approval", variant: "secondary", icon: Send },
+    copy_changes_requested: { label: "Copy Changes Requested", variant: "destructive", icon: AlertTriangle },
+    copy_approved: { label: "Copy Approved · Add Visuals", variant: "default", icon: CheckCircle },
+    sent_for_final_review: { label: "Awaiting Final Approval", variant: "secondary", icon: Send },
+    final_changes_requested: { label: "Final Changes Requested", variant: "destructive", icon: AlertTriangle },
     approved_client: { label: "Client Approved", variant: "default", icon: CheckCircle },
     approved_auto: { label: "Auto-Approved", variant: "secondary", icon: CheckCircle },
-    feedback_submitted: { label: "Client Feedback", variant: "destructive", icon: AlertTriangle },
     generation_failed: { label: "Generation Failed", variant: "destructive", icon: AlertTriangle },
     rejected: { label: "Rejected", variant: "destructive", icon: AlertTriangle },
   };

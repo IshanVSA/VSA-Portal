@@ -42,35 +42,63 @@ interface Props {
 }
 
 export default function ClientContentReview({ clinicId }: Props) {
-  const { generations, isLoading, approveContent, submitFeedback, getHtmlUrl } =
-    useSM2Generation(clinicId);
+  const {
+    generations,
+    isLoading,
+    approveCopy,
+    requestCopyChanges,
+    approveFinal,
+    requestFinalChanges,
+    getHtmlUrl,
+  } = useSM2Generation(clinicId);
   const [viewingGen, setViewingGen] = useState<SM2Generation | null>(null);
   const [drawerGen, setDrawerGen] = useState<SM2Generation | null>(null);
   const [feedbackGen, setFeedbackGen] = useState<SM2Generation | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
   const [approveConfirm, setApproveConfirm] = useState<SM2Generation | null>(null);
 
-  // Only show generations that have been sent to the client
+  // Show generations once they've been sent for either review round, plus terminal states.
+  const VISIBLE_STATUSES = [
+    "sent_for_copy_review",
+    "copy_approved",
+    "copy_changes_requested",
+    "sent_for_final_review",
+    "final_changes_requested",
+    "approved_client",
+    "approved_auto",
+  ];
   const clientVisible = (generations || []).filter(
-    (g) =>
-      g.sent_to_client_at &&
-      ["sent_to_client", "approved_client", "approved_auto", "feedback_submitted"].includes(
-        g.approval_status
-      )
+    (g) => g.sent_to_client_at && VISIBLE_STATUSES.includes(g.approval_status)
   );
+
+  const isCopyRound = (g: SM2Generation | null) =>
+    !!g && g.approval_status === "sent_for_copy_review";
+  const isFinalRound = (g: SM2Generation | null) =>
+    !!g && g.approval_status === "sent_for_final_review";
 
   const handleApprove = () => {
     if (!approveConfirm) return;
-    approveContent.mutate(approveConfirm.id);
+    if (isCopyRound(approveConfirm)) {
+      approveCopy.mutate(approveConfirm.id);
+    } else if (isFinalRound(approveConfirm)) {
+      approveFinal.mutate(approveConfirm.id);
+    }
     setApproveConfirm(null);
   };
 
   const handleSubmitFeedback = () => {
     if (!feedbackGen || !feedbackText.trim()) return;
-    submitFeedback.mutate({
-      generationId: feedbackGen.id,
-      feedback: feedbackText.trim(),
-    });
+    if (isCopyRound(feedbackGen)) {
+      requestCopyChanges.mutate({
+        generationId: feedbackGen.id,
+        feedback: feedbackText.trim(),
+      });
+    } else if (isFinalRound(feedbackGen)) {
+      requestFinalChanges.mutate({
+        generationId: feedbackGen.id,
+        feedback: feedbackText.trim(),
+      });
+    }
     setFeedbackGen(null);
     setFeedbackText("");
   };
@@ -119,7 +147,7 @@ export default function ClientContentReview({ clinicId }: Props) {
               setFeedbackGen(gen);
               setFeedbackText(gen.client_feedback || "");
             }}
-            isPendingApproval={approveContent.isPending}
+            isPendingApproval={approveCopy.isPending || approveFinal.isPending}
           />
         ))}
       </div>
@@ -159,11 +187,20 @@ export default function ClientContentReview({ clinicId }: Props) {
               monthYear={viewingGen.month_year}
               approvalStatus={viewingGen.approval_status}
               isClient={true}
-              onApprove={() => {
+              onApproveCopy={() => {
                 setApproveConfirm(viewingGen);
                 setViewingGen(null);
               }}
-              onRequestChanges={() => {
+              onRequestCopyChanges={() => {
+                setFeedbackGen(viewingGen);
+                setFeedbackText(viewingGen.client_feedback || "");
+                setViewingGen(null);
+              }}
+              onApproveFinal={() => {
+                setApproveConfirm(viewingGen);
+                setViewingGen(null);
+              }}
+              onRequestFinalChanges={() => {
                 setFeedbackGen(viewingGen);
                 setFeedbackText(viewingGen.client_feedback || "");
                 setViewingGen(null);
@@ -204,35 +241,39 @@ export default function ClientContentReview({ clinicId }: Props) {
             </Button>
             <Button
               onClick={handleSubmitFeedback}
-              disabled={!feedbackText.trim() || submitFeedback.isPending}
+              disabled={!feedbackText.trim() || requestCopyChanges.isPending || requestFinalChanges.isPending}
               className="gap-2"
             >
               <Send className="h-4 w-4" />
-              {submitFeedback.isPending ? "Sending..." : "Submit Feedback"}
+              {(requestCopyChanges.isPending || requestFinalChanges.isPending) ? "Sending..." : "Submit Feedback"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Approve Confirmation */}
+      {/* Approve Confirmation — context-aware copy vs final */}
       <AlertDialog open={!!approveConfirm} onOpenChange={() => setApproveConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Approve This Month&apos;s Content?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {isCopyRound(approveConfirm)
+                ? "Approve the copy?"
+                : "Approve final content?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              By approving, you confirm that the content is ready to be scheduled and
-              posted on your social media channels. Your concierge will begin the posting
-              schedule.
+              {isCopyRound(approveConfirm)
+                ? "By approving the copy, you confirm the captions, hooks, and hashtags look good. Your concierge will then add visuals and send the calendar back for your final approval."
+                : "By approving, you confirm the content is ready to be scheduled and posted on your social media channels. Your concierge will begin the posting schedule."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleApprove}
-              disabled={approveContent.isPending}
+              disabled={approveCopy.isPending || approveFinal.isPending}
             >
               <ThumbsUp className="h-4 w-4 mr-2" />
-              Yes, Approve Content
+              {isCopyRound(approveConfirm) ? "Yes, approve copy" : "Yes, approve final"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -258,9 +299,13 @@ function ContentReviewCard({
   isPendingApproval: boolean;
 }) {
   const monthLabel = format(new Date(generation.month_year + "-01"), "MMMM yyyy");
-  const isActionable = generation.approval_status === "sent_to_client";
-  const isApproved = ["approved_client", "approved_auto"].includes(generation.approval_status);
-  const hasFeedback = generation.approval_status === "feedback_submitted";
+  const status = generation.approval_status;
+  const isCopyActionable = status === "sent_for_copy_review";
+  const isFinalActionable = status === "sent_for_final_review";
+  const isActionable = isCopyActionable || isFinalActionable;
+  const isApproved = ["approved_client", "approved_auto"].includes(status);
+  const hasFeedback = status === "copy_changes_requested" || status === "final_changes_requested";
+  const isCopyApprovedWaiting = status === "copy_approved";
 
   return (
     <Card
@@ -277,8 +322,10 @@ function ContentReviewCard({
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <FileText className="h-4 w-4" />
             {monthLabel} Content
+            {isCopyActionable && <Badge variant="outline" className="text-[10px] ml-1">Round 1 · Copy</Badge>}
+            {isFinalActionable && <Badge variant="outline" className="text-[10px] ml-1">Round 2 · Final</Badge>}
           </CardTitle>
-          <ReviewStatusBadge status={generation.approval_status} />
+          <ReviewStatusBadge status={status} />
         </div>
         {generation.sent_to_client_at && (
           <p className="text-xs text-muted-foreground">
@@ -287,7 +334,30 @@ function ContentReviewCard({
         )}
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Auto-approval countdown for sent_to_client */}
+        {/* Round-specific helper text */}
+        {isCopyActionable && (
+          <div className="rounded-lg border border-blue-200/50 bg-blue-50/30 p-3">
+            <p className="text-sm">
+              <strong>Round 1: Review the copy.</strong> Check captions, hooks and hashtags. Visuals will be added by your concierge after you approve the copy.
+            </p>
+          </div>
+        )}
+        {isCopyApprovedWaiting && (
+          <div className="rounded-lg border border-blue-200/50 bg-blue-50/30 p-3">
+            <p className="text-sm">
+              <strong>Copy approved.</strong> Your concierge is now adding visuals. You'll be asked for final approval shortly.
+            </p>
+          </div>
+        )}
+        {isFinalActionable && (
+          <div className="rounded-lg border border-blue-200/50 bg-blue-50/30 p-3">
+            <p className="text-sm">
+              <strong>Round 2: Final approval.</strong> Review the visuals alongside the approved copy. Approving here unlocks scheduling.
+            </p>
+          </div>
+        )}
+
+        {/* Auto-approval countdown */}
         {isActionable && generation.sent_to_client_at && (
           <AutoApprovalNotice sentAt={generation.sent_to_client_at} />
         )}
@@ -321,7 +391,7 @@ function ContentReviewCard({
                 className="gap-2"
               >
                 <MessageSquare className="h-4 w-4" />
-                Request Changes
+                {isCopyActionable ? "Request copy changes" : "Request changes"}
               </Button>
               <Button
                 size="sm"
@@ -330,7 +400,7 @@ function ContentReviewCard({
                 className="gap-2 ml-auto"
               >
                 <ThumbsUp className="h-4 w-4" />
-                Approve
+                {isCopyActionable ? "Approve copy" : "Approve final"}
               </Button>
             </>
           )}
@@ -342,12 +412,15 @@ function ContentReviewCard({
 
 function ReviewStatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive"; icon: typeof CheckCircle }> = {
-    sent_to_client: { label: "Awaiting Your Review", variant: "outline", icon: Clock },
+    sent_for_copy_review: { label: "Awaiting Copy Review", variant: "outline", icon: Clock },
+    copy_approved: { label: "Copy Approved · Awaiting Visuals", variant: "secondary", icon: CheckCircle },
+    copy_changes_requested: { label: "Copy Changes Sent", variant: "secondary", icon: MessageSquare },
+    sent_for_final_review: { label: "Awaiting Final Approval", variant: "outline", icon: Clock },
+    final_changes_requested: { label: "Final Changes Sent", variant: "secondary", icon: MessageSquare },
     approved_client: { label: "Approved", variant: "default", icon: CheckCircle },
     approved_auto: { label: "Auto-Approved", variant: "secondary", icon: CheckCircle },
-    feedback_submitted: { label: "Feedback Sent", variant: "secondary", icon: MessageSquare },
   };
-  const c = map[status] || map.sent_to_client;
+  const c = map[status] || map.sent_for_copy_review;
   return (
     <Badge variant={c.variant} className="text-xs gap-1">
       <c.icon className="h-3 w-3" />
@@ -452,15 +525,15 @@ function ClientHtmlPreview({
           />
         )}
         <DialogFooter>
-          {approvalStatus === "sent_to_client" && (
+          {(approvalStatus === "sent_for_copy_review" || approvalStatus === "sent_for_final_review") && (
             <div className="flex gap-2 w-full justify-end">
               <Button variant="outline" onClick={onRequestChanges} className="gap-2">
                 <MessageSquare className="h-4 w-4" />
-                Request Changes
+                {approvalStatus === "sent_for_copy_review" ? "Request copy changes" : "Request changes"}
               </Button>
               <Button onClick={onApprove} className="gap-2">
                 <ThumbsUp className="h-4 w-4" />
-                Approve Content
+                {approvalStatus === "sent_for_copy_review" ? "Approve copy" : "Approve final"}
               </Button>
             </div>
           )}
