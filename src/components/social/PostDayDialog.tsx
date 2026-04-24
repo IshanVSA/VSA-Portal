@@ -19,6 +19,7 @@ import {
   Eye,
   ChevronLeft,
   X,
+  Lock,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useSM2Posts, type SM2Post, getPostImagePaths, SM2_MAX_IMAGES_PER_POST } from "@/hooks/useSM2Posts";
@@ -30,14 +31,17 @@ interface Props {
   date: string | null;
   generationId: string;
   isClient: boolean;
+  /** When false (and not a client), uploads are locked until copy approval. */
+  imagesUnlocked?: boolean;
 }
 
-export default function PostDayDialog({ open, onClose, date, generationId, isClient }: Props) {
+export default function PostDayDialog({ open, onClose, date, generationId, isClient, imagesUnlocked = true }: Props) {
   const { posts, uploadImage, removeImage, saveFeedback, getImageUrl } = useSM2Posts(generationId);
   const dayPosts = date ? posts.filter((p) => p.scheduled_date === date) : [];
 
   if (!date) return null;
   const label = format(new Date(date + "T00:00:00"), "EEEE, MMMM d, yyyy");
+  const showLockBanner = !isClient && !imagesUnlocked;
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -45,6 +49,20 @@ export default function PostDayDialog({ open, onClose, date, generationId, isCli
         <DialogHeader>
           <DialogTitle>{label}</DialogTitle>
         </DialogHeader>
+        {showLockBanner && (
+          <div className="flex items-start gap-2.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs">
+            <Lock className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-amber-700 dark:text-amber-400">
+                Images unlocked after copy approval
+              </p>
+              <p className="text-amber-700/80 dark:text-amber-400/80 mt-0.5">
+                The client is reviewing captions and hooks first. Once they approve the copy, image uploads
+                for every post will unlock here.
+              </p>
+            </div>
+          </div>
+        )}
         {dayPosts.length === 0 ? (
           <p className="text-sm text-muted-foreground py-6 text-center">No posts scheduled this day.</p>
         ) : (
@@ -54,6 +72,7 @@ export default function PostDayDialog({ open, onClose, date, generationId, isCli
                 key={post.id}
                 post={post}
                 isClient={isClient}
+                imagesUnlocked={imagesUnlocked}
                 imageUrls={getPostImagePaths(post).map((p) => ({ path: p, url: getImageUrl(p) }))}
                 onUpload={(files) => uploadImage.mutate({ post, files })}
                 onRemoveImage={(path) => removeImage.mutate({ post, path })}
