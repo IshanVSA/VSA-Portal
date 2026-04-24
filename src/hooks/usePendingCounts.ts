@@ -20,6 +20,13 @@ export function usePendingCounts(clinicId?: string | null) {
 
   useEffect(() => {
     if (!role) return;
+    // Admins are observers — they should not see actionable badges.
+    if (role === "admin") {
+      setPendingRequests(0);
+      setPendingReview(0);
+      setSocialPending(0);
+      return;
+    }
 
     const fetchCounts = async () => {
       const cr = (status: string) => {
@@ -31,12 +38,7 @@ export function usePendingCounts(clinicId?: string | null) {
       };
 
       // ── Legacy content_requests workflow ──────────────────────────
-      if (role === "admin") {
-        const { count: reqCount } = await cr("concierge_preferred");
-        setPendingRequests(reqCount || 0);
-        const { count: revCount } = await cr("client_selected");
-        setPendingReview(revCount || 0);
-      } else if (role === "concierge") {
+      if (role === "concierge") {
         const { count: reqCount } = await cr("generated");
         setPendingRequests(reqCount || 0);
       } else if (role === "client") {
@@ -52,7 +54,7 @@ export function usePendingCounts(clinicId?: string | null) {
           .in("approval_status", ["sent_for_copy_review", "sent_for_final_review"]);
         const { count } = await (clinicId ? base.eq("clinic_id", clinicId) : base);
         setSocialPending(count || 0);
-      } else if (role === "concierge" || role === "admin") {
+      } else if (role === "concierge") {
         const base = supabase
           .from("sm2_generations")
           .select("*", { count: "exact", head: true })
