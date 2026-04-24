@@ -68,7 +68,7 @@ export default function SocialMedia() {
   const isStaff = role === "admin" || role === "concierge";
   const isClient = role === "client";
   const { unreadCount, markAsRead } = useDepartmentChatUnread("social_media", selectedClinicId);
-  const { socialPending } = usePendingCounts();
+  const { socialPending } = usePendingCounts(selectedClinicId);
 
   // Client gate: if DNA not completed, show the form instead
   const showDNAGate = isClient && !dnaLoading && !dnaCompleted && !isLocked;
