@@ -27,53 +27,62 @@ import NotFound from "./pages/NotFound";
 import BookMeeting from "./pages/BookMeeting";
 import ClientJourneyPage from "./pages/ClientJourney";
 import SplashScreen from "./components/SplashScreen";
+import ErrorBoundary from "./components/ErrorBoundary";
+import { ReactNode } from "react";
 
 const queryClient = new QueryClient();
 
+// Wrap each route element so an error in one page never blanks the whole app.
+const guard = (node: ReactNode, scope: string) => (
+  <ErrorBoundary scope={scope}>{node}</ErrorBoundary>
+);
+
 const App = () => (
-  <SplashScreen>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="/data-deletion" element={<DataDeletion />} />
-            <Route path="/terms-of-service" element={<TermsOfService />} />
+  <ErrorBoundary scope="root">
+    <SplashScreen>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={guard(<Login />, "login")} />
+              <Route path="/reset-password" element={guard(<ResetPassword />, "reset-password")} />
+              <Route path="/privacy-policy" element={guard(<PrivacyPolicy />, "privacy")} />
+              <Route path="/data-deletion" element={guard(<DataDeletion />, "data-deletion")} />
+              <Route path="/terms-of-service" element={guard(<TermsOfService />, "tos")} />
 
-            <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/book-meeting" element={<BookMeeting />} />
-              <Route path="/social" element={<SocialMedia />} />
-              <Route path="/website" element={<WebsiteDepartment />} />
-              <Route path="/seo" element={<SeoDepartment />} />
-              <Route path="/ai-seo" element={<AiSeoDepartment />} />
-              <Route path="/google-ads" element={<GoogleAdsDepartment />} />
-              <Route path="/clinics" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}><Clinics /></ProtectedRoute>} />
-              <Route path="/clinics/:id" element={<ClinicDetail />} />
-              <Route path="/client-journey" element={<ClientJourneyPage />} />
-              <Route path="/employees" element={<ProtectedRoute allowedRoles={["admin"]}><Employees /></ProtectedRoute>} />
-              <Route path="/clients" element={<ProtectedRoute allowedRoles={["admin"]}><ClientsPage /></ProtectedRoute>} />
-              <Route path="/review" element={<ProtectedRoute allowedRoles={["admin"]}><AdminReview /></ProtectedRoute>} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/reports" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}><Reports /></ProtectedRoute>} />
-            </Route>
+              <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+                <Route path="/" element={guard(<Dashboard />, "dashboard")} />
+                <Route path="/book-meeting" element={guard(<BookMeeting />, "book-meeting")} />
+                <Route path="/social" element={guard(<SocialMedia />, "social")} />
+                <Route path="/website" element={guard(<WebsiteDepartment />, "website")} />
+                <Route path="/seo" element={guard(<SeoDepartment />, "seo")} />
+                <Route path="/ai-seo" element={guard(<AiSeoDepartment />, "ai-seo")} />
+                <Route path="/google-ads" element={guard(<GoogleAdsDepartment />, "google-ads")} />
+                <Route path="/clinics" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}>{guard(<Clinics />, "clinics")}</ProtectedRoute>} />
+                <Route path="/clinics/:id" element={guard(<ClinicDetail />, "clinic-detail")} />
+                <Route path="/client-journey" element={guard(<ClientJourneyPage />, "client-journey")} />
+                <Route path="/employees" element={<ProtectedRoute allowedRoles={["admin"]}>{guard(<Employees />, "employees")}</ProtectedRoute>} />
+                <Route path="/clients" element={<ProtectedRoute allowedRoles={["admin"]}>{guard(<ClientsPage />, "clients")}</ProtectedRoute>} />
+                <Route path="/review" element={<ProtectedRoute allowedRoles={["admin"]}>{guard(<AdminReview />, "review")}</ProtectedRoute>} />
+                <Route path="/settings" element={guard(<Settings />, "settings")} />
+                <Route path="/reports" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}>{guard(<Reports />, "reports")}</ProtectedRoute>} />
+              </Route>
 
-            <Route path="/content" element={<Navigate to="/social?tab=calendar" replace />} />
-            <Route path="/content-requests" element={<Navigate to="/social?tab=requests" replace />} />
-            <Route path="/ai-content" element={<Navigate to="/social?tab=requests" replace />} />
-            <Route path="/intake-forms" element={<Navigate to="/social?tab=intake" replace />} />
-            <Route path="/analytics" element={<Navigate to="/social?tab=analytics" replace />} />
+              <Route path="/content" element={<Navigate to="/social?tab=calendar" replace />} />
+              <Route path="/content-requests" element={<Navigate to="/social?tab=requests" replace />} />
+              <Route path="/ai-content" element={<Navigate to="/social?tab=requests" replace />} />
+              <Route path="/intake-forms" element={<Navigate to="/social?tab=intake" replace />} />
+              <Route path="/analytics" element={<Navigate to="/social?tab=analytics" replace />} />
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </SplashScreen>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </SplashScreen>
+  </ErrorBoundary>
 );
 
 export default App;
