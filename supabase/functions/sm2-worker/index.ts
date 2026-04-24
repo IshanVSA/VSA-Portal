@@ -383,9 +383,11 @@ async function runOneStage(supabase: any, job: any): Promise<{ done: boolean; st
       break;
     }
     case "write": {
+      // 16000 tokens: 10 posts × ~1.5KB JSON each (caption + hashtags + hooks + alt_text + stories_hook)
+      // Previously 4000 caused JSON truncation, leaving captions/hashtags empty in sm2_posts.
       const r = await callAgent(AGENT_WRITER,
         `${dnaPayload}\n\n=== CONTENT PLAN ===\n${JSON.stringify(data.plan, null, 2)}`,
-        4000, "Writer");
+        16000, "Writer");
       stageOutput = r.parsed; tokens = r.tokens;
       break;
     }
