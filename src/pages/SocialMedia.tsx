@@ -155,7 +155,7 @@ export default function SocialMedia() {
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="social_media" clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="gbp-posts" className="mt-4"><GBPPostsTab clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="brand-dna" className="mt-4"><Suspense fallback={<TabFallback />}><BrandDNATab clinicId={selectedClinicId} /></Suspense></TabsContent>
-                <TabsContent value="meta-ads" className="mt-4"><ComingSoonTab label="Meta Ads" /></TabsContent>
+                <TabsContent value="meta-ads" className="mt-4"><Suspense fallback={<TabFallback />}><MetaAdsTab clinicId={selectedClinicId} /></Suspense></TabsContent>
                 {isStaff && (
                   <>
                     <TabsContent value="generation" className="mt-4"><Suspense fallback={<TabFallback />}><ContentGenerationTab clinicId={selectedClinicId} /></Suspense></TabsContent>
