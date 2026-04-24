@@ -35,7 +35,8 @@ export default function PostDetailsDrawer({
   const { posts, isLoading, getImageUrl, total, withImages } = useSM2Posts(open ? generationId : undefined);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const isActionable = approvalStatus === "sent_to_client";
+  const isActionable = approvalStatus === "sent_for_copy_review" || approvalStatus === "sent_for_final_review";
+  const isCopyRound = approvalStatus === "sent_for_copy_review";
   const monthLabel = useMemo(
     () => format(new Date(monthYear + "-01"), "MMMM yyyy"),
     [monthYear]
