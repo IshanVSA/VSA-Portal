@@ -503,6 +503,46 @@ function PostCard({
               </p>
             </div>
           )}
+
+          {/* Meta Ads selection */}
+          <div
+            className={cn(
+              "mt-2 flex items-start gap-2 rounded-md border px-3 py-2.5 transition-colors",
+              post.run_meta_ad
+                ? "border-[hsl(var(--dept-social))]/40 bg-[hsl(var(--dept-social))]/10"
+                : "border-border bg-muted/30",
+            )}
+          >
+            <input
+              id={`meta-ad-${post.id}`}
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 cursor-pointer accent-[hsl(var(--dept-social))] disabled:cursor-not-allowed disabled:opacity-50"
+              checked={post.run_meta_ad}
+              disabled={isClient || togglingMetaAd || metaAdLimitReached}
+              onChange={(e) => onToggleMetaAd(e.target.checked)}
+            />
+            <label
+              htmlFor={`meta-ad-${post.id}`}
+              className={cn(
+                "flex-1 text-xs leading-snug select-none",
+                isClient || metaAdLimitReached ? "cursor-default" : "cursor-pointer",
+              )}
+            >
+              <span className="flex items-center gap-1.5 font-semibold">
+                <Megaphone className="h-3.5 w-3.5 text-[hsl(var(--dept-social))]" />
+                Run Meta Ads on this post
+              </span>
+              <span className="block mt-0.5 text-[11px] text-muted-foreground">
+                {isClient
+                  ? post.run_meta_ad
+                    ? "Your concierge has selected this post to be boosted with Meta Ads."
+                    : "Your concierge can select up to 2 posts per month to boost with Meta Ads."
+                  : metaAdLimitReached
+                    ? "Limit reached — 2 of 10 posts already selected for this month."
+                    : `${metaAdSelectedCount} of 2 selected for Meta Ads this month.`}
+              </span>
+            </label>
+          </div>
         </div>
       </CardContent>
 
