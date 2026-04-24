@@ -12,7 +12,7 @@ import { useUserRole } from "@/hooks/useUserRole";
  *     • concierge/admin → generations where the client requested changes,
  *       OR client approved copy and visuals are now needed
  */
-export function usePendingCounts() {
+export function usePendingCounts(clinicId?: string | null) {
   const { role } = useUserRole();
   const [pendingRequests, setPendingRequests] = useState(0);
   const [pendingReview, setPendingReview] = useState(0);
@@ -21,47 +21,43 @@ export function usePendingCounts() {
   useEffect(() => {
     if (!role) return;
 
+    const scoped = <T extends { eq: (col: string, val: string) => T }>(q: T) =>
+      clinicId ? q.eq("clinic_id", clinicId) : q;
+
     const fetchCounts = async () => {
       // ── Legacy content_requests workflow ──────────────────────────
       if (role === "admin") {
-        const { count: reqCount } = await supabase
-          .from("content_requests")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "concierge_preferred");
+        const { count: reqCount } = await scoped(
+          supabase.from("content_requests").select("*", { count: "exact", head: true })
+        ).eq("status", "concierge_preferred");
         setPendingRequests(reqCount || 0);
 
-        const { count: revCount } = await supabase
-          .from("content_requests")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "client_selected");
+        const { count: revCount } = await scoped(
+          supabase.from("content_requests").select("*", { count: "exact", head: true })
+        ).eq("status", "client_selected");
         setPendingReview(revCount || 0);
       } else if (role === "concierge") {
-        const { count: reqCount } = await supabase
-          .from("content_requests")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "generated");
+        const { count: reqCount } = await scoped(
+          supabase.from("content_requests").select("*", { count: "exact", head: true })
+        ).eq("status", "generated");
         setPendingRequests(reqCount || 0);
       } else if (role === "client") {
-        const { count: reqCount } = await supabase
-          .from("content_requests")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "admin_approved");
+        const { count: reqCount } = await scoped(
+          supabase.from("content_requests").select("*", { count: "exact", head: true })
+        ).eq("status", "admin_approved");
         setPendingRequests(reqCount || 0);
       }
 
       // ── SM2 workflow (sm2_generations) ────────────────────────────
       if (role === "client") {
-        // Client owes a response when copy or final has been sent for review.
-        const { count } = await supabase
+        const base = supabase
           .from("sm2_generations")
           .select("*", { count: "exact", head: true })
           .in("approval_status", ["sent_for_copy_review", "sent_for_final_review"]);
+        const { count } = await (clinicId ? base.eq("clinic_id", clinicId) : base);
         setSocialPending(count || 0);
       } else if (role === "concierge" || role === "admin") {
-        // Staff owes a response when:
-        //  • client approved copy → visuals needed
-        //  • client requested copy or final changes → revisions needed
-        const { count } = await supabase
+        const base = supabase
           .from("sm2_generations")
           .select("*", { count: "exact", head: true })
           .in("approval_status", [
@@ -69,6 +65,7 @@ export function usePendingCounts() {
             "copy_changes_requested",
             "final_changes_requested",
           ]);
+        const { count } = await (clinicId ? base.eq("clinic_id", clinicId) : base);
         setSocialPending(count || 0);
       }
     };
@@ -77,7 +74,7 @@ export function usePendingCounts() {
     const interval = setInterval(fetchCounts, 30000);
 
     const channel = supabase
-      .channel("pending-counts")
+      .channel(`pending-counts-${clinicId || "all"}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "content_requests" }, fetchCounts)
       .on("postgres_changes", { event: "*", schema: "public", table: "sm2_generations" }, fetchCounts)
       .subscribe();
@@ -86,7 +83,7 @@ export function usePendingCounts() {
       clearInterval(interval);
       supabase.removeChannel(channel);
     };
-  }, [role]);
+  }, [role, clinicId]);
 
   return { pendingRequests, pendingReview, socialPending };
 }
