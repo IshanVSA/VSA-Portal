@@ -217,6 +217,25 @@ export default function SM2CalendarView({
           </div>
         </div>
 
+        {/* Image-upload lock banner (concierge view, before copy approval) */}
+        {!isClient && !imagesUnlocked && (
+          <div className="flex items-start gap-2.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs">
+            <Lock className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-semibold text-amber-700 dark:text-amber-400">
+                Images unlocked after copy approval
+              </p>
+              <p className="text-amber-700/80 dark:text-amber-400/80 mt-0.5">
+                {approvalStatus === "sent_for_copy_review"
+                  ? "Waiting on the client to approve the copy. Image uploads will unlock automatically once they sign off."
+                  : approvalStatus === "copy_changes_requested"
+                  ? "Client requested copy changes. Revise the captions and resend — images unlock after copy approval."
+                  : "Send the copy for client approval first. Image uploads unlock once the copy is approved."}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Calendar */}
         <div className="border border-border rounded-xl overflow-hidden bg-card shadow-sm">
           <div className="grid grid-cols-7 bg-muted/40 border-b border-border">
