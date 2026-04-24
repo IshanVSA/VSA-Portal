@@ -81,6 +81,16 @@ export default function SM2CalendarView({
   const isFinalRound =
     approvalStatus === "copy_approved" || approvalStatus === "final_changes_requested";
 
+  // Image uploads are gated until the client approves the copy.
+  // Unlocked once we reach copy_approved (or any later final-stage status).
+  const imagesUnlocked = [
+    "copy_approved",
+    "sent_for_final_review",
+    "final_changes_requested",
+    "approved_client",
+    "approved_auto",
+  ].includes(approvalStatus);
+
   const missingPosts = useMemo(
     () => posts.filter((p) => !postHasImage(p)),
     [posts]
