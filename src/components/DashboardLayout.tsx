@@ -136,7 +136,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
   const [clinicAccessLoading, setClinicAccessLoading] = useState(true);
   const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
   const [userDepartments, setUserDepartments] = useState<string[] | null>(null);
-  const { pendingRequests, pendingReview } = usePendingCounts();
+  const { pendingRequests, pendingReview, socialPending } = usePendingCounts();
 
   const [deptPickerOpen, setDeptPickerOpen] = useState(false);
   const [globalTicketOpen, setGlobalTicketOpen] = useState(false);
@@ -286,7 +286,13 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
       ...s,
       items: s.items.map(item => ({
         ...item,
-        badge: item.path === "/social" ? pendingRequests : item.path === "/review" ? pendingReview : item.badge,
+        // /social shows actionable SM2 work for the current role; /review keeps legacy admin queue
+        badge:
+          item.path === "/social"
+            ? socialPending || pendingRequests
+            : item.path === "/review"
+            ? pendingReview
+            : item.badge,
       })),
     }));
 
