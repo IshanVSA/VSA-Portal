@@ -23,6 +23,7 @@ export interface SM2Post {
   image_uploaded_at: string | null;
   image_uploaded_by: string | null;
   client_feedback: string | null;
+  run_meta_ad: boolean;
   position: number;
   post_number: number | null;
   topic: string | null;
@@ -225,6 +226,26 @@ export function useSM2Posts(generationId: string | undefined) {
     onError: (e: Error) => toast.error("Failed to save feedback", { description: e.message }),
   });
 
+  const toggleMetaAd = useMutation({
+    mutationFn: async ({ postId, value }: { postId: string; value: boolean }) => {
+      const { error } = await supabase
+        .from("sm2_posts")
+        .update({ run_meta_ad: value } as any)
+        .eq("id", postId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey });
+      toast.success(vars.value ? "Selected for Meta Ads" : "Removed from Meta Ads");
+    },
+    onError: (e: Error) =>
+      toast.error("Couldn't update Meta Ads selection", {
+        description: e.message.includes("Maximum 2")
+          ? "You can only select up to 2 posts per generation for Meta Ads."
+          : e.message,
+      }),
+  });
+
   const getImageUrl = (path: string) => {
     return supabase.storage.from("department-files").getPublicUrl(path).data.publicUrl;
   };
@@ -239,6 +260,7 @@ export function useSM2Posts(generationId: string | undefined) {
     uploadImage,
     removeImage,
     saveFeedback,
+    toggleMetaAd,
     getImageUrl,
     total,
     withImages,

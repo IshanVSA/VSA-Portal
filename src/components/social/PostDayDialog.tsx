@@ -36,7 +36,8 @@ interface Props {
 }
 
 export default function PostDayDialog({ open, onClose, date, generationId, isClient, imagesUnlocked = true }: Props) {
-  const { posts, uploadImage, removeImage, saveFeedback, getImageUrl } = useSM2Posts(generationId);
+  const { posts, uploadImage, removeImage, saveFeedback, toggleMetaAd, getImageUrl } = useSM2Posts(generationId);
+  const metaAdSelectedCount = posts.filter((p) => p.run_meta_ad).length;
   const dayPosts = date ? posts.filter((p) => p.scheduled_date === date) : [];
 
   if (!date) return null;
@@ -77,6 +78,9 @@ export default function PostDayDialog({ open, onClose, date, generationId, isCli
                 onUpload={(files) => uploadImage.mutate({ post, files })}
                 onRemoveImage={(path) => removeImage.mutate({ post, path })}
                 onSaveFeedback={(feedback) => saveFeedback.mutate({ postId: post.id, feedback })}
+                onToggleMetaAd={(value) => toggleMetaAd.mutate({ postId: post.id, value })}
+                metaAdSelectedCount={metaAdSelectedCount}
+                togglingMetaAd={toggleMetaAd.isPending}
                 uploading={uploadImage.isPending}
                 savingFeedback={saveFeedback.isPending}
               />
@@ -144,6 +148,9 @@ function PostCard({
   onUpload,
   onRemoveImage,
   onSaveFeedback,
+  onToggleMetaAd,
+  metaAdSelectedCount,
+  togglingMetaAd,
   uploading,
   savingFeedback,
 }: {
@@ -154,6 +161,9 @@ function PostCard({
   onUpload: (files: File[]) => void;
   onRemoveImage: (path: string) => void;
   onSaveFeedback: (feedback: string) => void;
+  onToggleMetaAd: (value: boolean) => void;
+  metaAdSelectedCount: number;
+  togglingMetaAd: boolean;
   uploading: boolean;
   savingFeedback: boolean;
 }) {
@@ -161,6 +171,7 @@ function PostCard({
   const [feedback, setFeedback] = useState(post.client_feedback || "");
   const [dragOver, setDragOver] = useState(false);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const metaAdLimitReached = metaAdSelectedCount >= 2 && !post.run_meta_ad;
 
   const handleFiles = (files: FileList | File[]) => {
     const arr = Array.from(files).filter((f) => f.type.startsWith("image/"));
@@ -492,6 +503,46 @@ function PostCard({
               </p>
             </div>
           )}
+
+          {/* Meta Ads selection */}
+          <div
+            className={cn(
+              "mt-2 flex items-start gap-2 rounded-md border px-3 py-2.5 transition-colors",
+              post.run_meta_ad
+                ? "border-[hsl(var(--dept-social))]/40 bg-[hsl(var(--dept-social))]/10"
+                : "border-border bg-muted/30",
+            )}
+          >
+            <input
+              id={`meta-ad-${post.id}`}
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 cursor-pointer accent-[hsl(var(--dept-social))] disabled:cursor-not-allowed disabled:opacity-50"
+              checked={post.run_meta_ad}
+              disabled={isClient || togglingMetaAd || metaAdLimitReached}
+              onChange={(e) => onToggleMetaAd(e.target.checked)}
+            />
+            <label
+              htmlFor={`meta-ad-${post.id}`}
+              className={cn(
+                "flex-1 text-xs leading-snug select-none",
+                isClient || metaAdLimitReached ? "cursor-default" : "cursor-pointer",
+              )}
+            >
+              <span className="flex items-center gap-1.5 font-semibold">
+                <Megaphone className="h-3.5 w-3.5 text-[hsl(var(--dept-social))]" />
+                Run Meta Ads on this post
+              </span>
+              <span className="block mt-0.5 text-[11px] text-muted-foreground">
+                {isClient
+                  ? post.run_meta_ad
+                    ? "Your concierge has selected this post to be boosted with Meta Ads."
+                    : "Your concierge can select up to 2 posts per month to boost with Meta Ads."
+                  : metaAdLimitReached
+                    ? "Limit reached — 2 of 10 posts already selected for this month."
+                    : `${metaAdSelectedCount} of 2 selected for Meta Ads this month.`}
+              </span>
+            </label>
+          </div>
         </div>
       </CardContent>
 
