@@ -238,12 +238,37 @@ export function useSM2Posts(generationId: string | undefined) {
       queryClient.invalidateQueries({ queryKey });
       toast.success(vars.value ? "Selected for Meta Ads" : "Removed from Meta Ads");
     },
-    onError: (e: Error) =>
-      toast.error("Couldn't update Meta Ads selection", {
-        description: e.message.includes("Maximum 2")
-          ? "You can only select up to 2 posts per generation for Meta Ads."
-          : e.message,
-      }),
+    onError: (e: Error) => {
+      const isLimitError = e.message.includes("Maximum 2");
+      if (isLimitError) {
+        const selected = (posts || []).filter((p) => p.run_meta_ad);
+        const labelFor = (p: SM2Post) => {
+          const num = p.post_number != null ? `#${p.post_number}` : "";
+          const title = p.topic || p.hook || p.caption?.slice(0, 40) || "Untitled post";
+          const date = p.scheduled_date
+            ? new Date(p.scheduled_date + "T00:00:00").toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+              })
+            : "";
+          return [num, title, date && `(${date})`].filter(Boolean).join(" ");
+        };
+        const list =
+          selected.length > 0
+            ? selected.map((p) => `• ${labelFor(p)}`).join("\n")
+            : "";
+        toast.error("Meta Ads limit reached (2 of 10)", {
+          description: list
+            ? `Deselect one of these to add a different post:\n${list}`
+            : "Deselect one of the currently selected posts before adding another.",
+          duration: 8000,
+        });
+      } else {
+        toast.error("Couldn't update Meta Ads selection", {
+          description: e.message,
+        });
+      }
+    },
   });
 
   const getImageUrl = (path: string) => {
