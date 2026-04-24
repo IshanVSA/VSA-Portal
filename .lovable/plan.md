@@ -1,75 +1,91 @@
+## Goal
+Split the SM2 client approval into **two distinct rounds** instead of one:
 
+1. **Round 1 — Copy approval (text only).** Concierge sends generated content to the client *without images*. Client reviews captions/hooks/hashtags and approves the copy (or requests changes).
+2. **Round 2 — Visual approval.** Only after copy is approved, concierge uploads images to each post, then sends back to the client. Client gives final approval, which unlocks scheduling.
 
-## Per-Department Ticket Assignment & Completion
+## Current state (what I verified)
+- `useSM2Generation.ts` has a single `sendToClient` mutation that **requires every post to already have an image** (gate in `sendToClient.mutationFn`). It moves status: `pending → sent_to_client → approved_client/feedback_submitted`.
+- `SM2CalendarView.tsx` blocks the "Send to client" button on `imagesComplete` and shows "Awaiting visuals · X/Y posts" badges.
+- `ClientContentReview.tsx` shows the deliverable to the client as a single review with Approve / Request Changes.
+- `auto-approve-posts/index.ts` cron auto-approves anything sitting in `sent_to_client` for 5 days.
+- Image upload UI already exists (`useSM2Posts.uploadImage`) — concierges currently use it *before* sending. We just change *when* it's required.
 
-Today, a cross-department ticket (e.g. "Time Change" → Website + SEO + Google Ads + Social Media) is a **single row** with one `assigned_to` and one `status`. Whichever department changes the status changes it for everyone, and there's no concept of each dept having its own assignee.
-
-We'll change this so each department gets its **own assignee + own status** for the same ticket, and the client only sees "Completed" once **every** involved department marks it complete.
-
----
-
-### What changes for each role
-
-**Admin / Concierge / Department Staff**
-- Open a "Time Change" ticket in the Website department → see the Website assignee, Website status, and a small badge `Website ✓ · SEO ⏳ · Ads ⏳ · Social ⏳` showing other depts' progress.
-- Each dept's assign / status dropdown only updates **that department's** record.
-- Each department auto-assigns to a clinic team member with the matching role (Developer, SEO Lead, Ads Strategist, Social & Concierge) for that clinic — same logic as today, but applied per department.
-
-**Client**
-- Sees one ticket card per ticket (not 4 copies).
-- Status shown is the **rollup**:
-  - `Completed` only when every involved department is completed
-  - `In Progress` if any dept is in progress
-  - `Open` otherwise
-  - `Void` if any dept voids it (with reason)
-- A small footer shows: `Progress: 2 of 4 departments complete`.
-
----
-
-### Data model
-
-Add a new table `department_ticket_assignments` (one row per ticket × department):
-
-```text
-id              uuid pk
-ticket_id       uuid  → department_tickets(id) on delete cascade
-department      department_type
-assigned_to     uuid  null → profiles(id)
-status          ticket_status default 'open'
-completed_at    timestamptz null
-notes           text null
-created_at, updated_at
-unique (ticket_id, department)
+## New status machine for `sm2_generations.approval_status`
 ```
+pending
+  → sent_for_copy_review        (concierge sends; no images required)
+      → copy_changes_requested  (client requests copy changes; concierge edits & re-sends)
+      → copy_approved           (client approves copy → unlocks image upload)
+          → sent_for_final_review   (concierge has uploaded all images & sent back)
+              → final_changes_requested
+              → approved_client / approved_auto   (final approval; existing downstream)
+generation_failed (unchanged)
+```
+Existing rows using `sent_to_client` / `approved_client` / `feedback_submitted` / `approved_auto` will be migrated forward (see Migration section). Downstream code that reads `approved_client` / `approved_auto` (e.g. `ClientContentCalendar` "APPROVED_STATUSES") keeps working unchanged.
 
-- On ticket insert, a trigger fans out: for each department in the ticket-type's visibility list, create a row and auto-assign to a clinic-scoped team member with the right role (reuses logic from `auto_assign_ticket_pool`).
-- A view/function `ticket_rollup_status(ticket_id)` returns `completed` only when all assignment rows are `completed`; otherwise the most-progressed non-void status. Voids surface as `void`.
-- A trigger updates `department_tickets.status` to the rollup whenever an assignment row changes — so existing client queries continue to work without rewrites.
-- RLS on the new table mirrors `department_tickets`: dept members see their dept's row; admins see all; clients see read-only via the parent ticket.
+## Changes by file
 
-### Frontend
+### Backend / data
+1. **New migration** (`supabase/migrations/...`):
+   - No schema column changes needed — `approval_status` is `text`.
+   - Backfill any existing rows:
+     - `sent_to_client` → `sent_for_copy_review` (so legacy in-flight items restart at copy stage; safest default).
+     - `feedback_submitted` → `copy_changes_requested`.
+     - `approved_client` / `approved_auto` stay as-is (those are already finalized in current world; we treat them as final approved).
+   - Optional: add a CHECK-style validation trigger to enforce the new vocabulary (skip if it risks breaking the cron — see #2).
 
-- **`TicketsTab`**: query joins `department_ticket_assignments` filtered by current `department`, so the assignee/status shown is the per-dept row (not the parent).
-- **`TicketCard`** (staff view): status & assign dropdowns write to the assignment row, not the parent. Add an "Other departments" mini-strip showing each involved dept + its status icon.
-- **`TicketCard`** (client view): hides per-dept controls, shows rollup status + "X of Y departments complete" progress.
-- **`NewTicketDialog`**: unchanged from user perspective — fan-out happens server-side on insert.
-- Keep the conditional rule for "Add/Remove Team Members" → social_media (only when `Promote on Social Media: Yes`); the fan-out trigger respects this.
+2. **`supabase/functions/auto-approve-posts/index.ts`**:
+   - Currently auto-approves `sent_to_client` after 5 days. Update to handle **both** waiting states:
+     - `sent_for_copy_review` → auto-promote to `copy_approved` after 5 days (with same Day 0/3/5 emails).
+     - `sent_for_final_review` → auto-promote to `approved_auto` after 5 days (existing behavior, just under new status name).
+   - Email copy in those reminders should mention what they're approving ("the captions" vs "the visuals").
 
-### Migration of existing tickets
+### Hook: `src/hooks/useSM2Generation.ts`
+- Replace `sendToClient` mutation with two mutations (or one parameterized):
+  - **`sendCopyForReview(generationId)`** — sets `approval_status='sent_for_copy_review'`, `sent_to_client_at=now()`. **No image gate.** Allowed when status is `pending` or `copy_changes_requested`.
+  - **`sendFinalForReview(generationId)`** — runs the existing image-completeness gate (every post has ≥1 image). Sets `approval_status='sent_for_final_review'`, updates `sent_to_client_at=now()`. Allowed when status is `copy_approved` or `final_changes_requested`.
+- Replace `approveContent` with two mutations:
+  - **`approveCopy(generationId)`** — `pending|copy_changes_requested → copy_approved` (no `approved_at`).
+  - **`approveFinal(generationId)`** — `sent_for_final_review → approved_client`, sets `approved_at=now()` (this is the existing finalize behavior).
+- Replace `submitFeedback` with two:
+  - **`requestCopyChanges({ generationId, feedback })`** → `copy_changes_requested`.
+  - **`requestFinalChanges({ generationId, feedback })`** → `final_changes_requested`.
 
-A one-shot SQL block backfills `department_ticket_assignments` for every existing ticket using the same visibility map, copying the current `assigned_to` and `status` into the row matching the ticket's `department` field, and creating `open`/unassigned rows for the other involved departments.
+### Concierge UI: `src/components/social/ContentGenerationTab.tsx` + `SM2CalendarView.tsx`
+- Drive the primary CTA from `approval_status`:
+  - `pending` → button: **"Send copy to client for review"** (no image gate).
+  - `copy_changes_requested` → same button label, plus a banner showing client feedback to address.
+  - `sent_for_copy_review` → disabled state: "Awaiting client copy approval (auto-approves in N days)".
+  - `copy_approved` → button: **"Send for final approval"**, gated on `imagesComplete`. Surface "Upload images: X/Y posts" with the existing inline uploader.
+  - `final_changes_requested` → same button, plus client visual feedback banner.
+  - `sent_for_final_review` → disabled state: "Awaiting client final approval".
+  - `approved_client` / `approved_auto` → existing "Approved" badge.
+- Image uploader stays available throughout but becomes the *focus* only after `copy_approved`. We can subtly grey/collapse it before then (still allow early uploading — no harm).
+- Update status-badge map (`STATUS_CONFIG` in `ContentGenerationTab.tsx` line ~389) with the new statuses.
 
-### Files to change
+### Client UI: `src/components/social/ClientContentReview.tsx` + `ClientPostsTab.tsx`
+- Update the visibility filter (currently looks for `sent_to_client`/`approved_client`/`approved_auto`/`feedback_submitted`) to include `sent_for_copy_review`, `copy_approved` (read-only “Awaiting visuals from concierge”), `sent_for_final_review`, `final_changes_requested`, `approved_client`, `approved_auto`.
+- Render two different review cards based on `approval_status`:
+  - **Copy review card** (`sent_for_copy_review`): show captions/hooks/hashtags only, hide image slots (or show "Visuals will be added after you approve the copy"). Buttons: **Approve copy** / **Request copy changes**.
+  - **Final review card** (`sent_for_final_review`): full deliverable with images. Buttons: **Approve final** / **Request changes**.
+  - **Between rounds** (`copy_approved`, `final_changes_requested` etc.): read-only status banner so the client knows where they stand.
+- `AutoApprovalNotice` countdown applies to both `sent_for_copy_review` and `sent_for_final_review`.
 
-- **DB migration**: new table, fan-out trigger, rollup trigger, RLS policies, backfill.
-- `src/lib/ticket-department-map.ts` — export helper used server-side mirror; no behaviour change.
-- `src/components/department/TicketsTab.tsx` — query assignments instead of parent for status/assignee.
-- `src/components/department/TicketCard.tsx` — write to assignment row; render cross-dept strip; client rollup view.
-- `src/components/department/TicketKanbanView.tsx` and `TicketTableView.tsx` — same per-dept read/write swap.
-- `src/components/dashboard/MyTickets.tsx` — show only assignments where `assigned_to = me`.
+### Calendar view (`SM2CalendarView.tsx`)
+- Update status helpers (lines ~98–110) so the new statuses produce sensible badges ("Awaiting copy review", "Copy approved · upload visuals", "Awaiting final review", "Final approved").
+- "Send" CTA in the dialog (line ~310) becomes context-aware: gated on images **only** when sending for final review.
 
-### Out of scope (confirm if you want these too)
+### Downstream consumers (no logic change, just status set update)
+- `ClientContentCalendar.tsx` `APPROVED_STATUSES` already includes `approved_client` / `approved_auto` — these remain the "fully approved" terminal states, so scheduling/visibility still triggers at the right moment.
+- `ClientPostsTab.tsx` line 28 filter — broaden to surface both review rounds.
 
-- Notifying the client when each individual dept completes (currently silent until full rollup).
-- Letting one department "skip" itself (e.g. SEO says "no change needed") — today they'd have to mark Completed.
+## Open questions (please confirm before I implement)
+1. **Backfill of in-flight items** — for any generations currently in `sent_to_client` (full-deliverable awaiting approval under the old flow), should I:
+   - (a) Map them to `sent_for_final_review` (treat as already past copy approval, since concierge already uploaded images), **or**
+   - (b) Reset them to `sent_for_copy_review` (safer, but client re-approves copy)?
+   I recommend **(a)** since images are already attached.
+2. **Auto-approval window** — keep the same 5-day window for *both* rounds, or shorten the copy round (e.g. 3 days) so the whole cycle isn't 10 days?
+3. **Early image uploads** — should concierges be allowed to upload images *before* copy is approved (current behavior, just not required), or should the uploader be hard-locked until `copy_approved`?
 
+Once you confirm those three, I'll implement in default mode.
