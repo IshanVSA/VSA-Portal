@@ -29,6 +29,7 @@ const ContentGenerationTab = lazy(() => import("@/components/social/ContentGener
 const ClientContentReview = lazy(() => import("@/components/social/ClientContentReview"));
 const ClientPostsTab = lazy(() => import("@/components/social/ClientPostsTab"));
 const ContentThemeSliders = lazy(() => import("@/components/social/ContentThemeSliders"));
+const MetaAdsTab = lazy(() => import("@/components/social/MetaAdsTab"));
 
 const TabFallback = () => (
   <div className="py-12 flex items-center justify-center">
