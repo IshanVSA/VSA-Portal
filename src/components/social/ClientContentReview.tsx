@@ -42,35 +42,63 @@ interface Props {
 }
 
 export default function ClientContentReview({ clinicId }: Props) {
-  const { generations, isLoading, approveContent, submitFeedback, getHtmlUrl } =
-    useSM2Generation(clinicId);
+  const {
+    generations,
+    isLoading,
+    approveCopy,
+    requestCopyChanges,
+    approveFinal,
+    requestFinalChanges,
+    getHtmlUrl,
+  } = useSM2Generation(clinicId);
   const [viewingGen, setViewingGen] = useState<SM2Generation | null>(null);
   const [drawerGen, setDrawerGen] = useState<SM2Generation | null>(null);
   const [feedbackGen, setFeedbackGen] = useState<SM2Generation | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
   const [approveConfirm, setApproveConfirm] = useState<SM2Generation | null>(null);
 
-  // Only show generations that have been sent to the client
+  // Show generations once they've been sent for either review round, plus terminal states.
+  const VISIBLE_STATUSES = [
+    "sent_for_copy_review",
+    "copy_approved",
+    "copy_changes_requested",
+    "sent_for_final_review",
+    "final_changes_requested",
+    "approved_client",
+    "approved_auto",
+  ];
   const clientVisible = (generations || []).filter(
-    (g) =>
-      g.sent_to_client_at &&
-      ["sent_to_client", "approved_client", "approved_auto", "feedback_submitted"].includes(
-        g.approval_status
-      )
+    (g) => g.sent_to_client_at && VISIBLE_STATUSES.includes(g.approval_status)
   );
+
+  const isCopyRound = (g: SM2Generation | null) =>
+    !!g && g.approval_status === "sent_for_copy_review";
+  const isFinalRound = (g: SM2Generation | null) =>
+    !!g && g.approval_status === "sent_for_final_review";
 
   const handleApprove = () => {
     if (!approveConfirm) return;
-    approveContent.mutate(approveConfirm.id);
+    if (isCopyRound(approveConfirm)) {
+      approveCopy.mutate(approveConfirm.id);
+    } else if (isFinalRound(approveConfirm)) {
+      approveFinal.mutate(approveConfirm.id);
+    }
     setApproveConfirm(null);
   };
 
   const handleSubmitFeedback = () => {
     if (!feedbackGen || !feedbackText.trim()) return;
-    submitFeedback.mutate({
-      generationId: feedbackGen.id,
-      feedback: feedbackText.trim(),
-    });
+    if (isCopyRound(feedbackGen)) {
+      requestCopyChanges.mutate({
+        generationId: feedbackGen.id,
+        feedback: feedbackText.trim(),
+      });
+    } else if (isFinalRound(feedbackGen)) {
+      requestFinalChanges.mutate({
+        generationId: feedbackGen.id,
+        feedback: feedbackText.trim(),
+      });
+    }
     setFeedbackGen(null);
     setFeedbackText("");
   };
