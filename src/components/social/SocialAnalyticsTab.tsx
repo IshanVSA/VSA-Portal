@@ -55,6 +55,8 @@ function KPI({ label, value, icon: Icon, sublabel }: { label: string; value: str
 export default function SocialAnalyticsTab({ clinicId }: Props) {
   const { role } = useUserRole();
   const isStaff = role === "admin" || role === "concierge";
+  // Only admins can read clinic_api_credentials per RLS; concierges fall back to data-presence detection
+  const canReadCreds = role === "admin";
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [fb, setFb] = useState<any>(null);
