@@ -139,6 +139,7 @@ function KV({ k, v }: { k: string; v: any }) {
 function PostCard({
   post,
   isClient,
+  imagesUnlocked = true,
   imageUrls,
   onUpload,
   onRemoveImage,
@@ -148,6 +149,7 @@ function PostCard({
 }: {
   post: SM2Post;
   isClient: boolean;
+  imagesUnlocked?: boolean;
   imageUrls: { path: string; url: string }[];
   onUpload: (files: File[]) => void;
   onRemoveImage: (path: string) => void;
@@ -170,6 +172,7 @@ function PostCard({
   const stories = Array.isArray(post.stories) ? post.stories : [];
   const cb = post.concierge_brief || {};
   const atLimit = imageUrls.length >= SM2_MAX_IMAGES_PER_POST;
+  const uploadDisabled = !isClient && !imagesUnlocked;
 
   return (
     <Card className="overflow-hidden">
@@ -180,6 +183,17 @@ function PostCard({
             isClient ? (
               <div className="w-full aspect-square rounded-lg border border-dashed flex items-center justify-center text-xs text-muted-foreground">
                 No image
+              </div>
+            ) : uploadDisabled ? (
+              <div
+                className="w-full aspect-square rounded-lg border-2 border-dashed border-amber-500/40 bg-amber-500/5 flex flex-col items-center justify-center gap-1.5 text-xs px-3 text-center"
+                title="Image uploads unlock after the client approves the copy"
+              >
+                <Lock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                <span className="font-semibold text-amber-700 dark:text-amber-400">Locked</span>
+                <span className="text-[10px] text-amber-700/80 dark:text-amber-400/80 leading-tight">
+                  Unlocks after copy approval
+                </span>
               </div>
             ) : (
               <button
