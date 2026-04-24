@@ -230,8 +230,9 @@ export default function ContentGenerationTab({ clinicId }: Props) {
               monthYear={currentGeneration.month_year}
               approvalStatus={currentGeneration.approval_status}
               isClient={false}
-              onSendToClient={() => sendToClient.mutate(currentGeneration.id)}
-              sendPending={sendToClient.isPending}
+              onSendCopyForReview={() => sendCopyForReview.mutate(currentGeneration.id)}
+              onSendFinalForReview={() => sendFinalForReview.mutate(currentGeneration.id)}
+              sendPending={sendCopyForReview.isPending || sendFinalForReview.isPending}
             />
           </CardContent>
         </Card>
