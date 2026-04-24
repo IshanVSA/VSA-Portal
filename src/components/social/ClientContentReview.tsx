@@ -147,7 +147,7 @@ export default function ClientContentReview({ clinicId }: Props) {
               setFeedbackGen(gen);
               setFeedbackText(gen.client_feedback || "");
             }}
-            isPendingApproval={approveContent.isPending}
+            isPendingApproval={approveCopy.isPending || approveFinal.isPending}
           />
         ))}
       </div>
@@ -187,11 +187,20 @@ export default function ClientContentReview({ clinicId }: Props) {
               monthYear={viewingGen.month_year}
               approvalStatus={viewingGen.approval_status}
               isClient={true}
-              onApprove={() => {
+              onApproveCopy={() => {
                 setApproveConfirm(viewingGen);
                 setViewingGen(null);
               }}
-              onRequestChanges={() => {
+              onRequestCopyChanges={() => {
+                setFeedbackGen(viewingGen);
+                setFeedbackText(viewingGen.client_feedback || "");
+                setViewingGen(null);
+              }}
+              onApproveFinal={() => {
+                setApproveConfirm(viewingGen);
+                setViewingGen(null);
+              }}
+              onRequestFinalChanges={() => {
                 setFeedbackGen(viewingGen);
                 setFeedbackText(viewingGen.client_feedback || "");
                 setViewingGen(null);
@@ -232,35 +241,39 @@ export default function ClientContentReview({ clinicId }: Props) {
             </Button>
             <Button
               onClick={handleSubmitFeedback}
-              disabled={!feedbackText.trim() || submitFeedback.isPending}
+              disabled={!feedbackText.trim() || requestCopyChanges.isPending || requestFinalChanges.isPending}
               className="gap-2"
             >
               <Send className="h-4 w-4" />
-              {submitFeedback.isPending ? "Sending..." : "Submit Feedback"}
+              {(requestCopyChanges.isPending || requestFinalChanges.isPending) ? "Sending..." : "Submit Feedback"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Approve Confirmation */}
+      {/* Approve Confirmation — context-aware copy vs final */}
       <AlertDialog open={!!approveConfirm} onOpenChange={() => setApproveConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Approve This Month&apos;s Content?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {isCopyRound(approveConfirm)
+                ? "Approve the copy?"
+                : "Approve final content?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              By approving, you confirm that the content is ready to be scheduled and
-              posted on your social media channels. Your concierge will begin the posting
-              schedule.
+              {isCopyRound(approveConfirm)
+                ? "By approving the copy, you confirm the captions, hooks, and hashtags look good. Your concierge will then add visuals and send the calendar back for your final approval."
+                : "By approving, you confirm the content is ready to be scheduled and posted on your social media channels. Your concierge will begin the posting schedule."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleApprove}
-              disabled={approveContent.isPending}
+              disabled={approveCopy.isPending || approveFinal.isPending}
             >
               <ThumbsUp className="h-4 w-4 mr-2" />
-              Yes, Approve Content
+              {isCopyRound(approveConfirm) ? "Yes, approve copy" : "Yes, approve final"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
