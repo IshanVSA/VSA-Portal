@@ -18,7 +18,7 @@ const WELCOME: Message = {
   id: "welcome",
   role: "assistant",
   content:
-    "👋 Hi! I'm your VSA assistant. I can help you navigate the platform, answer questions, create support tickets, or give marketing tips. Try saying **\"Create a ticket for...\"** to get started!",
+    "👋 Hi! I'm Tony AI, your VSA assistant. I can help you navigate the platform, answer questions, create support tickets, or give marketing tips. Try saying **\"Create a ticket for...\"** to get started!",
 };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
