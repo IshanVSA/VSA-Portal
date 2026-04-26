@@ -392,7 +392,7 @@ export default function PromotionModule({ clinicId, jurisdiction }: Props) {
           <div className="py-8 text-center">
             <Tag className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
             <p className="text-sm text-muted-foreground">No active promotions</p>
-            <p className="text-xs text-muted-foreground mt-1">Add promotions so the AI can reference them in generated posts.</p>
+            <p className="text-xs text-muted-foreground mt-1">Add promotions so Tony AI can reference them in generated posts.</p>
           </div>
         ) : (
           <div className="space-y-3">
