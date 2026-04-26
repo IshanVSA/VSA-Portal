@@ -54,6 +54,8 @@ export function ClinicClock({ clinicId }: ClinicClockProps) {
     return null;
   }
 
+  const cityLabel = timezone.split("/").pop()?.replace(/_/g, " ") || "";
+
   return (
     <div
       className="hidden md:flex items-center gap-1.5 px-2.5 h-8 rounded-md bg-muted/40 border border-border/40 text-[11px] font-medium text-foreground"
@@ -61,7 +63,7 @@ export function ClinicClock({ clinicId }: ClinicClockProps) {
     >
       <Clock className="h-3 w-3 text-muted-foreground" />
       <span className="tabular-nums">{timeStr}</span>
-      {tzAbbr && <span className="text-muted-foreground">{tzAbbr}</span>}
+      <span className="text-muted-foreground">{tzAbbr || cityLabel}</span>
     </div>
   );
 }
