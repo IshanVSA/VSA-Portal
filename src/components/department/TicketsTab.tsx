@@ -239,22 +239,44 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
     enabled: assigneeUserIds.length > 0,
   });
 
-  // Client-side search filtering
+  // Apply month filter (with carry-forward) then search filter
   const filteredTickets = useMemo(() => {
-    if (!searchQuery.trim()) return tickets;
+    let list = tickets;
+
+    if (monthFilter !== "all") {
+      const [yStr, mStr] = monthFilter.split("-");
+      const year = Number(yStr);
+      const month = Number(mStr) - 1;
+      const monthStart = new Date(year, month, 1);
+      const monthEnd = new Date(year, month + 1, 1);
+
+      list = list
+        .map((t: any) => {
+          const created = new Date(t.created_at);
+          const inMonth = created >= monthStart && created < monthEnd;
+          const carriedOver = created < monthStart && CARRY_FORWARD_STATUSES.has(t.status);
+          if (!inMonth && !carriedOver) return null;
+          return carriedOver
+            ? { ...t, __carriedFrom: format(created, "MMM yyyy") }
+            : t;
+        })
+        .filter(Boolean) as any[];
+    }
+
+    if (!searchQuery.trim()) return list;
     const q = searchQuery.toLowerCase();
-    return tickets.filter((t: any) =>
+    return list.filter((t: any) =>
       (t.title?.toLowerCase().includes(q)) ||
       (t.description?.toLowerCase().includes(q)) ||
       (t.ticket_type?.toLowerCase().includes(q))
     );
-  }, [tickets, searchQuery]);
+  }, [tickets, searchQuery, monthFilter]);
 
-  // Stats for the summary bar (based on all tickets, not filtered)
-  const openCount = tickets.filter((t: any) => t.status === "open").length;
-  const inProgressCount = tickets.filter((t: any) => t.status === "in_progress").length;
-  const completedCount = tickets.filter((t: any) => t.status === "completed").length;
-  const emergencyCount = tickets.filter((t: any) => t.status === "emergency").length;
+  // Stats reflect what's visible in the selected month
+  const openCount = filteredTickets.filter((t: any) => t.status === "open").length;
+  const inProgressCount = filteredTickets.filter((t: any) => t.status === "in_progress").length;
+  const completedCount = filteredTickets.filter((t: any) => t.status === "completed").length;
+  const emergencyCount = filteredTickets.filter((t: any) => t.status === "emergency").length;
 
   // Merge directory-resolved names into the team members list passed to children,
   // so clients/staff can see assignee names even when their RLS hides full profiles.
