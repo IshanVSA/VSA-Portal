@@ -372,7 +372,7 @@ export function UnifiedReportTab({ clinicId }: Props) {
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">Report Period</label>
               <Select value={period} onValueChange={(v) => setPeriod(v as ReportPeriod)}>
-                <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[200px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(Object.entries(periodLabels) as [ReportPeriod, string][]).map(([k, v]) => (
                     <SelectItem key={k} value={k}>{v}</SelectItem>
