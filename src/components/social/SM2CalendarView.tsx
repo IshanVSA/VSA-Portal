@@ -308,6 +308,8 @@ export default function SM2CalendarView({
                 </button>
               );
             })}
+              </div>
+            </div>
           </div>
         </div>
 
