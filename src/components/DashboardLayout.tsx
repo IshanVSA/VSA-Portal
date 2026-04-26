@@ -532,14 +532,14 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
           </button>
 
           {currentPageTitle && (
-            <div className="hidden sm:flex items-center gap-2 text-sm min-w-0">
+            <div className="hidden lg:flex items-center gap-2 text-sm min-w-0">
               <span className="text-muted-foreground text-xs font-medium">VSA</span>
               <ChevronRight className="h-3 w-3 text-muted-foreground/30" />
               <span className="font-semibold text-foreground text-xs">{currentPageTitle}</span>
               {showClinicSelector && selectedClinicName && (
                 <>
-                  <ChevronRight className="h-3 w-3 text-muted-foreground/30 hidden md:block" />
-                  <span className="hidden md:inline text-xs font-medium text-primary truncate max-w-[160px] xl:max-w-[200px]">
+                  <ChevronRight className="h-3 w-3 text-muted-foreground/30 hidden xl:block" />
+                  <span className="hidden xl:inline text-xs font-medium text-primary truncate max-w-[200px]">
                     {selectedClinicName}
                   </span>
                 </>
@@ -547,25 +547,25 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
             </div>
           )}
 
-          {/* Mobile-only page title */}
-          {currentPageTitle && (
-            <span className="sm:hidden font-semibold text-foreground text-sm truncate min-w-0 flex-1">
+          {/* Mobile/tablet page title — hidden when clinic selector takes the row */}
+          {currentPageTitle && !showClinicSelector && (
+            <span className="lg:hidden font-semibold text-foreground text-sm truncate min-w-0 flex-1">
               {currentPageTitle}
             </span>
           )}
 
           <div className="hidden lg:block flex-1" />
 
-          {/* Right cluster — wraps to its own row on mobile */}
-          <div className="flex items-center justify-end gap-1 sm:gap-2 lg:gap-3 min-w-0 ml-auto shrink-0">
+          {/* Right cluster */}
+          <div className="flex items-center justify-end gap-1 sm:gap-2 lg:gap-3 min-w-0 ml-auto flex-1 lg:flex-none">
             {clinicSelectorSelectedId && (
-              <div className="hidden md:block">
+              <div className="hidden xl:block shrink-0">
                 <ClinicClock clinicId={clinicSelectorSelectedId} />
               </div>
             )}
 
             {showClinicSelector && (
-              <div className="min-w-0 flex-1 sm:flex-none">
+              <div className="min-w-0 flex-1 lg:flex-none lg:w-auto">
                 <ClinicSelector
                   clinics={clinicSelectorClinics}
                   selectedClinicId={clinicSelectorSelectedId}
@@ -602,7 +602,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
 
             <NotificationBell />
 
-            <div className="h-8 w-8 rounded-lg bg-primary/8 flex items-center justify-center ring-1 ring-primary/10 shrink-0">
+            <div className="hidden sm:flex h-8 w-8 rounded-lg bg-primary/8 items-center justify-center ring-1 ring-primary/10 shrink-0">
               <span className="text-[11px] font-bold text-primary">
                 {profile?.full_name?.charAt(0)?.toUpperCase() || "U"}
               </span>
