@@ -236,16 +236,17 @@ export default function SM2CalendarView({
           </div>
         )}
 
-        {/* Calendar */}
         <div className="border border-border rounded-xl overflow-hidden bg-card shadow-sm">
-          <div className="grid grid-cols-7 bg-muted/40 border-b border-border">
-            {WEEKDAYS.map((d) => (
-              <div key={d} className="text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground py-3">
-                {d}
+          <div className="overflow-x-auto">
+            <div className="min-w-[640px]">
+              <div className="grid grid-cols-7 bg-muted/40 border-b border-border">
+                {WEEKDAYS.map((d) => (
+                  <div key={d} className="text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground py-3">
+                    {d}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7">
+              <div className="grid grid-cols-7">
             {days.map((day, i) => {
               const dateStr = format(day, "yyyy-MM-dd");
               const dayPosts = postsByDate[dateStr] || [];
@@ -307,6 +308,8 @@ export default function SM2CalendarView({
                 </button>
               );
             })}
+              </div>
+            </div>
           </div>
         </div>
 
