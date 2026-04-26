@@ -36,6 +36,7 @@ interface KanbanTicket {
   pool_user_ids?: string[];
   dept_assignment_id?: string;
   dept_assignments?: { department: string; status: string; assigned_to: string | null }[];
+  __carriedFrom?: string;
 }
 
 interface TicketKanbanViewProps {
@@ -347,6 +348,15 @@ export function TicketKanbanView({ tickets, teamMembers, currentDepartment, onUp
                   <div className="flex flex-wrap items-center gap-1 mb-2 pl-[2.25rem]">
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{t.ticket_type}</Badge>
                     <Badge variant="outline" className="text-[10px] px-1.5 py-0">{deptLabels[t.department] || t.department}</Badge>
+                    {t.__carriedFrom && (
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] px-1.5 py-0 bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30"
+                        title="This ticket was created in a previous month and is still open."
+                      >
+                        Carried from {t.__carriedFrom}
+                      </Badge>
+                    )}
                   </div>
 
                   <div className="flex items-center justify-between pl-[2.25rem]">

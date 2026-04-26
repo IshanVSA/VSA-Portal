@@ -4,7 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Plus, Inbox, Search, X } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Inbox, Search, X, CalendarRange } from "lucide-react";
+import { format } from "date-fns";
 import { TicketKanbanView } from "./TicketKanbanView";
 import { NewTicketDialog } from "./NewTicketDialog";
 import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
@@ -28,12 +30,35 @@ const statusFilters = [
   { value: "void", label: "Void" },
 ];
 
+const CARRY_FORWARD_STATUSES = new Set(["open", "in_progress", "emergency"]);
+
+function currentMonthKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function buildMonthOptions(count = 12) {
+  const opts: { value: string; label: string }[] = [];
+  const now = new Date();
+  for (let i = 0; i < count; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const label = i === 0 ? `This Month (${format(d, "MMM yyyy")})`
+      : i === 1 ? `Last Month (${format(d, "MMM yyyy")})`
+      : format(d, "MMMM yyyy");
+    opts.push({ value, label });
+  }
+  return opts;
+}
+
 export function TicketsTab({ department, services, clinicId }: TicketsTabProps) {
   const [filter, setFilter] = useState("all");
+  const [monthFilter, setMonthFilter] = useState<string>(currentMonthKey());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { role } = useUserRole();
   const isClient = role === "client";
+  const monthOptions = useMemo(() => buildMonthOptions(12), []);
 
   // Fetch team members for assignment dropdown
   const { data: teamMemberProfiles = [] } = useQuery({
@@ -214,22 +239,44 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
     enabled: assigneeUserIds.length > 0,
   });
 
-  // Client-side search filtering
+  // Apply month filter (with carry-forward) then search filter
   const filteredTickets = useMemo(() => {
-    if (!searchQuery.trim()) return tickets;
+    let list = tickets;
+
+    if (monthFilter !== "all") {
+      const [yStr, mStr] = monthFilter.split("-");
+      const year = Number(yStr);
+      const month = Number(mStr) - 1;
+      const monthStart = new Date(year, month, 1);
+      const monthEnd = new Date(year, month + 1, 1);
+
+      list = list
+        .map((t: any) => {
+          const created = new Date(t.created_at);
+          const inMonth = created >= monthStart && created < monthEnd;
+          const carriedOver = created < monthStart && CARRY_FORWARD_STATUSES.has(t.status);
+          if (!inMonth && !carriedOver) return null;
+          return carriedOver
+            ? { ...t, __carriedFrom: format(created, "MMM yyyy") }
+            : t;
+        })
+        .filter(Boolean) as any[];
+    }
+
+    if (!searchQuery.trim()) return list;
     const q = searchQuery.toLowerCase();
-    return tickets.filter((t: any) =>
+    return list.filter((t: any) =>
       (t.title?.toLowerCase().includes(q)) ||
       (t.description?.toLowerCase().includes(q)) ||
       (t.ticket_type?.toLowerCase().includes(q))
     );
-  }, [tickets, searchQuery]);
+  }, [tickets, searchQuery, monthFilter]);
 
-  // Stats for the summary bar (based on all tickets, not filtered)
-  const openCount = tickets.filter((t: any) => t.status === "open").length;
-  const inProgressCount = tickets.filter((t: any) => t.status === "in_progress").length;
-  const completedCount = tickets.filter((t: any) => t.status === "completed").length;
-  const emergencyCount = tickets.filter((t: any) => t.status === "emergency").length;
+  // Stats reflect what's visible in the selected month
+  const openCount = filteredTickets.filter((t: any) => t.status === "open").length;
+  const inProgressCount = filteredTickets.filter((t: any) => t.status === "in_progress").length;
+  const completedCount = filteredTickets.filter((t: any) => t.status === "completed").length;
+  const emergencyCount = filteredTickets.filter((t: any) => t.status === "emergency").length;
 
   // Merge directory-resolved names into the team members list passed to children,
   // so clients/staff can see assignee names even when their RLS hides full profiles.
@@ -280,6 +327,18 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
           ))}
         </div>
         <div className="flex items-center gap-2">
+          <Select value={monthFilter} onValueChange={setMonthFilter}>
+            <SelectTrigger className="h-8 w-[180px] text-xs gap-1.5">
+              <CalendarRange className="h-3.5 w-3.5 text-muted-foreground" />
+              <SelectValue placeholder="Select month" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover z-50">
+              <SelectItem value="all">All Months</SelectItem>
+              {monthOptions.map(m => (
+                <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button size="sm" onClick={() => setDialogOpen(true)} className="shrink-0 gap-1.5">
             <Plus className="h-3.5 w-3.5" />
             New Ticket
