@@ -539,6 +539,10 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
 
           <div className="flex-1" />
 
+          {clinicSelectorSelectedId && (
+            <ClinicClock clinicId={clinicSelectorSelectedId} />
+          )}
+
           {showClinicSelector && (
             <ClinicSelector
               clinics={clinicSelectorClinics}
