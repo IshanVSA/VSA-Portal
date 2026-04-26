@@ -327,6 +327,18 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
           ))}
         </div>
         <div className="flex items-center gap-2">
+          <Select value={monthFilter} onValueChange={setMonthFilter}>
+            <SelectTrigger className="h-8 w-[180px] text-xs gap-1.5">
+              <CalendarRange className="h-3.5 w-3.5 text-muted-foreground" />
+              <SelectValue placeholder="Select month" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover z-50">
+              <SelectItem value="all">All Months</SelectItem>
+              {monthOptions.map(m => (
+                <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button size="sm" onClick={() => setDialogOpen(true)} className="shrink-0 gap-1.5">
             <Plus className="h-3.5 w-3.5" />
             New Ticket
