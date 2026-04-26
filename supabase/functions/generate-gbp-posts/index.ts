@@ -386,7 +386,7 @@ Topics for each week:
 - Week 4: ${topics.week_4}
 ${recentContext}
 
-Generate 4 GBP posts for this clinic for this month following all 13 steps in the system prompt.
+Generate 4 GBP posts for this clinic for this month following the v1.2.1 system prompt rules.
 
 You MUST respond with ONLY a valid JSON object (no markdown, no code fences, no explanation) with this exact structure:
 {
@@ -396,10 +396,12 @@ You MUST respond with ONLY a valid JSON object (no markdown, no code fences, no 
       "post_type": "WHATS_NEW",
       "topic": "...",
       "hook_style": "${hook_style}",
+      "risk_rating": "LOW",
+      "cta_button": "Book",
       "primary_keyword": "unique keyword for this post",
       "secondary_keywords": ["kw1"],
-      "post_content": "the full post text, 80-120 words, zero emojis, no URLs in body",
-      "cta_text": "action verb CTA",
+      "post_content": "the full post text, 80-120 words, no phone/URL/address in body, ends with a button-referenced closing like 'Tap Book to reserve your visit.'",
+      "cta_text": "Tap Book to reserve your visit.",
       "cta_url": "specific service page URL on ${website_url}",
       "word_count": 95,
       "local_landmark_used": "landmark name or none"
@@ -407,18 +409,24 @@ You MUST respond with ONLY a valid JSON object (no markdown, no code fences, no 
   ]
 }
 
-CRITICAL REMINDERS:
-- 4 posts total, one per week
-- Week 2 post_type MUST be "PRODUCTS_SERVICES", all others "WHATS_NEW"
-- Each primary_keyword MUST be different
-- "${neighbourhood}" in first 100 chars of every post
-- Phone "${phone_number}" in at least 2 posts
-- 80-120 words per post
-- Zero emojis anywhere
-- No URLs in post body text -- CTA button only
-- CTA URLs must be specific service pages on ${website_url}, NOT the homepage
-- Spelling standard: ${spellingStandard}
-- Run your 13-step self-audit checklist before responding`;
+CRITICAL REMINDERS (v1.2.1):
+- 4 posts total, one per week.
+- Week 2 post_type MUST be "PRODUCTS_SERVICES" with a LOW-RISK service (wellness exam, new patient visit, puppy/kitten first visit, senior wellness exam, nutrition or behaviour consultation, boarding, daycare, grooming, house call). All others are "WHATS_NEW".
+- Each primary_keyword MUST be different across the 4 posts.
+- "${neighbourhood}" appears in the first 100 chars of every post.
+- NEVER write a phone number in the post body — phone goes only to the Call CTA button.
+- NEVER write a URL or domain in the post body — URL goes only to the Book or Learn more CTA button URL field.
+- NEVER write a street address in the post body.
+- Every post ends with a button-referenced closing (e.g. "Tap Book to reserve your visit." / "Tap Call to reach our team." / "Tap Learn more to read the full guide.").
+- 80-120 words per post.
+- 0-2 emojis max per post, start or end only, never the regulated-item emojis (💊 💉 🔪 🍷 🚬).
+- No em dashes anywhere. No ALL-CAPS. Maximum 1 exclamation point per post.
+- Apply Topic Risk Framework: HIGH-risk topics (heartworm, flea/tick, vaccines, spay/neuter, dental cleaning, microchipping, laser, ultrasound, radiography, named pharma, named devices) are EDUCATION ONLY — no CTA tied to the restricted item.
+- Set risk_rating to "LOW" / "MEDIUM" / "HIGH" for each post based on its topic.
+- cta_button must be one of: "Book", "Call", "Learn more", "Sign up". Use "Learn more" for HIGH-risk educational posts.
+- CTA URLs must be specific service pages on ${website_url}, NOT the homepage. For HIGH-risk posts, point at a wellness exam or info page, never the restricted item.
+- Spelling standard: ${spellingStandard}.
+- Run the full pre-flight compliance checklist before responding.`;
     }
 
     console.log(fix_mode ? "Fixing GBP posts via Anthropic Claude for clinic:" : "Generating GBP v2.0 posts via Anthropic Claude Sonnet for clinic:", clinic_id);
