@@ -1,6 +1,7 @@
 // GBP Posts Feature — TypeScript Types
 
 export type HookStyle = 'STAT' | 'QUESTION' | 'URGENCY' | 'MYTH-BUST';
+export type RiskRating = 'LOW' | 'MEDIUM' | 'HIGH';
 export type TopicVariant = 'A' | 'B' | 'C' | 'D';
 export type ClusterPosition = 'A' | 'B' | 'C' | 'D';
 export type PostType = 'WHATS_NEW' | 'PRODUCTS_SERVICES';
@@ -161,7 +162,9 @@ export interface ComplianceScan {
     service_keyword: 'PASS' | 'FAIL';
     hook_strength: { post_1: boolean; post_2: boolean; post_3: boolean; post_4: boolean };
     word_count: { post_1: number; post_2: number; post_3: number; post_4: number };
-    phone_in_2_plus: 'PASS' | 'FAIL';
+    phone_not_in_body: 'PASS' | 'FAIL';
+    address_not_in_body: 'PASS' | 'FAIL';
+    button_referenced_closing: 'PASS' | 'FAIL';
     keyword_diversity: 'PASS' | 'FAIL';
     cta_service_page: 'PASS' | 'FAIL';
     neighbourhood_in_all: 'PASS' | 'FAIL';
@@ -238,6 +241,8 @@ export interface GeneratedPost {
   cta_url: string;
   word_count: number;
   local_landmark_used: string;
+  risk_rating?: RiskRating;
+  cta_button?: 'Book' | 'Call' | 'Learn more' | 'Sign up';
 }
 
 export interface GenerateGBPPostsResponse {

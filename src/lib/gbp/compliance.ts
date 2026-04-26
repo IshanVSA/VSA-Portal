@@ -1,25 +1,33 @@
 import type { ComplianceScan, GeneratedPost, HospitalType, Jurisdiction } from './types';
 
-// ── Tier 1: VSA Core flagged terms ──
+// ════════════════════════════════════════════════════════════════
+// VSA GBP COMPLIANCE SCANNER — v1.2.1
+// Aligned with VSA Vet Media Inc. · GBP Post Prompt v1.2.1
+// ════════════════════════════════════════════════════════════════
+
+// ── Tier 1: VSA Core flagged terms (v1.2.1 expanded) ──
 const FLAGGED_TERMS = [
-  'best', 'top', 'leading', 'premier', 'superior', '#1', 'number one',
-  'guaranteed', 'cure', 'miracle', 'revolutionary', 'breakthrough',
-  'risk-free', 'no side effects', 'proven cure', 'instant results',
-  'world-class', 'unmatched', 'exclusive', 'only clinic',
-  'narcotic', 'sedation', 'anesthesia', 'steroid', 'antibiotic',
-  'euthanasia', 'fur baby', 'furbaby', 'fur-baby',
-  // v2.0 flagged terms table additions
-  'pharmacy', 'dispensary', 'medication', 'drug',
-  'treatment', 'therapy', 'diagnosis', 'laser therapy',
+  // Pharmaceutical language (v1.2.1)
+  'prescription', 'pharmacy', 'medication', 'drug', 'dispensary', 'controlled substance',
+  // Clinical overreach
+  'treatment', 'therapy', 'diagnosis', 'cure', 'guaranteed',
+  // Pet owner language
+  'fur baby', 'furbaby', 'fur-baby',
+  // Commercial / promotional triggers (v1.2.1)
+  'best price', 'cheapest', 'lowest price', 'number one', '#1',
+  'limited time offer', 'special offer', 'deal', 'discount',
+  'half off', 'coupon',
+  // False-positive trigger words
+  'sex', 'sexual', 'mating', 'heat cycle', 'breeding',
 ];
 
-// v2.0 flagged terms with replacements (for display)
+// v1.2.1 flagged terms with replacements (for display)
 export const FLAGGED_TERMS_REPLACEMENTS: Record<string, string> = {
-  'prescription': 'veterinary products',
-  'pharmacy': 'on-site veterinary products',
-  'dispensary': 'on-site veterinary products',
-  'medication': 'veterinary products',
-  'drug': 'veterinary products',
+  'prescription': 'veterinary care',
+  'pharmacy': 'in-clinic services',
+  'dispensary': 'in-clinic services',
+  'medication': 'veterinary care / in-clinic care',
+  'drug': 'veterinary care',
   'treatment': 'care / veterinary care / supportive care',
   'therapy': 'care / care plan',
   'diagnosis': 'assessment / evaluation',
@@ -29,6 +37,10 @@ export const FLAGGED_TERMS_REPLACEMENTS: Record<string, string> = {
   'fur baby': 'your pet / their pet',
   'furbaby': 'your pet / their pet',
   'fur-baby': 'your pet / their pet',
+  'sex': 'intact pets / unaltered pets',
+  'mating': 'pre-breeding consultation',
+  'heat cycle': 'intact pet care',
+  'breeding': 'pre-breeding consultation',
 };
 
 const SURGERY_REGEX = /\bsurgery\b/i;
@@ -38,24 +50,52 @@ const SPECIALIST_TERMS = [
   'certified specialist',
 ];
 
-// ── Tier 2: Google Ads Healthcare ──
+// ── Tier 2: Named pharmaceutical brands (v1.2.1 expanded) ──
 const DRUG_BRAND_NAMES = [
-  'rimadyl', 'metacam', 'apoquel', 'cerenia', 'convenia', 'adequan',
-  'deramaxx', 'previcox', 'galliprant', 'simparica', 'bravecto',
-  'nexgard', 'heartgard', 'sentinel', 'trifexis', 'revolution',
+  'heartgard', 'interceptor', 'nexgard', 'bravecto', 'simparica',
+  'frontline', 'advantage', 'advantix', 'revolution', 'seresto',
+  'rimadyl', 'metacam', 'galliprant', 'apoquel', 'cytopoint',
+  'cerenia', 'convenia', 'adequan', 'deramaxx', 'previcox',
+  'sentinel', 'trifexis',
   'prednisone', 'dexamethasone', 'tramadol', 'gabapentin',
 ];
 
 const PRESCRIPTION_TERMS = [
-  'prescription', 'rx only', 'controlled substance', 'schedule ii',
+  'rx only', 'controlled substance', 'schedule ii',
   'schedule iii', 'schedule iv', 'narcotic',
-  'sedation', 'anesthesia', 'antibiotic', 'steroid',
 ];
 
 const SENSITIVE_TERMS = [
   'euthanasia', 'put down', 'put to sleep', 'death', 'dying', 'terminal',
   'cancer treatment', 'chemotherapy', 'radiation therapy',
-  'diagnose', 'treat', 'prescribe',
+  'diagnose', 'prescribe',
+];
+
+// v1.2.1: Named medical devices / modalities (no CTA tied to these)
+const MEDICAL_DEVICE_TERMS = [
+  'microchipping', 'laser therapy', 'cryotherapy', 'endoscopy',
+  'radiography', 'ultrasound', 'digital x-ray',
+];
+
+// v1.2.1: Outcome / longevity claim phrases
+const OUTCOME_CLAIM_PATTERNS: RegExp[] = [
+  /prevents?\s+cancer/i,
+  /reduces?\s+(disease\s+)?risk(\s+by\s+\d+%?)?/i,
+  /eliminates?\s+pain/i,
+  /guaranteed\s+results/i,
+  /pets?\s+live\s+longer/i,
+  /extends?\s+lifespan/i,
+  /your\s+pet\s+will\s+feel\s+better/i,
+];
+
+// v1.2.1 commercial / promotional regex triggers
+const COMMERCIAL_PATTERNS: RegExp[] = [
+  /\bbest\s+(price|deal|vet|clinic)\b/i,
+  /\bsave\s+\$\d+/i,
+  /\bonly\s+\$\d+/i,
+  /\bhalf\s+off\b/i,
+  /\bfree\b(?!\s+(consult|of\s+charge\s+for|to\s+chat))/i,
+  /\b#1\b/,
 ];
 
 const LANDING_PAGE_RISK_TERMS = [
@@ -64,19 +104,22 @@ const LANDING_PAGE_RISK_TERMS = [
   'before and after', 'transformation', 'guaranteed transformation',
 ];
 
-// ── Hospital Type Language Rules (v2.0) ──
+// ── v1.2.1 Hospital Type Language Rules ──
+// TYPE 1 = Emergency / 24-7
+// TYPE 2 = Extended Hours (urgent care / walk-in / extended evenings)
+// TYPE 3 = Daytime Clinic (urgent care / walk-in / same-day)
 const HOSPITAL_TYPE_RULES: Record<number, { allowed: string[]; forbidden: string[] }> = {
   1: {
-    allowed: ['emergency', 'after-hours', '24-hour', 'emergency hospital', 'overnight emergency'],
+    allowed: ['emergency', 'after-hours', '24-hour', '24/7', 'emergency hospital', 'overnight emergency'],
     forbidden: [],
   },
   2: {
-    allowed: ['emergency', 'overnight emergency vet', 'emergency care available'],
-    forbidden: ['24/7', '24-hour'],
+    allowed: ['urgent care', 'extended hours', 'open evenings', 'open 7 days', 'walk-in'],
+    forbidden: ['emergency hospital', 'emergency clinic', '24-hour', '24/7', 'after-hours emergency'],
   },
   3: {
-    allowed: ['urgent care', 'walk-in', 'same-day appointments', 'extended hours', 'open evenings'],
-    forbidden: ['emergency hospital', 'emergency clinic', '24-hour', 'after-hours emergency', '24/7'],
+    allowed: ['urgent care', 'walk-in', 'same-day appointments', 'same-day'],
+    forbidden: ['emergency hospital', 'emergency clinic', '24-hour', '24/7', 'after-hours emergency'],
   },
 };
 
@@ -101,30 +144,64 @@ function hasUsEnglishIssue(text: string): boolean {
   return britishSpellings.some(s => lower.includes(s));
 }
 
-/**
- * v2.0: Zero emoji rule for GBP posts.
- * Returns true if the post VIOLATES emoji rules (any emoji = violation).
- */
+// v1.2.1: Allow 1-2 emojis at start/end only. Forbid regulated-item emojis anywhere.
+const FORBIDDEN_EMOJIS = ['💊', '💉', '🔪', '🍷', '🚬'];
+const EMOJI_REGEX = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu;
+
 function hasEmojiViolation(text: string): boolean {
-  const emojiRegex = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu;
-  const matches = text.match(emojiRegex);
-  // v2.0: Zero emojis allowed in GBP posts
-  return matches !== null && matches.length > 0;
+  // Forbidden regulated-item emojis = always violation
+  if (FORBIDDEN_EMOJIS.some(e => text.includes(e))) return true;
+
+  const matches = text.match(EMOJI_REGEX) || [];
+  if (matches.length === 0) return false;
+  // Max 2 per post
+  if (matches.length > 2) return true;
+
+  // Mid-sentence check: emoji must only appear in first 12 chars or last 12 chars (start/end)
+  const len = text.length;
+  for (const match of matches) {
+    const idx = text.indexOf(match);
+    const atStart = idx <= 12;
+    const atEnd = idx >= len - 12;
+    if (!atStart && !atEnd) return true;
+  }
+  return false;
 }
 
-/**
- * v2.0: Check for URLs in post body text (Trigger 1)
- */
+// v1.2.1: Trigger 1 — no URL or domain in body
 function hasUrlInBody(text: string): boolean {
-  return /https?:\/\//i.test(text) || /www\./i.test(text);
+  return /https?:\/\//i.test(text) || /www\./i.test(text) || /\b[a-z0-9-]+\.(com|ca|net|org|vet|clinic|co|io)\b/i.test(text);
 }
 
-/**
- * v2.0: Check for ALL CAPS text (Trigger 4)
- */
+// v1.2.1: No street address in body (basic detector — number + street suffix)
+function hasAddressInBody(text: string): boolean {
+  return /\b\d{1,5}\s+[A-Z][a-z]+(\s+[A-Z][a-z]+)*\s+(Street|St\.?|Avenue|Ave\.?|Road|Rd\.?|Boulevard|Blvd\.?|Drive|Dr\.?|Lane|Ln\.?|Way|Court|Ct\.?|Place|Pl\.?)\b/i.test(text);
+}
+
+// v1.2.1: No phone numbers in body
+function hasPhoneInBody(text: string): boolean {
+  // Matches (xxx) xxx-xxxx, xxx-xxx-xxxx, xxx.xxx.xxxx, +1 xxx xxx xxxx
+  return /(\+?\d[\s.\-]?)?\(?\d{3}\)?[\s.\-]\d{3}[\s.\-]\d{4}/.test(text);
+}
+
+// v1.2.1: ALL CAPS check
 function hasAllCaps(text: string): boolean {
-  // Check for words of 3+ letters that are all caps
-  return /\b[A-Z]{3,}\b/.test(text.replace(/\b(CTA|URL|GBP|VSA|AAHA|BC|AB|ON|CA|US|UK)\b/g, ''));
+  return /\b[A-Z]{3,}\b/.test(text.replace(/\b(CTA|URL|GBP|VSA|AAHA|AVMA|CVMA|WSAVA|BC|AB|ON|CA|US|UK)\b/g, ''));
+}
+
+// v1.2.1: Punctuation — max 1 exclamation; no !!!, ???, $$$
+function hasExcessivePunctuation(text: string): boolean {
+  if (/!!|\?\?|\$\$/.test(text)) return true;
+  const exclaims = (text.match(/!/g) || []).length;
+  return exclaims > 1;
+}
+
+// v1.2.1: Button-referenced closing required. e.g. "Tap Book to ...", "Tap Call to ...", "Tap Learn more to ..."
+function hasButtonReferencedClosing(text: string): boolean {
+  // Look at last sentence
+  const trimmed = text.trim();
+  const tail = trimmed.slice(-200);
+  return /\bTap\s+(Book|Call|Learn\s+more|Sign\s+up)\b/i.test(tail);
 }
 
 export function runComplianceScan(
@@ -134,7 +211,7 @@ export function runComplianceScan(
   hospitalType: HospitalType,
   jurisdiction: Jurisdiction,
   neighbourhood: string,
-  phoneNumber: string
+  _phoneNumber: string
 ): ComplianceScan {
   const allContent = posts.map(p => p.post_content).join(' ');
   let issuesCount = 0;
@@ -153,7 +230,9 @@ export function runComplianceScan(
   }, []);
   if (emDashes.length > 0) issuesCount += emDashes.length;
 
-  const usEnglish = hasUsEnglishIssue(allContent) ? 'FAIL' as const : 'PASS' as const;
+  // Spelling: BC/Canadian use UK-ish spellings (behaviour OK). For US: flag British.
+  const isCanadian = jurisdiction === 'BC' || jurisdiction === 'CA-OTHER';
+  const usEnglish = !isCanadian && hasUsEnglishIssue(allContent) ? 'FAIL' as const : 'PASS' as const;
   if (usEnglish === 'FAIL') issuesCount++;
 
   const specialistClaims = countMatches(allContent, SPECIALIST_TERMS).found > 0 ? 'FAIL' as const : 'PASS' as const;
@@ -164,27 +243,41 @@ export function runComplianceScan(
   const hospitalTypeLanguage = forbiddenUsed.length > 0 ? 'FAIL' as const : 'PASS' as const;
   if (hospitalTypeLanguage === 'FAIL') issuesCount += forbiddenUsed.length;
 
-  const guaranteedOutcomes = /guarante/i.test(allContent) ? 'FAIL' as const : 'PASS' as const;
+  const guaranteedOutcomes = /guarante/i.test(allContent) || OUTCOME_CLAIM_PATTERNS.some(re => re.test(allContent))
+    ? 'FAIL' as const : 'PASS' as const;
   if (guaranteedOutcomes === 'FAIL') issuesCount++;
 
-  // v2.0: Zero emoji rule
+  // v1.2.1: Emoji rule (1-2 max, start/end only, no regulated-item emojis)
   const emojiCompliance = posts.some(p => hasEmojiViolation(p.post_content)) ? 'FAIL' as const : 'PASS' as const;
   if (emojiCompliance === 'FAIL') issuesCount++;
 
-  // v2.0: URL in body check
-  const urlInBody = posts.some(p => hasUrlInBody(p.post_content));
-  if (urlInBody) issuesCount++;
+  // v1.2.1: Excessive punctuation (rolled into flagged_terms count via separate increment)
+  if (posts.some(p => hasExcessivePunctuation(p.post_content))) issuesCount++;
 
-  // v2.0: ALL CAPS check
-  const allCapsViolation = posts.some(p => hasAllCaps(p.post_content));
-  if (allCapsViolation) issuesCount++;
+  // v1.2.1: ALL CAPS
+  if (posts.some(p => hasAllCaps(p.post_content))) issuesCount++;
 
-  // ── TIER 2: Google Ads Healthcare ──
+  // ── TIER 2: Regulated content ──
   const prescriptionDrugTerms = countMatches(allContent, PRESCRIPTION_TERMS);
   if (prescriptionDrugTerms.found > 0) issuesCount += prescriptionDrugTerms.found;
 
   const drugBrandNames = countMatches(allContent, DRUG_BRAND_NAMES);
   if (drugBrandNames.found > 0) issuesCount += drugBrandNames.found;
+
+  // v1.2.1: medical device promotion check — only fail if device named AND CTA tied to it
+  const deviceMentions = countMatches(allContent, MEDICAL_DEVICE_TERMS);
+  let deviceCtaViolation = false;
+  for (const post of posts) {
+    const lowerBody = post.post_content.toLowerCase();
+    const lowerCta = (post.cta_text || '').toLowerCase();
+    for (const device of MEDICAL_DEVICE_TERMS) {
+      if (lowerBody.includes(device) && (lowerCta.includes(device.split(' ')[0]) || lowerBody.includes(`book your ${device}`) || lowerBody.includes(`schedule your ${device}`))) {
+        deviceCtaViolation = true;
+        break;
+      }
+    }
+  }
+  if (deviceCtaViolation) issuesCount++;
 
   const directHealthTargeting = /your\s+(illness|disease|condition|diagnosis|symptoms)/i.test(allContent) ? 'FAIL' as const : 'PASS' as const;
   if (directHealthTargeting === 'FAIL') issuesCount++;
@@ -195,17 +288,26 @@ export function runComplianceScan(
   const sensitiveTerms = countMatches(allContent, SENSITIVE_TERMS);
   if (sensitiveTerms.found > 0) issuesCount += sensitiveTerms.found;
 
-  const landingPageRiskTerms = countMatches(allContent, LANDING_PAGE_RISK_TERMS);
-  if (landingPageRiskTerms.found > 0) issuesCount += landingPageRiskTerms.found;
+  const landingPageRiskDetails: string[] = [];
+  for (const term of LANDING_PAGE_RISK_TERMS) {
+    if (allContent.toLowerCase().includes(term.toLowerCase())) landingPageRiskDetails.push(term);
+  }
+  for (const re of COMMERCIAL_PATTERNS) {
+    const m = allContent.match(re);
+    if (m) landingPageRiskDetails.push(m[0]);
+  }
+  if (landingPageRiskDetails.length > 0) issuesCount += landingPageRiskDetails.length;
 
-  // ── TIER 3: Performance ──
+  // ── TIER 3: Performance + v1.2.1 anti-abuse (phone/URL/address in body) ──
   const geoKeywordFirst100: Record<string, boolean> = {};
   const hookStrength: Record<string, boolean> = {};
   const wordCount: Record<string, number> = {};
-  let phoneCount = 0;
   const allKeywords = new Set<string>();
   let ctaHasServicePage = true;
   let neighbourhoodInAll = true;
+  let phoneInBodyAny = false;
+  let addressInBodyAny = false;
+  let buttonClosingMissing = false;
 
   const lower_neighbourhood = neighbourhood?.toLowerCase() || '';
 
@@ -227,11 +329,16 @@ export function runComplianceScan(
     hookStrength[key] = firstSentence.includes('?') || /\d+%|\d+ out of/i.test(firstSentence) || firstSentence.length > 15;
     if (!hookStrength[key]) issuesCount++;
 
-    const wc = post.post_content.split(/\s+/).length;
+    const wc = post.post_content.split(/\s+/).filter(Boolean).length;
     wordCount[key] = wc;
     if (wc < 80 || wc > 120) issuesCount++;
 
-    if (post.post_content.includes(phoneNumber)) phoneCount++;
+    // v1.2.1: Phone NEVER in body
+    if (hasPhoneInBody(post.post_content)) phoneInBodyAny = true;
+    // v1.2.1: Address NEVER in body
+    if (hasAddressInBody(post.post_content)) addressInBodyAny = true;
+    // v1.2.1: Button-referenced closing required
+    if (!hasButtonReferencedClosing(post.post_content)) buttonClosingMissing = true;
 
     allKeywords.add(post.primary_keyword.toLowerCase());
     post.secondary_keywords?.forEach(k => allKeywords.add(k.toLowerCase()));
@@ -243,8 +350,18 @@ export function runComplianceScan(
     }
   }
 
-  const phoneIn2Plus = phoneCount >= 2 ? 'PASS' as const : 'FAIL' as const;
-  if (phoneIn2Plus === 'FAIL') issuesCount++;
+  // v1.2.1: URL in body check (cross-post)
+  const urlInBodyAny = posts.some(p => hasUrlInBody(p.post_content));
+  if (urlInBodyAny) issuesCount++;
+
+  const phoneNotInBody = phoneInBodyAny ? 'FAIL' as const : 'PASS' as const;
+  if (phoneNotInBody === 'FAIL') issuesCount++;
+
+  const addressNotInBody = addressInBodyAny ? 'FAIL' as const : 'PASS' as const;
+  if (addressNotInBody === 'FAIL') issuesCount++;
+
+  const buttonReferencedClosing = buttonClosingMissing ? 'FAIL' as const : 'PASS' as const;
+  if (buttonReferencedClosing === 'FAIL') issuesCount++;
 
   const keywordDiversity = allKeywords.size >= 4 ? 'PASS' as const : 'FAIL' as const;
   if (keywordDiversity === 'FAIL') issuesCount++;
@@ -276,14 +393,16 @@ export function runComplianceScan(
       direct_health_targeting: directHealthTargeting,
       outcome_guarantee: outcomeGuarantee,
       sensitive_terms: sensitiveTerms,
-      landing_page_risk_terms: landingPageRiskTerms,
+      landing_page_risk_terms: { found: landingPageRiskDetails.length, details: landingPageRiskDetails },
     },
     tier_3: {
       geo_keyword_first_100: geoKeywordFirst100 as any,
       service_keyword: serviceKeyword,
       hook_strength: hookStrength as any,
       word_count: wordCount as any,
-      phone_in_2_plus: phoneIn2Plus,
+      phone_not_in_body: phoneNotInBody,
+      address_not_in_body: addressNotInBody,
+      button_referenced_closing: buttonReferencedClosing,
       keyword_diversity: keywordDiversity,
       cta_service_page: ctaHasServicePage ? 'PASS' : 'FAIL',
       neighbourhood_in_all: neighbourhoodInAll ? 'PASS' : 'FAIL',
