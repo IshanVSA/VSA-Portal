@@ -1,6 +1,7 @@
 // GBP Posts Feature — TypeScript Types
 
 export type HookStyle = 'STAT' | 'QUESTION' | 'URGENCY' | 'MYTH-BUST';
+export type RiskRating = 'LOW' | 'MEDIUM' | 'HIGH';
 export type TopicVariant = 'A' | 'B' | 'C' | 'D';
 export type ClusterPosition = 'A' | 'B' | 'C' | 'D';
 export type PostType = 'WHATS_NEW' | 'PRODUCTS_SERVICES';
