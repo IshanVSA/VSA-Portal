@@ -90,7 +90,7 @@ export default function GoogleAdsDepartment() {
 
   return (
     <>
-      <div className="space-y-4 dept-tint-ads min-h-full -m-6 p-6" data-dept="Google Ads">
+      <div className="space-y-4 dept-tint-ads min-h-full -m-3 p-3 sm:-m-4 sm:p-4 lg:-m-8 lg:p-8" data-dept="Google Ads">
         {/* Compact page header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/60">
           <div className="flex items-center gap-2.5">
@@ -116,7 +116,7 @@ export default function GoogleAdsDepartment() {
           ) : (
             <motion.div key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
               <Tabs value={currentTab} onValueChange={(v) => setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", v); return next; }, { replace: true })} className="w-full">
-                <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto">
+                <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto flex-nowrap tabs-scroll">
                   {tabs.map(tab => (
                     <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm relative">
                       <tab.icon className="h-3.5 w-3.5" />

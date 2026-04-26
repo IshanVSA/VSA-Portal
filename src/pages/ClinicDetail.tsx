@@ -422,7 +422,7 @@ export default function ClinicDetail() {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-secondary">
+          <TabsList className="bg-secondary w-full justify-start overflow-x-auto flex-nowrap tabs-scroll">
             <TabsTrigger value="instagram">Instagram</TabsTrigger>
             <TabsTrigger value="facebook">Facebook</TabsTrigger>
             <TabsTrigger value="google">Google Ads</TabsTrigger>
