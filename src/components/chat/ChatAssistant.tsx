@@ -264,12 +264,12 @@ export function ChatAssistant() {
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border/60 bg-muted/30 shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Bot className="h-4 w-4 text-primary" />
+                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                  <img src="/favicon.png" alt="VSA" className="h-6 w-6 object-contain" />
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-foreground">Tony AI</h3>
-                  <p className="text-[10px] text-muted-foreground">Your VSA assistant</p>
+                  <p className="text-[10px] text-muted-foreground">AI-Powered help</p>
                 </div>
               </div>
               <button
