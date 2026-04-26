@@ -241,6 +241,8 @@ export interface GeneratedPost {
   cta_url: string;
   word_count: number;
   local_landmark_used: string;
+  risk_rating?: RiskRating;
+  cta_button?: 'Book' | 'Call' | 'Learn more' | 'Sign up';
 }
 
 export interface GenerateGBPPostsResponse {
