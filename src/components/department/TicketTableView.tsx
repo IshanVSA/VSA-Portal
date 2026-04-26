@@ -153,8 +153,8 @@ export function TicketTableView({ tickets, teamMembers, currentDepartment, onUpd
   return (
     <>
     <div className="border border-border rounded-lg overflow-hidden">
-      <Table>
-        <TableHeader>
+      <Table maxHeight="70vh" freezeFirstColumn>
+        <TableHeader sticky>
           <TableRow className="bg-muted/50">
             <TableHead className="w-[300px]">Ticket</TableHead>
             <TableHead>Type</TableHead>
