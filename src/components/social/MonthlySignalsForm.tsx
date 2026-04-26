@@ -135,7 +135,7 @@ export default function MonthlySignalsForm({ clinicId }: Props) {
           <Badge variant="outline" className="text-xs">{monthLabel}</Badge>
         </div>
         <p className="text-xs text-muted-foreground">
-          Configure campaign parameters and contextual signals for the AI content engine this month.
+          Configure campaign parameters and contextual signals for Tony AI's content engine this month.
         </p>
       </CardHeader>
       <CardContent className="space-y-5">
