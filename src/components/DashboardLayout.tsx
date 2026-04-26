@@ -520,7 +520,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
       <main className="flex-1 min-w-0 flex flex-col">
         {/* Top header */}
         <header
-          className="sticky top-0 z-30 bg-card/80 backdrop-blur-xl border-b border-border/40 px-3 sm:px-4 lg:px-8 py-2 lg:py-0 lg:h-14 flex flex-wrap lg:flex-nowrap items-center gap-2 lg:gap-4"
+          className="sticky top-0 z-30 bg-card/80 backdrop-blur-xl border-b border-border/40 px-3 sm:px-4 lg:px-8 h-14 flex items-center gap-2 lg:gap-4"
           style={{ boxShadow: "var(--shadow-xs)" }}
         >
           <button
