@@ -11,7 +11,7 @@ export default function AiSeoDepartment() {
 
   return (
     <>
-      <div className="space-y-4 dept-tint-ai-seo min-h-full -m-6 p-6" data-dept="AI SEO">
+      <div className="space-y-4 dept-tint-ai-seo min-h-full -m-3 p-3 sm:-m-4 sm:p-4 lg:-m-8 lg:p-8" data-dept="AI SEO">
         <div className="flex flex-col gap-2 pb-3 border-b border-border/60 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2.5">
             <div className="h-8 w-8 rounded-lg bg-[hsl(var(--dept-ai-seo))]/10 flex items-center justify-center">
