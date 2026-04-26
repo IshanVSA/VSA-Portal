@@ -366,7 +366,7 @@ export default function Employees() {
               <DialogDescription>Update access level, team role, and clinic assignments.</DialogDescription>
             </DialogHeader>
             <div className="space-y-5 py-2">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Access Level</Label>
                   <Select value={editForm.role} onValueChange={v => setEditForm(f => ({ ...f, role: v }))}>
@@ -450,9 +450,9 @@ export default function Employees() {
                 </div>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditDialogUser(null)}>Cancel</Button>
-              <Button disabled={savingEdit} onClick={handleSaveEdit}>
+            <DialogFooter className="flex-col gap-2 sm:flex-row">
+              <Button variant="outline" className="w-full sm:w-auto" onClick={() => setEditDialogUser(null)}>Cancel</Button>
+              <Button className="w-full sm:w-auto" disabled={savingEdit} onClick={handleSaveEdit}>
                 {savingEdit ? "Saving…" : "Save Changes"}
               </Button>
             </DialogFooter>
