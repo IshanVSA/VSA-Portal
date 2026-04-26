@@ -17,6 +17,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { ChatAssistant } from "@/components/chat/ChatAssistant";
 import { ClinicSelector } from "@/components/department/ClinicSelector";
+import { ClinicClock } from "@/components/ClinicClock";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
@@ -538,6 +539,10 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
           )}
 
           <div className="flex-1" />
+
+          {clinicSelectorSelectedId && (
+            <ClinicClock clinicId={clinicSelectorSelectedId} />
+          )}
 
           {showClinicSelector && (
             <ClinicSelector
