@@ -88,8 +88,12 @@ export function extractIssueDescriptions(scan: ComplianceScan): string[] {
     if (wc < 80) issues.push(`Tier 3 - Post ${i}: word count is ${wc} (minimum 80). Add more content.`);
     if (wc > 120) issues.push(`Tier 3 - Post ${i}: word count is ${wc} (maximum 120). Trim the post.`);
   }
-  if (scan.tier_3.phone_in_2_plus === 'FAIL')
-    issues.push('Tier 3 - Phone number must appear in at least 2 of the 4 posts. Add the clinic phone number to more posts.');
+  if (scan.tier_3.phone_not_in_body === 'FAIL')
+    issues.push('Tier 3 - Phone number found in post body. Per Google GBP policy, phone numbers must NEVER appear in post body text. Remove all phone numbers — the verified number is auto-attached via the Call CTA button.');
+  if (scan.tier_3.address_not_in_body === 'FAIL')
+    issues.push('Tier 3 - Street address found in post body. Addresses are prohibited in post body text. The address is already on the GBP profile.');
+  if (scan.tier_3.button_referenced_closing === 'FAIL')
+    issues.push('Tier 3 - Button-referenced closing missing on one or more posts. Each post must end with a phrase like "Tap Book to reserve your visit." / "Tap Call to reach our team." / "Tap Learn more to read the full guide."');
   if (scan.tier_3.keyword_diversity === 'FAIL')
     issues.push('Tier 3 - Keyword diversity failed. Each post must have a unique primary keyword - no overlap allowed.');
   if (scan.tier_3.cta_service_page === 'FAIL')
