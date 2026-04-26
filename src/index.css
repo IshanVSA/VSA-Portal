@@ -387,3 +387,6 @@
   0% { opacity: 0; transform: scale(0.3); }
   100% { opacity: 1; transform: scale(1); }
 }
+/* Hide scrollbar but keep horizontal scroll functionality */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
