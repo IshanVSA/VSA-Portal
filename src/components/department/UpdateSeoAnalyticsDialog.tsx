@@ -171,7 +171,7 @@ export function UpdateSeoAnalyticsDialog({ open, onOpenChange, clinicId, onSubmi
               <div className="flex flex-col items-center gap-2">
                 <Upload className="h-8 w-8 text-muted-foreground" />
                 <p className="text-sm font-medium text-foreground">Upload SEO Report PDF</p>
-                <p className="text-xs text-muted-foreground">AI will extract all metrics automatically</p>
+                <p className="text-xs text-muted-foreground">Tony AI will extract all metrics automatically</p>
               </div>
             )}
           </div>

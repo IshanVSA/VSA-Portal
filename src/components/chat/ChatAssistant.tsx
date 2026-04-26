@@ -18,7 +18,7 @@ const WELCOME: Message = {
   id: "welcome",
   role: "assistant",
   content:
-    "👋 Hi! I'm your VSA assistant. I can help you navigate the platform, answer questions, create support tickets, or give marketing tips. Try saying **\"Create a ticket for...\"** to get started!",
+    "👋 Hi! I'm Tony AI, your VSA assistant. I can help you navigate the platform, answer questions, create support tickets, or give marketing tips. Try saying **\"Create a ticket for...\"** to get started!",
 };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
@@ -268,8 +268,8 @@ export function ChatAssistant() {
                   <Bot className="h-4 w-4 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-foreground">Chat Assistant</h3>
-                  <p className="text-[10px] text-muted-foreground">AI-powered help</p>
+                  <h3 className="text-sm font-semibold text-foreground">Tony AI</h3>
+                  <p className="text-[10px] text-muted-foreground">Your VSA assistant</p>
                 </div>
               </div>
               <button

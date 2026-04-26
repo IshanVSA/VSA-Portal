@@ -89,7 +89,7 @@ export default function Settings() {
   const adminTabs = [
     { value: "profile", label: "Profile", icon: User },
     { value: "integrations", label: "Integrations", icon: Key },
-    { value: "ai", label: "AI Templates", icon: Sparkles },
+    { value: "ai", label: "Tony AI Templates", icon: Sparkles },
     { value: "notifications", label: "Notifications", icon: Bell },
     { value: "branding", label: "Branding", icon: Palette },
   ];
@@ -316,13 +316,13 @@ export default function Settings() {
                       </div>
                       <div>
                         <CardTitle className="text-base">Default Prompt Template</CardTitle>
-                        <CardDescription className="text-xs">Base prompt used for AI content generation</CardDescription>
+                        <CardDescription className="text-xs">Base prompt used for Tony AI content generation</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="pt-5 space-y-4">
                     <div className="space-y-2">
-                      <Label>AI Content Generation Prompt</Label>
+                      <Label>Tony AI Content Generation Prompt</Label>
                       <Textarea
                         rows={5}
                         defaultValue="Generate a comprehensive monthly marketing plan for a veterinary clinic including content calendar, captions, reel ideas, hashtags, ad copy, and email newsletter."

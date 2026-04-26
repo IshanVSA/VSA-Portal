@@ -135,7 +135,7 @@ export default function MonthlySignalsForm({ clinicId }: Props) {
           <Badge variant="outline" className="text-xs">{monthLabel}</Badge>
         </div>
         <p className="text-xs text-muted-foreground">
-          Configure campaign parameters and contextual signals for the AI content engine this month.
+          Configure campaign parameters and contextual signals for Tony AI's content engine this month.
         </p>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -165,7 +165,7 @@ export default function MonthlySignalsForm({ clinicId }: Props) {
           <div className="space-y-1.5">
             <Label className="text-sm font-medium">Stock Post Count</Label>
             <Input type="number" min={0} max={20} value={stockCount} onChange={(e) => setStockCount(Number(e.target.value))} />
-            <p className="text-xs text-muted-foreground">AI-generated posts this month (max 10 default)</p>
+            <p className="text-xs text-muted-foreground">Tony AI–generated posts this month (max 10 default)</p>
           </div>
           <div className="space-y-1.5">
             <Label className="text-sm font-medium">Client Asset Post Count</Label>

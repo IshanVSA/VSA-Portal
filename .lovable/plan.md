@@ -1,42 +1,43 @@
 ## Goal
-Add a month-based filter to the Tickets tab in every department, with smart carry-forward logic so any ticket that wasn't completed before the month ended automatically shows up in the next month (and keeps rolling forward until it's completed or void).
+Rebrand every in-product AI feature so it's named **"Tony AI"** consistently across the UI — the chat assistant, the voice dictation/autofill, and the various "AI" labels users see in forms and dialogs.
 
-## Behavior
+## Scope (what counts as "AI in the UI")
+The chat bubble, the dictation/autofill button, and any UI copy that currently says "AI" when referring to the assistant or generation engine. The product **department name "AI SEO"** is a department brand, not the assistant — it stays as "AI SEO" (renaming it would break navigation, breadcrumbs, and saved memory).
 
-**Month selector** (added to the toolbar in `TicketsTab.tsx`, next to the status filter chips):
-- Options: `All Months` · `This Month` (default) · `Last Month` · plus a dropdown of the last 12 months.
+## Copy changes
 
-**What shows up in a selected month (e.g. "April 2026"):**
-1. Every ticket **created in April 2026**, AND
-2. Every ticket **created before April 2026** that is still `open`, `in_progress`, or `emergency` (i.e. not `completed` or `void`) as of the end of April — these are the carry-forwards.
-3. Tickets that were `completed`/`void` in a prior month do NOT carry forward.
+### 1. Chat Assistant — `src/components/chat/ChatAssistant.tsx`
+- Header title: `Chat Assistant` → **`Tony AI`**
+- Header subtitle: `AI-powered help` → **`Your VSA assistant`**
+- Welcome message: `"I'm your VSA assistant…"` → **`"I'm Tony AI, your VSA assistant…"`**
 
-**Visual cue for carry-forwards:**
-- A small amber "Carried over" pill on the ticket card (next to the status badge) showing the original creation month, e.g. *"Carried from Mar 2026"*. This makes it clear the work is overdue without changing the underlying ticket.
+### 2. Voice Dictation — `src/components/department/ticket-forms/VoiceDictation.tsx`
+- Tooltip: `Speak to autofill the form with AI` → **`Speak to autofill the form with Tony AI`**
 
-**"All Months"** behaves like today (no date filter).
+### 3. SEO PDF Upload — `src/components/department/UpdateSeoAnalyticsDialog.tsx`
+- Helper text: `AI will extract all metrics automatically` → **`Tony AI will extract all metrics automatically`**
 
-## Technical Implementation
+### 4. Social Media Monthly Signals — `src/components/social/MonthlySignalsForm.tsx`
+- `…for the AI content engine this month.` → **`…for Tony AI's content engine this month.`**
+- `AI-generated posts this month (max 10 default)` → **`Tony AI–generated posts this month (max 10 default)`**
 
-**Frontend only — no schema or cron changes needed.** Carry-forward is a pure read-time filter based on `created_at` and `status`, so it works retroactively for existing tickets.
+### 5. Social Media Promotions — `src/components/social/PromotionModule.tsx`
+- `…so the AI can reference them in generated posts.` → **`…so Tony AI can reference them in generated posts.`**
 
-1. **`src/components/department/TicketsTab.tsx`**
-   - Add `monthFilter` state (`"all" | "YYYY-MM"`, default = current `YYYY-MM`).
-   - Build a list of the last 12 months for the dropdown.
-   - After the existing status/department merge, apply month filtering in JS:
-     - If `monthFilter === "all"` → no change.
-     - Else, parse selected month start/end. Keep ticket if:
-       - `created_at` falls inside the month, OR
-       - `created_at < monthStart` AND current per-department `status` ∈ {`open`, `in_progress`, `emergency`}.
-     - Tag each kept ticket with `__carriedFrom: "MMM YYYY"` when its `created_at` is before `monthStart`.
-   - Add a `Select` (shadcn) to the toolbar for month choice; keep status chips as-is.
+### 6. Clinic Detail (AI Insights tab) — `src/pages/ClinicDetail.tsx`
+- Tab label `AI Insights` → **`Tony AI Insights`**
+- Card title `AI Monthly Insights` → **`Tony AI Monthly Insights`**
+- Empty-state: `…regenerate insights to get an up-to-date AI analysis.` → **`…regenerate insights to get an up-to-date Tony AI analysis.`**
 
-2. **`src/components/department/TicketCard.tsx`**
-   - If `ticket.__carriedFrom` is set, render a small amber outline badge "Carried from {month}" beside the status badge.
+### 7. Settings — AI Templates tab — `src/pages/Settings.tsx`
+- Sidebar item label `AI Templates` → **`Tony AI Templates`**
+- Card description `Base prompt used for AI content generation` → **`Base prompt used for Tony AI content generation`**
+- Field label `AI Content Generation Prompt` → **`Tony AI Content Generation Prompt`**
 
-3. **`src/components/department/TicketKanbanView.tsx`**
-   - Pass tickets through unchanged; the `__carriedFrom` flag propagates to `TicketCard`.
+## Out of scope (intentionally not changed)
+- **`AI SEO` department** name (sidebar, page title, clinic flag, route `/ai-seo`) — that's a product department, not the assistant.
+- Internal code comments, variable names, edge function names, and database fields — back-end identifiers stay the same.
+- Privacy Policy / Terms of Service legal copy that references "AI" generically.
 
-4. Stat counts (Open / In Progress / Completed / Emergency) recompute from the month-filtered list so the summary matches what's visible.
-
-No database migration, no edge function changes, no impact on ticket creation flow.
+## Notes
+Pure copy change — no logic, schema, or API impact. All changes ship in a single edit pass.

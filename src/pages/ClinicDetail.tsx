@@ -426,7 +426,7 @@ export default function ClinicDetail() {
             <TabsTrigger value="instagram">Instagram</TabsTrigger>
             <TabsTrigger value="facebook">Facebook</TabsTrigger>
             <TabsTrigger value="google">Google Ads</TabsTrigger>
-            <TabsTrigger value="ai">AI Insights</TabsTrigger>
+            <TabsTrigger value="ai">Tony AI Insights</TabsTrigger>
             {role === "admin" && <TabsTrigger value="connections">Connections</TabsTrigger>}
             {(role === "admin" || role === "concierge") && <TabsTrigger value="journey">Client Journey</TabsTrigger>}
           </TabsList>
@@ -719,13 +719,13 @@ export default function ClinicDetail() {
           <TabsContent value="ai" className="space-y-4 mt-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-base">AI Monthly Insights</CardTitle>
+                <CardTitle className="text-base">Tony AI Monthly Insights</CardTitle>
                 <Button variant="outline" size="sm"><RefreshCw className="h-4 w-4 mr-1" /> Regenerate</Button>
               </CardHeader>
               <CardContent className="space-y-4 text-sm text-foreground leading-relaxed">
                 <p className="text-muted-foreground">
                   {instaData.length > 0 || fbData.length > 0 || googleAdsData.length > 0
-                    ? "Sync your data and regenerate insights to get an up-to-date AI analysis."
+                    ? "Sync your data and regenerate insights to get an up-to-date Tony AI analysis."
                     : "No analytics data available yet. Connect accounts and sync data first."}
                 </p>
               </CardContent>
