@@ -162,7 +162,9 @@ export interface ComplianceScan {
     service_keyword: 'PASS' | 'FAIL';
     hook_strength: { post_1: boolean; post_2: boolean; post_3: boolean; post_4: boolean };
     word_count: { post_1: number; post_2: number; post_3: number; post_4: number };
-    phone_in_2_plus: 'PASS' | 'FAIL';
+    phone_not_in_body: 'PASS' | 'FAIL';
+    address_not_in_body: 'PASS' | 'FAIL';
+    button_referenced_closing: 'PASS' | 'FAIL';
     keyword_diversity: 'PASS' | 'FAIL';
     cta_service_page: 'PASS' | 'FAIL';
     neighbourhood_in_all: 'PASS' | 'FAIL';
