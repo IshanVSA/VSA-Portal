@@ -11,14 +11,8 @@ interface ThirdPartyIntegrationsFormProps {
 
 const INTEGRATION_TYPES = [
   "Online Booking / Scheduling",
-  "Payment Gateway",
   "Loyalty / Rewards Program",
-  "Review / Reputation Management",
   "Telemedicine / Virtual Visits",
-  "Email Marketing (e.g. Mailchimp)",
-  "CRM / Client Management",
-  "Lab Results Integration",
-  "Pharmacy Integration",
   "Other",
 ];
 
@@ -27,25 +21,22 @@ export function ThirdPartyIntegrationsForm({ onChange }: ThirdPartyIntegrationsF
   const [providerName, setProviderName] = useState("");
   const [accountUrl, setAccountUrl] = useState("");
   const [description, setDescription] = useState("");
-  const [urgencyReason, setUrgencyReason] = useState("");
 
   useEffect(() => {
     const parts = [
       `Integration Type: ${integrationType || "N/A"}`,
       `Provider/Platform: ${providerName || "N/A"}`,
       `Account/Dashboard URL: ${accountUrl || "N/A"}`,
-      `Details & Requirements: ${description || "N/A"}`,
-      `Reason for Request: ${urgencyReason || "N/A"}`,
+      `Details: ${description || "N/A"}`,
     ];
     onChange("Third Party Integration Request:\n" + parts.join("\n"));
-  }, [integrationType, providerName, accountUrl, description, urgencyReason, onChange]);
+  }, [integrationType, providerName, accountUrl, description, onChange]);
 
   const handleAutofill = useCallback((fields: Record<string, any>) => {
     if (fields.integrationType && INTEGRATION_TYPES.includes(fields.integrationType)) setIntegrationType(fields.integrationType);
     if (fields.providerName) setProviderName(fields.providerName);
     if (fields.accountUrl) setAccountUrl(fields.accountUrl);
     if (fields.description) setDescription(fields.description);
-    if (fields.urgencyReason) setUrgencyReason(fields.urgencyReason);
   }, []);
 
   return (
@@ -67,7 +58,7 @@ export function ThirdPartyIntegrationsForm({ onChange }: ThirdPartyIntegrationsF
       <div className="space-y-1.5">
         <Label>Provider / Platform Name *</Label>
         <Input
-          placeholder="e.g. PetDesk, Weave, Mailchimp..."
+          placeholder="e.g. PetDesk, Weave..."
           value={providerName}
           onChange={e => setProviderName(e.target.value)}
           maxLength={200}
@@ -85,23 +76,13 @@ export function ThirdPartyIntegrationsForm({ onChange }: ThirdPartyIntegrationsF
       </div>
 
       <div className="space-y-1.5">
-        <Label>Details & Requirements *</Label>
+        <Label>Details *</Label>
         <Textarea
           placeholder="Describe what you need integrated, any embed codes, widgets, or specific pages where it should appear..."
           value={description}
           onChange={e => setDescription(e.target.value)}
           rows={3}
           maxLength={2000}
-        />
-      </div>
-
-      <div className="space-y-1.5">
-        <Label>Reason for Request</Label>
-        <Input
-          placeholder="e.g. Switching providers, new feature needed..."
-          value={urgencyReason}
-          onChange={e => setUrgencyReason(e.target.value)}
-          maxLength={500}
         />
       </div>
 
