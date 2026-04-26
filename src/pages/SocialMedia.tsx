@@ -145,9 +145,8 @@ export default function SocialMedia() {
                     const showChatBadge = tab.value === "chat" && unreadCount > 0 && currentTab !== "chat";
                     return (
                       <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm relative">
-                        <tab.icon className="h-3.5 w-3.5" />
-                        <span className="hidden sm:inline">{tab.label}</span>
-                        <span className="sm:hidden">{tab.label.split(" ").pop()}</span>
+                        <tab.icon className="h-3.5 w-3.5 shrink-0" />
+                        <span className="whitespace-nowrap">{tab.label}</span>
                         {showChatBadge && (
                           <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
                             {unreadCount > 99 ? "99+" : unreadCount}
