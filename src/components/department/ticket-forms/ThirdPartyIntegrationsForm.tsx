@@ -13,6 +13,8 @@ const INTEGRATION_TYPES = [
   "Online Booking / Scheduling",
   "Loyalty / Rewards Program",
   "Telemedicine / Virtual Visits",
+  "Financing Option",
+  "Insurance Provider",
   "Other",
 ];
 
