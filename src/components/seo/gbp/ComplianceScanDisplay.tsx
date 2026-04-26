@@ -221,7 +221,9 @@ export function ComplianceScanDisplay({ scan, onFixIssues, isFixing }: Props) {
                 </div>
               );
             })}
-            <CheckRow label="Phone in 2+ Posts" value={scan.tier_3.phone_in_2_plus} />
+            <CheckRow label="Phone Not in Body" value={scan.tier_3.phone_not_in_body} />
+            <CheckRow label="Address Not in Body" value={scan.tier_3.address_not_in_body} />
+            <CheckRow label="Button-Referenced Closing" value={scan.tier_3.button_referenced_closing} />
             <CheckRow label="Keyword Diversity" value={scan.tier_3.keyword_diversity} />
             <CheckRow label="CTA Service Page" value={scan.tier_3.cta_service_page} />
             <CheckRow label="Neighbourhood in All" value={scan.tier_3.neighbourhood_in_all} />
