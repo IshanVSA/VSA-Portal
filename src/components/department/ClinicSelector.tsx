@@ -40,7 +40,7 @@ export function ClinicSelector({ clinics, selectedClinicId, onSelect, loading }:
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-full sm:w-[240px] lg:w-[280px] h-9 justify-between text-sm font-normal min-w-0"
+            className="w-full sm:w-[180px] lg:w-[240px] xl:w-[280px] h-9 justify-between text-sm font-normal min-w-0"
           >
             <span className="truncate">{selectedName || "Select a clinic"}</span>
             <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
