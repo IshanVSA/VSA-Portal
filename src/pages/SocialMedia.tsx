@@ -162,6 +162,8 @@ export default function SocialMedia() {
                     );
                   })}
                 </TabsList>
+                </div>
+
 
                 <TabsContent value="overview" className="mt-4"><SocialOverview clinicId={selectedClinicId} /></TabsContent>
                 
