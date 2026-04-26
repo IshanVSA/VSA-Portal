@@ -36,6 +36,7 @@ interface KanbanTicket {
   pool_user_ids?: string[];
   dept_assignment_id?: string;
   dept_assignments?: { department: string; status: string; assigned_to: string | null }[];
+  __carriedFrom?: string;
 }
 
 interface TicketKanbanViewProps {
