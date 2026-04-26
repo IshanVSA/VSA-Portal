@@ -171,7 +171,7 @@ export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationPr
               ? "Transcribing your audio…"
               : recording
                 ? "Click to stop recording"
-                : "Speak to autofill the form with AI"}
+                : "Speak to autofill the form with Tony AI"}
           </TooltipContent>
         </Tooltip>
 
