@@ -72,21 +72,21 @@ export default function ClientJourneyPage() {
 
   return (
     <PageTransition>
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Milestone className="h-6 w-6 text-primary" />
+      <div className="p-4 sm:p-6 space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+              <Milestone className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Client Journey</h1>
-              <p className="text-sm text-muted-foreground">Track onboarding progress across all phases</p>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight truncate">Client Journey</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground">Track onboarding progress across all phases</p>
             </div>
           </div>
 
           {clinics.length > 1 && (
             <Select value={selectedClinicId} onValueChange={setSelectedClinicId}>
-              <SelectTrigger className="w-[260px]">
+              <SelectTrigger className="w-full sm:w-[260px]">
                 <Building2 className="h-4 w-4 mr-2 text-muted-foreground" />
                 <SelectValue placeholder="Select clinic" />
               </SelectTrigger>
