@@ -559,7 +559,9 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
           {/* Right cluster — wraps to its own row on mobile */}
           <div className="flex items-center justify-end gap-1 sm:gap-2 lg:gap-3 min-w-0 ml-auto shrink-0">
             {clinicSelectorSelectedId && (
-              <ClinicClock clinicId={clinicSelectorSelectedId} />
+              <div className="hidden md:block">
+                <ClinicClock clinicId={clinicSelectorSelectedId} />
+              </div>
             )}
 
             {showClinicSelector && (
