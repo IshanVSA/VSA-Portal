@@ -125,18 +125,20 @@ export default function Settings() {
 
         {/* Tabs */}
         <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="w-full justify-start bg-muted/50 h-11 p-1 overflow-x-auto">
-            {tabs.map((tab) => (
-              <TabsTrigger
-                key={tab.value}
-                value={tab.value}
-                className="gap-1.5 text-xs sm:text-sm data-[state=active]:shadow-sm"
-              >
-                <tab.icon className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{tab.label}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          <div className="tabs-scroll">
+            <TabsList className="inline-flex w-max min-w-full justify-start bg-muted/50 h-11 p-1">
+              {tabs.map((tab) => (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  className="gap-1.5 text-xs sm:text-sm data-[state=active]:shadow-sm whitespace-nowrap"
+                >
+                  <tab.icon className="h-3.5 w-3.5" />
+                  <span>{tab.label}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
 
           {/* ─── Profile ─── */}
           <TabsContent value="profile" className="mt-4 space-y-4">

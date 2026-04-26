@@ -77,18 +77,18 @@ export default function ClientsPage() {
     <>
       <div className="space-y-6">
         <div className="hero-section">
-          <div className="relative z-10 flex items-center justify-between">
-            <div>
+          <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <UserCheck className="h-5 w-5 text-primary" />
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Manage</span>
               </div>
-              <h1 className="text-2xl font-bold text-foreground tracking-tight">Clients</h1>
-              <p className="text-muted-foreground mt-0.5 text-sm">Manage your clinic clients</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Clients</h1>
+              <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">Manage your clinic clients</p>
             </div>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="rounded-lg shadow-sm"><Plus className="h-4 w-4 mr-2" />Add Client</Button>
+                <Button className="rounded-lg shadow-sm w-full sm:w-auto"><Plus className="h-4 w-4 mr-2" />Add Client</Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
@@ -100,8 +100,8 @@ export default function ClientsPage() {
                   <div className="space-y-2"><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="jane@example.com" className="input-glow" /></div>
                   <div className="space-y-2"><Label>Password</Label><Input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="Min 8 characters" className="input-glow" /></div>
                 </div>
-                <DialogFooter>
-                  <Button disabled={creating} onClick={async () => {
+                <DialogFooter className="flex-col gap-2 sm:flex-row">
+                  <Button className="w-full sm:w-auto" disabled={creating} onClick={async () => {
                     if (!form.full_name || !form.email || !form.password) { toast.error("All fields are required"); return; }
                     if (form.password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
                     setCreating(true);

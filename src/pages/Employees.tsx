@@ -176,18 +176,18 @@ export default function Employees() {
       <div className="space-y-6">
         {/* Hero */}
         <div className="hero-section">
-          <div className="relative z-10 flex items-center justify-between">
-            <div>
+          <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <Users className="h-5 w-5 text-primary" />
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Manage</span>
               </div>
-              <h1 className="text-2xl font-bold text-foreground tracking-tight">Team Members</h1>
-              <p className="text-muted-foreground mt-0.5 text-sm">Manage your agency team</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Team Members</h1>
+              <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">Manage your agency team</p>
             </div>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="rounded-lg shadow-sm"><Plus className="h-4 w-4 mr-2" />Add Team Member</Button>
+                <Button className="rounded-lg shadow-sm w-full sm:w-auto"><Plus className="h-4 w-4 mr-2" />Add Team Member</Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
@@ -198,7 +198,7 @@ export default function Employees() {
                   <div className="space-y-2"><Label>Full Name</Label><Input value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} placeholder="Jane Doe" className="input-glow" /></div>
                   <div className="space-y-2"><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="jane@example.com" className="input-glow" /></div>
                   <div className="space-y-2"><Label>Password</Label><Input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="Min 8 characters" className="input-glow" /></div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-2">
                       <Label>Access Level</Label>
                       <Select value={form.role} onValueChange={v => setForm(f => ({ ...f, role: v }))}>
@@ -222,8 +222,8 @@ export default function Employees() {
                     </div>
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button disabled={creating} onClick={async () => {
+                <DialogFooter className="flex-col gap-2 sm:flex-row">
+                  <Button className="w-full sm:w-auto" disabled={creating} onClick={async () => {
                     if (!form.full_name || !form.email || !form.password) { toast.error("All fields are required"); return; }
                     if (form.password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
                     setCreating(true);
@@ -247,9 +247,9 @@ export default function Employees() {
 
         {/* Filter Bar */}
         <Card className="border-border/60">
-          <CardContent className="py-3 px-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="relative flex-1 min-w-[200px]">
+          <CardContent className="py-3 px-3 sm:px-4">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-3">
+              <div className="relative w-full sm:flex-1 sm:min-w-[200px]">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by name or email…"
@@ -263,22 +263,24 @@ export default function Employees() {
                   </button>
                 )}
               </div>
-              <Select value={filterTeamRole} onValueChange={setFilterTeamRole}>
-                <SelectTrigger className="w-[160px] h-9"><SelectValue placeholder="Team Role" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Roles</SelectItem>
-                  {TEAM_ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={filterClinic} onValueChange={setFilterClinic}>
-                <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Clinic" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Clinics</SelectItem>
-                  {allClinics.map(c => <SelectItem key={c.id} value={c.id}>{c.clinic_name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="flex flex-1 sm:flex-none gap-2">
+                <Select value={filterTeamRole} onValueChange={setFilterTeamRole}>
+                  <SelectTrigger className="flex-1 sm:w-[160px] h-9"><SelectValue placeholder="Team Role" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Roles</SelectItem>
+                    {TEAM_ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Select value={filterClinic} onValueChange={setFilterClinic}>
+                  <SelectTrigger className="flex-1 sm:w-[180px] h-9"><SelectValue placeholder="Clinic" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Clinics</SelectItem>
+                    {allClinics.map(c => <SelectItem key={c.id} value={c.id}>{c.clinic_name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
               {(searchQuery || filterTeamRole !== "all" || filterClinic !== "all") && (
-                <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={() => { setSearchQuery(""); setFilterTeamRole("all"); setFilterClinic("all"); }}>
+                <Button variant="ghost" size="sm" className="h-9 text-xs w-full sm:w-auto" onClick={() => { setSearchQuery(""); setFilterTeamRole("all"); setFilterClinic("all"); }}>
                   Clear filters
                 </Button>
               )}
@@ -364,7 +366,7 @@ export default function Employees() {
               <DialogDescription>Update access level, team role, and clinic assignments.</DialogDescription>
             </DialogHeader>
             <div className="space-y-5 py-2">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Access Level</Label>
                   <Select value={editForm.role} onValueChange={v => setEditForm(f => ({ ...f, role: v }))}>
@@ -448,9 +450,9 @@ export default function Employees() {
                 </div>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditDialogUser(null)}>Cancel</Button>
-              <Button disabled={savingEdit} onClick={handleSaveEdit}>
+            <DialogFooter className="flex-col gap-2 sm:flex-row">
+              <Button variant="outline" className="w-full sm:w-auto" onClick={() => setEditDialogUser(null)}>Cancel</Button>
+              <Button className="w-full sm:w-auto" disabled={savingEdit} onClick={handleSaveEdit}>
                 {savingEdit ? "Saving…" : "Save Changes"}
               </Button>
             </DialogFooter>
