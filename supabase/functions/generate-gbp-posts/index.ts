@@ -275,12 +275,12 @@ INSTRUCTIONS:
 - Return ALL 4 posts, even if only some need changes.
 - For posts that already pass, keep them EXACTLY as-is.
 - For posts with issues, make the MINIMUM changes needed.
-- After fixing, run your self-audit checklist.
-- "${neighbourhood}" must appear in first 100 chars of every post.
-- Phone "${phone_number}" in at least 2 posts.
+- After fixing, run your full pre-flight compliance checklist.
+- "${neighbourhood}" must appear in the first 100 chars of every post.
 - 80-120 words per post.
-- Zero emojis.
-- No URLs in post body text.
+- 0-2 emojis per post max, start or end only, never the regulated-item emojis (💊 💉 🔪 🍷 🚬).
+- NEVER include phone numbers, URLs, domains, or street addresses in the post body. Phone goes to the Call CTA button. URL goes to the Book or Learn more CTA button.
+- Every post MUST end with a button-referenced closing (e.g. "Tap Book to reserve your visit." / "Tap Call to reach our team." / "Tap Learn more to read the full guide.").
 - Spelling standard: ${spellingStandard}.
 
 You MUST respond with ONLY a valid JSON object (no markdown, no code fences, no explanation) with this exact structure:
@@ -291,10 +291,12 @@ You MUST respond with ONLY a valid JSON object (no markdown, no code fences, no 
       "post_type": "WHATS_NEW",
       "topic": "...",
       "hook_style": "${hook_style}",
+      "risk_rating": "LOW",
+      "cta_button": "Book",
       "primary_keyword": "unique keyword for this post",
       "secondary_keywords": ["kw1"],
-      "post_content": "the full post text, 80-120 words, zero emojis, no URLs",
-      "cta_text": "action verb CTA",
+      "post_content": "the full post text, 80-120 words, no phone/URL/address in body, button-referenced closing",
+      "cta_text": "Tap Book to reserve your visit.",
       "cta_url": "specific service page URL",
       "word_count": 95,
       "local_landmark_used": "landmark name or none"
