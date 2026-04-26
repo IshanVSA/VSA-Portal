@@ -602,7 +602,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
 
             <NotificationBell />
 
-            <div className="h-8 w-8 rounded-lg bg-primary/8 flex items-center justify-center ring-1 ring-primary/10 shrink-0">
+            <div className="hidden sm:flex h-8 w-8 rounded-lg bg-primary/8 items-center justify-center ring-1 ring-primary/10 shrink-0">
               <span className="text-[11px] font-bold text-primary">
                 {profile?.full_name?.charAt(0)?.toUpperCase() || "U"}
               </span>
