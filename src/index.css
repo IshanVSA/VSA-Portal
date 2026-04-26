@@ -5,6 +5,7 @@
 @tailwind utilities;
 
 @layer base {
+  html, body { @apply overflow-x-hidden; }
   :root {
     --background: 220 16% 96%;
     --foreground: 224 71% 4%;
@@ -218,6 +219,21 @@
   .data-table tbody tr:hover {
     @apply bg-muted/20;
   }
+
+  /* Responsive helpers — Pass 1 mobile/tablet/desktop polish */
+  /* Wrap any wide table/grid in this for graceful horizontal scroll on mobile */
+  .table-wrap {
+    @apply w-full overflow-x-auto rounded-lg border border-border/40 bg-card;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table-wrap > table { @apply min-w-[640px]; }
+
+  /* Tabs that overflow on small screens — apply to TabsList parent */
+  .tabs-scroll {
+    @apply -mx-3 sm:mx-0 overflow-x-auto px-3 sm:px-0;
+    scrollbar-width: none;
+  }
+  .tabs-scroll::-webkit-scrollbar { display: none; }
 
   /* Department left-border accent */
   .dept-border-website { border-left: 3px solid hsl(var(--dept-website)); }

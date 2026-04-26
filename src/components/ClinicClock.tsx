@@ -58,12 +58,12 @@ export function ClinicClock({ clinicId }: ClinicClockProps) {
 
   return (
     <div
-      className="hidden md:flex items-center gap-1.5 px-2.5 h-8 rounded-md bg-muted/40 border border-border/40 text-[11px] font-medium text-foreground"
+      className="hidden sm:flex items-center gap-1.5 px-2 sm:px-2.5 h-8 rounded-md bg-muted/40 border border-border/40 text-[11px] font-medium text-foreground shrink-0"
       title={`Clinic local time (${timezone})`}
     >
       <Clock className="h-3 w-3 text-muted-foreground" />
       <span className="tabular-nums">{timeStr}</span>
-      <span className="text-muted-foreground">{tzAbbr || cityLabel}</span>
+      <span className="text-muted-foreground hidden md:inline">{tzAbbr || cityLabel}</span>
     </div>
   );
 }

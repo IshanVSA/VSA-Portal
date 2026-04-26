@@ -32,21 +32,21 @@ export function ClinicSelector({ clinics, selectedClinicId, onSelect, loading }:
   const selectedName = clinics.find(c => c.id === selectedClinicId)?.clinic_name;
 
   return (
-    <div className="flex items-center gap-2">
-      <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+    <div className="flex items-center gap-2 min-w-0 w-full sm:w-auto">
+      <Building2 className="h-4 w-4 text-muted-foreground shrink-0 hidden sm:block" />
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-[240px] sm:w-[280px] h-9 justify-between text-sm font-normal"
+            className="w-full sm:w-[240px] lg:w-[280px] h-9 justify-between text-sm font-normal min-w-0"
           >
             <span className="truncate">{selectedName || "Select a clinic"}</span>
             <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[240px] sm:w-[280px] p-0" align="start">
+        <PopoverContent className="w-[var(--radix-popover-trigger-width)] sm:w-[280px] p-0" align="start">
           <Command>
             <CommandInput placeholder="Search clinics..." />
             <CommandList>

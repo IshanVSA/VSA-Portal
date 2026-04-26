@@ -519,69 +519,96 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
 
       <main className="flex-1 min-w-0 flex flex-col">
         {/* Top header */}
-        <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-xl border-b border-border/40 px-4 lg:px-8 h-14 flex items-center gap-4" style={{ boxShadow: "var(--shadow-xs)" }}>
-          <button className="lg:hidden p-1.5 rounded-lg hover:bg-muted transition-colors duration-200" onClick={() => setSidebarOpen(true)}>
+        <header
+          className="sticky top-0 z-30 bg-card/80 backdrop-blur-xl border-b border-border/40 px-3 sm:px-4 lg:px-8 py-2 lg:py-0 lg:h-14 flex flex-wrap lg:flex-nowrap items-center gap-2 lg:gap-4"
+          style={{ boxShadow: "var(--shadow-xs)" }}
+        >
+          <button
+            className="lg:hidden p-1.5 rounded-lg hover:bg-muted transition-colors duration-200 shrink-0"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Open menu"
+          >
             <Menu className="h-5 w-5 text-foreground" />
           </button>
-          
+
           {currentPageTitle && (
-            <div className="hidden sm:flex items-center gap-2 text-sm">
+            <div className="hidden sm:flex items-center gap-2 text-sm min-w-0">
               <span className="text-muted-foreground text-xs font-medium">VSA</span>
               <ChevronRight className="h-3 w-3 text-muted-foreground/30" />
               <span className="font-semibold text-foreground text-xs">{currentPageTitle}</span>
               {showClinicSelector && selectedClinicName && (
                 <>
-                  <ChevronRight className="h-3 w-3 text-muted-foreground/30" />
-                  <span className="text-xs font-medium text-primary truncate max-w-[200px]">{selectedClinicName}</span>
+                  <ChevronRight className="h-3 w-3 text-muted-foreground/30 hidden md:block" />
+                  <span className="hidden md:inline text-xs font-medium text-primary truncate max-w-[160px] xl:max-w-[200px]">
+                    {selectedClinicName}
+                  </span>
                 </>
               )}
             </div>
           )}
 
-          <div className="flex-1" />
-
-          {clinicSelectorSelectedId && (
-            <ClinicClock clinicId={clinicSelectorSelectedId} />
-          )}
-
-          {showClinicSelector && (
-            <ClinicSelector
-              clinics={clinicSelectorClinics}
-              selectedClinicId={clinicSelectorSelectedId}
-              onSelect={role === "client" ? (id: string) => {
-                setClientSelectedId(id);
-                setSearchParams(prev => { const next = new URLSearchParams(prev); next.set("clinic", id); return next; }, { replace: true });
-              } : navSetSelectedClinicId}
-              loading={role === "client" ? clientClinics.length === 0 : navClinicsLoading}
-            />
-          )}
-
-          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-[11px] font-medium" onClick={() => setDeptPickerOpen(true)}>
-            <Plus className="h-3 w-3" />
-            <span className="hidden sm:inline">New Ticket</span>
-          </Button>
-
-          <button
-            className="relative p-2 rounded-lg hover:bg-muted/50 transition-colors duration-200"
-            onClick={() => {
-              document.documentElement.classList.toggle("dark");
-              localStorage.setItem("theme", document.documentElement.classList.contains("dark") ? "dark" : "light");
-            }}
-          >
-            <Sun className="h-4 w-4 text-muted-foreground dark:hidden" />
-            <Moon className="h-4 w-4 text-muted-foreground hidden dark:block" />
-          </button>
-
-          <NotificationBell />
-
-          <div className="h-8 w-8 rounded-lg bg-primary/8 flex items-center justify-center ring-1 ring-primary/10">
-            <span className="text-[11px] font-bold text-primary">
-              {profile?.full_name?.charAt(0)?.toUpperCase() || "U"}
+          {/* Mobile-only page title */}
+          {currentPageTitle && (
+            <span className="sm:hidden font-semibold text-foreground text-sm truncate min-w-0 flex-1">
+              {currentPageTitle}
             </span>
+          )}
+
+          <div className="hidden lg:block flex-1" />
+
+          {/* Right cluster — wraps to its own row on mobile */}
+          <div className="flex flex-1 lg:flex-none items-center justify-end gap-1.5 sm:gap-2 lg:gap-3 min-w-0 order-3 lg:order-none w-full lg:w-auto basis-full lg:basis-auto">
+            {clinicSelectorSelectedId && (
+              <ClinicClock clinicId={clinicSelectorSelectedId} />
+            )}
+
+            {showClinicSelector && (
+              <div className="min-w-0 flex-1 sm:flex-none">
+                <ClinicSelector
+                  clinics={clinicSelectorClinics}
+                  selectedClinicId={clinicSelectorSelectedId}
+                  onSelect={role === "client" ? (id: string) => {
+                    setClientSelectedId(id);
+                    setSearchParams(prev => { const next = new URLSearchParams(prev); next.set("clinic", id); return next; }, { replace: true });
+                  } : navSetSelectedClinicId}
+                  loading={role === "client" ? clientClinics.length === 0 : navClinicsLoading}
+                />
+              </div>
+            )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-[11px] font-medium shrink-0 px-2 sm:px-3"
+              onClick={() => setDeptPickerOpen(true)}
+            >
+              <Plus className="h-3 w-3" />
+              <span className="hidden sm:inline">New Ticket</span>
+            </Button>
+
+            <button
+              className="relative p-2 rounded-lg hover:bg-muted/50 transition-colors duration-200 shrink-0"
+              onClick={() => {
+                document.documentElement.classList.toggle("dark");
+                localStorage.setItem("theme", document.documentElement.classList.contains("dark") ? "dark" : "light");
+              }}
+              aria-label="Toggle theme"
+            >
+              <Sun className="h-4 w-4 text-muted-foreground dark:hidden" />
+              <Moon className="h-4 w-4 text-muted-foreground hidden dark:block" />
+            </button>
+
+            <NotificationBell />
+
+            <div className="h-8 w-8 rounded-lg bg-primary/8 flex items-center justify-center ring-1 ring-primary/10 shrink-0">
+              <span className="text-[11px] font-bold text-primary">
+                {profile?.full_name?.charAt(0)?.toUpperCase() || "U"}
+              </span>
+            </div>
           </div>
         </header>
-        
-        <div className="flex-1 p-4 lg:p-8">
+
+        <div className="flex-1 p-3 sm:p-4 lg:p-8 min-w-0">
           <PageTransition>
             {children || <Outlet />}
           </PageTransition>
