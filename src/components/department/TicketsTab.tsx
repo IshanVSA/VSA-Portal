@@ -30,12 +30,35 @@ const statusFilters = [
   { value: "void", label: "Void" },
 ];
 
+const CARRY_FORWARD_STATUSES = new Set(["open", "in_progress", "emergency"]);
+
+function currentMonthKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function buildMonthOptions(count = 12) {
+  const opts: { value: string; label: string }[] = [];
+  const now = new Date();
+  for (let i = 0; i < count; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const label = i === 0 ? `This Month (${format(d, "MMM yyyy")})`
+      : i === 1 ? `Last Month (${format(d, "MMM yyyy")})`
+      : format(d, "MMMM yyyy");
+    opts.push({ value, label });
+  }
+  return opts;
+}
+
 export function TicketsTab({ department, services, clinicId }: TicketsTabProps) {
   const [filter, setFilter] = useState("all");
+  const [monthFilter, setMonthFilter] = useState<string>(currentMonthKey());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { role } = useUserRole();
   const isClient = role === "client";
+  const monthOptions = useMemo(() => buildMonthOptions(12), []);
 
   // Fetch team members for assignment dropdown
   const { data: teamMemberProfiles = [] } = useQuery({
