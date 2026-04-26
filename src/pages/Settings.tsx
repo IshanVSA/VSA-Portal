@@ -89,7 +89,7 @@ export default function Settings() {
   const adminTabs = [
     { value: "profile", label: "Profile", icon: User },
     { value: "integrations", label: "Integrations", icon: Key },
-    { value: "ai", label: "AI Templates", icon: Sparkles },
+    { value: "ai", label: "Tony AI Templates", icon: Sparkles },
     { value: "notifications", label: "Notifications", icon: Bell },
     { value: "branding", label: "Branding", icon: Palette },
   ];
