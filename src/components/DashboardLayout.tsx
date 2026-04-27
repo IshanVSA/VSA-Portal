@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Building2, Users, BarChart3, Settings, LogOut, Menu, X, ChevronRight,
   ShieldCheck, LayoutDashboard, UserCheck, CalendarCheck, Milestone,
-  Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone, Globe, Sparkles, Plus, FileText, SearchCode, Lock,
+  Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone, Globe, Sparkles, Plus, FileText, SearchCode, Lock, Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -86,6 +86,7 @@ const adminSections: NavSection[] = [
   ]},
   { title: "ADMIN", items: [
     { label: "Reports", icon: FileText, path: "/reports" },
+    { label: "Cron Monitor", icon: Activity, path: "/cron-monitor" },
     { label: "Settings", icon: Settings, path: "/settings" },
   ]},
 ];
@@ -112,7 +113,7 @@ const conciergeSections: NavSection[] = [
 const pageTitles: Record<string, string> = {
   "/": "Dashboard", "/book-meeting": "Book a Meeting", "/website": "Website", "/seo": "SEO", "/ai-seo": "AI SEO", "/google-ads": "Google Ads",
   "/social": "Social Media", "/review": "Admin Review", "/clinics": "Clinics",
-  "/employees": "Team Members", "/clients": "Clients", "/reports": "Reports", "/settings": "Settings", "/client-journey": "Client Journey",
+  "/employees": "Team Members", "/clients": "Clients", "/reports": "Reports", "/settings": "Settings", "/client-journey": "Client Journey", "/cron-monitor": "Cron Monitor",
 };
 
 export function DashboardLayout({ children }: { children?: React.ReactNode }) {
