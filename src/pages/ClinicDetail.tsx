@@ -311,7 +311,7 @@ export default function ClinicDetail() {
   const fetchCredentials = async () => {
     if (!id) return;
     const { data } = await supabase.from("clinic_api_credentials")
-      .select("meta_page_id, meta_instagram_business_id, meta_page_name, google_ads_customer_id, google_ads_login_customer_id, google_ads_account_name, last_meta_sync_at, last_google_sync_at, gbp_account_id, gbp_location_id, gbp_location_name, gbp_connected_at")
+      .select("meta_page_id, meta_instagram_business_id, meta_page_name, meta_granted_scopes, google_ads_customer_id, google_ads_login_customer_id, google_ads_account_name, last_meta_sync_at, last_google_sync_at, gbp_account_id, gbp_location_id, gbp_location_name, gbp_connected_at")
       .eq("clinic_id", id).maybeSingle();
     if (data) setCreds(data as ClinicCredentials);
   };
