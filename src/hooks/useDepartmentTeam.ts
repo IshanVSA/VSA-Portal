@@ -84,7 +84,7 @@ export function useDepartmentTeam(department: string, clinicId?: string): { team
       setTeam(
         staffProfiles.map((p) => ({
           name: p.full_name || p.email || "Unknown",
-          role: p.team_role || "Member",
+          role: roleLabel(appRoleByUser.get(p.id)),
           teamRole: p.team_role,
         }))
       );
