@@ -54,6 +54,11 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
 
   const folder = `${department}/`;
 
+  const [ticketAttachments, setTicketAttachments] = useState<TicketAttachment[]>([]);
+  const [previewTicketAtt, setPreviewTicketAtt] = useState<TicketAttachment | null>(null);
+
+  const folder = `${department}/`;
+
   const fetchFiles = useCallback(async () => {
     const { data, error } = await supabase.storage.from(BUCKET).list(department, {
       sortBy: { column: "created_at", order: "desc" },
@@ -82,9 +87,55 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
     setLoading(false);
   }, [department, folder]);
 
+  const fetchTicketAttachments = useCallback(async () => {
+    const visibleTypes = getVisibleTicketTypes(department);
+    if (visibleTypes.length === 0) {
+      setTicketAttachments([]);
+      return;
+    }
+    let query = supabase
+      .from("department_tickets" as any)
+      .select("id, title, ticket_type, attachments, created_at, description, clinic_id")
+      .in("ticket_type", visibleTypes)
+      .not("attachments", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (clinicId) query = query.eq("clinic_id", clinicId);
+    const { data, error } = await query;
+    if (error) {
+      console.error("Error loading ticket attachments:", error);
+      return;
+    }
+    const collected: TicketAttachment[] = [];
+    for (const t of (data || []) as any[]) {
+      const paths: string[] = Array.isArray(t.attachments) ? t.attachments : [];
+      if (paths.length === 0) continue;
+      // Conditional rule: Add/Remove Team Members only shown in social_media if Promote: Yes
+      if (
+        department === "social_media" &&
+        t.ticket_type === "Add/Remove Team Members" &&
+        !(t.description || "").includes("Promote on Social Media: Yes")
+      ) {
+        continue;
+      }
+      for (const p of paths) {
+        collected.push({
+          path: p,
+          name: p.split("/").pop() || p,
+          created_at: t.created_at,
+          ticket_id: t.id,
+          ticket_title: t.title,
+          ticket_type: t.ticket_type,
+        });
+      }
+    }
+    setTicketAttachments(collected);
+  }, [department, clinicId]);
+
   useEffect(() => {
     fetchFiles();
-  }, [fetchFiles]);
+    fetchTicketAttachments();
+  }, [fetchFiles, fetchTicketAttachments]);
 
   const handleUpload = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
