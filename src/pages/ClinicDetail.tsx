@@ -849,6 +849,7 @@ export default function ClinicDetail() {
             open={!!metaPages}
             pages={metaPages}
             clinicId={id}
+            grantedScopes={metaScopes}
             onClose={() => {
               setMetaPages(null);
               setSearchParams({}, { replace: true });
