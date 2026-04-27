@@ -47,12 +47,35 @@ export function NotificationBell() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  
+
+  const storageKey = user ? `notif-read-ids:${user.id}` : null;
+  const readIdsRef = useRef<Set<string>>(new Set());
+
+  const loadReadIds = (): Set<string> => {
+    if (!storageKey) return new Set();
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return new Set();
+      const arr = JSON.parse(raw) as string[];
+      return new Set(arr);
+    } catch { return new Set(); }
+  };
+
+  const persistReadIds = (ids: Set<string>) => {
+    if (!storageKey) return;
+    // Cap at 500 most recent IDs to avoid unbounded growth
+    const arr = Array.from(ids).slice(-500);
+    try { localStorage.setItem(storageKey, JSON.stringify(arr)); } catch {}
+  };
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
   useEffect(() => {
     if (!user) return;
+
+    readIdsRef.current = loadReadIds();
+
+    const withRead = (n: Notification): Notification => ({ ...n, read: readIdsRef.current.has(n.id) });
 
     const fetchNotifications = async () => {
       const { data: activityData } = await supabase
@@ -106,7 +129,8 @@ export function NotificationBell() {
 
       const all = [...activityNotifs, ...ticketNotifs, ...sm2Notifs]
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        .slice(0, 30);
+        .slice(0, 30)
+        .map(withRead);
 
       setNotifications(all);
     };
@@ -128,7 +152,7 @@ export function NotificationBell() {
           message: meta.message || `Post activity: ${log.action}`,
           read: false, created_at: log.created_at,
         };
-        setNotifications(prev => [newNotif, ...prev].slice(0, 30));
+        setNotifications(prev => [withRead(newNotif), ...prev].slice(0, 30));
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "department_tickets" }, (payload) => {
         const t = payload.new as any;
@@ -138,7 +162,7 @@ export function NotificationBell() {
           message: `[${t.department}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
           read: false, created_at: t.created_at,
         };
-        setNotifications(prev => [newNotif, ...prev].slice(0, 30));
+        setNotifications(prev => [withRead(newNotif), ...prev].slice(0, 30));
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "department_tickets" }, (payload) => {
         const t = payload.new as any;
@@ -148,7 +172,7 @@ export function NotificationBell() {
           message: `[${t.department}] ${t.title}`,
           read: false, created_at: t.updated_at || new Date().toISOString(),
         };
-        setNotifications(prev => [newNotif, ...prev].slice(0, 30));
+        setNotifications(prev => [withRead(newNotif), ...prev].slice(0, 30));
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "sm2_generations" }, (payload) => {
         const g = payload.new as any;
@@ -161,7 +185,7 @@ export function NotificationBell() {
           read: false,
           created_at: g.updated_at || g.created_at || new Date().toISOString(),
         };
-        setNotifications(prev => [newNotif, ...prev].slice(0, 30));
+        setNotifications(prev => [withRead(newNotif), ...prev].slice(0, 30));
       })
       .subscribe();
 
@@ -201,7 +225,21 @@ export function NotificationBell() {
 
 
   const markAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setNotifications(prev => {
+      const next = prev.map(n => ({ ...n, read: true }));
+      next.forEach(n => readIdsRef.current.add(n.id));
+      persistReadIds(readIdsRef.current);
+      return next;
+    });
+  };
+
+  const markOneRead = (id: string) => {
+    setNotifications(prev => {
+      const next = prev.map(n => n.id === id ? { ...n, read: true } : n);
+      readIdsRef.current.add(id);
+      persistReadIds(readIdsRef.current);
+      return next;
+    });
   };
 
   return (
@@ -251,7 +289,7 @@ export function NotificationBell() {
                     return (
                       <motion.div key={notif.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}
                         className={cn("flex items-start gap-3 px-4 py-3 border-b border-border/30 hover:bg-muted/30 transition-colors cursor-pointer", !notif.read && "bg-primary/[0.03]")}
-                        onClick={() => setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true } : n))}>
+                        onClick={() => markOneRead(notif.id)}>
                         <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5", config.bg)}>
                           <Icon className={cn("h-4 w-4", config.color)} />
                         </div>
