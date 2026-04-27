@@ -73,6 +73,10 @@ export function NotificationBell() {
   useEffect(() => {
     if (!user) return;
 
+    readIdsRef.current = loadReadIds();
+
+    const withRead = (n: Notification): Notification => ({ ...n, read: readIdsRef.current.has(n.id) });
+
     const fetchNotifications = async () => {
       const { data: activityData } = await supabase
         .from("post_activity_log")
