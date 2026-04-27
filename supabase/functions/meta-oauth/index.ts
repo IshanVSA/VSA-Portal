@@ -231,6 +231,7 @@ Deno.serve(async (req) => {
               meta_page_id: pageId,
               meta_instagram_business_id: igBusinessId,
               meta_page_name: pageName,
+              meta_granted_scopes: grantedScopes,
             })
             .eq("clinic_id", clinic_id);
           upsertError = error;
@@ -243,6 +244,7 @@ Deno.serve(async (req) => {
               meta_page_id: pageId,
               meta_instagram_business_id: igBusinessId,
               meta_page_name: pageName,
+              meta_granted_scopes: grantedScopes,
             });
           upsertError = error;
         }
