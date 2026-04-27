@@ -225,7 +225,21 @@ export function NotificationBell() {
 
 
   const markAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setNotifications(prev => {
+      const next = prev.map(n => ({ ...n, read: true }));
+      next.forEach(n => readIdsRef.current.add(n.id));
+      persistReadIds(readIdsRef.current);
+      return next;
+    });
+  };
+
+  const markOneRead = (id: string) => {
+    setNotifications(prev => {
+      const next = prev.map(n => n.id === id ? { ...n, read: true } : n);
+      readIdsRef.current.add(id);
+      persistReadIds(readIdsRef.current);
+      return next;
+    });
   };
 
   return (
