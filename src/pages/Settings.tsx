@@ -38,6 +38,7 @@ export default function Settings() {
   const currentTab = searchParams.get("tab") || "profile";
 
   const [fullName, setFullName] = useState("");
+  const [teamRole, setTeamRole] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [showMetaKey, setShowMetaKey] = useState(false);
   const [showGoogleKey, setShowGoogleKey] = useState(false);
@@ -46,8 +47,11 @@ export default function Settings() {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle()
-      .then(({ data }) => { if (data?.full_name) setFullName(data.full_name); });
+    supabase.from("profiles").select("full_name, team_role").eq("id", user.id).maybeSingle()
+      .then(({ data }) => {
+        if (data?.full_name) setFullName(data.full_name);
+        if ((data as any)?.team_role) setTeamRole((data as any).team_role);
+      });
   }, [user]);
 
   useEffect(() => {
@@ -171,7 +175,7 @@ export default function Settings() {
                       <Label>Role</Label>
                       <div className="flex items-center gap-2">
                         <Shield className="h-4 w-4 text-muted-foreground" />
-                        <Input value={role || ""} disabled className="capitalize bg-muted/30" />
+                        <Input value={role === "concierge" ? (teamRole || "Member") : (role || "")} disabled className="capitalize bg-muted/30" />
                       </div>
                     </div>
                   </div>

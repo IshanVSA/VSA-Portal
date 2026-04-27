@@ -136,7 +136,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
   const [clientSelectedId, setClientSelectedId] = useState<string | null>(null);
   const [clinicAccess, setClinicAccess] = useState<ClinicAccessState | null>(null);
   const [clinicAccessLoading, setClinicAccessLoading] = useState(true);
-  const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
+  const [profile, setProfile] = useState<{ full_name: string | null; team_role: string | null } | null>(null);
   const [userDepartments, setUserDepartments] = useState<string[] | null>(null);
   
 
@@ -152,8 +152,8 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle()
-      .then(({ data }) => { if (data) setProfile(data); });
+    supabase.from("profiles").select("full_name, team_role").eq("id", user.id).maybeSingle()
+      .then(({ data }) => { if (data) setProfile(data as any); });
   }, [user]);
 
   // Fetch department assignments for concierge users
@@ -498,7 +498,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-medium text-[hsl(var(--sidebar-foreground))] truncate">{profile?.full_name || "User"}</p>
-                <p className="text-[10px] text-[hsl(var(--sidebar-muted))] truncate capitalize">{role}</p>
+                <p className="text-[10px] text-[hsl(var(--sidebar-muted))] truncate capitalize">{role === "concierge" ? (profile?.team_role || "Member") : role}</p>
               </div>
             </div>
           )}
