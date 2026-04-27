@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { clinic_id, page_id, page_name, page_access_token } = await req.json();
+    const { clinic_id, page_id, page_name, page_access_token, granted_scopes } = await req.json();
 
     if (!clinic_id || !page_id || !page_access_token) {
       return new Response(
