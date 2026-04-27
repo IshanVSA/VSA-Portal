@@ -343,6 +343,7 @@ Deno.serve(async (req) => {
           meta_instagram_business_id: null,
           meta_page_name: null,
           last_meta_sync_at: null,
+          meta_granted_scopes: null,
         })
         .eq("clinic_id", clinic_id);
 
