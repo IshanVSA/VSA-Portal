@@ -436,6 +436,7 @@ export function TicketKanbanView({ tickets, teamMembers, assignableMembers, curr
       onOpenChange={(o) => !o && setEditingId(null)}
       ticket={editingTicket as any}
       teamMembers={teamMembers}
+      assignableMembers={assignableMembers}
       onUpdated={onUpdated}
     />
     </>
