@@ -410,6 +410,39 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     queryClient.invalidateQueries({ queryKey });
   };
 
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState("");
+
+  const startEditing = (msg: ChatMessage) => {
+    setEditingMessageId(msg.id);
+    setEditingValue(msg.message);
+  };
+
+  const cancelEditing = () => {
+    setEditingMessageId(null);
+    setEditingValue("");
+  };
+
+  const saveEdit = async () => {
+    if (!editingMessageId || !user) return;
+    const trimmed = editingValue.trim();
+    const original = messages.find((m) => m.id === editingMessageId);
+    if (!original) { cancelEditing(); return; }
+    if (!trimmed) { toast.error("Message cannot be empty"); return; }
+    if (trimmed === original.message) { cancelEditing(); return; }
+    const { error } = await supabase
+      .from("department_chats")
+      .update({ message: trimmed, edited_at: new Date().toISOString() } as any)
+      .eq("id", editingMessageId)
+      .eq("user_id", user.id);
+    if (error) {
+      toast.error("Failed to edit message");
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey });
+    cancelEditing();
+  };
+
   const [deleteMessageId, setDeleteMessageId] = useState<string | null>(null);
 
   const confirmDeleteMessage = async () => {
