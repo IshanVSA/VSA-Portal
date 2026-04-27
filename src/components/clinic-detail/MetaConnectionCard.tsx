@@ -99,8 +99,8 @@ export function MetaConnectionCard({
               </ol>
               <p className="text-muted-foreground pt-1">This unlocks full insights, demographics, and per-post metrics without Business Verification.</p>
             </div>
-            <Button asChild className="w-full">
-              <a href={oauthUrl} target="_blank" rel="noopener noreferrer">Connect with Facebook</a>
+            <Button className="w-full" onClick={() => { window.location.href = oauthUrl; }}>
+              Connect with Facebook
             </Button>
           </div>
         ) : (
