@@ -108,7 +108,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
       if (!clinicId) return [];
       const { data, error } = await supabase
         .from("department_chats")
-        .select("id, message, created_at, user_id, attachments, reactions, reply_to, pinned")
+        .select("id, message, created_at, user_id, attachments, reactions, reply_to, pinned, edited_at")
         .eq("department", department)
         .eq("clinic_id", clinicId)
         .order("created_at", { ascending: true })
@@ -135,6 +135,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
         reply_to: (m as any).reply_to as string | null,
         reply_preview: null as { sender_name: string; message: string } | null,
         pinned: (m as any).pinned as boolean || false,
+        edited_at: (m as any).edited_at as string | null,
       }));
 
       // Build reply previews
