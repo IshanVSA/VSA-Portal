@@ -50,6 +50,22 @@ export function useDepartmentTeam(department: string, clinicId?: string): { team
         (roles || []).filter((r) => r.role === "client").map((r) => r.user_id)
       );
 
+      // Build a map of user_id -> highest-priority app role for display
+      const rolePriority: Record<string, number> = { admin: 3, concierge: 2, client: 1 };
+      const appRoleByUser = new Map<string, string>();
+      (roles || []).forEach((r) => {
+        const current = appRoleByUser.get(r.user_id);
+        if (!current || (rolePriority[r.role] || 0) > (rolePriority[current] || 0)) {
+          appRoleByUser.set(r.user_id, r.role);
+        }
+      });
+      const roleLabel = (r?: string) => {
+        if (r === "admin") return "Admin";
+        if (r === "concierge") return "Member";
+        if (r === "client") return "Client";
+        return "Member";
+      };
+
       let staffProfiles = profiles.filter((p) => !clientIds.has(p.id));
 
       // Filter by clinic assignment if clinicId is provided
