@@ -1281,6 +1281,7 @@ export type Database = {
           clinic_id: string
           created_at: string
           department: Database["public"]["Enums"]["department_type"]
+          edited_at: string | null
           id: string
           message: string
           pinned: boolean
@@ -1293,6 +1294,7 @@ export type Database = {
           clinic_id: string
           created_at?: string
           department: Database["public"]["Enums"]["department_type"]
+          edited_at?: string | null
           id?: string
           message: string
           pinned?: boolean
@@ -1305,6 +1307,7 @@ export type Database = {
           clinic_id?: string
           created_at?: string
           department?: Database["public"]["Enums"]["department_type"]
+          edited_at?: string | null
           id?: string
           message?: string
           pinned?: boolean
