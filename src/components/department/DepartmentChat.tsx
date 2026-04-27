@@ -250,7 +250,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "department_chats", filter: `clinic_id=eq.${clinicId}` },
         () => {
-          queryClient.invalidateQueries({ queryKey });
+          queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
           onVisible?.();
         }
       )
@@ -258,14 +258,14 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "department_chats", filter: `clinic_id=eq.${clinicId}` },
         () => {
-          queryClient.invalidateQueries({ queryKey });
+          queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
         }
       )
       .on(
         "postgres_changes",
         { event: "DELETE", schema: "public", table: "department_chats", filter: `clinic_id=eq.${clinicId}` },
         () => {
-          queryClient.invalidateQueries({ queryKey });
+          queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
         }
       )
       .on(
@@ -415,7 +415,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     if (users.length === 0) delete reactions[emoji];
     else reactions[emoji] = users;
     await supabase.from("department_chats").update({ reactions: reactions as any }).eq("id", messageId);
-    queryClient.invalidateQueries({ queryKey });
+    queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
   };
 
   const handleEmojiInsert = (emoji: string) => {
@@ -424,7 +424,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
 
    const handleTogglePin = async (messageId: string, currentlyPinned: boolean) => {
     await supabase.from("department_chats").update({ pinned: !currentlyPinned } as any).eq("id", messageId);
-    queryClient.invalidateQueries({ queryKey });
+    queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
   };
 
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -456,7 +456,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
       toast.error("Failed to edit message");
       return;
     }
-    queryClient.invalidateQueries({ queryKey });
+    queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
     cancelEditing();
   };
 
@@ -468,7 +468,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     if (error) {
       toast.error("Failed to delete message");
     } else {
-      queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
       toast.success("Message deleted");
     }
     setDeleteMessageId(null);
