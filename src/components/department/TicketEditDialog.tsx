@@ -201,7 +201,7 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
               <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value={UNASSIGNED}>Unassigned</SelectItem>
-                {teamMembers.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                {assignList.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
