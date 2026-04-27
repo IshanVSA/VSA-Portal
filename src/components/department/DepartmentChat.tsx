@@ -688,15 +688,46 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
                             </div>
                           </div>
                         )}
-                        {msg.message && (
-                          <div
-                            className={`inline-block px-3 py-1.5 rounded-xl text-sm whitespace-pre-wrap break-words ${
-                              isOwn
-                                ? "bg-primary text-primary-foreground rounded-tr-sm"
-                                : "bg-muted text-foreground rounded-tl-sm"
-                            }`}
-                          >
-                            {renderMessageWithMentions(msg.message, searchQuery.trim() ? searchQuery : undefined)}
+                        {msg.message && editingMessageId !== msg.id && (
+                          <div className={isOwn ? "flex flex-col items-end" : "flex flex-col items-start"}>
+                            <div
+                              className={`inline-block px-3 py-1.5 rounded-xl text-sm whitespace-pre-wrap break-words ${
+                                isOwn
+                                  ? "bg-primary text-primary-foreground rounded-tr-sm"
+                                  : "bg-muted text-foreground rounded-tl-sm"
+                              }`}
+                            >
+                              {renderMessageWithMentions(msg.message, searchQuery.trim() ? searchQuery : undefined)}
+                            </div>
+                            {msg.edited_at && (
+                              <span className="text-[10px] text-muted-foreground italic mt-0.5">
+                                edited
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {editingMessageId === msg.id && (
+                          <div className={`mt-1 flex flex-col gap-1.5 ${isOwn ? "items-end" : "items-start"}`}>
+                            <Textarea
+                              value={editingValue}
+                              onChange={(e) => setEditingValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); saveEdit(); }
+                                if (e.key === "Escape") { e.preventDefault(); cancelEditing(); }
+                              }}
+                              autoFocus
+                              rows={2}
+                              className="min-w-[260px] text-sm"
+                            />
+                            <div className="flex gap-1.5">
+                              <Button size="sm" variant="ghost" onClick={cancelEditing} className="h-7 px-2 text-xs">
+                                Cancel
+                              </Button>
+                              <Button size="sm" onClick={saveEdit} className="h-7 px-2 text-xs">
+                                Save
+                              </Button>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground">Enter to save · Esc to cancel</p>
                           </div>
                         )}
                         {attachments.length > 0 && (
