@@ -47,7 +47,7 @@ export function NotificationBell() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const ref = useRef<HTMLDivElement>(null);
+  
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
