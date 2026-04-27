@@ -74,8 +74,8 @@ const App = () => (
                 <Route path="/ai-seo" element={guard(<AiSeoDepartment />, "ai-seo")} />
                 <Route path="/google-ads" element={guard(<GoogleAdsDepartment />, "google-ads")} />
                 <Route path="/clinics" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}>{guard(<Clinics />, "clinics")}</ProtectedRoute>} />
-                <Route path="/clinics/:id" element={guard(<ClinicDetail />, "clinic-detail")} />
-                <Route path="/client-journey" element={guard(<ClientJourneyPage />, "client-journey")} />
+                <Route path="/clinics/:id" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}>{guard(<ClinicDetail />, "clinic-detail")}</ProtectedRoute>} />
+                <Route path="/client-journey" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}>{guard(<ClientJourneyPage />, "client-journey")}</ProtectedRoute>} />
                 <Route path="/employees" element={<ProtectedRoute allowedRoles={["admin"]}>{guard(<Employees />, "employees")}</ProtectedRoute>} />
                 <Route path="/clients" element={<ProtectedRoute allowedRoles={["admin"]}>{guard(<ClientsPage />, "clients")}</ProtectedRoute>} />
                 <Route path="/review" element={<ProtectedRoute allowedRoles={["admin"]}>{guard(<AdminReview />, "review")}</ProtectedRoute>} />
