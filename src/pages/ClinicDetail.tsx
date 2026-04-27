@@ -757,6 +757,7 @@ export default function ClinicDetail() {
                 metaPageId={creds.meta_page_id}
                 metaInstagramBusinessId={creds.meta_instagram_business_id}
                 lastMetaSyncAt={creds.last_meta_sync_at}
+                grantedScopes={creds.meta_granted_scopes}
                 onRefresh={() => { fetchCredentials(); fetchAnalytics(); }}
               />
               <GoogleAdsConnectionCard
