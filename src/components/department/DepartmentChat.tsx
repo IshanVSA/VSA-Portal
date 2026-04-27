@@ -241,6 +241,20 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
           queryClient.invalidateQueries({ queryKey });
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "department_chats", filter: `clinic_id=eq.${clinicId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "department_chat_reads", filter: `clinic_id=eq.${clinicId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: readReceiptsKey });
+        }
+      )
       .on("broadcast", { event: "typing" }, ({ payload }) => {
         if (payload.user_id === user.id) return;
         setTypingUsers((prev) => {
