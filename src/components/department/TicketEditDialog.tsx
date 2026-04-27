@@ -33,6 +33,9 @@ interface TicketEditDialogProps {
   onOpenChange: (open: boolean) => void;
   ticket: EditableTicket | null;
   teamMembers: TeamMemberOption[];
+  /** Optional list restricted to members assignable in this department.
+   * Falls back to `teamMembers` when not provided. */
+  assignableMembers?: TeamMemberOption[];
   onUpdated: () => void;
 }
 
