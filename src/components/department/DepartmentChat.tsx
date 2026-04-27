@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { MessageSquare, Send, Paperclip, X, FileText, Image as ImageIcon, Download, Search, Reply, CornerDownRight, Pin, PinOff, Check, CheckCheck, Trash2 } from "lucide-react";
+import { MessageSquare, Send, Paperclip, X, FileText, Image as ImageIcon, Download, Search, Reply, CornerDownRight, Pin, PinOff, Check, CheckCheck, Trash2, Pencil } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { EmojiPicker } from "./EmojiPicker";
 import { MessageReactions } from "./MessageReactions";
@@ -45,6 +46,7 @@ interface ChatMessage {
   reply_to?: string | null;
   reply_preview?: { sender_name: string; message: string } | null;
   pinned?: boolean;
+  edited_at?: string | null;
 }
 
 function getDateLabel(date: Date): string {
@@ -106,7 +108,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
       if (!clinicId) return [];
       const { data, error } = await supabase
         .from("department_chats")
-        .select("id, message, created_at, user_id, attachments, reactions, reply_to, pinned")
+        .select("id, message, created_at, user_id, attachments, reactions, reply_to, pinned, edited_at")
         .eq("department", department)
         .eq("clinic_id", clinicId)
         .order("created_at", { ascending: true })
@@ -133,6 +135,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
         reply_to: (m as any).reply_to as string | null,
         reply_preview: null as { sender_name: string; message: string } | null,
         pinned: (m as any).pinned as boolean || false,
+        edited_at: (m as any).edited_at as string | null,
       }));
 
       // Build reply previews
@@ -407,6 +410,39 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     queryClient.invalidateQueries({ queryKey });
   };
 
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState("");
+
+  const startEditing = (msg: ChatMessage) => {
+    setEditingMessageId(msg.id);
+    setEditingValue(msg.message);
+  };
+
+  const cancelEditing = () => {
+    setEditingMessageId(null);
+    setEditingValue("");
+  };
+
+  const saveEdit = async () => {
+    if (!editingMessageId || !user) return;
+    const trimmed = editingValue.trim();
+    const original = messages.find((m) => m.id === editingMessageId);
+    if (!original) { cancelEditing(); return; }
+    if (!trimmed) { toast.error("Message cannot be empty"); return; }
+    if (trimmed === original.message) { cancelEditing(); return; }
+    const { error } = await supabase
+      .from("department_chats")
+      .update({ message: trimmed, edited_at: new Date().toISOString() } as any)
+      .eq("id", editingMessageId)
+      .eq("user_id", user.id);
+    if (error) {
+      toast.error("Failed to edit message");
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey });
+    cancelEditing();
+  };
+
   const [deleteMessageId, setDeleteMessageId] = useState<string | null>(null);
 
   const confirmDeleteMessage = async () => {
@@ -622,6 +658,15 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
                             >
                               {msg.pinned ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
                             </button>
+                            {isOwn && msg.message && (
+                              <button
+                                onClick={() => startEditing(msg)}
+                                className="text-muted-foreground hover:text-foreground"
+                                title="Edit message"
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </button>
+                            )}
                             {role === "admin" && (
                               <button
                                 onClick={() => setDeleteMessageId(msg.id)}
@@ -643,15 +688,46 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
                             </div>
                           </div>
                         )}
-                        {msg.message && (
-                          <div
-                            className={`inline-block px-3 py-1.5 rounded-xl text-sm whitespace-pre-wrap break-words ${
-                              isOwn
-                                ? "bg-primary text-primary-foreground rounded-tr-sm"
-                                : "bg-muted text-foreground rounded-tl-sm"
-                            }`}
-                          >
-                            {renderMessageWithMentions(msg.message, searchQuery.trim() ? searchQuery : undefined)}
+                        {msg.message && editingMessageId !== msg.id && (
+                          <div className={isOwn ? "flex flex-col items-end" : "flex flex-col items-start"}>
+                            <div
+                              className={`inline-block px-3 py-1.5 rounded-xl text-sm whitespace-pre-wrap break-words ${
+                                isOwn
+                                  ? "bg-primary text-primary-foreground rounded-tr-sm"
+                                  : "bg-muted text-foreground rounded-tl-sm"
+                              }`}
+                            >
+                              {renderMessageWithMentions(msg.message, searchQuery.trim() ? searchQuery : undefined)}
+                            </div>
+                            {msg.edited_at && (
+                              <span className="text-[10px] text-muted-foreground italic mt-0.5">
+                                edited
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {editingMessageId === msg.id && (
+                          <div className={`mt-1 flex flex-col gap-1.5 ${isOwn ? "items-end" : "items-start"}`}>
+                            <Textarea
+                              value={editingValue}
+                              onChange={(e) => setEditingValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); saveEdit(); }
+                                if (e.key === "Escape") { e.preventDefault(); cancelEditing(); }
+                              }}
+                              autoFocus
+                              rows={2}
+                              className="min-w-[260px] text-sm"
+                            />
+                            <div className="flex gap-1.5">
+                              <Button size="sm" variant="ghost" onClick={cancelEditing} className="h-7 px-2 text-xs">
+                                Cancel
+                              </Button>
+                              <Button size="sm" onClick={saveEdit} className="h-7 px-2 text-xs">
+                                Save
+                              </Button>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground">Enter to save · Esc to cancel</p>
                           </div>
                         )}
                         {attachments.length > 0 && (
