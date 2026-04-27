@@ -47,7 +47,26 @@ export function NotificationBell() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  
+
+  const storageKey = user ? `notif-read-ids:${user.id}` : null;
+  const readIdsRef = useRef<Set<string>>(new Set());
+
+  const loadReadIds = (): Set<string> => {
+    if (!storageKey) return new Set();
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return new Set();
+      const arr = JSON.parse(raw) as string[];
+      return new Set(arr);
+    } catch { return new Set(); }
+  };
+
+  const persistReadIds = (ids: Set<string>) => {
+    if (!storageKey) return;
+    // Cap at 500 most recent IDs to avoid unbounded growth
+    const arr = Array.from(ids).slice(-500);
+    try { localStorage.setItem(storageKey, JSON.stringify(arr)); } catch {}
+  };
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
