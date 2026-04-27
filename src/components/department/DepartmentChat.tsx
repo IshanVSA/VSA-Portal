@@ -667,7 +667,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
                                 <Pencil className="h-3 w-3" />
                               </button>
                             )}
-                            {(role === "admin" || isOwn) && (
+                            {role === "admin" && (
                               <button
                                 onClick={() => setDeleteMessageId(msg.id)}
                                 className="text-muted-foreground hover:text-destructive"
