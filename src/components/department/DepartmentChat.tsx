@@ -100,20 +100,37 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     onVisible?.();
   }, [onVisible]);
 
-  const queryKey = ["department-chats", department, clinicId];
+  const PAGE_SIZE = 50;
+  const [pageLimit, setPageLimit] = useState(PAGE_SIZE);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const preserveScrollRef = useRef<{ prevHeight: number } | null>(null);
+
+  // Reset pagination when switching channel
+  useEffect(() => {
+    setPageLimit(PAGE_SIZE);
+    setHasMore(false);
+  }, [department, clinicId]);
+
+  const queryKey = ["department-chats", department, clinicId, pageLimit];
 
   const { data: messages = [], isLoading } = useQuery({
     queryKey,
     queryFn: async () => {
       if (!clinicId) return [];
+      // Fetch most recent `pageLimit` messages, then reverse to ascending
       const { data, error } = await supabase
         .from("department_chats")
         .select("id, message, created_at, user_id, attachments, reactions, reply_to, pinned, edited_at")
         .eq("department", department)
         .eq("clinic_id", clinicId)
-        .order("created_at", { ascending: true })
-        .limit(200);
+        .order("created_at", { ascending: false })
+        .limit(pageLimit + 1);
       if (error) throw error;
+      const more = (data || []).length > pageLimit;
+      setHasMore(more);
+      if (more) data!.pop();
+      data!.reverse();
 
       const userIds = [...new Set((data || []).map((m) => m.user_id))];
       let profileMap: Record<string, string> = {};
@@ -233,7 +250,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "department_chats", filter: `clinic_id=eq.${clinicId}` },
         () => {
-          queryClient.invalidateQueries({ queryKey });
+          queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
           onVisible?.();
         }
       )
@@ -241,14 +258,14 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "department_chats", filter: `clinic_id=eq.${clinicId}` },
         () => {
-          queryClient.invalidateQueries({ queryKey });
+          queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
         }
       )
       .on(
         "postgres_changes",
         { event: "DELETE", schema: "public", table: "department_chats", filter: `clinic_id=eq.${clinicId}` },
         () => {
-          queryClient.invalidateQueries({ queryKey });
+          queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
         }
       )
       .on(
@@ -285,11 +302,48 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     typingChannelRef.current.send({ type: "broadcast", event: "typing", payload: { user_id: user.id, name: ownProfile } });
   }, [user, ownProfile]);
 
+  // Track previous last-message id so we only autoscroll when a new message arrives
+  const lastMessageIdRef = useRef<string | null>(null);
   useEffect(() => {
-    if (scrollRef.current && !searchQuery) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const el = scrollRef.current;
+    if (!el) return;
+
+    // If we just loaded older messages, restore scroll position to keep view stable
+    if (preserveScrollRef.current) {
+      const { prevHeight } = preserveScrollRef.current;
+      el.scrollTop = el.scrollHeight - prevHeight;
+      preserveScrollRef.current = null;
+      setLoadingOlder(false);
+      lastMessageIdRef.current = messages[messages.length - 1]?.id || null;
+      return;
+    }
+
+    if (searchQuery) return;
+    const lastId = messages[messages.length - 1]?.id || null;
+    const isNewMessage = lastId !== lastMessageIdRef.current;
+    if (isNewMessage) {
+      el.scrollTop = el.scrollHeight;
+      lastMessageIdRef.current = lastId;
     }
   }, [messages, searchQuery]);
+
+  // Load older messages when user scrolls near the top
+  const handleScrollAreaScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el || loadingOlder || !hasMore || searchQuery) return;
+    if (el.scrollTop < 60) {
+      preserveScrollRef.current = { prevHeight: el.scrollHeight };
+      setLoadingOlder(true);
+      setPageLimit((p) => p + PAGE_SIZE);
+    }
+  }, [loadingOlder, hasMore, searchQuery]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", handleScrollAreaScroll);
+    return () => el.removeEventListener("scroll", handleScrollAreaScroll);
+  }, [handleScrollAreaScroll]);
 
   // --- Drag & Drop ---
   const addFiles = (files: File[]) => {
@@ -398,7 +452,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     if (users.length === 0) delete reactions[emoji];
     else reactions[emoji] = users;
     await supabase.from("department_chats").update({ reactions: reactions as any }).eq("id", messageId);
-    queryClient.invalidateQueries({ queryKey });
+    queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
   };
 
   const handleEmojiInsert = (emoji: string) => {
@@ -407,7 +461,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
 
    const handleTogglePin = async (messageId: string, currentlyPinned: boolean) => {
     await supabase.from("department_chats").update({ pinned: !currentlyPinned } as any).eq("id", messageId);
-    queryClient.invalidateQueries({ queryKey });
+    queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
   };
 
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -439,7 +493,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
       toast.error("Failed to edit message");
       return;
     }
-    queryClient.invalidateQueries({ queryKey });
+    queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
     cancelEditing();
   };
 
@@ -451,7 +505,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     if (error) {
       toast.error("Failed to delete message");
     } else {
-      queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
       toast.success("Message deleted");
     }
     setDeleteMessageId(null);
@@ -605,6 +659,13 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
             </div>
           ) : (
             <div className="space-y-3">
+              {!searchQuery && hasMore && (
+                <div className="flex justify-center py-1">
+                  <span className="text-[10px] text-muted-foreground">
+                    {loadingOlder ? "Loading older messages…" : "Scroll up to load older messages"}
+                  </span>
+                </div>
+              )}
               {displayMessages.map((msg, idx) => {
                 const msgDate = new Date(msg.created_at);
                 const prevDate = idx > 0 ? new Date(displayMessages[idx - 1].created_at) : null;
