@@ -52,8 +52,6 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
   const [previewFile, setPreviewFile] = useState<UploadedFile | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const folder = `${department}/`;
-
   const [ticketAttachments, setTicketAttachments] = useState<TicketAttachment[]>([]);
   const [previewTicketAtt, setPreviewTicketAtt] = useState<TicketAttachment | null>(null);
 
