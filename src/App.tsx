@@ -30,7 +30,20 @@ import SplashScreen from "./components/SplashScreen";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ReactNode } from "react";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30 * 1000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+
+// Expose so logout can wipe per-user cached data on shared browsers.
+if (typeof window !== "undefined") {
+  (window as unknown as { __queryClient?: typeof queryClient }).__queryClient = queryClient;
+}
 
 // Wrap each route element so an error in one page never blanks the whole app.
 const guard = (node: ReactNode, scope: string) => (
