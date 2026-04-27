@@ -152,8 +152,8 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle()
-      .then(({ data }) => { if (data) setProfile(data); });
+    supabase.from("profiles").select("full_name, team_role").eq("id", user.id).maybeSingle()
+      .then(({ data }) => { if (data) setProfile(data as any); });
   }, [user]);
 
   // Fetch department assignments for concierge users
