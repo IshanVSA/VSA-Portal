@@ -131,6 +131,21 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Step 2b: Inspect token to capture granted scopes
+      let grantedScopes: string[] = [];
+      try {
+        const debugRes = await fetch(
+          `https://graph.facebook.com/v21.0/debug_token?input_token=${longTokenData.access_token}&access_token=${META_APP_ID}|${META_APP_SECRET}`
+        );
+        const debugData = await debugRes.json();
+        if (Array.isArray(debugData?.data?.scopes)) {
+          grantedScopes = debugData.data.scopes;
+        }
+        console.log("Granted scopes:", grantedScopes);
+      } catch (scopeErr) {
+        console.error("Scope inspection error (non-fatal):", scopeErr);
+      }
+
       // Step 3: Get ALL pages (follow pagination from me/accounts + Business Manager)
       console.log("Fetching pages with long-lived token...");
       const pageMap = new Map<string, any>();
