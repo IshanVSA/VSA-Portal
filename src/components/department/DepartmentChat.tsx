@@ -302,11 +302,48 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     typingChannelRef.current.send({ type: "broadcast", event: "typing", payload: { user_id: user.id, name: ownProfile } });
   }, [user, ownProfile]);
 
+  // Track previous last-message id so we only autoscroll when a new message arrives
+  const lastMessageIdRef = useRef<string | null>(null);
   useEffect(() => {
-    if (scrollRef.current && !searchQuery) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const el = scrollRef.current;
+    if (!el) return;
+
+    // If we just loaded older messages, restore scroll position to keep view stable
+    if (preserveScrollRef.current) {
+      const { prevHeight } = preserveScrollRef.current;
+      el.scrollTop = el.scrollHeight - prevHeight;
+      preserveScrollRef.current = null;
+      setLoadingOlder(false);
+      lastMessageIdRef.current = messages[messages.length - 1]?.id || null;
+      return;
+    }
+
+    if (searchQuery) return;
+    const lastId = messages[messages.length - 1]?.id || null;
+    const isNewMessage = lastId !== lastMessageIdRef.current;
+    if (isNewMessage) {
+      el.scrollTop = el.scrollHeight;
+      lastMessageIdRef.current = lastId;
     }
   }, [messages, searchQuery]);
+
+  // Load older messages when user scrolls near the top
+  const handleScrollAreaScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el || loadingOlder || !hasMore || searchQuery) return;
+    if (el.scrollTop < 60) {
+      preserveScrollRef.current = { prevHeight: el.scrollHeight };
+      setLoadingOlder(true);
+      setPageLimit((p) => p + PAGE_SIZE);
+    }
+  }, [loadingOlder, hasMore, searchQuery]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", handleScrollAreaScroll);
+    return () => el.removeEventListener("scroll", handleScrollAreaScroll);
+  }, [handleScrollAreaScroll]);
 
   // --- Drag & Drop ---
   const addFiles = (files: File[]) => {
