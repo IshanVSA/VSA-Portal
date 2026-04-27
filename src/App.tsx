@@ -82,6 +82,7 @@ const App = () => (
                 <Route path="/review" element={<ProtectedRoute allowedRoles={["admin"]}>{guard(<AdminReview />, "review")}</ProtectedRoute>} />
                 <Route path="/settings" element={guard(<Settings />, "settings")} />
                 <Route path="/reports" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}>{guard(<Reports />, "reports")}</ProtectedRoute>} />
+                <Route path="/cron-monitor" element={<ProtectedRoute allowedRoles={["admin"]}>{guard(<CronMonitor />, "cron-monitor")}</ProtectedRoute>} />
               </Route>
 
               <Route path="/content" element={<Navigate to="/social?tab=calendar" replace />} />
