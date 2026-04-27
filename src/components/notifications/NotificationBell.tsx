@@ -152,7 +152,7 @@ export function NotificationBell() {
           message: meta.message || `Post activity: ${log.action}`,
           read: false, created_at: log.created_at,
         };
-        setNotifications(prev => [newNotif, ...prev].slice(0, 30));
+        setNotifications(prev => [withRead(newNotif), ...prev].slice(0, 30));
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "department_tickets" }, (payload) => {
         const t = payload.new as any;
@@ -162,7 +162,7 @@ export function NotificationBell() {
           message: `[${t.department}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
           read: false, created_at: t.created_at,
         };
-        setNotifications(prev => [newNotif, ...prev].slice(0, 30));
+        setNotifications(prev => [withRead(newNotif), ...prev].slice(0, 30));
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "department_tickets" }, (payload) => {
         const t = payload.new as any;
@@ -172,7 +172,7 @@ export function NotificationBell() {
           message: `[${t.department}] ${t.title}`,
           read: false, created_at: t.updated_at || new Date().toISOString(),
         };
-        setNotifications(prev => [newNotif, ...prev].slice(0, 30));
+        setNotifications(prev => [withRead(newNotif), ...prev].slice(0, 30));
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "sm2_generations" }, (payload) => {
         const g = payload.new as any;
@@ -185,7 +185,7 @@ export function NotificationBell() {
           read: false,
           created_at: g.updated_at || g.created_at || new Date().toISOString(),
         };
-        setNotifications(prev => [newNotif, ...prev].slice(0, 30));
+        setNotifications(prev => [withRead(newNotif), ...prev].slice(0, 30));
       })
       .subscribe();
 
