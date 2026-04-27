@@ -366,7 +366,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 flex flex-col transition-[width,transform] duration-300 ease-out lg:sticky lg:top-0 lg:bottom-auto lg:h-screen lg:z-auto lg:self-start",
+        "fixed inset-y-0 left-0 z-50 flex flex-col transition-[width,transform] duration-300 ease-out lg:h-screen",
         "bg-[hsl(var(--sidebar-background))] text-[hsl(var(--sidebar-foreground))]",
         sidebarWidth,
         sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
@@ -517,7 +517,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="flex-1 min-w-0 flex flex-col">
+      <main className={cn("flex-1 min-w-0 flex flex-col", collapsed ? "lg:pl-[68px]" : "lg:pl-[260px]")}>
         {/* Top header — single sticky row, scrolls horizontally on small screens */}
         <header
           className="sticky top-0 z-30 bg-card/80 backdrop-blur-xl border-b border-border/40 h-14 flex items-stretch"
