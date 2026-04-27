@@ -658,7 +658,16 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
                             >
                               {msg.pinned ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
                             </button>
-                            {role === "admin" && (
+                            {isOwn && msg.message && (
+                              <button
+                                onClick={() => startEditing(msg)}
+                                className="text-muted-foreground hover:text-foreground"
+                                title="Edit message"
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </button>
+                            )}
+                            {(role === "admin" || isOwn) && (
                               <button
                                 onClick={() => setDeleteMessageId(msg.id)}
                                 className="text-muted-foreground hover:text-destructive"
