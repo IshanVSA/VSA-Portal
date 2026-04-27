@@ -8,12 +8,23 @@ import { formatDistanceToNow } from "date-fns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { cn } from "@/lib/utils";
 import { FilePreviewDialog } from "@/components/FilePreviewDialog";
+import { Badge } from "@/components/ui/badge";
+import { getVisibleTicketTypes } from "@/lib/ticket-department-map";
 
 interface UploadedFile {
   name: string;
   created_at: string;
   size: number;
   url: string;
+}
+
+interface TicketAttachment {
+  path: string;
+  name: string;
+  created_at: string;
+  ticket_id: string;
+  ticket_title: string;
+  ticket_type: string;
 }
 
 const BUCKET = "department-files";
