@@ -190,8 +190,9 @@ export default function ClinicDetail() {
   const [teamMembers, setTeamMembers] = useState<{ full_name: string | null; team_role: string | null }[]>([]);
 
   // Determine initial tab based on OAuth URL params
-  const hasOAuthParams = searchParams.has("google") || searchParams.has("google_token_ref") || searchParams.has("meta_token_ref");
+  const hasOAuthParams = searchParams.has("google") || searchParams.has("meta") || searchParams.has("google_token_ref") || searchParams.has("meta_token_ref") || searchParams.has("gbp_token_ref");
   const [activeTab, setActiveTab] = useState(hasOAuthParams ? "connections" : "instagram");
+  const [metaScopes, setMetaScopes] = useState<string[]>([]);
 
   const fetchOAuthData = async (tokenRef: string) => {
     try {
