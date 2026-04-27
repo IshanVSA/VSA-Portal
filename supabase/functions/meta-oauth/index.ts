@@ -131,6 +131,21 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Step 2b: Inspect token to capture granted scopes
+      let grantedScopes: string[] = [];
+      try {
+        const debugRes = await fetch(
+          `https://graph.facebook.com/v21.0/debug_token?input_token=${longTokenData.access_token}&access_token=${META_APP_ID}|${META_APP_SECRET}`
+        );
+        const debugData = await debugRes.json();
+        if (Array.isArray(debugData?.data?.scopes)) {
+          grantedScopes = debugData.data.scopes;
+        }
+        console.log("Granted scopes:", grantedScopes);
+      } catch (scopeErr) {
+        console.error("Scope inspection error (non-fatal):", scopeErr);
+      }
+
       // Step 3: Get ALL pages (follow pagination from me/accounts + Business Manager)
       console.log("Fetching pages with long-lived token...");
       const pageMap = new Map<string, any>();
@@ -216,6 +231,7 @@ Deno.serve(async (req) => {
               meta_page_id: pageId,
               meta_instagram_business_id: igBusinessId,
               meta_page_name: pageName,
+              meta_granted_scopes: grantedScopes,
             })
             .eq("clinic_id", clinic_id);
           upsertError = error;
@@ -228,6 +244,7 @@ Deno.serve(async (req) => {
               meta_page_id: pageId,
               meta_instagram_business_id: igBusinessId,
               meta_page_name: pageName,
+              meta_granted_scopes: grantedScopes,
             });
           upsertError = error;
         }
@@ -261,7 +278,7 @@ Deno.serve(async (req) => {
         .insert({
           clinic_id: clinic_id,
           provider: "meta",
-          payload: { pages: pagesForSelection },
+          payload: { pages: pagesForSelection, granted_scopes: grantedScopes },
         })
         .select("id")
         .single();
@@ -326,6 +343,7 @@ Deno.serve(async (req) => {
           meta_instagram_business_id: null,
           meta_page_name: null,
           last_meta_sync_at: null,
+          meta_granted_scopes: null,
         })
         .eq("clinic_id", clinic_id);
 

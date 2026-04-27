@@ -19,11 +19,12 @@ interface PageSelectionDialogProps {
   open: boolean;
   pages: MetaPage[];
   clinicId: string;
+  grantedScopes?: string[];
   onClose: () => void;
   onConnected: () => void;
 }
 
-export function PageSelectionDialog({ open, pages, clinicId, onClose, onConnected }: PageSelectionDialogProps) {
+export function PageSelectionDialog({ open, pages, clinicId, grantedScopes, onClose, onConnected }: PageSelectionDialogProps) {
   const [selectedPageId, setSelectedPageId] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
@@ -44,6 +45,7 @@ export function PageSelectionDialog({ open, pages, clinicId, onClose, onConnecte
         page_id: page.id,
         page_name: page.name,
         page_access_token: page.access_token,
+        granted_scopes: grantedScopes || [],
       },
     });
     setSaving(false);

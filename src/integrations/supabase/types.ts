@@ -512,6 +512,7 @@ export type Database = {
           last_gbp_sync_at: string | null
           last_google_sync_at: string | null
           last_meta_sync_at: string | null
+          meta_granted_scopes: string[] | null
           meta_instagram_business_id: string | null
           meta_page_access_token: string | null
           meta_page_id: string | null
@@ -533,6 +534,7 @@ export type Database = {
           last_gbp_sync_at?: string | null
           last_google_sync_at?: string | null
           last_meta_sync_at?: string | null
+          meta_granted_scopes?: string[] | null
           meta_instagram_business_id?: string | null
           meta_page_access_token?: string | null
           meta_page_id?: string | null
@@ -554,6 +556,7 @@ export type Database = {
           last_gbp_sync_at?: string | null
           last_google_sync_at?: string | null
           last_meta_sync_at?: string | null
+          meta_granted_scopes?: string[] | null
           meta_instagram_business_id?: string | null
           meta_page_access_token?: string | null
           meta_page_id?: string | null

@@ -14,6 +14,7 @@ interface MetaConnectionCardProps {
   metaPageId: string | null;
   metaInstagramBusinessId: string | null;
   lastMetaSyncAt: string | null;
+  grantedScopes?: string[] | null;
   onRefresh: () => void;
 }
 
@@ -24,6 +25,7 @@ export function MetaConnectionCard({
   metaPageId,
   metaInstagramBusinessId,
   lastMetaSyncAt,
+  grantedScopes,
   onRefresh,
 }: MetaConnectionCardProps) {
   const [syncing, setSyncing] = useState(false);
@@ -120,6 +122,19 @@ export function MetaConnectionCard({
                 <p>Last synced: {new Date(lastMetaSyncAt).toLocaleString()}</p>
               )}
             </div>
+
+            {grantedScopes && grantedScopes.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-foreground">Granted permissions</p>
+                <div className="flex flex-wrap gap-1">
+                  {grantedScopes.map((scope) => (
+                    <Badge key={scope} variant="outline" className="text-[10px] font-mono">
+                      {scope}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-2">
               <Button onClick={handleSync} disabled={syncing} variant="outline" size="sm" className="flex-1">

@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { clinic_id, page_id, page_name, page_access_token } = await req.json();
+    const { clinic_id, page_id, page_name, page_access_token, granted_scopes } = await req.json();
 
     if (!clinic_id || !page_id || !page_access_token) {
       return new Response(
@@ -113,6 +113,10 @@ Deno.serve(async (req) => {
     let saveError;
     const encryptedToken = await encryptToken(page_access_token);
 
+    const safeScopes = Array.isArray(granted_scopes)
+      ? granted_scopes.filter((s: unknown): s is string => typeof s === "string").slice(0, 50)
+      : null;
+
     if (existing) {
       const { error } = await supabase
         .from("clinic_api_credentials")
@@ -121,6 +125,7 @@ Deno.serve(async (req) => {
           meta_page_id: page_id,
           meta_instagram_business_id: igBusinessId,
           meta_page_name: typeof page_name === "string" ? page_name.slice(0, 200) : null,
+          meta_granted_scopes: safeScopes,
         })
         .eq("clinic_id", clinic_id);
       saveError = error;
@@ -133,6 +138,7 @@ Deno.serve(async (req) => {
           meta_page_id: page_id,
           meta_instagram_business_id: igBusinessId,
           meta_page_name: typeof page_name === "string" ? page_name.slice(0, 200) : null,
+          meta_granted_scopes: safeScopes,
         });
       saveError = error;
     }

@@ -44,6 +44,7 @@ interface ClinicCredentials {
   meta_page_id: string | null;
   meta_instagram_business_id: string | null;
   meta_page_name: string | null;
+  meta_granted_scopes: string[] | null;
   google_ads_customer_id: string | null;
   google_ads_login_customer_id: string | null;
   google_ads_account_name: string | null;
@@ -175,7 +176,7 @@ export default function ClinicDetail() {
   const { role } = useUserRole();
   const [clinic, setClinic] = useState<ClinicData | null>(null);
   const [creds, setCreds] = useState<ClinicCredentials>({
-    meta_page_id: null, meta_instagram_business_id: null, meta_page_name: null,
+    meta_page_id: null, meta_instagram_business_id: null, meta_page_name: null, meta_granted_scopes: null,
     google_ads_customer_id: null, google_ads_login_customer_id: null, google_ads_account_name: null,
     last_meta_sync_at: null, last_google_sync_at: null,
     gbp_account_id: null, gbp_location_id: null, gbp_location_name: null, gbp_connected_at: null,
@@ -190,8 +191,9 @@ export default function ClinicDetail() {
   const [teamMembers, setTeamMembers] = useState<{ full_name: string | null; team_role: string | null }[]>([]);
 
   // Determine initial tab based on OAuth URL params
-  const hasOAuthParams = searchParams.has("google") || searchParams.has("google_token_ref") || searchParams.has("meta_token_ref");
+  const hasOAuthParams = searchParams.has("google") || searchParams.has("meta") || searchParams.has("google_token_ref") || searchParams.has("meta_token_ref") || searchParams.has("gbp_token_ref");
   const [activeTab, setActiveTab] = useState(hasOAuthParams ? "connections" : "instagram");
+  const [metaScopes, setMetaScopes] = useState<string[]>([]);
 
   const fetchOAuthData = async (tokenRef: string) => {
     try {
@@ -249,6 +251,17 @@ export default function ClinicDetail() {
       setSearchParams(newParams, { replace: true });
     }
 
+    // Handle ?meta=connected (single-page auto-connect)
+    if (searchParams.get("meta") === "connected") {
+      setActiveTab("connections");
+      toast.success("Facebook Page connected successfully!");
+      fetchCredentials();
+      fetchAnalytics();
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("meta");
+      setSearchParams(newParams, { replace: true });
+    }
+
     // Check for meta_token_ref URL parameter (secure token reference after OAuth)
     const metaTokenRef = searchParams.get("meta_token_ref");
     if (metaTokenRef) {
@@ -259,6 +272,9 @@ export default function ClinicDetail() {
       fetchOAuthData(metaTokenRef).then((result) => {
         if (result?.payload?.pages) {
           setMetaPages(result.payload.pages);
+          if (Array.isArray(result.payload.granted_scopes)) {
+            setMetaScopes(result.payload.granted_scopes);
+          }
         }
       });
     }
@@ -295,7 +311,7 @@ export default function ClinicDetail() {
   const fetchCredentials = async () => {
     if (!id) return;
     const { data } = await supabase.from("clinic_api_credentials")
-      .select("meta_page_id, meta_instagram_business_id, meta_page_name, google_ads_customer_id, google_ads_login_customer_id, google_ads_account_name, last_meta_sync_at, last_google_sync_at, gbp_account_id, gbp_location_id, gbp_location_name, gbp_connected_at")
+      .select("meta_page_id, meta_instagram_business_id, meta_page_name, meta_granted_scopes, google_ads_customer_id, google_ads_login_customer_id, google_ads_account_name, last_meta_sync_at, last_google_sync_at, gbp_account_id, gbp_location_id, gbp_location_name, gbp_connected_at")
       .eq("clinic_id", id).maybeSingle();
     if (data) setCreds(data as ClinicCredentials);
   };
@@ -741,6 +757,7 @@ export default function ClinicDetail() {
                 metaPageId={creds.meta_page_id}
                 metaInstagramBusinessId={creds.meta_instagram_business_id}
                 lastMetaSyncAt={creds.last_meta_sync_at}
+                grantedScopes={creds.meta_granted_scopes}
                 onRefresh={() => { fetchCredentials(); fetchAnalytics(); }}
               />
               <GoogleAdsConnectionCard
@@ -832,6 +849,7 @@ export default function ClinicDetail() {
             open={!!metaPages}
             pages={metaPages}
             clinicId={id}
+            grantedScopes={metaScopes}
             onClose={() => {
               setMetaPages(null);
               setSearchParams({}, { replace: true });
