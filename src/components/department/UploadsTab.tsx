@@ -8,12 +8,23 @@ import { formatDistanceToNow } from "date-fns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { cn } from "@/lib/utils";
 import { FilePreviewDialog } from "@/components/FilePreviewDialog";
+import { Badge } from "@/components/ui/badge";
+import { getVisibleTicketTypes } from "@/lib/ticket-department-map";
 
 interface UploadedFile {
   name: string;
   created_at: string;
   size: number;
   url: string;
+}
+
+interface TicketAttachment {
+  path: string;
+  name: string;
+  created_at: string;
+  ticket_id: string;
+  ticket_title: string;
+  ticket_type: string;
 }
 
 const BUCKET = "department-files";
@@ -40,6 +51,9 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
   const [loading, setLoading] = useState(true);
   const [previewFile, setPreviewFile] = useState<UploadedFile | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const [ticketAttachments, setTicketAttachments] = useState<TicketAttachment[]>([]);
+  const [previewTicketAtt, setPreviewTicketAtt] = useState<TicketAttachment | null>(null);
 
   const folder = `${department}/`;
 
@@ -71,9 +85,55 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
     setLoading(false);
   }, [department, folder]);
 
+  const fetchTicketAttachments = useCallback(async () => {
+    const visibleTypes = getVisibleTicketTypes(department);
+    if (visibleTypes.length === 0) {
+      setTicketAttachments([]);
+      return;
+    }
+    let query = supabase
+      .from("department_tickets" as any)
+      .select("id, title, ticket_type, attachments, created_at, description, clinic_id")
+      .in("ticket_type", visibleTypes)
+      .not("attachments", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (clinicId) query = query.eq("clinic_id", clinicId);
+    const { data, error } = await query;
+    if (error) {
+      console.error("Error loading ticket attachments:", error);
+      return;
+    }
+    const collected: TicketAttachment[] = [];
+    for (const t of (data || []) as any[]) {
+      const paths: string[] = Array.isArray(t.attachments) ? t.attachments : [];
+      if (paths.length === 0) continue;
+      // Conditional rule: Add/Remove Team Members only shown in social_media if Promote: Yes
+      if (
+        department === "social_media" &&
+        t.ticket_type === "Add/Remove Team Members" &&
+        !(t.description || "").includes("Promote on Social Media: Yes")
+      ) {
+        continue;
+      }
+      for (const p of paths) {
+        collected.push({
+          path: p,
+          name: p.split("/").pop() || p,
+          created_at: t.created_at,
+          ticket_id: t.id,
+          ticket_title: t.title,
+          ticket_type: t.ticket_type,
+        });
+      }
+    }
+    setTicketAttachments(collected);
+  }, [department, clinicId]);
+
   useEffect(() => {
     fetchFiles();
-  }, [fetchFiles]);
+    fetchTicketAttachments();
+  }, [fetchFiles, fetchTicketAttachments]);
 
   const handleUpload = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
@@ -223,6 +283,54 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
         </CardContent>
       </Card>
 
+      {/* Ticket Attachments */}
+      <Card className="overflow-hidden border-border/60">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-blue-400" />
+            <CardTitle className="text-base font-semibold">Ticket Attachments</CardTitle>
+            <Badge variant="secondary" className="ml-1 text-[10px]">{ticketAttachments.length}</Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {ticketAttachments.length === 0 ? (
+            <div className="py-10 text-center text-muted-foreground text-sm">
+              {clinicId ? "No ticket attachments yet" : "Select a clinic to view ticket attachments"}
+            </div>
+          ) : (
+            <ul className="divide-y divide-border/40">
+              {ticketAttachments.map((att) => (
+                <li
+                  key={att.path}
+                  className="flex items-center justify-between px-4 sm:px-6 py-3 hover:bg-muted/30 transition-colors"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    {getFileIcon(att.name)}
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{att.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {formatDistanceToNow(new Date(att.created_at), { addSuffix: true })} · {att.ticket_type} · {att.ticket_title}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() => setPreviewTicketAtt(att)}
+                    >
+                      <Eye className="h-3.5 w-3.5 mr-1" />
+                      View
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
       <FilePreviewDialog
         open={!!previewFile}
         onOpenChange={(o) => { if (!o) setPreviewFile(null); }}
@@ -231,6 +339,19 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
           const { data, error } = await supabase.storage
             .from(BUCKET)
             .createSignedUrl(`${folder}${previewFile.name}`, 3600);
+          if (error || !data?.signedUrl) throw error || new Error("No signed URL");
+          return data.signedUrl;
+        } : undefined}
+      />
+
+      <FilePreviewDialog
+        open={!!previewTicketAtt}
+        onOpenChange={(o) => { if (!o) setPreviewTicketAtt(null); }}
+        filename={previewTicketAtt?.name || ""}
+        getUrl={previewTicketAtt ? async () => {
+          const { data, error } = await supabase.storage
+            .from(BUCKET)
+            .createSignedUrl(previewTicketAtt.path, 3600);
           if (error || !data?.signedUrl) throw error || new Error("No signed URL");
           return data.signedUrl;
         } : undefined}
