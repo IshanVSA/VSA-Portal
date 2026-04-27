@@ -123,6 +123,19 @@ export function MetaConnectionCard({
               )}
             </div>
 
+            {grantedScopes && grantedScopes.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-foreground">Granted permissions</p>
+                <div className="flex flex-wrap gap-1">
+                  {grantedScopes.map((scope) => (
+                    <Badge key={scope} variant="outline" className="text-[10px] font-mono">
+                      {scope}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-2">
               <Button onClick={handleSync} disabled={syncing} variant="outline" size="sm" className="flex-1">
                 {syncing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
