@@ -176,7 +176,7 @@ export default function ClinicDetail() {
   const { role } = useUserRole();
   const [clinic, setClinic] = useState<ClinicData | null>(null);
   const [creds, setCreds] = useState<ClinicCredentials>({
-    meta_page_id: null, meta_instagram_business_id: null, meta_page_name: null,
+    meta_page_id: null, meta_instagram_business_id: null, meta_page_name: null, meta_granted_scopes: null,
     google_ads_customer_id: null, google_ads_login_customer_id: null, google_ads_account_name: null,
     last_meta_sync_at: null, last_google_sync_at: null,
     gbp_account_id: null, gbp_location_id: null, gbp_location_name: null, gbp_connected_at: null,
