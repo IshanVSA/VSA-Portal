@@ -73,6 +73,18 @@ export function useAuth() {
     const timeout = new Promise((resolve) => setTimeout(resolve, 1500));
     await Promise.race([serverSignOut, timeout]);
 
+    // Wipe React Query cache so the next user on this browser cannot see
+    // any cached PII / clinic data from the previous session.
+    try {
+      const qc = (window as unknown as { __queryClient?: { clear: () => void } }).__queryClient;
+      qc?.clear();
+    } catch {}
+
+    // Tell the service worker to drop any cached responses too.
+    try {
+      navigator.serviceWorker?.controller?.postMessage({ type: 'CLEAR_CACHES' });
+    } catch {}
+
     // Always do a local signout + storage wipe + redirect, regardless of server result.
     try { await supabase.auth.signOut({ scope: 'local' }); } catch {}
     forceLogout();
