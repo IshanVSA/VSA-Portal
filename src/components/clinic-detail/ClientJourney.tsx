@@ -72,7 +72,7 @@ export function ClientJourney({ clinicId, readOnly }: { clinicId: string; readOn
 
   // Fetch steps
   const { data: steps = [], isLoading } = useQuery({
-    queryKey: ["client-journey", clinicId],
+    queryKey: ["client-journey", clinicId, role],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_journey_steps")
@@ -82,8 +82,20 @@ export function ClientJourney({ clinicId, readOnly }: { clinicId: string; readOn
 
       if (error) throw error;
 
-      // Initialize if empty
+      // Initialize if empty — only staff (admin/concierge) can insert; clients are read-only.
       if (!data || data.length === 0) {
+        if (readOnly || role === "client") {
+          // Render placeholder pending steps instead of hanging on a blocked insert.
+          return Array.from({ length: TOTAL_STEPS }, (_, i) => ({
+            id: `placeholder-${i + 1}`,
+            clinic_id: clinicId,
+            step_number: i + 1,
+            status: "pending",
+            completed_by: null,
+            completed_at: null,
+            notes: null,
+          })) as StepRow[];
+        }
         const rows = Array.from({ length: TOTAL_STEPS }, (_, i) => ({
           clinic_id: clinicId,
           step_number: i + 1,
@@ -98,7 +110,7 @@ export function ClientJourney({ clinicId, readOnly }: { clinicId: string; readOn
       }
       return data as StepRow[];
     },
-    enabled: !!clinicId,
+    enabled: !!clinicId && !!role,
   });
 
   // Fetch profiles for completed_by
