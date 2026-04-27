@@ -34,14 +34,20 @@ export function useAuth() {
       (event, session) => {
         if (!mounted) return;
 
-        if (event === 'TOKEN_REFRESHED' && !session) {
-          supabase.auth.signOut({ scope: 'local' });
-          forceLogout();
+        // Only force-logout on an explicit SIGNED_OUT or USER_DELETED event.
+        // A null session on TOKEN_REFRESHED can happen transiently (e.g. tab
+        // wake-up, network blip) and should NOT eject the user.
+        if (event === 'SIGNED_OUT') {
+          setSession(null);
+          setUser(null);
+          setLoading(false);
           return;
         }
 
-        setSession(session);
-        setUser(session?.user ?? null);
+        if (session) {
+          setSession(session);
+          setUser(session.user);
+        }
         setLoading(false);
       }
     );
