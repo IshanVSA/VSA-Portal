@@ -60,7 +60,9 @@ const ACTIVE_STATUSES = new Set(["queued", "processing", "retrying"]);
 export function useSM2Generation(clinicId: string | undefined, monthYear?: string) {
   const queryClient = useQueryClient();
   const now = new Date();
-  const currentMonth = monthYear || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  // Generation always targets the NEXT calendar month (e.g. clicking generate in April produces May's calendar).
+  const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const currentMonth = monthYear || `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, "0")}`;
 
   const { data: generations, isLoading } = useQuery({
     queryKey: ["sm2-generations", clinicId],
