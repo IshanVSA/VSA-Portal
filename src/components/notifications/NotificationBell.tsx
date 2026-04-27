@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import { Bell, Check, FileText, MessageSquare, AlertTriangle, CheckCircle, Ticket, Sparkles, Send, ThumbsUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -46,7 +47,7 @@ export function NotificationBell() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const ref = useRef<HTMLDivElement>(null);
+  
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -167,21 +168,45 @@ export function NotificationBell() {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; right: number }>({ top: 0, right: 0 });
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const updatePos = () => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
+    };
+    updatePos();
+    window.addEventListener("resize", updatePos);
+    window.addEventListener("scroll", updatePos, true);
+    return () => {
+      window.removeEventListener("resize", updatePos);
+      window.removeEventListener("scroll", updatePos, true);
+    };
+  }, [open]);
+
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (buttonRef.current?.contains(target)) return;
+      if (panelRef.current?.contains(target)) return;
+      setOpen(false);
     };
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
 
   const markAllRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
   return (
-    <div ref={ref} className="relative">
-      <button className="relative p-2 rounded-lg hover:bg-muted transition-colors" onClick={() => setOpen(!open)}>
+    <div className="relative">
+      <button ref={buttonRef} className="relative p-2 rounded-lg hover:bg-muted transition-colors" onClick={() => setOpen(!open)}>
         <Bell className="h-[18px] w-[18px] text-muted-foreground" />
         <AnimatePresence>
           {unreadCount > 0 && (
@@ -193,54 +218,63 @@ export function NotificationBell() {
         </AnimatePresence>
       </button>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div initial={{ opacity: 0, y: 8, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.96 }} transition={{ duration: 0.2 }}
-            className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-50">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border/60">
-              <h3 className="font-semibold text-sm text-foreground">Notifications</h3>
-              {unreadCount > 0 && (
-                <button onClick={markAllRead} className="text-xs text-primary hover:underline flex items-center gap-1">
-                  <Check className="h-3 w-3" /> Mark all read
-                </button>
-              )}
-            </div>
+      {typeof document !== "undefined" && createPortal(
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              ref={panelRef}
+              initial={{ opacity: 0, y: 8, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.96 }}
+              transition={{ duration: 0.2 }}
+              style={{ position: "fixed", top: pos.top, right: pos.right }}
+              className="w-80 sm:w-96 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-[100]">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border/60">
+                <h3 className="font-semibold text-sm text-foreground">Notifications</h3>
+                {unreadCount > 0 && (
+                  <button onClick={markAllRead} className="text-xs text-primary hover:underline flex items-center gap-1">
+                    <Check className="h-3 w-3" /> Mark all read
+                  </button>
+                )}
+              </div>
 
-            <div className="max-h-[380px] overflow-y-auto">
-              {notifications.length === 0 ? (
-                <div className="py-10 text-center text-muted-foreground">
-                  <Bell className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">No notifications yet</p>
-                </div>
-              ) : (
-                notifications.map((notif, i) => {
-                  const config = typeConfig[notif.type];
-                  const Icon = config.icon;
-                  return (
-                    <motion.div key={notif.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}
-                      className={cn("flex items-start gap-3 px-4 py-3 border-b border-border/30 hover:bg-muted/30 transition-colors cursor-pointer", !notif.read && "bg-primary/[0.03]")}
-                      onClick={() => setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true } : n))}>
-                      <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5", config.bg)}>
-                        <Icon className={cn("h-4 w-4", config.color)} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-foreground truncate">{notif.title}</p>
-                          {!notif.read && <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />}
+              <div className="max-h-[380px] overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="py-10 text-center text-muted-foreground">
+                    <Bell className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">No notifications yet</p>
+                  </div>
+                ) : (
+                  notifications.map((notif, i) => {
+                    const config = typeConfig[notif.type];
+                    const Icon = config.icon;
+                    return (
+                      <motion.div key={notif.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}
+                        className={cn("flex items-start gap-3 px-4 py-3 border-b border-border/30 hover:bg-muted/30 transition-colors cursor-pointer", !notif.read && "bg-primary/[0.03]")}
+                        onClick={() => setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true } : n))}>
+                        <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5", config.bg)}>
+                          <Icon className={cn("h-4 w-4", config.color)} />
                         </div>
-                        <p className="text-xs text-muted-foreground truncate">{notif.message}</p>
-                        <p className="text-[10px] text-muted-foreground/60 mt-0.5">
-                          {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true })}
-                        </p>
-                      </div>
-                    </motion.div>
-                  );
-                })
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-foreground truncate">{notif.title}</p>
+                            {!notif.read && <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />}
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate">{notif.message}</p>
+                          <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                            {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true })}
+                          </p>
+                        </div>
+                      </motion.div>
+                    );
+                  })
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 }
