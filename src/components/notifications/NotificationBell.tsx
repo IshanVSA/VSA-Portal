@@ -289,7 +289,7 @@ export function NotificationBell() {
                     return (
                       <motion.div key={notif.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}
                         className={cn("flex items-start gap-3 px-4 py-3 border-b border-border/30 hover:bg-muted/30 transition-colors cursor-pointer", !notif.read && "bg-primary/[0.03]")}
-                        onClick={() => setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true } : n))}>
+                        onClick={() => markOneRead(notif.id)}>
                         <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5", config.bg)}>
                           <Icon className={cn("h-4 w-4", config.color)} />
                         </div>
