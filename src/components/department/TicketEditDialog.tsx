@@ -55,7 +55,8 @@ const PRIORITY_OPTIONS = [
 
 const UNASSIGNED = "__unassigned__";
 
-export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, onUpdated }: TicketEditDialogProps) {
+export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assignableMembers, onUpdated }: TicketEditDialogProps) {
+  const assignList = assignableMembers ?? teamMembers;
   const { role } = useUserRole();
   const isClient = role === "client";
 
