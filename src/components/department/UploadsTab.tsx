@@ -283,6 +283,54 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
         </CardContent>
       </Card>
 
+      {/* Ticket Attachments */}
+      <Card className="overflow-hidden border-border/60">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-blue-400" />
+            <CardTitle className="text-base font-semibold">Ticket Attachments</CardTitle>
+            <Badge variant="secondary" className="ml-1 text-[10px]">{ticketAttachments.length}</Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {ticketAttachments.length === 0 ? (
+            <div className="py-10 text-center text-muted-foreground text-sm">
+              {clinicId ? "No ticket attachments yet" : "Select a clinic to view ticket attachments"}
+            </div>
+          ) : (
+            <ul className="divide-y divide-border/40">
+              {ticketAttachments.map((att) => (
+                <li
+                  key={att.path}
+                  className="flex items-center justify-between px-4 sm:px-6 py-3 hover:bg-muted/30 transition-colors"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    {getFileIcon(att.name)}
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{att.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {formatDistanceToNow(new Date(att.created_at), { addSuffix: true })} · {att.ticket_type} · {att.ticket_title}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() => setPreviewTicketAtt(att)}
+                    >
+                      <Eye className="h-3.5 w-3.5 mr-1" />
+                      View
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
       <FilePreviewDialog
         open={!!previewFile}
         onOpenChange={(o) => { if (!o) setPreviewFile(null); }}
@@ -291,6 +339,19 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
           const { data, error } = await supabase.storage
             .from(BUCKET)
             .createSignedUrl(`${folder}${previewFile.name}`, 3600);
+          if (error || !data?.signedUrl) throw error || new Error("No signed URL");
+          return data.signedUrl;
+        } : undefined}
+      />
+
+      <FilePreviewDialog
+        open={!!previewTicketAtt}
+        onOpenChange={(o) => { if (!o) setPreviewTicketAtt(null); }}
+        filename={previewTicketAtt?.name || ""}
+        getUrl={previewTicketAtt ? async () => {
+          const { data, error } = await supabase.storage
+            .from(BUCKET)
+            .createSignedUrl(previewTicketAtt.path, 3600);
           if (error || !data?.signedUrl) throw error || new Error("No signed URL");
           return data.signedUrl;
         } : undefined}
