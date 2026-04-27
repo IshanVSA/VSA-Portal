@@ -42,6 +42,7 @@ interface KanbanTicket {
 interface TicketKanbanViewProps {
   tickets: KanbanTicket[];
   teamMembers: TeamMemberOption[];
+  assignableMembers?: TeamMemberOption[];
   currentDepartment?: string;
   onUpdated: () => void;
 }
