@@ -175,7 +175,7 @@ export default function Settings() {
                       <Label>Role</Label>
                       <div className="flex items-center gap-2">
                         <Shield className="h-4 w-4 text-muted-foreground" />
-                        <Input value={role || ""} disabled className="capitalize bg-muted/30" />
+                        <Input value={role === "concierge" ? (teamRole || "Member") : (role || "")} disabled className="capitalize bg-muted/30" />
                       </div>
                     </div>
                   </div>
