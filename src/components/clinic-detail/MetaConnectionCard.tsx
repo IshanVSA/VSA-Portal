@@ -14,6 +14,7 @@ interface MetaConnectionCardProps {
   metaPageId: string | null;
   metaInstagramBusinessId: string | null;
   lastMetaSyncAt: string | null;
+  grantedScopes?: string[] | null;
   onRefresh: () => void;
 }
 
@@ -24,6 +25,7 @@ export function MetaConnectionCard({
   metaPageId,
   metaInstagramBusinessId,
   lastMetaSyncAt,
+  grantedScopes,
   onRefresh,
 }: MetaConnectionCardProps) {
   const [syncing, setSyncing] = useState(false);
