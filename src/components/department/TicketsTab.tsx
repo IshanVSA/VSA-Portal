@@ -361,6 +361,7 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
         <TicketKanbanView
           tickets={filteredTickets}
           teamMembers={mergedTeamMembers}
+          assignableMembers={teamMemberProfiles}
           currentDepartment={department}
           onUpdated={() => refetch()}
         />
