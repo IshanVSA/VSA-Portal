@@ -498,7 +498,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-medium text-[hsl(var(--sidebar-foreground))] truncate">{profile?.full_name || "User"}</p>
-                <p className="text-[10px] text-[hsl(var(--sidebar-muted))] truncate capitalize">{role}</p>
+                <p className="text-[10px] text-[hsl(var(--sidebar-muted))] truncate capitalize">{role === "concierge" ? (profile?.team_role || "Member") : role}</p>
               </div>
             </div>
           )}
