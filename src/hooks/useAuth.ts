@@ -61,12 +61,14 @@ export function useAuth() {
   }, []);
 
   const signOut = useCallback(async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch {
-      // If server signout fails, force local cleanup
-      try { await supabase.auth.signOut({ scope: 'local' }); } catch {}
-    }
+    // Fire-and-forget the server signout with a short timeout so a hung/failed
+    // network call (e.g. stale refresh token) never blocks the user.
+    const serverSignOut = supabase.auth.signOut().catch(() => {});
+    const timeout = new Promise((resolve) => setTimeout(resolve, 1500));
+    await Promise.race([serverSignOut, timeout]);
+
+    // Always do a local signout + storage wipe + redirect, regardless of server result.
+    try { await supabase.auth.signOut({ scope: 'local' }); } catch {}
     forceLogout();
   }, []);
 
