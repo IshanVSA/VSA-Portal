@@ -42,6 +42,7 @@ interface KanbanTicket {
 interface TicketKanbanViewProps {
   tickets: KanbanTicket[];
   teamMembers: TeamMemberOption[];
+  assignableMembers?: TeamMemberOption[];
   currentDepartment?: string;
   onUpdated: () => void;
 }
@@ -77,7 +78,7 @@ const deptLabels: Record<string, string> = {
   social_media: "Social Media",
 };
 
-export function TicketKanbanView({ tickets, teamMembers, currentDepartment, onUpdated }: TicketKanbanViewProps) {
+export function TicketKanbanView({ tickets, teamMembers, assignableMembers, currentDepartment, onUpdated }: TicketKanbanViewProps) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
   const [voidPending, setVoidPending] = useState<string | null>(null);
@@ -435,6 +436,7 @@ export function TicketKanbanView({ tickets, teamMembers, currentDepartment, onUp
       onOpenChange={(o) => !o && setEditingId(null)}
       ticket={editingTicket as any}
       teamMembers={teamMembers}
+      assignableMembers={assignableMembers}
       onUpdated={onUpdated}
     />
     </>

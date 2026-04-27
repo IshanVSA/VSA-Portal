@@ -33,6 +33,9 @@ interface TicketEditDialogProps {
   onOpenChange: (open: boolean) => void;
   ticket: EditableTicket | null;
   teamMembers: TeamMemberOption[];
+  /** Optional list restricted to members assignable in this department.
+   * Falls back to `teamMembers` when not provided. */
+  assignableMembers?: TeamMemberOption[];
   onUpdated: () => void;
 }
 
@@ -52,7 +55,8 @@ const PRIORITY_OPTIONS = [
 
 const UNASSIGNED = "__unassigned__";
 
-export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, onUpdated }: TicketEditDialogProps) {
+export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assignableMembers, onUpdated }: TicketEditDialogProps) {
+  const assignList = assignableMembers ?? teamMembers;
   const { role } = useUserRole();
   const isClient = role === "client";
 
@@ -197,7 +201,7 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, onUp
               <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value={UNASSIGNED}>Unassigned</SelectItem>
-                {teamMembers.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                {assignList.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
