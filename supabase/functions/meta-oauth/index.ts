@@ -278,7 +278,7 @@ Deno.serve(async (req) => {
         .insert({
           clinic_id: clinic_id,
           provider: "meta",
-          payload: { pages: pagesForSelection },
+          payload: { pages: pagesForSelection, granted_scopes: grantedScopes },
         })
         .select("id")
         .single();
