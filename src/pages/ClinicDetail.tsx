@@ -250,6 +250,17 @@ export default function ClinicDetail() {
       setSearchParams(newParams, { replace: true });
     }
 
+    // Handle ?meta=connected (single-page auto-connect)
+    if (searchParams.get("meta") === "connected") {
+      setActiveTab("connections");
+      toast.success("Facebook Page connected successfully!");
+      fetchCredentials();
+      fetchAnalytics();
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("meta");
+      setSearchParams(newParams, { replace: true });
+    }
+
     // Check for meta_token_ref URL parameter (secure token reference after OAuth)
     const metaTokenRef = searchParams.get("meta_token_ref");
     if (metaTokenRef) {
@@ -260,6 +271,9 @@ export default function ClinicDetail() {
       fetchOAuthData(metaTokenRef).then((result) => {
         if (result?.payload?.pages) {
           setMetaPages(result.payload.pages);
+          if (Array.isArray(result.payload.granted_scopes)) {
+            setMetaScopes(result.payload.granted_scopes);
+          }
         }
       });
     }
