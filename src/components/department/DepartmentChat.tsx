@@ -659,6 +659,13 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
             </div>
           ) : (
             <div className="space-y-3">
+              {!searchQuery && hasMore && (
+                <div className="flex justify-center py-1">
+                  <span className="text-[10px] text-muted-foreground">
+                    {loadingOlder ? "Loading older messages…" : "Scroll up to load older messages"}
+                  </span>
+                </div>
+              )}
               {displayMessages.map((msg, idx) => {
                 const msgDate = new Date(msg.created_at);
                 const prevDate = idx > 0 ? new Date(displayMessages[idx - 1].created_at) : null;
