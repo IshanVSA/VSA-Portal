@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole, type AppRole } from "@/hooks/useUserRole";
 import { useTermsAcceptance } from "@/hooks/useTermsAcceptance";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { TermsAcceptanceModal } from "@/components/terms/TermsAcceptanceModal";
 import { StaffAcknowledgmentModal } from "@/components/terms/StaffAcknowledgmentModal";
+import AccessDenied from "@/pages/AccessDenied";
 
 interface Props {
   children: React.ReactNode;
@@ -18,6 +19,7 @@ export function ProtectedRoute({ children, allowedRoles }: Props) {
   const { role, isLoading } = useUserRole();
   const { hasAccepted, currentVersion, isLoading: termsLoading } = useTermsAcceptance();
   const [timedOut, setTimedOut] = useState(false);
+  const location = useLocation();
 
   const allLoading = loading || isLoading || termsLoading;
 
@@ -54,7 +56,7 @@ export function ProtectedRoute({ children, allowedRoles }: Props) {
   if (!user) return <Navigate to="/login" replace />;
 
   if (allowedRoles && role && !allowedRoles.includes(role)) {
-    return <Navigate to="/" replace />;
+    return <AccessDenied attemptedPath={location.pathname} requiredRoles={allowedRoles} />;
   }
 
   // Terms acceptance gate — admins bypass
