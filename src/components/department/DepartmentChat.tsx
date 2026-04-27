@@ -100,20 +100,37 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     onVisible?.();
   }, [onVisible]);
 
-  const queryKey = ["department-chats", department, clinicId];
+  const PAGE_SIZE = 50;
+  const [pageLimit, setPageLimit] = useState(PAGE_SIZE);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const preserveScrollRef = useRef<{ prevHeight: number } | null>(null);
+
+  // Reset pagination when switching channel
+  useEffect(() => {
+    setPageLimit(PAGE_SIZE);
+    setHasMore(false);
+  }, [department, clinicId]);
+
+  const queryKey = ["department-chats", department, clinicId, pageLimit];
 
   const { data: messages = [], isLoading } = useQuery({
     queryKey,
     queryFn: async () => {
       if (!clinicId) return [];
+      // Fetch most recent `pageLimit` messages, then reverse to ascending
       const { data, error } = await supabase
         .from("department_chats")
         .select("id, message, created_at, user_id, attachments, reactions, reply_to, pinned, edited_at")
         .eq("department", department)
         .eq("clinic_id", clinicId)
-        .order("created_at", { ascending: true })
-        .limit(200);
+        .order("created_at", { ascending: false })
+        .limit(pageLimit + 1);
       if (error) throw error;
+      const more = (data || []).length > pageLimit;
+      setHasMore(more);
+      if (more) data!.pop();
+      data!.reverse();
 
       const userIds = [...new Set((data || []).map((m) => m.user_id))];
       let profileMap: Record<string, string> = {};
