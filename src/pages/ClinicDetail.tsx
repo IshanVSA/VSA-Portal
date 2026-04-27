@@ -44,6 +44,7 @@ interface ClinicCredentials {
   meta_page_id: string | null;
   meta_instagram_business_id: string | null;
   meta_page_name: string | null;
+  meta_granted_scopes: string[] | null;
   google_ads_customer_id: string | null;
   google_ads_login_customer_id: string | null;
   google_ads_account_name: string | null;
