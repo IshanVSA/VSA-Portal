@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef, useLayoutEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import { Bell, Check, FileText, MessageSquare, AlertTriangle, CheckCircle, Ticket, Sparkles, Send, ThumbsUp, Inbox, Settings2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 import { formatDistanceToNow, isToday, isYesterday, isThisWeek } from "date-fns";
 
 interface Notification {
@@ -14,6 +16,7 @@ interface Notification {
   message: string;
   read: boolean;
   created_at: string;
+  link?: string;
 }
 
 const typeConfig = {
@@ -43,8 +46,48 @@ function sm2Title(status: string): string {
   return "Content Generated";
 }
 
+const DEPARTMENT_ROUTE: Record<string, string> = {
+  website: "/website",
+  seo: "/seo",
+  google_ads: "/google-ads",
+  social_media: "/social",
+  ai_seo: "/ai-seo",
+};
+
+function buildTicketLink(department: string | null | undefined, clinicId: string | null | undefined, ticketId: string): string {
+  const base = DEPARTMENT_ROUTE[department || ""] || "/social";
+  const params = new URLSearchParams({ tab: "tickets", ticket: ticketId });
+  if (clinicId) params.set("clinic", clinicId);
+  return `${base}?${params.toString()}`;
+}
+
+function buildSM2Link(clinicId: string | null | undefined, role: string | null, status: string): string {
+  const params = new URLSearchParams();
+  if (clinicId) params.set("clinic", clinicId);
+  // Admin reviews live on /review; clients see their content under My Posts
+  if (role === "admin" && (status === "feedback_submitted" || status === "sent_to_client")) {
+    return `/review${params.toString() ? `?${params.toString()}` : ""}`;
+  }
+  if (role === "client") {
+    params.set("tab", "my-posts");
+  } else {
+    params.set("tab", "overview");
+  }
+  return `/social?${params.toString()}`;
+}
+
+function buildPostLink(clinicId: string | null | undefined, postId: string, role: string | null): string {
+  const params = new URLSearchParams();
+  if (clinicId) params.set("clinic", clinicId);
+  params.set("tab", role === "client" ? "my-posts" : "overview");
+  params.set("post", postId);
+  return `/social?${params.toString()}`;
+}
+
 export function NotificationBell() {
   const { user } = useAuth();
+  const { role } = useUserRole();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
@@ -80,7 +123,7 @@ export function NotificationBell() {
     const fetchNotifications = async () => {
       const { data: activityData } = await supabase
         .from("post_activity_log")
-        .select("id, action, metadata, created_at, post_id")
+        .select("id, action, metadata, created_at, post_id, content_posts!post_activity_log_post_id_fkey(clinic_id)")
         .order("created_at", { ascending: false })
         .limit(15);
 
@@ -90,17 +133,19 @@ export function NotificationBell() {
         if (log.action.includes("approved")) type = "post_approved";
         else if (log.action.includes("flag")) type = "post_flagged";
         else if (log.action.includes("comment")) type = "comment_added";
+        const clinicId = log.content_posts?.clinic_id ?? null;
         return {
           id: log.id, type,
           title: log.action.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase()),
           message: meta.message || `Post activity: ${log.action}`,
           read: false, created_at: log.created_at,
+          link: log.post_id ? buildPostLink(clinicId, log.post_id, role) : undefined,
         };
       });
 
       const { data: ticketData } = await supabase
         .from("department_tickets")
-        .select("id, title, department, priority, created_at")
+        .select("id, title, department, priority, created_at, clinic_id")
         .order("created_at", { ascending: false })
         .limit(10);
 
@@ -109,12 +154,13 @@ export function NotificationBell() {
         title: "New Ticket",
         message: `[${t.department}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
         read: false, created_at: t.created_at,
+        link: buildTicketLink(t.department, t.clinic_id, t.id),
       }));
 
       // SM2 generation notifications
       const { data: sm2Data } = await supabase
         .from("sm2_generations")
-        .select("id, month_year, approval_status, created_at, updated_at")
+        .select("id, month_year, approval_status, created_at, updated_at, clinic_id")
         .order("updated_at", { ascending: false })
         .limit(10);
 
@@ -125,6 +171,7 @@ export function NotificationBell() {
         message: `Social media content for ${g.month_year}`,
         read: false,
         created_at: g.updated_at || g.created_at,
+        link: buildSM2Link(g.clinic_id, role, g.approval_status),
       }));
 
       const all = [...activityNotifs, ...ticketNotifs, ...sm2Notifs]
@@ -139,18 +186,24 @@ export function NotificationBell() {
 
     const channel = supabase
       .channel("notifications")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "post_activity_log" }, (payload) => {
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "post_activity_log" }, async (payload) => {
         const log = payload.new as any;
         const meta = typeof log.metadata === "object" ? log.metadata : {};
         let type: Notification["type"] = "status_changed";
         if (log.action.includes("approved")) type = "post_approved";
         else if (log.action.includes("flag")) type = "post_flagged";
         else if (log.action.includes("comment")) type = "comment_added";
+        let clinicId: string | null = null;
+        if (log.post_id) {
+          const { data: post } = await supabase.from("content_posts").select("clinic_id").eq("id", log.post_id).maybeSingle();
+          clinicId = post?.clinic_id ?? null;
+        }
         const newNotif: Notification = {
           id: log.id, type,
           title: log.action.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase()),
           message: meta.message || `Post activity: ${log.action}`,
           read: false, created_at: log.created_at,
+          link: log.post_id ? buildPostLink(clinicId, log.post_id, role) : undefined,
         };
         setNotifications(prev => [withRead(newNotif), ...prev].slice(0, 30));
       })
@@ -161,6 +214,7 @@ export function NotificationBell() {
           title: "New Ticket",
           message: `[${t.department}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
           read: false, created_at: t.created_at,
+          link: buildTicketLink(t.department, t.clinic_id, t.id),
         };
         setNotifications(prev => [withRead(newNotif), ...prev].slice(0, 30));
       })
@@ -171,6 +225,7 @@ export function NotificationBell() {
           title: `Ticket ${t.status.replace(/_/g, " ")}`,
           message: `[${t.department}] ${t.title}`,
           read: false, created_at: t.updated_at || new Date().toISOString(),
+          link: buildTicketLink(t.department, t.clinic_id, t.id),
         };
         setNotifications(prev => [withRead(newNotif), ...prev].slice(0, 30));
       })
@@ -184,13 +239,14 @@ export function NotificationBell() {
           message: `Social media content for ${g.month_year}`,
           read: false,
           created_at: g.updated_at || g.created_at || new Date().toISOString(),
+          link: buildSM2Link(g.clinic_id, role, g.approval_status),
         };
         setNotifications(prev => [withRead(newNotif), ...prev].slice(0, 30));
       })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [user]);
+  }, [user, role]);
 
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -404,7 +460,13 @@ export function NotificationBell() {
                                   "hover:bg-muted/60",
                                   !notif.read && "bg-primary/[0.04]"
                                 )}
-                                onClick={() => markOneRead(notif.id)}
+                                onClick={() => {
+                                  markOneRead(notif.id);
+                                  if (notif.link) {
+                                    setOpen(false);
+                                    navigate(notif.link);
+                                  }
+                                }}
                               >
                                 {!notif.read && (
                                   <div className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-primary" />
