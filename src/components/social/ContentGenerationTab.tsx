@@ -417,7 +417,14 @@ export default function ContentGenerationTab({ clinicId }: Props) {
         ) : (
           <div className="grid gap-3">
             {generations.map((gen) => (
-              <Card key={gen.id} className="border-border/60">
+              <Card
+                key={gen.id}
+                className={`border-border/60 transition-colors cursor-pointer hover:border-primary/40 ${selectedGen?.id === gen.id ? "border-primary/60 bg-primary/5" : ""}`}
+                onClick={() => {
+                  setViewingGenerationId(gen.id);
+                  calendarRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+              >
                 <CardContent className="py-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
