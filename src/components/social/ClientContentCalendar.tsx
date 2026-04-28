@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,6 +28,8 @@ export default function ClientContentCalendar({ clinicId }: Props) {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("monthly");
   const [selectedPost, setSelectedPost] = useState<ContentPost | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const deepLinkPostId = searchParams.get("post");
 
   const { generations, isLoading: gensLoading } = useSM2Generation(clinicId);
 
@@ -66,6 +69,32 @@ export default function ClientContentCalendar({ clinicId }: Props) {
         setLoading(false);
       });
   }, [clinicId, currentMonth, isCurrentApproved]);
+
+  // Deep-link: when ?post= is in URL, fetch the post, jump to its month, open inspector
+  useEffect(() => {
+    if (!deepLinkPostId || !clinicId) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("content_posts")
+        .select("*")
+        .eq("id", deepLinkPostId)
+        .eq("clinic_id", clinicId)
+        .maybeSingle();
+      if (cancelled || error || !data) return;
+      const post = data as any as ContentPost;
+      if (post.scheduled_date) {
+        const d = new Date(post.scheduled_date + "T00:00:00");
+        setCurrentMonth(startOfMonth(d));
+      }
+      setSelectedPost(post);
+      // Consume the param so it doesn't re-trigger on close
+      const next = new URLSearchParams(searchParams);
+      next.delete("post");
+      setSearchParams(next, { replace: true });
+    })();
+    return () => { cancelled = true; };
+  }, [deepLinkPostId, clinicId]);
 
   const handlePostClick = (post: ContentPost) => setSelectedPost(post);
 

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +22,13 @@ const Fallback = () => (
 
 export default function ClientPostsTab({ clinicId }: Props) {
   const [tab, setTab] = useState("review");
+  const [searchParams] = useSearchParams();
   const { generations } = useSM2Generation(clinicId);
+
+  // Auto-switch to calendar subtab if a deep-linked post is in the URL
+  useEffect(() => {
+    if (searchParams.get("post")) setTab("calendar");
+  }, [searchParams]);
 
   // Count generations awaiting client action (either copy or final round)
   const pendingCount = (generations || []).filter(
