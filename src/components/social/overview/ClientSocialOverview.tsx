@@ -75,7 +75,7 @@ export function ClientSocialOverview({ clinicId }: ClientSocialOverviewProps) {
       const monthStart = format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), "yyyy-MM-dd");
 
       const awaitingRes = await supabase
-        .from("content_generations")
+        .from("sm2_generations")
         .select("id", { count: "exact", head: true })
         .eq("clinic_id", clinicId)
         .not("sent_to_client_at", "is", null)
