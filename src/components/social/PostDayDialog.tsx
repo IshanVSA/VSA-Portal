@@ -153,11 +153,13 @@ function PostCard({
   onUpload,
   onRemoveImage,
   onSaveFeedback,
+  onUpdatePost,
   onToggleMetaAd,
   metaAdSelectedCount,
   togglingMetaAd,
   uploading,
   savingFeedback,
+  updatingPost,
 }: {
   post: SM2Post;
   isClient: boolean;
@@ -166,16 +168,19 @@ function PostCard({
   onUpload: (files: File[]) => void;
   onRemoveImage: (path: string) => void;
   onSaveFeedback: (feedback: string) => void;
+  onUpdatePost: (updates: Partial<SM2Post>) => void;
   onToggleMetaAd: (value: boolean) => void;
   metaAdSelectedCount: number;
   togglingMetaAd: boolean;
   uploading: boolean;
   savingFeedback: boolean;
+  updatingPost: boolean;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [feedback, setFeedback] = useState(post.client_feedback || "");
   const [dragOver, setDragOver] = useState(false);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
   const metaAdLimitReached = metaAdSelectedCount >= 2 && !post.run_meta_ad;
 
   const handleFiles = (files: FileList | File[]) => {
