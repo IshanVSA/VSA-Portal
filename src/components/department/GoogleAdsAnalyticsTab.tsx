@@ -63,6 +63,7 @@ interface Props {
 export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
   const { role } = useUserRole();
   const isStaff = role === "admin" || role === "concierge";
+  const { visible: showMoney } = useFinancialsVisible();
   const [metricsData, setMetricsData] = useState<MetricsJson | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
