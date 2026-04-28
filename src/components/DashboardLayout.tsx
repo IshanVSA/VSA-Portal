@@ -281,7 +281,10 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
       { label: "Google Ads", icon: Megaphone, path: "/google-ads" },
       { label: "Social Media", icon: Share2, path: "/social" },
     ]},
-    { title: "ACCOUNT", items: [{ label: "Settings", icon: Settings, path: "/settings" }] },
+    { title: "ACCOUNT", items: [
+      ...(role === "client" ? [{ label: "Sub Accounts", icon: Users, path: "/sub-accounts" }] : []),
+      { label: "Settings", icon: Settings, path: "/settings" },
+    ] },
   ];
 
   const injectBadges = (sections: NavSection[]): NavSection[] =>
