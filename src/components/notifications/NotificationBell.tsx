@@ -460,7 +460,13 @@ export function NotificationBell() {
                                   "hover:bg-muted/60",
                                   !notif.read && "bg-primary/[0.04]"
                                 )}
-                                onClick={() => markOneRead(notif.id)}
+                                onClick={() => {
+                                  markOneRead(notif.id);
+                                  if (notif.link) {
+                                    setOpen(false);
+                                    navigate(notif.link);
+                                  }
+                                }}
                               >
                                 {!notif.read && (
                                   <div className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-primary" />
