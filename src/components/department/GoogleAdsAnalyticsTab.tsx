@@ -28,12 +28,31 @@ interface Campaign {
   cost: number;
 }
 
+interface SearchTermDaily {
+  date: string;
+  clicks: number;
+  impressions: number;
+  cost: number;
+  conversions: number;
+}
+
+interface SearchTerm {
+  term: string;
+  keyword: string;
+  clicks: number;
+  impressions: number;
+  cost: number;
+  conversions: number;
+  daily?: SearchTermDaily[];
+}
+
 interface MetricsJson {
   clicks: number;
   impressions: number;
   cost: number;
   daily_trends: DailyTrend[];
   campaigns: Campaign[];
+  search_terms?: SearchTerm[];
 }
 
 interface Props {
