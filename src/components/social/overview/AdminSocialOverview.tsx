@@ -222,7 +222,7 @@ export function AdminSocialOverview({ clinicId }: AdminSocialOverviewProps) {
         <div>
           <StatsCard title="Posts (Month)" value={`${postsThisMonth}/10`} icon={CalendarDays} index={1} />
         </div>
-        <StatsCard title="Pipeline Health" value={`${conversionPct}%`} icon={Workflow} index={2} change={`${finalApproved} of ${generated} converted`} changeType="neutral" />
+        <StatsCard title="Pipeline Health" value={`${conversionPct}%`} icon={Workflow} index={2} change={`${approvedCount} of ${activeTotal} approved`} changeType="neutral" />
         <div className="relative">
           <StatsCard title="Active Promotions" value={activePromotions} icon={Megaphone} index={3} />
           {jurisdiction === "BC" && activePromotions > 0 && (
