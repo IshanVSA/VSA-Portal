@@ -196,7 +196,7 @@ Deno.serve(async (req) => {
         ? "Welcome to the Future of Veterinary Marketing — Beta Access to VSA Vet Media"
         : "Welcome to VSA Vet Media — your login details",
       html: brandedEmailWrapper({
-        heading: isClient ? `Welcome to VSA Vet Media, ${firstName}` : `Welcome, ${firstName}`,
+        heading: isClient ? `Welcome to VSA Vet Media` : `Welcome, ${firstName}`,
         preheader: isClient
           ? "Exclusive beta access to our AI-powered veterinary marketing platform."
           : "Your VSA Vet Media account is ready.",
