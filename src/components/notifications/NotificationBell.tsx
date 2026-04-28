@@ -101,9 +101,20 @@ export function NotificationBell() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const clinicNameMapRef = useRef<Map<string, string>>(new Map());
 
   const storageKey = user ? `notif-read-ids:${user.id}` : null;
   const readIdsRef = useRef<Set<string>>(new Set());
+
+  const getClinicName = async (clinicId: string | null | undefined): Promise<string | null> => {
+    if (!clinicId) return null;
+    const cached = clinicNameMapRef.current.get(clinicId);
+    if (cached) return cached;
+    const { data } = await supabase.from("clinics").select("clinic_name").eq("id", clinicId).maybeSingle();
+    const name = (data as any)?.clinic_name || null;
+    if (name) clinicNameMapRef.current.set(clinicId, name);
+    return name;
+  };
 
   const loadReadIds = (): Set<string> => {
     if (!storageKey) return new Set();
