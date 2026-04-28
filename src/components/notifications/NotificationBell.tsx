@@ -17,6 +17,8 @@ interface Notification {
   read: boolean;
   created_at: string;
   link?: string;
+  clinicId?: string | null;
+  clinicName?: string | null;
 }
 
 const typeConfig = {
