@@ -68,9 +68,9 @@ export default function GoogleAdsDepartment() {
             <TableHeader>
               <TableRow>
                 <TableHead>Campaign</TableHead>
-                <TableHead className="text-right">Spend</TableHead>
+                {showMoney && <TableHead className="text-right">Spend</TableHead>}
                 <TableHead className="text-right">Clicks</TableHead>
-                <TableHead className="text-right">CPC</TableHead>
+                {showMoney && <TableHead className="text-right">CPC</TableHead>}
                 <TableHead className="text-right">CTR</TableHead>
             </TableRow>
           </TableHeader>
@@ -78,9 +78,9 @@ export default function GoogleAdsDepartment() {
             {adsData.campaigns.map(c => (
               <TableRow key={c.name}>
                 <TableCell className="font-medium truncate max-w-[180px]">{c.name}</TableCell>
-                <TableCell className="text-right tabular-nums">{c.spend}</TableCell>
+                {showMoney && <TableCell className="text-right tabular-nums">{c.spend}</TableCell>}
                 <TableCell className="text-right tabular-nums">{c.clicks}</TableCell>
-                <TableCell className="text-right tabular-nums">{c.cpc}</TableCell>
+                {showMoney && <TableCell className="text-right tabular-nums">{c.cpc}</TableCell>}
                 <TableCell className="text-right tabular-nums">{c.ctr}</TableCell>
               </TableRow>
             ))}
