@@ -245,11 +245,15 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard title="Total Spend" value={`$${computed.cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={DollarSign} index={0} />
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${showMoney ? "lg:grid-cols-4" : "lg:grid-cols-2"} gap-4`}>
+        {showMoney && (
+          <StatsCard title="Total Spend" value={`$${computed.cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={DollarSign} index={0} />
+        )}
         <StatsCard title="Clicks" value={computed.clicks.toLocaleString()} icon={MousePointerClick} index={1} />
         <StatsCard title="Impressions" value={computed.impressions.toLocaleString()} icon={Eye} index={2} />
-        <StatsCard title="Avg. CPC" value={`$${computed.cpc}`} icon={DollarSign} index={3} />
+        {showMoney && (
+          <StatsCard title="Avg. CPC" value={`$${computed.cpc}`} icon={DollarSign} index={3} />
+        )}
       </div>
 
       {/* Clicks & Impressions Chart */}
