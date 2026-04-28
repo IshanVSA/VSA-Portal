@@ -353,7 +353,33 @@ function PostCard({
             <Badge variant="outline" className={cn("text-[10px] font-semibold", statusBadgeClass(post.status))}>
               {(post.status || "PASS").toUpperCase()}
             </Badge>
+            {!isClient && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setEditOpen(true)}
+                className="ml-auto h-7 px-2 gap-1 text-[11px]"
+                title="Edit post copy (admin/concierge only)"
+              >
+                <Pencil className="h-3 w-3" />
+                Edit
+              </Button>
+            )}
           </div>
+
+          {!isClient && (
+            <EditPostDialog
+              open={editOpen}
+              onOpenChange={setEditOpen}
+              post={post}
+              saving={updatingPost}
+              onSave={(updates) => {
+                onUpdatePost(updates);
+                setEditOpen(false);
+              }}
+            />
+          )}
+
 
           {/* Topic / title */}
           {post.topic && <h3 className="text-base font-bold leading-tight">{post.topic}</h3>}
