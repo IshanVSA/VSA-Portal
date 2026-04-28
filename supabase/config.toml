@@ -104,3 +104,6 @@ verify_jwt = false
 
 [functions.request-password-reset]
 verify_jwt = false
+
+[functions.materialize-sm2-posts]
+verify_jwt = false
