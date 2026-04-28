@@ -61,6 +61,8 @@ export function PostChip({ post, onClick, compact = false }: PostChipProps) {
     e.dataTransfer.effectAllowed = "move";
   };
 
+  const cover = post.image_url || (post.image_urls && post.image_urls[0]) || null;
+
   if (compact) {
     return (
       <div
@@ -68,14 +70,19 @@ export function PostChip({ post, onClick, compact = false }: PostChipProps) {
         onDragStart={handleDragStart}
         onClick={() => onClick(post)}
         className={cn(
-          "px-2 py-1.5 rounded-md text-xs border-l-[3px] bg-background/80 cursor-pointer hover:bg-accent/40 transition-all shadow-[0_1px_2px_hsl(var(--foreground)/0.04)] space-y-1",
+          "p-1.5 rounded-md text-xs border-l-[3px] bg-background/80 cursor-pointer hover:bg-accent/40 transition-all shadow-[0_1px_2px_hsl(var(--foreground)/0.04)] space-y-1",
           statusBorder[post.status] || "border-l-muted",
           !isDraggable && "cursor-default opacity-75"
         )}
         title={post.title}
       >
-        <span className="font-medium truncate block text-foreground">{post.title}</span>
-        <div className="flex items-center gap-1 flex-wrap">
+        {cover && (
+          <div className="relative h-16 w-full overflow-hidden rounded bg-muted mb-1">
+            <img src={cover} alt={post.title} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+          </div>
+        )}
+        <span className="font-medium truncate block text-foreground px-0.5">{post.title}</span>
+        <div className="flex items-center gap-1 flex-wrap px-0.5">
           <PlatformIcon platform={post.platform} />
           <Badge variant="outline" className="text-[9px] uppercase px-1 py-0 leading-tight">{post.content_type}</Badge>
           <Badge className={cn("text-[9px] uppercase px-1 py-0 border-0 leading-tight", statusBadge[post.status] || "bg-muted text-muted-foreground")}>
@@ -83,7 +90,7 @@ export function PostChip({ post, onClick, compact = false }: PostChipProps) {
           </Badge>
         </div>
         {post.scheduled_time && (
-          <span className="text-[10px] text-muted-foreground block">{post.scheduled_time.slice(0, 5)}</span>
+          <span className="text-[10px] text-muted-foreground block px-0.5">{post.scheduled_time.slice(0, 5)}</span>
         )}
       </div>
     );
@@ -95,24 +102,31 @@ export function PostChip({ post, onClick, compact = false }: PostChipProps) {
       onDragStart={handleDragStart}
       onClick={() => onClick(post)}
       className={cn(
-        "px-3 py-2.5 rounded-lg border border-border border-l-[3px] bg-card cursor-pointer hover:bg-accent/50 transition-colors",
+        "rounded-lg border border-border border-l-[3px] bg-card cursor-pointer hover:bg-accent/50 transition-colors overflow-hidden",
         statusBorder[post.status] || "border-l-muted",
         !isDraggable && "cursor-default"
       )}
     >
-      <p className="font-medium text-sm text-foreground truncate">{post.title}</p>
-      <div className="flex items-center gap-2 mt-1.5">
-        <PlatformIcon platform={post.platform} />
-        <Badge variant="outline" className="text-[10px] uppercase px-1.5 py-0">
-          {post.content_type}
-        </Badge>
-        <Badge className={cn("text-[10px] uppercase px-1.5 py-0 border-0", statusBadge[post.status] || "bg-muted text-muted-foreground")}>
-          {post.status}
-        </Badge>
-      </div>
-      {post.scheduled_time && (
-        <p className="text-[10px] text-muted-foreground mt-1">{post.scheduled_time.slice(0, 5)}</p>
+      {cover && (
+        <div className="relative h-32 w-full overflow-hidden bg-muted">
+          <img src={cover} alt={post.title} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+        </div>
       )}
+      <div className="px-3 py-2.5">
+        <p className="font-medium text-sm text-foreground truncate">{post.title}</p>
+        <div className="flex items-center gap-2 mt-1.5">
+          <PlatformIcon platform={post.platform} />
+          <Badge variant="outline" className="text-[10px] uppercase px-1.5 py-0">
+            {post.content_type}
+          </Badge>
+          <Badge className={cn("text-[10px] uppercase px-1.5 py-0 border-0", statusBadge[post.status] || "bg-muted text-muted-foreground")}>
+            {post.status}
+          </Badge>
+        </div>
+        {post.scheduled_time && (
+          <p className="text-[10px] text-muted-foreground mt-1">{post.scheduled_time.slice(0, 5)}</p>
+        )}
+      </div>
     </div>
   );
 }
