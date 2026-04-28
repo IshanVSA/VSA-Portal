@@ -139,7 +139,7 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
 
   const computed = useMemo(() => {
     if (!metricsData) return null;
-    const { daily_trends, campaigns } = metricsData;
+    const { daily_trends, campaigns, search_terms } = metricsData;
 
     // Filter daily trends by selected date range
     const fromStr = format(dateRange.from, "yyyy-MM-dd");
@@ -164,7 +164,24 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
       cost: Math.round(d.cost * 100) / 100,
     }));
 
-    return { clicks, impressions, cost, ctr, cpc, sortedCampaigns, chartData };
+    // Filter and aggregate search terms by date range (using daily breakdown when available)
+    const filteredSearchTerms = (search_terms || [])
+      .map(st => {
+        if (st.daily && st.daily.length > 0) {
+          const days = st.daily.filter(d => d.date >= fromStr && d.date <= toStr);
+          const c = days.reduce((s, d) => s + d.clicks, 0);
+          const i = days.reduce((s, d) => s + d.impressions, 0);
+          const co = days.reduce((s, d) => s + d.cost, 0);
+          const cv = days.reduce((s, d) => s + d.conversions, 0);
+          return { term: st.term, keyword: st.keyword, clicks: c, impressions: i, cost: co, conversions: cv };
+        }
+        return { term: st.term, keyword: st.keyword, clicks: st.clicks, impressions: st.impressions, cost: st.cost, conversions: st.conversions };
+      })
+      .filter(st => st.impressions > 0 || st.clicks > 0)
+      .sort((a, b) => b.cost - a.cost || b.clicks - a.clicks)
+      .slice(0, 50);
+
+    return { clicks, impressions, cost, ctr, cpc, sortedCampaigns, chartData, searchTerms: filteredSearchTerms };
   }, [metricsData, dateRange]);
 
   if (loading) {
