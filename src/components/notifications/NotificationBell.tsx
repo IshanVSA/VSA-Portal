@@ -123,7 +123,7 @@ export function NotificationBell() {
     const fetchNotifications = async () => {
       const { data: activityData } = await supabase
         .from("post_activity_log")
-        .select("id, action, metadata, created_at, post_id")
+        .select("id, action, metadata, created_at, post_id, content_posts!post_activity_log_post_id_fkey(clinic_id)")
         .order("created_at", { ascending: false })
         .limit(15);
 
@@ -133,17 +133,19 @@ export function NotificationBell() {
         if (log.action.includes("approved")) type = "post_approved";
         else if (log.action.includes("flag")) type = "post_flagged";
         else if (log.action.includes("comment")) type = "comment_added";
+        const clinicId = log.content_posts?.clinic_id ?? null;
         return {
           id: log.id, type,
           title: log.action.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase()),
           message: meta.message || `Post activity: ${log.action}`,
           read: false, created_at: log.created_at,
+          link: log.post_id ? buildPostLink(clinicId, log.post_id, role) : undefined,
         };
       });
 
       const { data: ticketData } = await supabase
         .from("department_tickets")
-        .select("id, title, department, priority, created_at")
+        .select("id, title, department, priority, created_at, clinic_id")
         .order("created_at", { ascending: false })
         .limit(10);
 
@@ -152,12 +154,13 @@ export function NotificationBell() {
         title: "New Ticket",
         message: `[${t.department}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
         read: false, created_at: t.created_at,
+        link: buildTicketLink(t.department, t.clinic_id, t.id),
       }));
 
       // SM2 generation notifications
       const { data: sm2Data } = await supabase
         .from("sm2_generations")
-        .select("id, month_year, approval_status, created_at, updated_at")
+        .select("id, month_year, approval_status, created_at, updated_at, clinic_id")
         .order("updated_at", { ascending: false })
         .limit(10);
 
@@ -168,6 +171,7 @@ export function NotificationBell() {
         message: `Social media content for ${g.month_year}`,
         read: false,
         created_at: g.updated_at || g.created_at,
+        link: buildSM2Link(g.clinic_id, role, g.approval_status),
       }));
 
       const all = [...activityNotifs, ...ticketNotifs, ...sm2Notifs]
