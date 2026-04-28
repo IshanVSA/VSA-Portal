@@ -36,6 +36,7 @@ import {
 import { format } from "date-fns";
 import SM2CalendarView from "./SM2CalendarView";
 import PostDetailsDrawer from "./PostDetailsDrawer";
+import { useSM2Posts } from "@/hooks/useSM2Posts";
 
 interface Props {
   clinicId: string | undefined;
@@ -87,16 +88,17 @@ export default function ClientContentReview({ clinicId }: Props) {
   };
 
   const handleSubmitFeedback = () => {
-    if (!feedbackGen || !feedbackText.trim()) return;
+    if (!feedbackGen) return;
+    const note = feedbackText.trim() || "Per-post changes requested. See post comments.";
     if (isCopyRound(feedbackGen)) {
       requestCopyChanges.mutate({
         generationId: feedbackGen.id,
-        feedback: feedbackText.trim(),
+        feedback: note,
       });
     } else if (isFinalRound(feedbackGen)) {
       requestFinalChanges.mutate({
         generationId: feedbackGen.id,
-        feedback: feedbackText.trim(),
+        feedback: note,
       });
     }
     setFeedbackGen(null);
@@ -210,30 +212,37 @@ export default function ClientContentReview({ clinicId }: Props) {
         </Dialog>
       )}
 
-      {/* Feedback Dialog */}
+      {/* Send-back Dialog */}
       <Dialog open={!!feedbackGen} onOpenChange={() => setFeedbackGen(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
-              Request Changes
+              Send back for changes
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 py-2">
+          <div className="space-y-4 py-2">
             <p className="text-sm text-muted-foreground">
-              Let your concierge know what changes you&apos;d like. Be as specific as
-              possible - mention particular posts, captions, or themes you want adjusted.
+              Below are the per-post changes you&apos;ve requested. You can also add a general note for your concierge.
             </p>
-            <Textarea
-              placeholder="e.g. Post #3 doesn't reflect our clinic tone. We'd prefer a warmer approach for the dental awareness post..."
-              value={feedbackText}
-              onChange={(e) => setFeedbackText(e.target.value)}
-              rows={5}
-              maxLength={2000}
-            />
-            <p className="text-xs text-muted-foreground text-right">
-              {feedbackText.length}/2000
-            </p>
+
+            <PerPostFeedbackList generationId={feedbackGen?.id} />
+
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">
+                General note (optional)
+              </p>
+              <Textarea
+                placeholder="Add an overall message for your concierge (optional)..."
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                rows={4}
+                maxLength={2000}
+              />
+              <p className="text-[11px] text-muted-foreground text-right">
+                {feedbackText.length}/2000
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setFeedbackGen(null)}>
@@ -241,11 +250,11 @@ export default function ClientContentReview({ clinicId }: Props) {
             </Button>
             <Button
               onClick={handleSubmitFeedback}
-              disabled={!feedbackText.trim() || requestCopyChanges.isPending || requestFinalChanges.isPending}
+              disabled={requestCopyChanges.isPending || requestFinalChanges.isPending}
               className="gap-2"
             >
               <Send className="h-4 w-4" />
-              {(requestCopyChanges.isPending || requestFinalChanges.isPending) ? "Sending..." : "Submit Feedback"}
+              {(requestCopyChanges.isPending || requestFinalChanges.isPending) ? "Sending..." : "Send back"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -391,7 +400,7 @@ function ContentReviewCard({
                 className="gap-2"
               >
                 <MessageSquare className="h-4 w-4" />
-                {isCopyActionable ? "Request copy changes" : "Request changes"}
+                Send back
               </Button>
               <Button
                 size="sm"
@@ -447,6 +456,43 @@ function AutoApprovalNotice({ sentAt }: { sentAt: string }) {
           {format(autoApproveDate, "MMM d, yyyy")} if no action is taken.
         </p>
       </div>
+    </div>
+  );
+}
+
+function PerPostFeedbackList({ generationId }: { generationId: string | undefined }) {
+  const { posts, isLoading } = useSM2Posts(generationId);
+  const withFeedback = (posts || []).filter(
+    (p) => p.client_feedback && p.client_feedback.trim().length > 0
+  );
+
+  if (!generationId) return null;
+
+  return (
+    <div className="rounded-lg border bg-muted/20 p-3 space-y-2 max-h-64 overflow-y-auto">
+      <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+        <MessageSquare className="h-3 w-3" />
+        Per-post changes requested ({withFeedback.length})
+      </p>
+      {isLoading ? (
+        <p className="text-xs text-muted-foreground">Loading...</p>
+      ) : withFeedback.length === 0 ? (
+        <p className="text-xs text-muted-foreground">
+          No per-post comments yet. Open the post preview to add specific changes per card.
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {withFeedback.map((p) => (
+            <li key={p.id} className="rounded-md bg-background border p-2">
+              <p className="text-[11px] font-medium text-muted-foreground mb-0.5">
+                Post {p.post_number ?? "—"} · {p.platform}
+                {p.scheduled_date ? ` · ${format(new Date(p.scheduled_date), "MMM d")}` : ""}
+              </p>
+              <p className="text-xs whitespace-pre-wrap">{p.client_feedback}</p>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -529,7 +575,7 @@ function ClientHtmlPreview({
             <div className="flex gap-2 w-full justify-end">
               <Button variant="outline" onClick={onRequestChanges} className="gap-2">
                 <MessageSquare className="h-4 w-4" />
-                {approvalStatus === "sent_for_copy_review" ? "Request copy changes" : "Request changes"}
+                {approvalStatus === "sent_for_copy_review" ? "Send back (copy)" : "Send back"}
               </Button>
               <Button onClick={onApprove} className="gap-2">
                 <ThumbsUp className="h-4 w-4" />
