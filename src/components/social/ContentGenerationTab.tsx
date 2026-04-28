@@ -166,7 +166,21 @@ export default function ContentGenerationTab({ clinicId }: Props) {
   ];
 
   return (
-    <div className="space-y-6">
+    <Tabs defaultValue="pipeline" className="space-y-4">
+      <TabsList className="bg-muted/50 h-9">
+        <TabsTrigger value="pipeline" className="gap-1.5 text-xs">
+          <Sparkles className="h-3.5 w-3.5" /> Content Generation
+        </TabsTrigger>
+        <TabsTrigger value="calendar" className="gap-1.5 text-xs">
+          <CalendarDays className="h-3.5 w-3.5" /> Content Calendar
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="calendar" className="mt-0">
+        <ClientContentCalendar clinicId={clinicId} />
+      </TabsContent>
+
+      <TabsContent value="pipeline" className="mt-0 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
