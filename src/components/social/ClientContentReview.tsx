@@ -459,6 +459,43 @@ function AutoApprovalNotice({ sentAt }: { sentAt: string }) {
   );
 }
 
+function PerPostFeedbackList({ generationId }: { generationId: string | undefined }) {
+  const { posts, isLoading } = useSM2Posts(generationId);
+  const withFeedback = (posts || []).filter(
+    (p) => p.client_feedback && p.client_feedback.trim().length > 0
+  );
+
+  if (!generationId) return null;
+
+  return (
+    <div className="rounded-lg border bg-muted/20 p-3 space-y-2 max-h-64 overflow-y-auto">
+      <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+        <MessageSquare className="h-3 w-3" />
+        Per-post changes requested ({withFeedback.length})
+      </p>
+      {isLoading ? (
+        <p className="text-xs text-muted-foreground">Loading...</p>
+      ) : withFeedback.length === 0 ? (
+        <p className="text-xs text-muted-foreground">
+          No per-post comments yet. Open the post preview to add specific changes per card.
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {withFeedback.map((p) => (
+            <li key={p.id} className="rounded-md bg-background border p-2">
+              <p className="text-[11px] font-medium text-muted-foreground mb-0.5">
+                Post {p.post_number ?? "—"} · {p.platform}
+                {p.scheduled_date ? ` · ${format(new Date(p.scheduled_date), "MMM d")}` : ""}
+              </p>
+              <p className="text-xs whitespace-pre-wrap">{p.client_feedback}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function ClientHtmlPreview({
   filePath,
   monthYear,
