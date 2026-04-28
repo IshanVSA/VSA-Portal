@@ -211,6 +211,11 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
       setUploading(false);
     }
 
+    // Fire-and-forget email notification to matching team members for this clinic+department
+    supabase.functions.invoke("notify-ticket-created", {
+      body: { ticketId: (ticket as any).id },
+    }).catch((e) => console.warn("notify-ticket-created failed", e));
+
     setLoading(false);
     setSubmitted(true);
     onCreated();
