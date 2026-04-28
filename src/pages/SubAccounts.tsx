@@ -33,6 +33,8 @@ interface SubAccount {
 
 export default function SubAccounts() {
   const { user } = useAuth();
+  const { isSubAccount } = useUserRole();
+  if (isSubAccount) return <Navigate to="/dashboard" replace />;
   const [clinics, setClinics] = useState<ClinicLite[]>([]);
   const [subs, setSubs] = useState<SubAccount[]>([]);
   const [loading, setLoading] = useState(true);
