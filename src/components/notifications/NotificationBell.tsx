@@ -252,6 +252,31 @@ export function NotificationBell() {
         };
         setNotifications(prev => [withRead(newNotif), ...prev].slice(0, 30));
       })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "sm2_posts" }, (payload) => {
+        // Only staff (admin/concierge) get client-note notifications
+        if (role === "client") return;
+        const newRow = payload.new as any;
+        const oldRow = payload.old as any;
+        const newFb = (newRow?.client_feedback || "").trim();
+        const oldFb = (oldRow?.client_feedback || "").trim();
+        // Notify only when client_feedback changed to a new non-empty value
+        if (!newFb || newFb === oldFb) return;
+        const datePart = newRow.scheduled_date
+          ? new Date(newRow.scheduled_date + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })
+          : "";
+        const numPart = newRow.post_number != null ? `Post #${newRow.post_number}` : "Post";
+        const preview = newFb.length > 80 ? newFb.slice(0, 80) + "…" : newFb;
+        const newNotif: Notification = {
+          id: `sm2-note-${newRow.id}-${newRow.updated_at || Date.now()}`,
+          type: "client_note",
+          title: "New Client Notes",
+          message: `${numPart}${datePart ? ` (${datePart})` : ""}: ${preview}`,
+          read: false,
+          created_at: newRow.updated_at || new Date().toISOString(),
+          link: buildSM2PostLink(newRow.clinic_id, newRow.scheduled_date),
+        };
+        setNotifications(prev => [withRead(newNotif), ...prev].slice(0, 30));
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
