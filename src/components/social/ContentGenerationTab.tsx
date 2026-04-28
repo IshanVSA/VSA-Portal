@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSM2Generation, STAGE_LABELS, nextStageLabel } from "@/hooks/useSM2Generation";
 import { formatDistanceToNow } from "date-fns";
 import { useMonthlySignals } from "@/hooks/useMonthlySignals";
@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Sparkles, RefreshCw, FileText, Eye, AlertTriangle, CheckCircle, Clock, Send, TrendingUp, Heart, Share2, MessageCircle, CalendarDays, Pencil, ShieldAlert, ShieldCheck } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Sparkles, RefreshCw, FileText, Eye, AlertTriangle, CheckCircle, Clock, Send, TrendingUp, Heart, Share2, MessageCircle, CalendarDays, Pencil, ShieldAlert, ShieldCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import HtmlEditorDialog from "./HtmlEditorDialog";
 import SM2CalendarView from "./SM2CalendarView";
 import { format } from "date-fns";
@@ -47,10 +48,28 @@ const DEFAULT_SETTINGS: ContentSettings = {
   end_of_life_content: "not_requested",
 };
 
+function buildMonthOptions(): { value: string; label: string }[] {
+  const out: { value: string; label: string }[] = [];
+  const now = new Date();
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    out.push({ value, label: format(d, "MMMM yyyy") });
+  }
+  return out;
+}
+
+const ACTIVE_GEN_STATUSES = ["queued", "processing", "retrying"];
+
 export default function ContentGenerationTab({ clinicId }: Props) {
   const { dna } = useBrandDNA(clinicId);
-  const { signals, upsertSignals, currentMonth } = useMonthlySignals(clinicId);
   const { generations, currentGeneration, generate, sendCopyForReview, sendFinalForReview, isLoading, pollForCompletion } = useSM2Generation(clinicId);
+
+  const monthOptions = useMemo(() => buildMonthOptions(), []);
+  const [targetMonth, setTargetMonth] = useState<string>(monthOptions[1]?.value || monthOptions[0].value);
+  const [viewingGenerationId, setViewingGenerationId] = useState<string | null>(null);
+
+  const { signals, upsertSignals } = useMonthlySignals(clinicId, targetMonth);
   const [preflightOpen, setPreflightOpen] = useState(false);
   const [clinicNews, setClinicNews] = useState("");
   const [fbSpecific, setFbSpecific] = useState("");
@@ -59,6 +78,35 @@ export default function ContentGenerationTab({ clinicId }: Props) {
   const [editingHtml, setEditingHtml] = useState<string | null>(null);
   const [topPerformers, setTopPerformers] = useState<PerformanceData[]>([]);
   const [contentSettings, setContentSettings] = useState<ContentSettings>(DEFAULT_SETTINGS);
+  const calendarRef = useRef<HTMLDivElement | null>(null);
+
+  // Sorted list of generations newest-first for the month switcher
+  const sortedGens = useMemo(
+    () => (generations || []).slice().sort((a, b) => (a.month_year < b.month_year ? 1 : -1)),
+    [generations]
+  );
+
+  // Pick the generation whose calendar should display
+  const selectedGen = useMemo(() => {
+    if (viewingGenerationId) {
+      const found = sortedGens.find((g) => g.id === viewingGenerationId);
+      if (found) return found;
+    }
+    if (currentGeneration) return currentGeneration;
+    return sortedGens[0] || null;
+  }, [viewingGenerationId, sortedGens, currentGeneration]);
+
+  const selectedIndex = selectedGen ? sortedGens.findIndex((g) => g.id === selectedGen.id) : -1;
+
+  const goPrevGen = () => {
+    if (selectedIndex < 0 || selectedIndex >= sortedGens.length - 1) return;
+    setViewingGenerationId(sortedGens[selectedIndex + 1].id);
+  };
+  const goNextGen = () => {
+    if (selectedIndex <= 0) return;
+    setViewingGenerationId(sortedGens[selectedIndex - 1].id);
+  };
+
 
   const dnaScore = dna?.completeness_score || 0;
   const canGenerate = dnaScore >= 50;
@@ -95,13 +143,17 @@ export default function ContentGenerationTab({ clinicId }: Props) {
       monthly_budget: parseFloat(budget) || 300,
     } as any);
     setPreflightOpen(false);
-    generate.mutate(currentMonth);
+    generate.mutate(targetMonth, {
+      onSuccess: (data: any) => {
+        if (data?.generation_id) setViewingGenerationId(data.generation_id);
+      },
+    });
   };
 
-  const monthLabel = (() => {
-    const [y, m] = currentMonth.split("-");
+  const monthLabel = useMemo(() => {
+    const [y, m] = targetMonth.split("-");
     return format(new Date(parseInt(y), parseInt(m) - 1), "MMMM yyyy");
-  })();
+  }, [targetMonth]);
 
   const activeGates = [
     { label: "Promotions", active: contentSettings.promotion_requested },
@@ -120,8 +172,8 @@ export default function ContentGenerationTab({ clinicId }: Props) {
           <p className="text-xs text-muted-foreground">SM2 v2.1 - 8-Agent Pipeline &middot; {monthLabel}</p>
         </div>
         <div className="flex gap-2">
-          {currentGeneration?.html_file_path && (
-            <Button variant="outline" size="sm" onClick={() => setViewingHtml(currentGeneration.html_file_path)} className="gap-2">
+          {selectedGen?.html_file_path && (
+            <Button variant="outline" size="sm" onClick={() => setViewingHtml(selectedGen.html_file_path!)} className="gap-2">
               <Eye className="h-4 w-4" /> View Content
             </Button>
           )}
@@ -134,9 +186,26 @@ export default function ContentGenerationTab({ clinicId }: Props) {
             </DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader>
-                <DialogTitle>Pre-Generation Setup - {monthLabel}</DialogTitle>
+                <DialogTitle>Pre-Generation Setup &middot; {monthLabel}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-2">
+                {/* Target Month */}
+                <div className="space-y-2">
+                  <Label>Target Month</Label>
+                  <Select value={targetMonth} onValueChange={setTargetMonth}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {monthOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground">
+                    Posts and statutory holidays will be generated for this month.
+                  </p>
+                </div>
                 {/* DNA Score */}
                 <div className="flex items-center gap-2 p-3 rounded-lg border">
                   {dnaScore >= 70 ? <CheckCircle className="h-5 w-5 text-green-500" /> : <AlertTriangle className="h-5 w-5 text-amber-500" />}
@@ -221,22 +290,93 @@ export default function ContentGenerationTab({ clinicId }: Props) {
         </Card>
       )}
 
-      {/* Calendar view of current month's generation */}
-      {currentGeneration && currentGeneration.approval_status !== "queued" && currentGeneration.approval_status !== "processing" && currentGeneration.approval_status !== "retrying" && currentGeneration.approval_status !== "generation_failed" && (
-        <Card>
-          <CardContent className="pt-6">
+      {/* Calendar view — always rendered, follows the selected generation */}
+      <Card ref={calendarRef as any}>
+        <CardContent className="pt-6 space-y-4">
+          {sortedGens.length > 0 && (
+            <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-border/50">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={goPrevGen}
+                  disabled={selectedIndex >= sortedGens.length - 1 || selectedIndex < 0}
+                  aria-label="Older generation"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Select
+                  value={selectedGen?.id || ""}
+                  onValueChange={(id) => setViewingGenerationId(id)}
+                >
+                  <SelectTrigger className="h-8 min-w-[200px] text-sm">
+                    <SelectValue placeholder="Select a generation" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sortedGens.map((g) => (
+                      <SelectItem key={g.id} value={g.id}>
+                        {format(new Date(g.month_year + "-01"), "MMMM yyyy")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={goNextGen}
+                  disabled={selectedIndex <= 0}
+                  aria-label="Newer generation"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Viewing {sortedGens.length} generation{sortedGens.length === 1 ? "" : "s"}
+              </p>
+            </div>
+          )}
+
+          {!selectedGen ? (
+            <div className="py-12 text-center">
+              <CalendarDays className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">
+                No content generated yet. Use <span className="font-medium text-foreground">Generate Content</span> to create a calendar for any month.
+              </p>
+            </div>
+          ) : ACTIVE_GEN_STATUSES.includes(selectedGen.approval_status) ? (
+            <div className="py-10 text-center space-y-2">
+              <RefreshCw className="h-6 w-6 mx-auto text-primary animate-spin" />
+              <p className="text-sm font-medium">
+                Pipeline running for {format(new Date(selectedGen.month_year + "-01"), "MMMM yyyy")}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                The calendar will appear automatically once generation completes.
+              </p>
+            </div>
+          ) : selectedGen.approval_status === "generation_failed" ? (
+            <div className="py-8 text-center space-y-2">
+              <AlertTriangle className="h-6 w-6 mx-auto text-destructive" />
+              <p className="text-sm font-medium">Generation failed</p>
+              {selectedGen.failure_reason && (
+                <p className="text-xs text-muted-foreground max-w-md mx-auto">{selectedGen.failure_reason}</p>
+              )}
+            </div>
+          ) : (
             <SM2CalendarView
-              generationId={currentGeneration.id}
-              monthYear={currentGeneration.month_year}
-              approvalStatus={currentGeneration.approval_status}
+              generationId={selectedGen.id}
+              monthYear={selectedGen.month_year}
+              approvalStatus={selectedGen.approval_status}
               isClient={false}
-              onSendCopyForReview={() => sendCopyForReview.mutate(currentGeneration.id)}
-              onSendFinalForReview={() => sendFinalForReview.mutate(currentGeneration.id)}
+              onSendCopyForReview={() => sendCopyForReview.mutate(selectedGen.id)}
+              onSendFinalForReview={() => sendFinalForReview.mutate(selectedGen.id)}
               sendPending={sendCopyForReview.isPending || sendFinalForReview.isPending}
             />
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
+
       {topPerformers.length > 0 && (
         <Card className="overflow-hidden animate-fade-in">
           <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
@@ -281,7 +421,14 @@ export default function ContentGenerationTab({ clinicId }: Props) {
         ) : (
           <div className="grid gap-3">
             {generations.map((gen) => (
-              <Card key={gen.id} className="border-border/60">
+              <Card
+                key={gen.id}
+                className={`border-border/60 transition-colors cursor-pointer hover:border-primary/40 ${selectedGen?.id === gen.id ? "border-primary/60 bg-primary/5" : ""}`}
+                onClick={() => {
+                  setViewingGenerationId(gen.id);
+                  calendarRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+              >
                 <CardContent className="py-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -308,7 +455,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                       <span className="text-xs text-muted-foreground">
                         {format(new Date(gen.created_at), "MMM d, h:mm a")}
                       </span>
