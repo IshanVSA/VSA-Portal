@@ -340,6 +340,52 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Search Terms Table */}
+      {computed.searchTerms.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Search className="h-4 w-4" /> Top Search Terms
+              <Badge variant="outline" className="ml-1 text-[10px]">Top {computed.searchTerms.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs">Search Term</TableHead>
+                  <TableHead className="text-xs">Matched Keyword</TableHead>
+                  <TableHead className="text-xs text-right">Clicks</TableHead>
+                  <TableHead className="text-xs text-right">Impr.</TableHead>
+                  <TableHead className="text-xs text-right">Cost</TableHead>
+                  <TableHead className="text-xs text-right">CTR</TableHead>
+                  <TableHead className="text-xs text-right">CPC</TableHead>
+                  <TableHead className="text-xs text-right">Conv.</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {computed.searchTerms.map((s, i) => {
+                  const ctr = s.impressions > 0 ? Math.round((s.clicks / s.impressions) * 10000) / 100 : 0;
+                  const cpc = s.clicks > 0 ? Math.round((s.cost / s.clicks) * 100) / 100 : 0;
+                  return (
+                    <TableRow key={`${s.term}-${s.keyword}-${i}`}>
+                      <TableCell className="text-xs font-medium truncate max-w-[260px]">{s.term}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground truncate max-w-[200px]">{s.keyword || "—"}</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums">{s.clicks.toLocaleString()}</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums">{s.impressions.toLocaleString()}</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums">${s.cost.toFixed(2)}</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums">{ctr}%</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums">${cpc}</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums">{s.conversions.toFixed(1)}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
