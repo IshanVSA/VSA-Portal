@@ -22,7 +22,13 @@ const Fallback = () => (
 
 export default function ClientPostsTab({ clinicId }: Props) {
   const [tab, setTab] = useState("review");
+  const [searchParams] = useSearchParams();
   const { generations } = useSM2Generation(clinicId);
+
+  // Auto-switch to calendar subtab if a deep-linked post is in the URL
+  useEffect(() => {
+    if (searchParams.get("post")) setTab("calendar");
+  }, [searchParams]);
 
   // Count generations awaiting client action (either copy or final round)
   const pendingCount = (generations || []).filter(
