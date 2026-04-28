@@ -240,7 +240,7 @@ Deno.serve(async (req) => {
              metrics.cost_micros, metrics.conversions,
              segments.date
       FROM search_term_view
-      WHERE segments.date DURING LAST_30_DAYS
+      WHERE segments.date DURING LAST_90_DAYS
     `;
 
     let searchTerms: Array<{
