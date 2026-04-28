@@ -143,13 +143,13 @@ export default function ContentGenerationTab({ clinicId }: Props) {
       monthly_budget: parseFloat(budget) || 300,
     } as any);
     setPreflightOpen(false);
-    generate.mutate(currentMonth);
+    generate.mutate(targetMonth);
   };
 
-  const monthLabel = (() => {
-    const [y, m] = currentMonth.split("-");
+  const monthLabel = useMemo(() => {
+    const [y, m] = targetMonth.split("-");
     return format(new Date(parseInt(y), parseInt(m) - 1), "MMMM yyyy");
-  })();
+  }, [targetMonth]);
 
   const activeGates = [
     { label: "Promotions", active: contentSettings.promotion_requested },
