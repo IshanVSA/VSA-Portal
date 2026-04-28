@@ -289,24 +289,26 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
       </Card>
 
       {/* Daily Spend Chart */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-            <DollarSign className="h-4 w-4" /> Daily Ad Spend
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={{ cost: { label: "Spend ($)", color: "hsl(var(--primary))" } }} className="h-[200px] w-full">
-            <BarChart data={computed.chartData}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-              <XAxis dataKey="date" tick={{ fontSize: 10 }} interval="preserveStartEnd" className="text-muted-foreground" />
-              <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="cost" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
-            </BarChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
+      {showMoney && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <DollarSign className="h-4 w-4" /> Daily Ad Spend
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={{ cost: { label: "Spend ($)", color: "hsl(var(--primary))" } }} className="h-[200px] w-full">
+              <BarChart data={computed.chartData}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                <XAxis dataKey="date" tick={{ fontSize: 10 }} interval="preserveStartEnd" className="text-muted-foreground" />
+                <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Bar dataKey="cost" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Campaigns Table */}
       <Card>
