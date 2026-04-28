@@ -583,10 +583,15 @@ export function NotificationBell() {
                                   <Icon className={cn("h-[18px] w-[18px]", config.color)} />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
                                     <p className={cn("text-[13px] truncate", !notif.read ? "font-semibold text-foreground" : "font-medium text-foreground/90")}>
                                       {notif.title}
                                     </p>
+                                    {notif.clinicName && (
+                                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-primary/10 text-primary truncate max-w-[160px]">
+                                        {notif.clinicName}
+                                      </span>
+                                    )}
                                   </div>
                                   <p className="text-xs text-muted-foreground line-clamp-2 leading-snug mt-0.5">{notif.message}</p>
                                   <p className="text-[10px] text-muted-foreground/60 mt-1">
