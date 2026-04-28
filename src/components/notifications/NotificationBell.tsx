@@ -523,12 +523,18 @@ export function NotificationBell() {
                                   "hover:bg-muted/60",
                                   !notif.read && "bg-primary/[0.04]"
                                 )}
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
                                   markOneRead(notif.id);
-                                  if (notif.link) {
-                                    setOpen(false);
-                                    navigate(notif.link);
-                                  }
+                                  setOpen(false);
+                                  // Always try to navigate somewhere useful, even if link missing.
+                                  const fallback = notif.type.startsWith("sm2") || notif.type === "client_note" || notif.type === "post_approved" || notif.type === "post_flagged" || notif.type === "comment_added"
+                                    ? "/social"
+                                    : notif.type === "ticket_created" || notif.type === "status_changed"
+                                      ? "/social?tab=tickets"
+                                      : "/";
+                                  navigate(notif.link || fallback);
                                 }}
                               >
                                 {!notif.read && (
