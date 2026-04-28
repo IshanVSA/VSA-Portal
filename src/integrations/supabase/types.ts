@@ -2713,6 +2713,17 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string[]
       }
+      get_cron_job_health: {
+        Args: never
+        Returns: {
+          failures_24h: number
+          jobname: string
+          last_message: string
+          last_run_at: string
+          last_status: string
+          runs_24h: number
+        }[]
+      }
       get_sub_account_clinic_ids: {
         Args: { _user_id: string }
         Returns: string[]

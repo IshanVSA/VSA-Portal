@@ -28,97 +28,67 @@ async function maxOf(table: string, col: string): Promise<string | null> {
   return (data as Record<string, string | null> | null)?.[col] ?? null;
 }
 
+// Pull authoritative cron history (last_run_at, runs_24h, failures_24h) from pg_cron.
+async function getCronHealthMap(): Promise<Record<string, { last_run_at: string | null; last_status: string | null; last_message: string | null; runs_24h: number; failures_24h: number }>> {
+  const { data, error } = await supabase.rpc("get_cron_job_health");
+  if (error || !Array.isArray(data)) return {};
+  const map: Record<string, any> = {};
+  for (const row of data as any[]) {
+    map[row.jobname] = {
+      last_run_at: row.last_run_at ?? null,
+      last_status: row.last_status ?? null,
+      last_message: row.last_message ?? null,
+      runs_24h: Number(row.runs_24h ?? 0),
+      failures_24h: Number(row.failures_24h ?? 0),
+    };
+  }
+  return map;
+}
+
 const JOBS: JobDef[] = [
   {
     id: "pagespeed-daily-scan", label: "PageSpeed Daily Scan",
     schedule: "Daily 06:00 UTC", fn: "pagespeed-cron", graceMinutes: 180,
-    signal: async () => {
-      const last = await maxOf("pagespeed_scores", "recorded_at");
-      return { last_at: last, failures_24h: 0, total_24h: 0 };
-    },
+    signal: async () => ({ last_at: await maxOf("pagespeed_scores", "recorded_at"), failures_24h: 0, total_24h: 0 }),
   },
   {
     id: "google-ads-daily-sync", label: "Google Ads Daily Sync",
     schedule: "Daily 07:00 UTC", fn: "google-ads-cron", graceMinutes: 180,
-    signal: async () => {
-      const last = await maxOf("clinic_api_credentials", "last_google_sync_at");
-      return { last_at: last, failures_24h: 0, total_24h: 0 };
-    },
+    signal: async () => ({ last_at: await maxOf("clinic_api_credentials", "last_google_sync_at"), failures_24h: 0, total_24h: 0 }),
   },
   {
     id: "meta-analytics-daily-sync", label: "Meta Analytics Daily Sync",
     schedule: "Daily 07:30 UTC", fn: "meta-analytics-cron", graceMinutes: 180,
-    signal: async () => {
-      const last = await maxOf("clinic_api_credentials", "last_meta_sync_at");
-      return { last_at: last, failures_24h: 0, total_24h: 0 };
-    },
+    signal: async () => ({ last_at: await maxOf("clinic_api_credentials", "last_meta_sync_at"), failures_24h: 0, total_24h: 0 }),
   },
   {
     id: "blog-worker-every-3min", label: "Blog Worker",
     schedule: "Every 3 min", fn: "blog-worker", graceMinutes: 30,
     signal: async () => {
-      const last = await maxOf("blog_posts", "last_attempt_at");
-      const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-      const { count: total } = await supabase
-        .from("blog_posts").select("id", { count: "exact", head: true })
-        .gte("last_attempt_at", since);
-      const { count: fails, data: sample } = await supabase
-        .from("blog_posts").select("failure_reason", { count: "exact" })
-        .eq("generation_status", "failed").gte("last_attempt_at", since).limit(1);
-      return {
-        last_at: last,
-        failures_24h: fails ?? 0,
-        total_24h: total ?? 0,
-        failure_sample: sample?.[0]?.failure_reason ?? null,
-      };
+      // Pure cron-tick monitor: blog_posts.last_attempt_at only updates when there's work.
+      // The actual cron fires every 3 min regardless — use cron history (filled in below).
+      return { last_at: null, failures_24h: 0, total_24h: 0 };
     },
   },
   {
     id: "sm2-worker-tick", label: "SM2 Worker",
     schedule: "Every minute", fn: "sm2-worker", graceMinutes: 15,
-    signal: async () => {
-      const last = await maxOf("sm2_generations", "updated_at");
-      const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-      const { count: fails, data: sample } = await supabase
-        .from("sm2_generations").select("failure_reason", { count: "exact" })
-        .eq("status", "failed").gte("updated_at", since).limit(1);
-      const { count: total } = await supabase
-        .from("sm2_generations").select("id", { count: "exact", head: true })
-        .gte("updated_at", since);
-      return {
-        last_at: last,
-        failures_24h: fails ?? 0,
-        total_24h: total ?? 0,
-        failure_sample: sample?.[0]?.failure_reason ?? null,
-      };
-    },
+    signal: async () => ({ last_at: null, failures_24h: 0, total_24h: 0 }),
   },
   {
     id: "gbp-monthly-batch-queue", label: "GBP Monthly Batch Queue",
     schedule: "1st of month 05:00 UTC", fn: "gbp-publish-cron", graceMinutes: 60 * 24 * 2,
-    signal: async () => {
-      const last = await maxOf("gbp_batches", "created_at");
-      return { last_at: last, failures_24h: 0, total_24h: 0 };
-    },
+    signal: async () => ({ last_at: await maxOf("gbp_batches", "created_at"), failures_24h: 0, total_24h: 0 }),
   },
   {
     id: "auto-approve-posts-hourly", label: "Auto Approve Posts",
     schedule: "Hourly", fn: "auto-approve-posts", graceMinutes: 75,
-    // No reliable run timestamp — use latest auto_approved sent_to_client_at as a proxy.
-    signal: async () => {
-      const { data } = await supabase
-        .from("content_requests").select("sent_to_client_at")
-        .eq("status", "auto_approved").order("sent_to_client_at", { ascending: false }).limit(1).maybeSingle();
-      return { last_at: data?.sent_to_client_at ?? null, failures_24h: 0, total_24h: 0 };
-    },
+    signal: async () => ({ last_at: null, failures_24h: 0, total_24h: 0 }),
   },
   {
     id: "ticket-automation-hourly", label: "Ticket Automation",
     schedule: "Hourly", fn: "ticket-automation", graceMinutes: 75,
-    signal: async () => {
-      const last = await maxOf("department_tickets", "created_at");
-      return { last_at: last, failures_24h: 0, total_24h: 0 };
-    },
+    signal: async () => ({ last_at: null, failures_24h: 0, total_24h: 0 }),
   },
 ];
 
@@ -147,14 +117,27 @@ function computeHealth(job: JobDef, signal: { last_at: string | null; failures_2
 }
 
 async function getStatuses() {
+  // pg_cron history is the authoritative "did this run on time" signal.
+  const cronMap = await getCronHealthMap();
+
   return await Promise.all(JOBS.map(async (j) => {
     try {
       const sig = await j.signal();
+      const cron = cronMap[j.id];
+
+      // Prefer cron history if available — it's the ground truth for "did the tick fire".
+      const merged = {
+        last_at: cron?.last_run_at ?? sig.last_at,
+        failures_24h: cron?.failures_24h ?? sig.failures_24h,
+        total_24h: cron?.runs_24h ?? sig.total_24h,
+      };
+      const failure_sample = (cron?.last_status && cron.last_status !== "succeeded" ? cron.last_message : sig.failure_sample) ?? null;
+
       return {
         id: j.id, label: j.label, schedule: j.schedule, fn: j.fn,
-        last_at: sig.last_at, failures_24h: sig.failures_24h, total_24h: sig.total_24h,
-        failure_sample: sig.failure_sample ?? null,
-        health: computeHealth(j, sig),
+        last_at: merged.last_at, failures_24h: merged.failures_24h, total_24h: merged.total_24h,
+        failure_sample,
+        health: computeHealth(j, merged),
       };
     } catch (e) {
       return {
@@ -165,6 +148,7 @@ async function getStatuses() {
     }
   }));
 }
+
 
 async function requireAdmin(authHeader: string | null): Promise<boolean> {
   if (!authHeader) return false;
