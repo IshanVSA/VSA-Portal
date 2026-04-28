@@ -529,7 +529,7 @@ function ClientHtmlPreview({
             <div className="flex gap-2 w-full justify-end">
               <Button variant="outline" onClick={onRequestChanges} className="gap-2">
                 <MessageSquare className="h-4 w-4" />
-                {approvalStatus === "sent_for_copy_review" ? "Request copy changes" : "Request changes"}
+                {approvalStatus === "sent_for_copy_review" ? "Send back (copy)" : "Send back"}
               </Button>
               <Button onClick={onApprove} className="gap-2">
                 <ThumbsUp className="h-4 w-4" />
