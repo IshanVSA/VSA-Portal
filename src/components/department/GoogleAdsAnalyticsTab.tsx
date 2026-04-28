@@ -397,11 +397,13 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
                       <TableCell className="text-xs text-muted-foreground truncate max-w-[200px]">{s.keyword || "—"}</TableCell>
                       <TableCell className="text-xs text-right tabular-nums">{s.clicks.toLocaleString()}</TableCell>
                       <TableCell className="text-xs text-right tabular-nums">{s.impressions.toLocaleString()}</TableCell>
-                      <TableCell className={`text-xs text-right tabular-nums ${isTop ? "font-semibold text-foreground" : ""}`}>
-                        ${s.cost.toFixed(2)}
-                      </TableCell>
+                      {showMoney && (
+                        <TableCell className={`text-xs text-right tabular-nums ${isTop ? "font-semibold text-foreground" : ""}`}>
+                          ${s.cost.toFixed(2)}
+                        </TableCell>
+                      )}
                       <TableCell className="text-xs text-right tabular-nums">{ctr}%</TableCell>
-                      <TableCell className="text-xs text-right tabular-nums">${cpc}</TableCell>
+                      {showMoney && <TableCell className="text-xs text-right tabular-nums">${cpc}</TableCell>}
                     </TableRow>
                   );
                 })}
