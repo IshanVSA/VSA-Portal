@@ -300,6 +300,7 @@ export function useSM2Posts(generationId: string | undefined) {
     uploadImage,
     removeImage,
     saveFeedback,
+    updatePost,
     toggleMetaAd,
     getImageUrl,
     total,
