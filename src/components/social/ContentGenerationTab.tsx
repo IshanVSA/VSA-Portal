@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sparkles, RefreshCw, FileText, Eye, AlertTriangle, CheckCircle, Clock, Send, TrendingUp, Heart, Share2, MessageCircle, CalendarDays, Pencil, ShieldAlert, ShieldCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import HtmlEditorDialog from "./HtmlEditorDialog";
 import SM2CalendarView from "./SM2CalendarView";
+import ClientContentCalendar from "./ClientContentCalendar";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 
