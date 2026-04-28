@@ -322,11 +322,11 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
             <TableHeader>
               <TableRow>
                 <TableHead className="text-xs">Campaign</TableHead>
-                <TableHead className="text-xs text-right">Spend</TableHead>
+                {showMoney && <TableHead className="text-xs text-right">Spend</TableHead>}
                 <TableHead className="text-xs text-right">Clicks</TableHead>
                 <TableHead className="text-xs text-right">Impr.</TableHead>
                 <TableHead className="text-xs text-right">CTR</TableHead>
-                <TableHead className="text-xs text-right">CPC</TableHead>
+                {showMoney && <TableHead className="text-xs text-right">CPC</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -336,11 +336,11 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
                 return (
                   <TableRow key={c.name}>
                     <TableCell className="text-xs font-medium truncate max-w-[200px]">{c.name}</TableCell>
-                    <TableCell className="text-xs text-right tabular-nums">${c.cost.toFixed(2)}</TableCell>
+                    {showMoney && <TableCell className="text-xs text-right tabular-nums">${c.cost.toFixed(2)}</TableCell>}
                     <TableCell className="text-xs text-right tabular-nums">{c.clicks.toLocaleString()}</TableCell>
                     <TableCell className="text-xs text-right tabular-nums">{c.impressions.toLocaleString()}</TableCell>
                     <TableCell className="text-xs text-right tabular-nums">{ctr}%</TableCell>
-                    <TableCell className="text-xs text-right tabular-nums">${cpc}</TableCell>
+                    {showMoney && <TableCell className="text-xs text-right tabular-nums">${cpc}</TableCell>}
                   </TableRow>
                 );
               })}
