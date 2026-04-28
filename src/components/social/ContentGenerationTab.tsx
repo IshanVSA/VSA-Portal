@@ -48,10 +48,28 @@ const DEFAULT_SETTINGS: ContentSettings = {
   end_of_life_content: "not_requested",
 };
 
+function buildMonthOptions(): { value: string; label: string }[] {
+  const out: { value: string; label: string }[] = [];
+  const now = new Date();
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    out.push({ value, label: format(d, "MMMM yyyy") });
+  }
+  return out;
+}
+
+const ACTIVE_GEN_STATUSES = ["queued", "processing", "retrying"];
+
 export default function ContentGenerationTab({ clinicId }: Props) {
   const { dna } = useBrandDNA(clinicId);
-  const { signals, upsertSignals, currentMonth } = useMonthlySignals(clinicId);
   const { generations, currentGeneration, generate, sendCopyForReview, sendFinalForReview, isLoading, pollForCompletion } = useSM2Generation(clinicId);
+
+  const monthOptions = useMemo(() => buildMonthOptions(), []);
+  const [targetMonth, setTargetMonth] = useState<string>(monthOptions[1]?.value || monthOptions[0].value);
+  const [viewingGenerationId, setViewingGenerationId] = useState<string | null>(null);
+
+  const { signals, upsertSignals } = useMonthlySignals(clinicId, targetMonth);
   const [preflightOpen, setPreflightOpen] = useState(false);
   const [clinicNews, setClinicNews] = useState("");
   const [fbSpecific, setFbSpecific] = useState("");
@@ -60,6 +78,35 @@ export default function ContentGenerationTab({ clinicId }: Props) {
   const [editingHtml, setEditingHtml] = useState<string | null>(null);
   const [topPerformers, setTopPerformers] = useState<PerformanceData[]>([]);
   const [contentSettings, setContentSettings] = useState<ContentSettings>(DEFAULT_SETTINGS);
+  const calendarRef = useRef<HTMLDivElement | null>(null);
+
+  // Sorted list of generations newest-first for the month switcher
+  const sortedGens = useMemo(
+    () => (generations || []).slice().sort((a, b) => (a.month_year < b.month_year ? 1 : -1)),
+    [generations]
+  );
+
+  // Pick the generation whose calendar should display
+  const selectedGen = useMemo(() => {
+    if (viewingGenerationId) {
+      const found = sortedGens.find((g) => g.id === viewingGenerationId);
+      if (found) return found;
+    }
+    if (currentGeneration) return currentGeneration;
+    return sortedGens[0] || null;
+  }, [viewingGenerationId, sortedGens, currentGeneration]);
+
+  const selectedIndex = selectedGen ? sortedGens.findIndex((g) => g.id === selectedGen.id) : -1;
+
+  const goPrevGen = () => {
+    if (selectedIndex < 0 || selectedIndex >= sortedGens.length - 1) return;
+    setViewingGenerationId(sortedGens[selectedIndex + 1].id);
+  };
+  const goNextGen = () => {
+    if (selectedIndex <= 0) return;
+    setViewingGenerationId(sortedGens[selectedIndex - 1].id);
+  };
+
 
   const dnaScore = dna?.completeness_score || 0;
   const canGenerate = dnaScore >= 50;
