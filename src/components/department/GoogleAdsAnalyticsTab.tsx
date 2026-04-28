@@ -179,7 +179,7 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
       })
       .filter(st => st.impressions > 0 || st.clicks > 0)
       .sort((a, b) => b.cost - a.cost || b.clicks - a.clicks)
-      .slice(0, 50);
+      .slice(0, 20);
 
     return { clicks, impressions, cost, ctr, cpc, sortedCampaigns, chartData, searchTerms: filteredSearchTerms };
   }, [metricsData, dateRange]);
