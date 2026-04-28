@@ -329,11 +329,11 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
 
   const clinicSelectorPages = ["/website", "/seo", "/ai-seo", "/google-ads", "/social", "/reports"];
   const showClinicSelector = clinicSelectorPages.some(p => location.pathname === p || location.pathname.startsWith(p + "/"));
-  const selectedClinicName = (role === "client" || role === "sub_client")
+  const selectedClinicName = role === "client"
     ? clientClinic?.clinic_name || ""
     : navClinics.find(c => c.id === navSelectedClinicId)?.clinic_name || "";
-  const clinicSelectorClinics = (role === "client" || role === "sub_client") ? clientClinics : navClinics;
-  const clinicSelectorSelectedId = (role === "client" || role === "sub_client") ? clientSelectedId || "" : navSelectedClinicId;
+  const clinicSelectorClinics = role === "client" ? clientClinics : navClinics;
+  const clinicSelectorSelectedId = role === "client" ? clientSelectedId || "" : navSelectedClinicId;
 
   const isDepartmentLocked = (path: string) => {
     if (role === "admin") return false;
