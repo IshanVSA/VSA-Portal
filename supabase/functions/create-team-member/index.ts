@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
     const firstName = full_name.split(" ")[0] || "there";
 
     const clientBetaBody = `
-      <p style="margin:0 0 14px;">Dear ${escapeHtml(firstName)},</p>
+      <p style="margin:0 0 14px;">Dear valuable client,</p>
       <p style="margin:0 0 14px;">We are thrilled to welcome you to the world of AI with <strong>VSA Vet Media</strong>.</p>
       <p style="margin:0 0 14px;">Today, we are excited to grant you exclusive <strong>beta access</strong> to our groundbreaking new SaaS platform. Powered by Anthropic, this AI-integrated solution is designed specifically for veterinary practices. It is far more than a standard marketing dashboard. It consolidates every click, every data point, and every performance metric from your organic search rankings, Google Ads, social media calendar, and website analytics, all under one powerful and intuitive roof.</p>
       <p style="margin:0 0 14px;">What truly sets our platform apart is that we are the first and only solution of its kind to deliver comprehensive <strong>compliance monitoring across multiple jurisdictions</strong>. Behind the advanced AI, a dedicated team of real humans works in the background to ensure everything is executed with exceptional accuracy, precision, and power. This powerful combination allows your veterinary practice to grow with the highest level of professionalism and confidence.</p>
@@ -196,7 +196,7 @@ Deno.serve(async (req) => {
         ? "Welcome to the Future of Veterinary Marketing — Beta Access to VSA Vet Media"
         : "Welcome to VSA Vet Media — your login details",
       html: brandedEmailWrapper({
-        heading: isClient ? `Welcome to VSA Vet Media, ${firstName}` : `Welcome, ${firstName}`,
+        heading: isClient ? `Welcome to VSA Vet Media` : `Welcome, ${firstName}`,
         preheader: isClient
           ? "Exclusive beta access to our AI-powered veterinary marketing platform."
           : "Your VSA Vet Media account is ready.",
