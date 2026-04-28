@@ -226,6 +226,21 @@ export function useSM2Posts(generationId: string | undefined) {
     onError: (e: Error) => toast.error("Failed to save feedback", { description: e.message }),
   });
 
+  const updatePost = useMutation({
+    mutationFn: async ({ postId, updates }: { postId: string; updates: Partial<SM2Post> }) => {
+      const { error } = await supabase
+        .from("sm2_posts")
+        .update(updates as any)
+        .eq("id", postId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+      toast.success("Post updated");
+    },
+    onError: (e: Error) => toast.error("Failed to update post", { description: e.message }),
+  });
+
   const toggleMetaAd = useMutation({
     mutationFn: async ({ postId, value }: { postId: string; value: boolean }) => {
       const { error } = await supabase
@@ -285,6 +300,7 @@ export function useSM2Posts(generationId: string | undefined) {
     uploadImage,
     removeImage,
     saveFeedback,
+    updatePost,
     toggleMetaAd,
     getImageUrl,
     total,

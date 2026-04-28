@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
@@ -20,6 +22,7 @@ import {
   ChevronLeft,
   X,
   Lock,
+  Pencil,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useSM2Posts, type SM2Post, getPostImagePaths, SM2_MAX_IMAGES_PER_POST } from "@/hooks/useSM2Posts";
@@ -36,7 +39,7 @@ interface Props {
 }
 
 export default function PostDayDialog({ open, onClose, date, generationId, isClient, imagesUnlocked = true }: Props) {
-  const { posts, uploadImage, removeImage, saveFeedback, toggleMetaAd, getImageUrl } = useSM2Posts(generationId);
+  const { posts, uploadImage, removeImage, saveFeedback, updatePost, toggleMetaAd, getImageUrl } = useSM2Posts(generationId);
   const metaAdSelectedCount = posts.filter((p) => p.run_meta_ad).length;
   const dayPosts = date ? posts.filter((p) => p.scheduled_date === date) : [];
 
@@ -78,11 +81,13 @@ export default function PostDayDialog({ open, onClose, date, generationId, isCli
                 onUpload={(files) => uploadImage.mutate({ post, files })}
                 onRemoveImage={(path) => removeImage.mutate({ post, path })}
                 onSaveFeedback={(feedback) => saveFeedback.mutate({ postId: post.id, feedback })}
+                onUpdatePost={(updates) => updatePost.mutate({ postId: post.id, updates })}
                 onToggleMetaAd={(value) => toggleMetaAd.mutate({ postId: post.id, value })}
                 metaAdSelectedCount={metaAdSelectedCount}
                 togglingMetaAd={toggleMetaAd.isPending}
                 uploading={uploadImage.isPending}
                 savingFeedback={saveFeedback.isPending}
+                updatingPost={updatePost.isPending}
               />
             ))}
           </div>
@@ -148,11 +153,13 @@ function PostCard({
   onUpload,
   onRemoveImage,
   onSaveFeedback,
+  onUpdatePost,
   onToggleMetaAd,
   metaAdSelectedCount,
   togglingMetaAd,
   uploading,
   savingFeedback,
+  updatingPost,
 }: {
   post: SM2Post;
   isClient: boolean;
@@ -161,16 +168,19 @@ function PostCard({
   onUpload: (files: File[]) => void;
   onRemoveImage: (path: string) => void;
   onSaveFeedback: (feedback: string) => void;
+  onUpdatePost: (updates: Partial<SM2Post>) => void;
   onToggleMetaAd: (value: boolean) => void;
   metaAdSelectedCount: number;
   togglingMetaAd: boolean;
   uploading: boolean;
   savingFeedback: boolean;
+  updatingPost: boolean;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [feedback, setFeedback] = useState(post.client_feedback || "");
   const [dragOver, setDragOver] = useState(false);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
   const metaAdLimitReached = metaAdSelectedCount >= 2 && !post.run_meta_ad;
 
   const handleFiles = (files: FileList | File[]) => {
@@ -343,7 +353,33 @@ function PostCard({
             <Badge variant="outline" className={cn("text-[10px] font-semibold", statusBadgeClass(post.status))}>
               {(post.status || "PASS").toUpperCase()}
             </Badge>
+            {!isClient && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setEditOpen(true)}
+                className="ml-auto h-7 px-2 gap-1 text-[11px]"
+                title="Edit post copy (admin/concierge only)"
+              >
+                <Pencil className="h-3 w-3" />
+                Edit
+              </Button>
+            )}
           </div>
+
+          {!isClient && (
+            <EditPostDialog
+              open={editOpen}
+              onOpenChange={setEditOpen}
+              post={post}
+              saving={updatingPost}
+              onSave={(updates) => {
+                onUpdatePost(updates);
+                setEditOpen(false);
+              }}
+            />
+          )}
+
 
           {/* Topic / title */}
           {post.topic && <h3 className="text-base font-bold leading-tight">{post.topic}</h3>}
@@ -634,5 +670,111 @@ function ImageLightbox({
         </div>
       )}
     </div>
+  );
+}
+
+function EditPostDialog({
+  open,
+  onOpenChange,
+  post,
+  saving,
+  onSave,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  post: SM2Post;
+  saving: boolean;
+  onSave: (updates: Partial<SM2Post>) => void;
+}) {
+  const [topic, setTopic] = useState(post.topic || "");
+  const [hook, setHook] = useState(post.hook || "");
+  const [hookB, setHookB] = useState(post.hook_b || "");
+  const [caption, setCaption] = useState(post.caption || "");
+  const [hashtags, setHashtags] = useState((post.hashtags || []).join(" "));
+  const [cta, setCta] = useState(post.cta || "");
+  const [compliance, setCompliance] = useState(post.compliance_notes || "");
+
+  // Re-sync local state whenever the dialog opens for a (potentially) different post
+  useEffect(() => {
+    if (!open) return;
+    setTopic(post.topic || "");
+    setHook(post.hook || "");
+    setHookB(post.hook_b || "");
+    setCaption(post.caption || "");
+    setHashtags((post.hashtags || []).join(" "));
+    setCta(post.cta || "");
+    setCompliance(post.compliance_notes || "");
+  }, [open, post.id]);
+
+  const handleSave = () => {
+    const tagList = hashtags
+      .split(/\s+/)
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .map((t) => (t.startsWith("#") ? t : `#${t}`));
+    onSave({
+      topic: topic.trim() || null,
+      hook: hook.trim() || null,
+      hook_b: hookB.trim() || null,
+      caption: caption.trim() || null,
+      hashtags: tagList.length ? tagList : null,
+      cta: cta.trim() || null,
+      compliance_notes: compliance.trim() || null,
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Pencil className="h-4 w-4" />
+            Edit post copy
+            {post.post_number != null && (
+              <Badge variant="outline" className="text-[10px] font-mono ml-1">#{post.post_number}</Badge>
+            )}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Topic / Title</Label>
+            <Input value={topic} onChange={(e) => setTopic(e.target.value)} />
+          </div>
+          <div className="grid md:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Hook A</Label>
+              <Textarea value={hook} onChange={(e) => setHook(e.target.value)} rows={2} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Hook B</Label>
+              <Textarea value={hookB} onChange={(e) => setHookB(e.target.value)} rows={2} />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Caption</Label>
+            <Textarea value={caption} onChange={(e) => setCaption(e.target.value)} rows={6} />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Hashtags <span className="text-muted-foreground">(space separated)</span></Label>
+            <Textarea value={hashtags} onChange={(e) => setHashtags(e.target.value)} rows={2} className="font-mono text-xs" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Call to Action</Label>
+            <Input value={cta} onChange={(e) => setCta(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Compliance Notes</Label>
+            <Textarea value={compliance} onChange={(e) => setCompliance(e.target.value)} rows={2} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancel</Button>
+          <Button onClick={handleSave} disabled={saving} className="gap-1.5">
+            <Save className="h-3.5 w-3.5" />
+            {saving ? "Saving..." : "Save changes"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
