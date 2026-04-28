@@ -210,30 +210,37 @@ export default function ClientContentReview({ clinicId }: Props) {
         </Dialog>
       )}
 
-      {/* Feedback Dialog */}
+      {/* Send-back Dialog */}
       <Dialog open={!!feedbackGen} onOpenChange={() => setFeedbackGen(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
-              Request Changes
+              Send back for changes
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 py-2">
+          <div className="space-y-4 py-2">
             <p className="text-sm text-muted-foreground">
-              Let your concierge know what changes you&apos;d like. Be as specific as
-              possible - mention particular posts, captions, or themes you want adjusted.
+              Below are the per-post changes you&apos;ve requested. You can also add a general note for your concierge.
             </p>
-            <Textarea
-              placeholder="e.g. Post #3 doesn't reflect our clinic tone. We'd prefer a warmer approach for the dental awareness post..."
-              value={feedbackText}
-              onChange={(e) => setFeedbackText(e.target.value)}
-              rows={5}
-              maxLength={2000}
-            />
-            <p className="text-xs text-muted-foreground text-right">
-              {feedbackText.length}/2000
-            </p>
+
+            <PerPostFeedbackList generationId={feedbackGen?.id} />
+
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">
+                General note (optional)
+              </p>
+              <Textarea
+                placeholder="Add an overall message for your concierge (optional)..."
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                rows={4}
+                maxLength={2000}
+              />
+              <p className="text-[11px] text-muted-foreground text-right">
+                {feedbackText.length}/2000
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setFeedbackGen(null)}>
@@ -241,11 +248,11 @@ export default function ClientContentReview({ clinicId }: Props) {
             </Button>
             <Button
               onClick={handleSubmitFeedback}
-              disabled={!feedbackText.trim() || requestCopyChanges.isPending || requestFinalChanges.isPending}
+              disabled={requestCopyChanges.isPending || requestFinalChanges.isPending}
               className="gap-2"
             >
               <Send className="h-4 w-4" />
-              {(requestCopyChanges.isPending || requestFinalChanges.isPending) ? "Sending..." : "Submit Feedback"}
+              {(requestCopyChanges.isPending || requestFinalChanges.isPending) ? "Sending..." : "Send back"}
             </Button>
           </DialogFooter>
         </DialogContent>
