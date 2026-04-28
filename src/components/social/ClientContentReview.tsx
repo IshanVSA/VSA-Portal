@@ -36,6 +36,7 @@ import {
 import { format } from "date-fns";
 import SM2CalendarView from "./SM2CalendarView";
 import PostDetailsDrawer from "./PostDetailsDrawer";
+import { useSM2Posts } from "@/hooks/useSM2Posts";
 
 interface Props {
   clinicId: string | undefined;
