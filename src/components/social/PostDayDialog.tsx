@@ -184,6 +184,17 @@ function PostCard({
   const [editOpen, setEditOpen] = useState(false);
   const metaAdLimitReached = metaAdSelectedCount >= 2 && !post.run_meta_ad;
 
+  const hasNote = !!(post.client_feedback && post.client_feedback.trim());
+  const noteIsNewForStaff = !isClient && isClientNoteUnseen(post.id, post.updated_at, hasNote);
+
+  // Once a staff member sees the card with the note rendered, mark as seen.
+  useEffect(() => {
+    if (noteIsNewForStaff) {
+      const t = setTimeout(() => markClientNoteSeen(post.id, post.updated_at), 1200);
+      return () => clearTimeout(t);
+    }
+  }, [noteIsNewForStaff, post.id, post.updated_at]);
+
   const handleFiles = (files: FileList | File[]) => {
     const arr = Array.from(files).filter((f) => f.type.startsWith("image/"));
     if (arr.length === 0) return;
