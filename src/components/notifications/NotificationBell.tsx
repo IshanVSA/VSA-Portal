@@ -162,6 +162,7 @@ export function NotificationBell() {
           message: meta.message || `Post activity: ${log.action}`,
           read: false, created_at: log.created_at,
           link: log.post_id ? buildPostLink(clinicId, log.post_id, role) : undefined,
+          clinicId,
         };
       });
 
@@ -177,6 +178,7 @@ export function NotificationBell() {
         message: `[${t.department}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
         read: false, created_at: t.created_at,
         link: buildTicketLink(t.department, t.clinic_id, t.id),
+        clinicId: t.clinic_id ?? null,
       }));
 
       // SM2 generation notifications
@@ -194,6 +196,7 @@ export function NotificationBell() {
         read: false,
         created_at: g.updated_at || g.created_at,
         link: buildSM2Link(g.clinic_id, role, g.approval_status),
+        clinicId: g.clinic_id ?? null,
       }));
 
       // Client notes on SM2 posts (staff-only relevant)
@@ -221,6 +224,7 @@ export function NotificationBell() {
             read: false,
             created_at: p.updated_at || new Date().toISOString(),
             link: buildSM2PostLink(p.clinic_id, p.scheduled_date),
+            clinicId: p.clinic_id ?? null,
           };
         });
       }
@@ -230,7 +234,24 @@ export function NotificationBell() {
         .slice(0, 30)
         .map(withRead);
 
-      setNotifications(all);
+      // Bulk-resolve clinic names for all notifications
+      const uniqueClinicIds = Array.from(new Set(all.map(n => n.clinicId).filter(Boolean) as string[]));
+      const missingIds = uniqueClinicIds.filter(id => !clinicNameMapRef.current.has(id));
+      if (missingIds.length > 0) {
+        const { data: clinicsData } = await supabase
+          .from("clinics")
+          .select("id, clinic_name")
+          .in("id", missingIds);
+        (clinicsData || []).forEach((c: any) => {
+          if (c?.id && c?.clinic_name) clinicNameMapRef.current.set(c.id, c.clinic_name);
+        });
+      }
+      const allWithNames = all.map(n => ({
+        ...n,
+        clinicName: n.clinicId ? clinicNameMapRef.current.get(n.clinicId) || null : null,
+      }));
+
+      setNotifications(allWithNames);
     };
 
     fetchNotifications();
