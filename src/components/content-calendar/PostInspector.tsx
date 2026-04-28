@@ -113,6 +113,34 @@ export function PostInspector({ post, onClose, onSaved, onDeleted }: PostInspect
             </div>
           </div>
 
+          {(() => {
+            const all = [post.image_url, ...((post.image_urls as string[] | null) || [])].filter(
+              (u): u is string => !!u,
+            );
+            const unique = Array.from(new Set(all));
+            if (unique.length === 0) return null;
+            return (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">
+                  {unique.length > 1 ? `Images (${unique.length})` : "Image"}
+                </Label>
+                <div className={cn("grid gap-2", unique.length > 1 ? "grid-cols-2" : "grid-cols-1")}>
+                  {unique.map((url, i) => (
+                    <a
+                      key={url + i}
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block relative aspect-square w-full overflow-hidden rounded-md border border-border bg-muted hover:opacity-90 transition-opacity"
+                    >
+                      <img src={url} alt={`Post image ${i + 1}`} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
           {post.content && (
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Main Content</Label>

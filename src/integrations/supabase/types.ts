@@ -1118,6 +1118,8 @@ export type Database = {
           created_by: string | null
           flag_reason: string | null
           id: string
+          image_url: string | null
+          image_urls: string[] | null
           platform: string
           published_at: string | null
           scheduled_at: string | null
@@ -1138,6 +1140,8 @@ export type Database = {
           created_by?: string | null
           flag_reason?: string | null
           id?: string
+          image_url?: string | null
+          image_urls?: string[] | null
           platform?: string
           published_at?: string | null
           scheduled_at?: string | null
@@ -1158,6 +1162,8 @@ export type Database = {
           created_by?: string | null
           flag_reason?: string | null
           id?: string
+          image_url?: string | null
+          image_urls?: string[] | null
           platform?: string
           published_at?: string | null
           scheduled_at?: string | null
