@@ -4,10 +4,20 @@ import { useAuth } from "./useAuth";
 
 export type AppRole = "admin" | "concierge" | "client" | "sub_client";
 
+/**
+ * Returns the user's effective role for UI purposes.
+ *
+ * IMPORTANT: `sub_client` users are intentionally normalized to `"client"` so
+ * they get the exact same UI/permissions as their parent client (create
+ * tickets, approve content, etc). Sub-account-specific behavior (hide
+ * financials, hide the Sub Accounts page) should use `isSubAccount` instead.
+ *
+ * `rawRole` returns the unmodified DB role when truly needed.
+ */
 export function useUserRole() {
   const { user } = useAuth();
 
-  const { data: role, isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["user-role", user?.id],
     queryFn: async () => {
       if (!user) return null;
@@ -24,5 +34,10 @@ export function useUserRole() {
     staleTime: 5 * 60 * 1000,
   });
 
-  return { role: role ?? null, isLoading };
+  const rawRole = (data ?? null) as AppRole | null;
+  const isSubAccount = rawRole === "sub_client";
+  // Normalize sub_client → client so all client-side gates apply.
+  const role: AppRole | null = isSubAccount ? "client" : rawRole;
+
+  return { role, rawRole, isSubAccount, isLoading };
 }
