@@ -13,6 +13,7 @@ import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 import { DateRangeFilter, type DateRange } from "@/components/department/DateRangeFilter";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useFinancialsVisible } from "@/hooks/useFinancialsVisible";
 
 interface DailyTrend {
   date: string;
