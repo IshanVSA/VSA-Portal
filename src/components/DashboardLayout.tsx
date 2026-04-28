@@ -283,7 +283,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
       { label: "Social Media", icon: Share2, path: "/social" },
     ]},
     { title: "ACCOUNT", items: [
-      ...(role === "client" ? [{ label: "Sub Accounts", icon: Users, path: "/sub-accounts" }] : []),
+      ...(role === "client" && !isSubAccount ? [{ label: "Sub Accounts", icon: Users, path: "/sub-accounts" }] : []),
       { label: "Settings", icon: Settings, path: "/settings" },
     ] },
   ];
