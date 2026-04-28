@@ -87,7 +87,7 @@ export function ConciergeSocialOverview({ clinicId }: ConciergeSocialOverviewPro
         supabase.from("department_tickets").select("status, assigned_to").eq("department", "social_media" as any).eq("clinic_id", clinicId),
         supabase.from("content_posts").select("*", { count: "exact", head: true }).eq("clinic_id", clinicId).gte("scheduled_date", weekStart).lte("scheduled_date", weekEnd),
         supabase.from("content_requests").select("id, created_at, status, intake_data").eq("clinic_id", clinicId).in("status", ["generated", "concierge_preferred"]).order("created_at", { ascending: false }).limit(5),
-        supabase.from("sm2_generations").select("pipeline_data").eq("clinic_id", clinicId).order("created_at", { ascending: false }).limit(20),
+        supabase.from("sm2_generations").select("pipeline_data, approval_status, sent_to_client_at, failure_reason").eq("clinic_id", clinicId).order("created_at", { ascending: false }).limit(50),
         (async () => {
           const days = Array.from({ length: 7 }, (_, i) => format(startOfDay(subDays(new Date(), 6 - i)), "yyyy-MM-dd"));
           const r = await supabase.from("content_posts").select("scheduled_date").eq("clinic_id", clinicId).gte("scheduled_date", days[0]).lte("scheduled_date", days[6]);
@@ -97,6 +97,14 @@ export function ConciergeSocialOverview({ clinicId }: ConciergeSocialOverviewPro
       ]);
 
       setPendingReview(reviewRes.count || 0);
+
+      // Pipeline funnel from sm2_generations
+      const summary: Record<string, number> = { generated: 0, under_review: 0, approved: 0, changes_requested: 0, failed: 0 };
+      (sm2Res.data || []).forEach((row: any) => {
+        const b = bucketForSm2Row(row);
+        if (b) summary[b]++;
+      });
+      setPipelineStages(STAGE_ORDER.map((s) => ({ ...s, count: summary[s.key] || 0 })));
 
       const awaitingList = (awaitingRes.data || []).filter((r: any) => r.auto_approve_at);
       const next = awaitingList
