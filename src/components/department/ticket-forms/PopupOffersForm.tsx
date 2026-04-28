@@ -336,7 +336,7 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
             <label htmlFor="popup-override" className="text-xs cursor-pointer leading-relaxed">
               <span className="font-medium text-amber-800">Override compliance check</span>
               <span className="block text-muted-foreground mt-0.5">
-                I acknowledge the issues above and take full responsibility for proceeding with this offer.
+                I understand this advice is AI-generated, provided for general informational purposes only and does not constitute legal or professional advice.
               </span>
             </label>
           </div>
