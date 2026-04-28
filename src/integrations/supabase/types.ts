@@ -1260,6 +1260,39 @@ export type Database = {
           },
         ]
       }
+      cron_heartbeats: {
+        Row: {
+          failures_24h: number
+          job_name: string
+          last_error: string | null
+          last_run_at: string
+          last_status: string
+          runs_24h: number
+          updated_at: string
+          window_start: string
+        }
+        Insert: {
+          failures_24h?: number
+          job_name: string
+          last_error?: string | null
+          last_run_at?: string
+          last_status?: string
+          runs_24h?: number
+          updated_at?: string
+          window_start?: string
+        }
+        Update: {
+          failures_24h?: number
+          job_name?: string
+          last_error?: string | null
+          last_run_at?: string
+          last_status?: string
+          runs_24h?: number
+          updated_at?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       department_chat_reads: {
         Row: {
           clinic_id: string
@@ -2731,6 +2764,10 @@ export type Database = {
       }
       populate_monthly_holidays: {
         Args: { _clinic_id: string; _month: number; _province: string }
+        Returns: undefined
+      }
+      record_cron_heartbeat: {
+        Args: { _error?: string; _job_name: string; _status?: string }
         Returns: undefined
       }
       sub_account_hides_financials: {
