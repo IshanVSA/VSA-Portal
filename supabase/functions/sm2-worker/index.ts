@@ -608,9 +608,6 @@ Deno.serve(async (req) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  // Heartbeat: record this invocation immediately so cron-monitor sees we ran.
-  supabase.rpc("record_cron_heartbeat", { _job_name: "sm2-worker-tick", _status: "ok", _error: null }).then(() => {}).catch(() => {});
-
   try {
     const nowIso = new Date().toISOString();
     // Stage runtimes are bounded (~80s worst case for Writer). A stage that has
