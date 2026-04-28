@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatsCard } from "@/components/StatsCard";
 import {
   Inbox, Clock, Ticket, CalendarDays, ShieldAlert, BarChart3, ListChecks, Plus,
-  Sparkles, ArrowRight, Dna, CheckCircle2, AlertTriangle,
+  Sparkles, ArrowRight, Dna, CheckCircle2, AlertTriangle, Workflow,
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { format, subDays, startOfDay, formatDistanceToNow, addDays } from "date-fns";
@@ -17,6 +17,25 @@ import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { BulkUploadsDialog } from "@/components/department/BulkUploadsDialog";
 import { HardGatesStatus, type GateStat } from "./shared/HardGatesStatus";
 import { DNAScoreRing } from "./shared/DNAScoreRing";
+import { PipelineFunnel, type PipelineStage } from "./shared/PipelineFunnel";
+
+const STAGE_ORDER: { key: string; label: string; color: string }[] = [
+  { key: "generated", label: "Generated", color: "bg-blue-500" },
+  { key: "under_review", label: "Under Review", color: "bg-amber-500" },
+  { key: "approved", label: "Approved", color: "bg-primary" },
+  { key: "changes_requested", label: "Changes Requested", color: "bg-violet-500" },
+  { key: "failed", label: "Failed / Blocked", color: "bg-destructive" },
+];
+
+function bucketForSm2Row(row: { approval_status?: string | null; sent_to_client_at?: string | null; failure_reason?: string | null }): string | null {
+  const s = row.approval_status || "";
+  if (s === "generation_failed" || s === "retrying") return "failed";
+  if (s === "copy_changes_requested" || s === "final_changes_requested") return "changes_requested";
+  if (s === "copy_approved" || s === "approved_client") return "approved";
+  if (row.sent_to_client_at && (s === "sent_for_copy_review" || s === "sent_for_final_review")) return "under_review";
+  if (s === "pending" && !row.sent_to_client_at) return "generated";
+  return null;
+}
 
 interface ConciergeSocialOverviewProps {
   clinicId?: string;
