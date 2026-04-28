@@ -1,38 +1,49 @@
-# Add Month Selector + Always-Visible Calendar in SM2 Generation Tab
+## Goal
 
-## Why the calendar is missing today
-`useSM2Generation` hardcodes `currentMonth` to the **next** calendar month (May 2026). The Generation tab only renders the calendar when there is a generation matching that month. Alma's existing generation is for **April 2026** with 10 posts already in `sm2_posts`, so `currentGeneration` is `null` and the calendar block is skipped — the April generation only shows up as a row in "Generation History" at the bottom.
+Show the actual search queries that triggered Google Ads to appear and get clicked, alongside existing campaigns/spend metrics in the Google Ads Analytics tab.
 
-## Changes
+## What gets added
 
-All edits in **`src/components/social/ContentGenerationTab.tsx`** (no DB / edge function changes).
+A new **"Search Terms"** card under Campaign Performance showing:
+- Search query text
+- Matched keyword
+- Clicks, Impressions, Cost, CTR, Avg CPC, Conversions
+- Sortable, top 50 by cost (descending)
+- Scoped to the selected date range (same `DateRangeFilter` used for the rest of the tab)
 
-### 1. Month picker in the Pre-Generation dialog
-- Add a `targetMonth` state (`YYYY-MM`), defaulting to next month.
-- Build a list of selectable months: current month + next 6.
-- Render a labeled `Select` ("Target Month") at the top of the dialog body with the option list above. Update the dialog title and the `monthLabel` shown in the header to use `targetMonth`.
-- Pass `targetMonth` into `useMonthlySignals(clinicId, targetMonth)` so the holiday/signals preview reflects the chosen month.
-- `handleGenerate` calls `generate.mutate(targetMonth)` (instead of `currentMonth`).
+## Backend changes (`supabase/functions/sync-google-ads/index.ts`)
 
-### 2. Calendar that follows the selected generation
-- Add `viewingGenerationId` state in the component.
-- Compute `selectedGen` as:
-  1. The generation whose `id === viewingGenerationId`, else
-  2. `currentGeneration` (next month) if present, else
-  3. `generations[0]` (most recent).
-- Always render the calendar `Card`. Inside:
-  - If `selectedGen` is in `queued/processing/retrying/generation_failed` → show a small status banner ("Pipeline running…" / failure reason) inside the card.
-  - Else render `<SM2CalendarView />` with `selectedGen`.
-  - If no generation exists at all → empty state "Generate content for a month to see the calendar here."
-- Add a compact month switcher above the calendar (chevrons + dropdown listing all generations by `month_year`) that updates `viewingGenerationId`.
+1. After the existing campaign GAQL query, run a second GAQL query against the `search_term_view` resource:
 
-### 3. Auto-select on completion + clickable history rows
-- When `generate.mutate` succeeds, set `viewingGenerationId` to the new generation id so the calendar swaps automatically once polling reports `pending`.
-- Make each row in "Generation History" clickable — clicking sets `viewingGenerationId` and scrolls the calendar card into view.
+   ```sql
+   SELECT
+     search_term_view.search_term,
+     segments.keyword.info.text,
+     metrics.clicks,
+     metrics.impressions,
+     metrics.cost_micros,
+     metrics.conversions,
+     segments.date
+   FROM search_term_view
+   WHERE segments.date DURING LAST_30_DAYS
+   ```
 
-## Out of scope
-- No backend or schema changes. The `generate-sm2-content` edge function already accepts an arbitrary `month_year` payload.
-- No changes to `SM2CalendarView`, `useSM2Generation`, or RLS.
+2. Aggregate per `search_term` (sum across days), keep `daily` breakdown so the date filter works client-side.
+3. Add `search_terms: [{ term, keyword, clicks, impressions, cost, conversions, daily: [{date, clicks, impressions, cost, conversions}] }]` to the `metrics_json` payload inserted into the `analytics` table.
+4. No DB migration needed — `metrics_json` is already JSONB.
 
-## Files
-- `src/components/social/ContentGenerationTab.tsx` (edit)
+## Frontend changes (`src/components/department/GoogleAdsAnalyticsTab.tsx`)
+
+1. Extend the `MetricsJson` interface with `search_terms?: SearchTerm[]`.
+2. In the `useMemo` `computed` block, filter each search term's `daily` array by `dateRange`, recompute totals, sort by cost desc, take top 50.
+3. Render a new Card "Top Search Terms" with a table (Term, Keyword, Clicks, Impr., Cost, CTR, CPC, Conv.). Hidden if empty.
+4. Backwards compatible — old analytics rows without `search_terms` simply hide the card until the next sync runs.
+
+## Cron behavior
+
+The existing `google-ads-cron` calls `sync-google-ads` daily at 07:00 UTC, so search terms will refresh automatically. Staff can also click "Sync Data" to backfill immediately.
+
+## Notes / caveats
+
+- Google Ads only returns search terms with at least 1 impression in the period; very-low-volume queries may be omitted by Google.
+- Payload size: search terms can be large. Capping storage at top 200 by cost (server-side) before inserting keeps `metrics_json` lean while still giving the UI plenty to display.

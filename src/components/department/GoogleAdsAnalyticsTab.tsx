@@ -8,7 +8,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar } from "rec
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatsCard } from "@/components/StatsCard";
-import { DollarSign, MousePointerClick, Eye, Percent, Megaphone, RefreshCw, TrendingUp } from "lucide-react";
+import { DollarSign, MousePointerClick, Eye, Percent, Megaphone, RefreshCw, TrendingUp, Search } from "lucide-react";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 import { DateRangeFilter, type DateRange } from "@/components/department/DateRangeFilter";
@@ -28,12 +28,31 @@ interface Campaign {
   cost: number;
 }
 
+interface SearchTermDaily {
+  date: string;
+  clicks: number;
+  impressions: number;
+  cost: number;
+  conversions: number;
+}
+
+interface SearchTerm {
+  term: string;
+  keyword: string;
+  clicks: number;
+  impressions: number;
+  cost: number;
+  conversions: number;
+  daily?: SearchTermDaily[];
+}
+
 interface MetricsJson {
   clicks: number;
   impressions: number;
   cost: number;
   daily_trends: DailyTrend[];
   campaigns: Campaign[];
+  search_terms?: SearchTerm[];
 }
 
 interface Props {
@@ -120,7 +139,7 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
 
   const computed = useMemo(() => {
     if (!metricsData) return null;
-    const { daily_trends, campaigns } = metricsData;
+    const { daily_trends, campaigns, search_terms } = metricsData;
 
     // Filter daily trends by selected date range
     const fromStr = format(dateRange.from, "yyyy-MM-dd");
@@ -145,7 +164,24 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
       cost: Math.round(d.cost * 100) / 100,
     }));
 
-    return { clicks, impressions, cost, ctr, cpc, sortedCampaigns, chartData };
+    // Filter and aggregate search terms by date range (using daily breakdown when available)
+    const filteredSearchTerms = (search_terms || [])
+      .map(st => {
+        if (st.daily && st.daily.length > 0) {
+          const days = st.daily.filter(d => d.date >= fromStr && d.date <= toStr);
+          const c = days.reduce((s, d) => s + d.clicks, 0);
+          const i = days.reduce((s, d) => s + d.impressions, 0);
+          const co = days.reduce((s, d) => s + d.cost, 0);
+          const cv = days.reduce((s, d) => s + d.conversions, 0);
+          return { term: st.term, keyword: st.keyword, clicks: c, impressions: i, cost: co, conversions: cv };
+        }
+        return { term: st.term, keyword: st.keyword, clicks: st.clicks, impressions: st.impressions, cost: st.cost, conversions: st.conversions };
+      })
+      .filter(st => st.impressions > 0 || st.clicks > 0)
+      .sort((a, b) => b.cost - a.cost || b.clicks - a.clicks)
+      .slice(0, 50);
+
+    return { clicks, impressions, cost, ctr, cpc, sortedCampaigns, chartData, searchTerms: filteredSearchTerms };
   }, [metricsData, dateRange]);
 
   if (loading) {
@@ -304,6 +340,52 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Search Terms Table */}
+      {computed.searchTerms.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Search className="h-4 w-4" /> Top Search Terms
+              <Badge variant="outline" className="ml-1 text-[10px]">Top {computed.searchTerms.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs">Search Term</TableHead>
+                  <TableHead className="text-xs">Matched Keyword</TableHead>
+                  <TableHead className="text-xs text-right">Clicks</TableHead>
+                  <TableHead className="text-xs text-right">Impr.</TableHead>
+                  <TableHead className="text-xs text-right">Cost</TableHead>
+                  <TableHead className="text-xs text-right">CTR</TableHead>
+                  <TableHead className="text-xs text-right">CPC</TableHead>
+                  <TableHead className="text-xs text-right">Conv.</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {computed.searchTerms.map((s, i) => {
+                  const ctr = s.impressions > 0 ? Math.round((s.clicks / s.impressions) * 10000) / 100 : 0;
+                  const cpc = s.clicks > 0 ? Math.round((s.cost / s.clicks) * 100) / 100 : 0;
+                  return (
+                    <TableRow key={`${s.term}-${s.keyword}-${i}`}>
+                      <TableCell className="text-xs font-medium truncate max-w-[260px]">{s.term}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground truncate max-w-[200px]">{s.keyword || "—"}</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums">{s.clicks.toLocaleString()}</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums">{s.impressions.toLocaleString()}</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums">${s.cost.toFixed(2)}</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums">{ctr}%</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums">${cpc}</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums">{s.conversions.toFixed(1)}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
