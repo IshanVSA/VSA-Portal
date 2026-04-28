@@ -183,7 +183,36 @@ export function NotificationBell() {
         link: buildSM2Link(g.clinic_id, role, g.approval_status),
       }));
 
-      const all = [...activityNotifs, ...ticketNotifs, ...sm2Notifs]
+      // Client notes on SM2 posts (staff-only relevant)
+      let noteNotifs: Notification[] = [];
+      if (role !== "client") {
+        const { data: noteData } = await supabase
+          .from("sm2_posts")
+          .select("id, post_number, scheduled_date, client_feedback, updated_at, clinic_id")
+          .not("client_feedback", "is", null)
+          .neq("client_feedback", "")
+          .order("updated_at", { ascending: false })
+          .limit(10);
+        noteNotifs = (noteData || []).map((p: any) => {
+          const fb = (p.client_feedback || "").trim();
+          const datePart = p.scheduled_date
+            ? new Date(p.scheduled_date + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })
+            : "";
+          const numPart = p.post_number != null ? `Post #${p.post_number}` : "Post";
+          const preview = fb.length > 80 ? fb.slice(0, 80) + "…" : fb;
+          return {
+            id: `sm2-note-${p.id}-${p.updated_at || ""}`,
+            type: "client_note" as const,
+            title: "New Client Notes",
+            message: `${numPart}${datePart ? ` (${datePart})` : ""}: ${preview}`,
+            read: false,
+            created_at: p.updated_at || new Date().toISOString(),
+            link: buildSM2PostLink(p.clinic_id, p.scheduled_date),
+          };
+        });
+      }
+
+      const all = [...activityNotifs, ...ticketNotifs, ...sm2Notifs, ...noteNotifs]
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         .slice(0, 30)
         .map(withRead);
