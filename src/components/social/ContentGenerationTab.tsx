@@ -182,9 +182,26 @@ export default function ContentGenerationTab({ clinicId }: Props) {
             </DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader>
-                <DialogTitle>Pre-Generation Setup - {monthLabel}</DialogTitle>
+                <DialogTitle>Pre-Generation Setup &middot; {monthLabel}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-2">
+                {/* Target Month */}
+                <div className="space-y-2">
+                  <Label>Target Month</Label>
+                  <Select value={targetMonth} onValueChange={setTargetMonth}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {monthOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground">
+                    Posts and statutory holidays will be generated for this month.
+                  </p>
+                </div>
                 {/* DNA Score */}
                 <div className="flex items-center gap-2 p-3 rounded-lg border">
                   {dnaScore >= 70 ? <CheckCircle className="h-5 w-5 text-green-500" /> : <AlertTriangle className="h-5 w-5 text-amber-500" />}
