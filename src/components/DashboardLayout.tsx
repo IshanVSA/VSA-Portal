@@ -192,13 +192,13 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
 
 
   useEffect(() => {
-    if ((role === "client" || role === "sub_client") && user) {
-      // For sub_clients, RLS will limit results to assigned clinics; for clients, owner_user_id filter still works.
+    if (role === "client" && user) {
+      // For sub_accounts, RLS limits results to assigned clinics; for parent clients, filter by owner_user_id.
       let q = supabase
         .from("clinics")
         .select("id, clinic_name, website_enabled, seo_enabled, google_ads_enabled, ai_seo_enabled, social_media_enabled")
         .order("clinic_name");
-      if (role === "client") q = q.eq("owner_user_id", user.id);
+      if (!isSubAccount) q = q.eq("owner_user_id", user.id);
       q.then(({ data }) => {
           if (data && data.length > 0) {
             setClientClinics(data);
@@ -211,12 +211,12 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
           }
         });
     }
-  }, [role, user]);
+  }, [role, isSubAccount, user]);
 
   const clientClinic = clientClinics.find(c => c.id === clientSelectedId) || clientClinics[0] || null;
 
   const selectedClinicId = searchParams.get("clinic") || "";
-  const activeClinicId = (role === "client" || role === "sub_client") ? clientSelectedId : selectedClinicId || null;
+  const activeClinicId = role === "client" ? clientSelectedId : selectedClinicId || null;
   const { pendingRequests, pendingReview, socialPending } = usePendingCounts(activeClinicId);
 
   const [clinicAccessId, setClinicAccessId] = useState<string | null>(null);
