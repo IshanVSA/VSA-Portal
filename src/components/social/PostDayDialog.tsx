@@ -532,7 +532,7 @@ function PostCard({
           {!isClient && post.client_feedback && (
             <div className="pt-2 border-t">
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold flex items-center gap-1">
-                <MessageSquare className="h-3 w-3" /> Client feedback
+                <MessageSquare className="h-3 w-3" /> Client Notes
               </p>
               <p className="text-sm bg-amber-500/10 border border-amber-500/30 rounded p-2 mt-1">
                 {post.client_feedback}
