@@ -367,9 +367,9 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
                   <TableHead className="text-xs">Matched Keyword</TableHead>
                   <TableHead className="text-xs text-right">Clicks</TableHead>
                   <TableHead className="text-xs text-right">Impr.</TableHead>
-                  <TableHead className="text-xs text-right">Cost</TableHead>
+                  {showMoney && <TableHead className="text-xs text-right">Cost</TableHead>}
                   <TableHead className="text-xs text-right">CTR</TableHead>
-                  <TableHead className="text-xs text-right">CPC</TableHead>
+                  {showMoney && <TableHead className="text-xs text-right">CPC</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
