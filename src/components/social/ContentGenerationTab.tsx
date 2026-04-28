@@ -546,7 +546,8 @@ export default function ContentGenerationTab({ clinicId }: Props) {
       {editingHtml && (
         <HtmlEditorDialog filePath={editingHtml} onClose={() => setEditingHtml(null)} />
       )}
-    </div>
+      </TabsContent>
+    </Tabs>
   );
 }
 
