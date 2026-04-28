@@ -39,7 +39,7 @@ interface Props {
 }
 
 export default function PostDayDialog({ open, onClose, date, generationId, isClient, imagesUnlocked = true }: Props) {
-  const { posts, uploadImage, removeImage, saveFeedback, toggleMetaAd, getImageUrl } = useSM2Posts(generationId);
+  const { posts, uploadImage, removeImage, saveFeedback, updatePost, toggleMetaAd, getImageUrl } = useSM2Posts(generationId);
   const metaAdSelectedCount = posts.filter((p) => p.run_meta_ad).length;
   const dayPosts = date ? posts.filter((p) => p.scheduled_date === date) : [];
 
@@ -81,11 +81,13 @@ export default function PostDayDialog({ open, onClose, date, generationId, isCli
                 onUpload={(files) => uploadImage.mutate({ post, files })}
                 onRemoveImage={(path) => removeImage.mutate({ post, path })}
                 onSaveFeedback={(feedback) => saveFeedback.mutate({ postId: post.id, feedback })}
+                onUpdatePost={(updates) => updatePost.mutate({ postId: post.id, updates })}
                 onToggleMetaAd={(value) => toggleMetaAd.mutate({ postId: post.id, value })}
                 metaAdSelectedCount={metaAdSelectedCount}
                 togglingMetaAd={toggleMetaAd.isPending}
                 uploading={uploadImage.isPending}
                 savingFeedback={saveFeedback.isPending}
+                updatingPost={updatePost.isPending}
               />
             ))}
           </div>
