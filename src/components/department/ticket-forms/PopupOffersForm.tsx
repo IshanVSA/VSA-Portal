@@ -361,27 +361,12 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
           </span>
           <ol className="list-decimal pl-4 space-y-1 text-muted-foreground">
             <li>
-              All offer details, pricing, inclusions, exclusions, terms, and dates provided are
-              accurate, current, and authorized by the clinic.
+              All details are accurate, authorized, and comply with{" "}
+              <strong className="text-foreground">{complianceBody || "the applicable regulatory body"}</strong>
+              {overridden ? " (override applied)" : ""}. The clinic — not VSA Vet Media — is solely responsible for compliance.
             </li>
             <li>
-              The offer complies with all applicable laws and the advertising, pricing, and
-              professional conduct rules of{" "}
-              <strong className="text-foreground">{complianceBody || "the applicable regulatory body"}</strong>,
-              and the clinic — not VSA Vet Media — is solely responsible for ensuring and maintaining
-              that compliance{overridden ? " (compliance override applied)" : ""}.
-            </li>
-            <li>
-              Any AI-generated compliance feedback shown in this tool is provided for general
-              informational purposes only, does not constitute legal, veterinary, or regulatory
-              advice, and has not been reviewed by a lawyer or the regulator. The clinic is
-              responsible for obtaining its own professional advice where needed.
-            </li>
-            <li>
-              VSA Vet Media acts solely as a marketing service provider executing the clinic's
-              instructions, and the clinic agrees to indemnify and hold VSA Vet Media harmless from
-              any claims, penalties, complaints, or damages arising from the publication, content,
-              or fulfilment of this offer.
+              VSA Vet Media acts only as a marketing executor. AI feedback is informational, not legal advice. The clinic indemnifies VSA Vet Media against any claims arising from this offer.
             </li>
           </ol>
         </label>
