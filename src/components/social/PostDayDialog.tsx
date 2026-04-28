@@ -504,17 +504,17 @@ function PostCard({
             </SectionToggle>
           )}
 
-          {/* Client feedback */}
+          {/* Client Notes */}
           {isClient && (
             <div className="pt-2 border-t space-y-2">
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold flex items-center gap-1">
-                <MessageSquare className="h-3 w-3" /> Your feedback on this post (optional)
+                <MessageSquare className="h-3 w-3" /> Client Notes
               </p>
               <Textarea
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
-                rows={2}
-                placeholder="Anything you'd like changed about this specific post?"
+                rows={3}
+                placeholder="Write any changes you'd like for this post..."
                 className="text-xs"
               />
               <Button
@@ -525,14 +525,14 @@ function PostCard({
                 className="gap-1.5"
               >
                 <Save className="h-3 w-3" />
-                Save feedback
+                {savingFeedback ? "Saving..." : "Save notes"}
               </Button>
             </div>
           )}
           {!isClient && post.client_feedback && (
             <div className="pt-2 border-t">
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold flex items-center gap-1">
-                <MessageSquare className="h-3 w-3" /> Client feedback
+                <MessageSquare className="h-3 w-3" /> Client Notes
               </p>
               <p className="text-sm bg-amber-500/10 border border-amber-500/30 rounded p-2 mt-1">
                 {post.client_feedback}
