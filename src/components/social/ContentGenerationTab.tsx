@@ -286,22 +286,93 @@ export default function ContentGenerationTab({ clinicId }: Props) {
         </Card>
       )}
 
-      {/* Calendar view of current month's generation */}
-      {currentGeneration && currentGeneration.approval_status !== "queued" && currentGeneration.approval_status !== "processing" && currentGeneration.approval_status !== "retrying" && currentGeneration.approval_status !== "generation_failed" && (
-        <Card>
-          <CardContent className="pt-6">
+      {/* Calendar view — always rendered, follows the selected generation */}
+      <Card ref={calendarRef as any}>
+        <CardContent className="pt-6 space-y-4">
+          {sortedGens.length > 0 && (
+            <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-border/50">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={goPrevGen}
+                  disabled={selectedIndex >= sortedGens.length - 1 || selectedIndex < 0}
+                  aria-label="Older generation"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Select
+                  value={selectedGen?.id || ""}
+                  onValueChange={(id) => setViewingGenerationId(id)}
+                >
+                  <SelectTrigger className="h-8 min-w-[200px] text-sm">
+                    <SelectValue placeholder="Select a generation" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sortedGens.map((g) => (
+                      <SelectItem key={g.id} value={g.id}>
+                        {format(new Date(g.month_year + "-01"), "MMMM yyyy")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={goNextGen}
+                  disabled={selectedIndex <= 0}
+                  aria-label="Newer generation"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Viewing {sortedGens.length} generation{sortedGens.length === 1 ? "" : "s"}
+              </p>
+            </div>
+          )}
+
+          {!selectedGen ? (
+            <div className="py-12 text-center">
+              <CalendarDays className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">
+                No content generated yet. Use <span className="font-medium text-foreground">Generate Content</span> to create a calendar for any month.
+              </p>
+            </div>
+          ) : ACTIVE_GEN_STATUSES.includes(selectedGen.approval_status) ? (
+            <div className="py-10 text-center space-y-2">
+              <RefreshCw className="h-6 w-6 mx-auto text-primary animate-spin" />
+              <p className="text-sm font-medium">
+                Pipeline running for {format(new Date(selectedGen.month_year + "-01"), "MMMM yyyy")}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                The calendar will appear automatically once generation completes.
+              </p>
+            </div>
+          ) : selectedGen.approval_status === "generation_failed" ? (
+            <div className="py-8 text-center space-y-2">
+              <AlertTriangle className="h-6 w-6 mx-auto text-destructive" />
+              <p className="text-sm font-medium">Generation failed</p>
+              {selectedGen.failure_reason && (
+                <p className="text-xs text-muted-foreground max-w-md mx-auto">{selectedGen.failure_reason}</p>
+              )}
+            </div>
+          ) : (
             <SM2CalendarView
-              generationId={currentGeneration.id}
-              monthYear={currentGeneration.month_year}
-              approvalStatus={currentGeneration.approval_status}
+              generationId={selectedGen.id}
+              monthYear={selectedGen.month_year}
+              approvalStatus={selectedGen.approval_status}
               isClient={false}
-              onSendCopyForReview={() => sendCopyForReview.mutate(currentGeneration.id)}
-              onSendFinalForReview={() => sendFinalForReview.mutate(currentGeneration.id)}
+              onSendCopyForReview={() => sendCopyForReview.mutate(selectedGen.id)}
+              onSendFinalForReview={() => sendFinalForReview.mutate(selectedGen.id)}
               sendPending={sendCopyForReview.isPending || sendFinalForReview.isPending}
             />
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
+
       {topPerformers.length > 0 && (
         <Card className="overflow-hidden animate-fade-in">
           <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
