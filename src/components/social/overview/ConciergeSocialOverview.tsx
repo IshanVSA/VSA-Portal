@@ -238,6 +238,19 @@ export function ConciergeSocialOverview({ clinicId }: ConciergeSocialOverviewPro
       />
       <BulkUploadsDialog open={bulkUploadsOpen} onOpenChange={setBulkUploadsOpen} department="social_media" />
 
+      {/* Row 2.5 — Content Pipeline Funnel */}
+      <Card className="overflow-hidden animate-fade-in" style={{ animationDelay: "180ms", animationFillMode: "both" }}>
+        <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Workflow className="h-4 w-4 text-primary" />
+            Content Pipeline Funnel
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <PipelineFunnel stages={pipelineStages} onStageClick={() => goTab("generation")} />
+        </CardContent>
+      </Card>
+
       {/* Row 3 — Review Queue + Hard Gates Alerts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="overflow-hidden hover-lift animate-fade-in" style={{ animationDelay: "200ms", animationFillMode: "both" }}>
