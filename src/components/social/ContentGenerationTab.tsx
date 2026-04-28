@@ -172,8 +172,8 @@ export default function ContentGenerationTab({ clinicId }: Props) {
           <p className="text-xs text-muted-foreground">SM2 v2.1 - 8-Agent Pipeline &middot; {monthLabel}</p>
         </div>
         <div className="flex gap-2">
-          {currentGeneration?.html_file_path && (
-            <Button variant="outline" size="sm" onClick={() => setViewingHtml(currentGeneration.html_file_path)} className="gap-2">
+          {selectedGen?.html_file_path && (
+            <Button variant="outline" size="sm" onClick={() => setViewingHtml(selectedGen.html_file_path!)} className="gap-2">
               <Eye className="h-4 w-4" /> View Content
             </Button>
           )}
