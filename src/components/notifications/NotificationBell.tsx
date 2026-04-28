@@ -17,6 +17,8 @@ interface Notification {
   read: boolean;
   created_at: string;
   link?: string;
+  clinicId?: string | null;
+  clinicName?: string | null;
 }
 
 const typeConfig = {
@@ -99,9 +101,20 @@ export function NotificationBell() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const clinicNameMapRef = useRef<Map<string, string>>(new Map());
 
   const storageKey = user ? `notif-read-ids:${user.id}` : null;
   const readIdsRef = useRef<Set<string>>(new Set());
+
+  const getClinicName = async (clinicId: string | null | undefined): Promise<string | null> => {
+    if (!clinicId) return null;
+    const cached = clinicNameMapRef.current.get(clinicId);
+    if (cached) return cached;
+    const { data } = await supabase.from("clinics").select("clinic_name").eq("id", clinicId).maybeSingle();
+    const name = (data as any)?.clinic_name || null;
+    if (name) clinicNameMapRef.current.set(clinicId, name);
+    return name;
+  };
 
   const loadReadIds = (): Set<string> => {
     if (!storageKey) return new Set();
@@ -149,6 +162,7 @@ export function NotificationBell() {
           message: meta.message || `Post activity: ${log.action}`,
           read: false, created_at: log.created_at,
           link: log.post_id ? buildPostLink(clinicId, log.post_id, role) : undefined,
+          clinicId,
         };
       });
 
@@ -164,6 +178,7 @@ export function NotificationBell() {
         message: `[${t.department}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
         read: false, created_at: t.created_at,
         link: buildTicketLink(t.department, t.clinic_id, t.id),
+        clinicId: t.clinic_id ?? null,
       }));
 
       // SM2 generation notifications
@@ -181,6 +196,7 @@ export function NotificationBell() {
         read: false,
         created_at: g.updated_at || g.created_at,
         link: buildSM2Link(g.clinic_id, role, g.approval_status),
+        clinicId: g.clinic_id ?? null,
       }));
 
       // Client notes on SM2 posts (staff-only relevant)
@@ -208,6 +224,7 @@ export function NotificationBell() {
             read: false,
             created_at: p.updated_at || new Date().toISOString(),
             link: buildSM2PostLink(p.clinic_id, p.scheduled_date),
+            clinicId: p.clinic_id ?? null,
           };
         });
       }
@@ -217,10 +234,32 @@ export function NotificationBell() {
         .slice(0, 30)
         .map(withRead);
 
-      setNotifications(all);
+      // Bulk-resolve clinic names for all notifications
+      const uniqueClinicIds = Array.from(new Set(all.map(n => n.clinicId).filter(Boolean) as string[]));
+      const missingIds = uniqueClinicIds.filter(id => !clinicNameMapRef.current.has(id));
+      if (missingIds.length > 0) {
+        const { data: clinicsData } = await supabase
+          .from("clinics")
+          .select("id, clinic_name")
+          .in("id", missingIds);
+        (clinicsData || []).forEach((c: any) => {
+          if (c?.id && c?.clinic_name) clinicNameMapRef.current.set(c.id, c.clinic_name);
+        });
+      }
+      const allWithNames = all.map(n => ({
+        ...n,
+        clinicName: n.clinicId ? clinicNameMapRef.current.get(n.clinicId) || null : null,
+      }));
+
+      setNotifications(allWithNames);
     };
 
     fetchNotifications();
+
+    const enrichAndPush = async (notif: Notification) => {
+      const clinicName = await getClinicName(notif.clinicId);
+      setNotifications(prev => [withRead({ ...notif, clinicName }), ...prev].slice(0, 30));
+    };
 
     const channel = supabase
       .channel("notifications")
@@ -236,41 +275,41 @@ export function NotificationBell() {
           const { data: post } = await supabase.from("content_posts").select("clinic_id").eq("id", log.post_id).maybeSingle();
           clinicId = post?.clinic_id ?? null;
         }
-        const newNotif: Notification = {
+        await enrichAndPush({
           id: log.id, type,
           title: log.action.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase()),
           message: meta.message || `Post activity: ${log.action}`,
           read: false, created_at: log.created_at,
           link: log.post_id ? buildPostLink(clinicId, log.post_id, role) : undefined,
-        };
-        setNotifications(prev => [withRead(newNotif), ...prev].slice(0, 30));
+          clinicId,
+        });
       })
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "department_tickets" }, (payload) => {
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "department_tickets" }, async (payload) => {
         const t = payload.new as any;
-        const newNotif: Notification = {
+        await enrichAndPush({
           id: `ticket-${t.id}`, type: "ticket_created",
           title: "New Ticket",
           message: `[${t.department}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
           read: false, created_at: t.created_at,
           link: buildTicketLink(t.department, t.clinic_id, t.id),
-        };
-        setNotifications(prev => [withRead(newNotif), ...prev].slice(0, 30));
+          clinicId: t.clinic_id ?? null,
+        });
       })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "department_tickets" }, (payload) => {
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "department_tickets" }, async (payload) => {
         const t = payload.new as any;
-        const newNotif: Notification = {
+        await enrichAndPush({
           id: `ticket-upd-${t.id}-${Date.now()}`, type: "status_changed",
           title: `Ticket ${t.status.replace(/_/g, " ")}`,
           message: `[${t.department}] ${t.title}`,
           read: false, created_at: t.updated_at || new Date().toISOString(),
           link: buildTicketLink(t.department, t.clinic_id, t.id),
-        };
-        setNotifications(prev => [withRead(newNotif), ...prev].slice(0, 30));
+          clinicId: t.clinic_id ?? null,
+        });
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "sm2_generations" }, (payload) => {
+      .on("postgres_changes", { event: "*", schema: "public", table: "sm2_generations" }, async (payload) => {
         const g = payload.new as any;
         if (!g) return;
-        const newNotif: Notification = {
+        await enrichAndPush({
           id: `sm2-${g.id}-${Date.now()}`,
           type: mapSM2Status(g.approval_status),
           title: sm2Title(g.approval_status),
@@ -278,10 +317,10 @@ export function NotificationBell() {
           read: false,
           created_at: g.updated_at || g.created_at || new Date().toISOString(),
           link: buildSM2Link(g.clinic_id, role, g.approval_status),
-        };
-        setNotifications(prev => [withRead(newNotif), ...prev].slice(0, 30));
+          clinicId: g.clinic_id ?? null,
+        });
       })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "sm2_posts" }, (payload) => {
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "sm2_posts" }, async (payload) => {
         // Only staff (admin/concierge) get client-note notifications
         if (role === "client") return;
         const newRow = payload.new as any;
@@ -295,7 +334,7 @@ export function NotificationBell() {
           : "";
         const numPart = newRow.post_number != null ? `Post #${newRow.post_number}` : "Post";
         const preview = newFb.length > 80 ? newFb.slice(0, 80) + "…" : newFb;
-        const newNotif: Notification = {
+        await enrichAndPush({
           id: `sm2-note-${newRow.id}-${newRow.updated_at || Date.now()}`,
           type: "client_note",
           title: "New Client Notes",
@@ -303,8 +342,8 @@ export function NotificationBell() {
           read: false,
           created_at: newRow.updated_at || new Date().toISOString(),
           link: buildSM2PostLink(newRow.clinic_id, newRow.scheduled_date),
-        };
-        setNotifications(prev => [withRead(newNotif), ...prev].slice(0, 30));
+          clinicId: newRow.clinic_id ?? null,
+        });
       })
       .subscribe();
 
@@ -544,10 +583,15 @@ export function NotificationBell() {
                                   <Icon className={cn("h-[18px] w-[18px]", config.color)} />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
                                     <p className={cn("text-[13px] truncate", !notif.read ? "font-semibold text-foreground" : "font-medium text-foreground/90")}>
                                       {notif.title}
                                     </p>
+                                    {notif.clinicName && (
+                                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-primary/10 text-primary truncate max-w-[160px]">
+                                        {notif.clinicName}
+                                      </span>
+                                    )}
                                   </div>
                                   <p className="text-xs text-muted-foreground line-clamp-2 leading-snug mt-0.5">{notif.message}</p>
                                   <p className="text-[10px] text-muted-foreground/60 mt-1">
