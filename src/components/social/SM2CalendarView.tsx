@@ -253,6 +253,15 @@ export default function SM2CalendarView({
               const dayPosts = postsByDate[dateStr] || [];
               const inMonth = isSameMonth(day, currentMonth);
               const today = isToday(day);
+              const unseenNotes = !isClient
+                ? dayPosts.filter((p) =>
+                    isClientNoteUnseen(
+                      p.id,
+                      p.updated_at,
+                      !!(p.client_feedback && p.client_feedback.trim())
+                    )
+                  ).length
+                : 0;
 
               return (
                 <button
@@ -269,6 +278,15 @@ export default function SM2CalendarView({
                     dayPosts.length === 0 && "cursor-default"
                   )}
                 >
+                  {unseenNotes > 0 && (
+                    <span
+                      className="absolute top-1.5 right-1.5 z-10 h-4 min-w-[16px] px-1 rounded-full bg-orange-500 text-white text-[9px] font-bold flex items-center justify-center gap-0.5 shadow-sm animate-pulse"
+                      title={`${unseenNotes} new client note${unseenNotes === 1 ? "" : "s"}`}
+                    >
+                      <MessageSquare className="h-2.5 w-2.5" />
+                      {unseenNotes}
+                    </span>
+                  )}
                   <div className={cn(
                     "text-xs font-medium mb-1.5 w-7 h-7 flex items-center justify-center rounded-full",
                     today && "bg-primary text-primary-foreground font-bold",
