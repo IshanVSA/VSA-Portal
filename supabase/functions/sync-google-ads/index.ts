@@ -125,7 +125,7 @@ Deno.serve(async (req) => {
              metrics.cost_micros, metrics.conversions,
              segments.date
       FROM campaign
-      WHERE segments.date DURING LAST_30_DAYS
+      WHERE segments.date DURING LAST_90_DAYS
     `;
 
     const searchRes = await fetch(
