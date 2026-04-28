@@ -354,6 +354,7 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="text-xs w-10">#</TableHead>
                   <TableHead className="text-xs">Search Term</TableHead>
                   <TableHead className="text-xs">Matched Keyword</TableHead>
                   <TableHead className="text-xs text-right">Clicks</TableHead>
@@ -361,23 +362,38 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
                   <TableHead className="text-xs text-right">Cost</TableHead>
                   <TableHead className="text-xs text-right">CTR</TableHead>
                   <TableHead className="text-xs text-right">CPC</TableHead>
-                  <TableHead className="text-xs text-right">Conv.</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {computed.searchTerms.map((s, i) => {
                   const ctr = s.impressions > 0 ? Math.round((s.clicks / s.impressions) * 10000) / 100 : 0;
                   const cpc = s.clicks > 0 ? Math.round((s.cost / s.clicks) * 100) / 100 : 0;
+                  const isTop = i < 5;
                   return (
-                    <TableRow key={`${s.term}-${s.keyword}-${i}`}>
-                      <TableCell className="text-xs font-medium truncate max-w-[260px]">{s.term}</TableCell>
+                    <TableRow
+                      key={`${s.term}-${s.keyword}-${i}`}
+                      className={isTop ? "bg-primary/5 hover:bg-primary/10" : ""}
+                    >
+                      <TableCell className="text-xs tabular-nums text-muted-foreground">
+                        {isTop ? (
+                          <Badge className="h-5 px-1.5 text-[10px] bg-primary/15 text-primary hover:bg-primary/15 border-0">
+                            {i + 1}
+                          </Badge>
+                        ) : (
+                          i + 1
+                        )}
+                      </TableCell>
+                      <TableCell className={`text-xs truncate max-w-[260px] ${isTop ? "font-semibold text-foreground" : "font-medium"}`}>
+                        {s.term}
+                      </TableCell>
                       <TableCell className="text-xs text-muted-foreground truncate max-w-[200px]">{s.keyword || "—"}</TableCell>
                       <TableCell className="text-xs text-right tabular-nums">{s.clicks.toLocaleString()}</TableCell>
                       <TableCell className="text-xs text-right tabular-nums">{s.impressions.toLocaleString()}</TableCell>
-                      <TableCell className="text-xs text-right tabular-nums">${s.cost.toFixed(2)}</TableCell>
+                      <TableCell className={`text-xs text-right tabular-nums ${isTop ? "font-semibold text-foreground" : ""}`}>
+                        ${s.cost.toFixed(2)}
+                      </TableCell>
                       <TableCell className="text-xs text-right tabular-nums">{ctr}%</TableCell>
                       <TableCell className="text-xs text-right tabular-nums">${cpc}</TableCell>
-                      <TableCell className="text-xs text-right tabular-nums">{s.conversions.toFixed(1)}</TableCell>
                     </TableRow>
                   );
                 })}
