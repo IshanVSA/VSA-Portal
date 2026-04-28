@@ -265,10 +265,14 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
         })
         .eq("id", generationId);
       if (error) throw error;
+      // Materialize approved posts into the content calendar (fire-and-forget; logged on failure)
+      supabase.functions
+        .invoke("materialize-sm2-posts", { body: { generationId } })
+        .catch((e) => console.warn("materialize-sm2-posts failed", e));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sm2-generations", clinicId] });
-      toast.success("Content approved! Your concierge will begin scheduling posts.");
+      toast.success("Content approved! Posts have been added to your calendar.");
     },
     onError: (error: Error) => {
       toast.error("Approval failed", { description: error.message });
