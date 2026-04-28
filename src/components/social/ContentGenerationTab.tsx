@@ -143,7 +143,11 @@ export default function ContentGenerationTab({ clinicId }: Props) {
       monthly_budget: parseFloat(budget) || 300,
     } as any);
     setPreflightOpen(false);
-    generate.mutate(targetMonth);
+    generate.mutate(targetMonth, {
+      onSuccess: (data: any) => {
+        if (data?.generation_id) setViewingGenerationId(data.generation_id);
+      },
+    });
   };
 
   const monthLabel = useMemo(() => {
