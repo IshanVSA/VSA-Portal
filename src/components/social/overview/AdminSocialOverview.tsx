@@ -21,11 +21,22 @@ interface AdminSocialOverviewProps {
 
 const STAGE_ORDER: { key: string; label: string; color: string }[] = [
   { key: "generated", label: "Generated", color: "bg-blue-500" },
-  { key: "concierge_preferred", label: "Under Review", color: "bg-amber-500" },
-  { key: "admin_approved", label: "Approved", color: "bg-primary" },
-  { key: "client_selected", label: "Client Selected", color: "bg-violet-500" },
-  { key: "final_approved", label: "Final Approved", color: "bg-emerald-500" },
+  { key: "under_review", label: "Under Review", color: "bg-amber-500" },
+  { key: "approved", label: "Approved", color: "bg-primary" },
+  { key: "changes_requested", label: "Changes Requested", color: "bg-violet-500" },
+  { key: "failed", label: "Failed / Blocked", color: "bg-destructive" },
 ];
+
+// Map an sm2_generations row to exactly one funnel bucket (priority order matters).
+function bucketForSm2Row(row: { approval_status?: string | null; sent_to_client_at?: string | null; failure_reason?: string | null }): string | null {
+  const s = row.approval_status || "";
+  if (s === "generation_failed" || s === "retrying") return "failed";
+  if (s === "copy_changes_requested" || s === "final_changes_requested") return "changes_requested";
+  if (s === "copy_approved" || s === "approved_client") return "approved";
+  if (row.sent_to_client_at && (s === "sent_for_copy_review" || s === "sent_for_final_review")) return "under_review";
+  if (s === "pending" && !row.sent_to_client_at) return "generated";
+  return null;
+}
 
 const HARD_GATES: { key: string; label: string }[] = [
   { key: "promotion", label: "Promotion" },
