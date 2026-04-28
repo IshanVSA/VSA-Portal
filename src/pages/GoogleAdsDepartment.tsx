@@ -17,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useClinicServiceAccess } from "@/hooks/useClinicServiceAccess";
 import { DepartmentAccessLocked } from "@/components/department/DepartmentAccessLocked";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useFinancialsVisible } from "@/hooks/useFinancialsVisible";
 import { DepartmentChat } from "@/components/department/DepartmentChat";
 import { useDepartmentChatUnread } from "@/hooks/useDepartmentChatUnread";
 
@@ -41,15 +42,16 @@ export default function GoogleAdsDepartment() {
   const { isLocked, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "google_ads", clinicsLoading);
   const { role } = useUserRole();
   const isStaff = role === "admin" || role === "concierge";
+  const { visible: showMoney } = useFinancialsVisible();
   const { unreadCount, markAsRead } = useDepartmentChatUnread("google_ads", selectedClinicId);
   const tabs = isStaff ? [...baseTabs, chatTab] : baseTabs;
   const selectedClinicName = selectedClinic?.clinic_name;
 
   const kpis = [
-    { label: "Ad Spend", value: adsData.loading ? "—" : `$${adsData.cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, change: "Last 30 days", changeType: "neutral" as const, icon: DollarSign, gradient: "blue" as const },
+    ...(showMoney ? [{ label: "Ad Spend", value: adsData.loading ? "—" : `$${adsData.cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, change: "Last 30 days", changeType: "neutral" as const, icon: DollarSign, gradient: "blue" as const }] : []),
     { label: "Clicks", value: adsData.loading ? "—" : adsData.clicks.toLocaleString(), change: adsData.hasData ? `CTR: ${adsData.ctr}%` : "", changeType: "neutral" as const, icon: MousePointerClick, gradient: "green" as const },
     { label: "Impressions", value: adsData.loading ? "—" : adsData.impressions.toLocaleString(), change: "Last 30 days", changeType: "neutral" as const, icon: Eye, gradient: "amber" as const },
-    { label: "Avg. CPC", value: adsData.loading ? "—" : `$${adsData.cpc.toFixed(2)}`, change: adsData.hasData ? `Spend: $${adsData.cost.toFixed(0)}` : "", changeType: "neutral" as const, icon: Percent, gradient: "purple" as const },
+    ...(showMoney ? [{ label: "Avg. CPC", value: adsData.loading ? "—" : `$${adsData.cpc.toFixed(2)}`, change: adsData.hasData ? `Spend: $${adsData.cost.toFixed(0)}` : "", changeType: "neutral" as const, icon: Percent, gradient: "purple" as const }] : []),
   ];
 
   const trafficData = adsData.dailyTrend.length > 0 ? adsData.dailyTrend : [{ label: "—", value: 0 }];
@@ -66,9 +68,9 @@ export default function GoogleAdsDepartment() {
             <TableHeader>
               <TableRow>
                 <TableHead>Campaign</TableHead>
-                <TableHead className="text-right">Spend</TableHead>
+                {showMoney && <TableHead className="text-right">Spend</TableHead>}
                 <TableHead className="text-right">Clicks</TableHead>
-                <TableHead className="text-right">CPC</TableHead>
+                {showMoney && <TableHead className="text-right">CPC</TableHead>}
                 <TableHead className="text-right">CTR</TableHead>
             </TableRow>
           </TableHeader>
@@ -76,9 +78,9 @@ export default function GoogleAdsDepartment() {
             {adsData.campaigns.map(c => (
               <TableRow key={c.name}>
                 <TableCell className="font-medium truncate max-w-[180px]">{c.name}</TableCell>
-                <TableCell className="text-right tabular-nums">{c.spend}</TableCell>
+                {showMoney && <TableCell className="text-right tabular-nums">{c.spend}</TableCell>}
                 <TableCell className="text-right tabular-nums">{c.clicks}</TableCell>
-                <TableCell className="text-right tabular-nums">{c.cpc}</TableCell>
+                {showMoney && <TableCell className="text-right tabular-nums">{c.cpc}</TableCell>}
                 <TableCell className="text-right tabular-nums">{c.ctr}</TableCell>
               </TableRow>
             ))}

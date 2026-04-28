@@ -13,6 +13,7 @@ import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 import { DateRangeFilter, type DateRange } from "@/components/department/DateRangeFilter";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useFinancialsVisible } from "@/hooks/useFinancialsVisible";
 
 interface DailyTrend {
   date: string;
@@ -62,6 +63,7 @@ interface Props {
 export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
   const { role } = useUserRole();
   const isStaff = role === "admin" || role === "concierge";
+  const { visible: showMoney } = useFinancialsVisible();
   const [metricsData, setMetricsData] = useState<MetricsJson | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -243,11 +245,15 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard title="Total Spend" value={`$${computed.cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={DollarSign} index={0} />
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${showMoney ? "lg:grid-cols-4" : "lg:grid-cols-2"} gap-4`}>
+        {showMoney && (
+          <StatsCard title="Total Spend" value={`$${computed.cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={DollarSign} index={0} />
+        )}
         <StatsCard title="Clicks" value={computed.clicks.toLocaleString()} icon={MousePointerClick} index={1} />
         <StatsCard title="Impressions" value={computed.impressions.toLocaleString()} icon={Eye} index={2} />
-        <StatsCard title="Avg. CPC" value={`$${computed.cpc}`} icon={DollarSign} index={3} />
+        {showMoney && (
+          <StatsCard title="Avg. CPC" value={`$${computed.cpc}`} icon={DollarSign} index={3} />
+        )}
       </div>
 
       {/* Clicks & Impressions Chart */}
@@ -283,24 +289,26 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
       </Card>
 
       {/* Daily Spend Chart */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-            <DollarSign className="h-4 w-4" /> Daily Ad Spend
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={{ cost: { label: "Spend ($)", color: "hsl(var(--primary))" } }} className="h-[200px] w-full">
-            <BarChart data={computed.chartData}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-              <XAxis dataKey="date" tick={{ fontSize: 10 }} interval="preserveStartEnd" className="text-muted-foreground" />
-              <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="cost" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
-            </BarChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
+      {showMoney && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <DollarSign className="h-4 w-4" /> Daily Ad Spend
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={{ cost: { label: "Spend ($)", color: "hsl(var(--primary))" } }} className="h-[200px] w-full">
+              <BarChart data={computed.chartData}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                <XAxis dataKey="date" tick={{ fontSize: 10 }} interval="preserveStartEnd" className="text-muted-foreground" />
+                <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Bar dataKey="cost" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Campaigns Table */}
       <Card>
@@ -314,11 +322,11 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
             <TableHeader>
               <TableRow>
                 <TableHead className="text-xs">Campaign</TableHead>
-                <TableHead className="text-xs text-right">Spend</TableHead>
+                {showMoney && <TableHead className="text-xs text-right">Spend</TableHead>}
                 <TableHead className="text-xs text-right">Clicks</TableHead>
                 <TableHead className="text-xs text-right">Impr.</TableHead>
                 <TableHead className="text-xs text-right">CTR</TableHead>
-                <TableHead className="text-xs text-right">CPC</TableHead>
+                {showMoney && <TableHead className="text-xs text-right">CPC</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -328,11 +336,11 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
                 return (
                   <TableRow key={c.name}>
                     <TableCell className="text-xs font-medium truncate max-w-[200px]">{c.name}</TableCell>
-                    <TableCell className="text-xs text-right tabular-nums">${c.cost.toFixed(2)}</TableCell>
+                    {showMoney && <TableCell className="text-xs text-right tabular-nums">${c.cost.toFixed(2)}</TableCell>}
                     <TableCell className="text-xs text-right tabular-nums">{c.clicks.toLocaleString()}</TableCell>
                     <TableCell className="text-xs text-right tabular-nums">{c.impressions.toLocaleString()}</TableCell>
                     <TableCell className="text-xs text-right tabular-nums">{ctr}%</TableCell>
-                    <TableCell className="text-xs text-right tabular-nums">${cpc}</TableCell>
+                    {showMoney && <TableCell className="text-xs text-right tabular-nums">${cpc}</TableCell>}
                   </TableRow>
                 );
               })}
@@ -359,9 +367,9 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
                   <TableHead className="text-xs">Matched Keyword</TableHead>
                   <TableHead className="text-xs text-right">Clicks</TableHead>
                   <TableHead className="text-xs text-right">Impr.</TableHead>
-                  <TableHead className="text-xs text-right">Cost</TableHead>
+                  {showMoney && <TableHead className="text-xs text-right">Cost</TableHead>}
                   <TableHead className="text-xs text-right">CTR</TableHead>
-                  <TableHead className="text-xs text-right">CPC</TableHead>
+                  {showMoney && <TableHead className="text-xs text-right">CPC</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -389,11 +397,13 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
                       <TableCell className="text-xs text-muted-foreground truncate max-w-[200px]">{s.keyword || "—"}</TableCell>
                       <TableCell className="text-xs text-right tabular-nums">{s.clicks.toLocaleString()}</TableCell>
                       <TableCell className="text-xs text-right tabular-nums">{s.impressions.toLocaleString()}</TableCell>
-                      <TableCell className={`text-xs text-right tabular-nums ${isTop ? "font-semibold text-foreground" : ""}`}>
-                        ${s.cost.toFixed(2)}
-                      </TableCell>
+                      {showMoney && (
+                        <TableCell className={`text-xs text-right tabular-nums ${isTop ? "font-semibold text-foreground" : ""}`}>
+                          ${s.cost.toFixed(2)}
+                        </TableCell>
+                      )}
                       <TableCell className="text-xs text-right tabular-nums">{ctr}%</TableCell>
-                      <TableCell className="text-xs text-right tabular-nums">${cpc}</TableCell>
+                      {showMoney && <TableCell className="text-xs text-right tabular-nums">${cpc}</TableCell>}
                     </TableRow>
                   );
                 })}

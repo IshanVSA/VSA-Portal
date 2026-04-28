@@ -19,6 +19,7 @@ import AdminReview from "./pages/AdminReview";
 import Employees from "./pages/Employees";
 import ClientsPage from "./pages/Clients";
 import Settings from "./pages/Settings";
+import SubAccounts from "./pages/SubAccounts";
 import Reports from "./pages/Reports";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import DataDeletion from "./pages/DataDeletion";
@@ -83,6 +84,7 @@ const App = () => (
                 <Route path="/settings" element={guard(<Settings />, "settings")} />
                 <Route path="/reports" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}>{guard(<Reports />, "reports")}</ProtectedRoute>} />
                 <Route path="/cron-monitor" element={<ProtectedRoute allowedRoles={["admin"]}>{guard(<CronMonitor />, "cron-monitor")}</ProtectedRoute>} />
+                <Route path="/sub-accounts" element={<ProtectedRoute allowedRoles={["client"]}>{guard(<SubAccounts />, "sub-accounts")}</ProtectedRoute>} />
               </Route>
 
               <Route path="/content" element={<Navigate to="/social?tab=calendar" replace />} />
