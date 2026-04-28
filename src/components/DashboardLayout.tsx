@@ -192,13 +192,14 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
 
 
   useEffect(() => {
-    if (role === "client" && user) {
-      supabase
+    if ((role === "client" || role === "sub_client") && user) {
+      // For sub_clients, RLS will limit results to assigned clinics; for clients, owner_user_id filter still works.
+      let q = supabase
         .from("clinics")
         .select("id, clinic_name, website_enabled, seo_enabled, google_ads_enabled, ai_seo_enabled, social_media_enabled")
-        .eq("owner_user_id", user.id)
-        .order("clinic_name")
-        .then(({ data }) => {
+        .order("clinic_name");
+      if (role === "client") q = q.eq("owner_user_id", user.id);
+      q.then(({ data }) => {
           if (data && data.length > 0) {
             setClientClinics(data);
             const urlClinic = searchParams.get("clinic");
