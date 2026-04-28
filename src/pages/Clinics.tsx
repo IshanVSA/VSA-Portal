@@ -459,15 +459,20 @@ export default function Clinics() {
       return;
     }
     const targetId = deleteTarget.id;
-    setDeleting(true);
+    const targetName = deleteTarget.name;
+
+    // Optimistic update: remove immediately from UI and close dialog
+    const previousClinics = clinics;
+    setClinics(prev => prev.filter(c => c.id !== targetId));
+    setDeleteTarget(null);
+    toast.success(`"${targetName}" deleted`);
+
+    // Run delete in background
     const { error } = await (supabase.rpc("delete_clinic_by_id" as any, { _clinic_id: targetId }) as any);
-    setDeleting(false);
     if (error) {
-      toast.error(error.message || "Failed to delete clinic");
-    } else {
-      toast.success("Clinic deleted");
-      setClinics(prev => prev.filter(c => c.id !== targetId));
-      setDeleteTarget(null);
+      // Rollback on failure
+      setClinics(previousClinics);
+      toast.error(error.message || "Failed to delete clinic. Restored.");
     }
   };
 
