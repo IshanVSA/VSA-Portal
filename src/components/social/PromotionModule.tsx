@@ -332,7 +332,7 @@ export default function PromotionModule({ clinicId, jurisdiction }: Props) {
                       <label htmlFor="override-compliance" className="text-xs cursor-pointer leading-relaxed">
                         <span className="font-medium text-amber-800">Override compliance check</span>
                         <span className="block text-muted-foreground mt-0.5">
-                          I acknowledge the issues above and take full responsibility for publishing this promotion.
+                          I understand this advice is AI-generated, provided for general informational purposes only and does not constitute legal or professional advice.
                         </span>
                       </label>
                     </div>
