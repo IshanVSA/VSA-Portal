@@ -451,7 +451,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                       <span className="text-xs text-muted-foreground">
                         {format(new Date(gen.created_at), "MMM d, h:mm a")}
                       </span>
