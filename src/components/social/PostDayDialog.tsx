@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { useSM2Posts, type SM2Post, getPostImagePaths, SM2_MAX_IMAGES_PER_POST } from "@/hooks/useSM2Posts";
+import { isClientNoteUnseen, markClientNoteSeen } from "@/hooks/useSeenClientNotes";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -182,6 +183,17 @@ function PostCard({
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const metaAdLimitReached = metaAdSelectedCount >= 2 && !post.run_meta_ad;
+
+  const hasNote = !!(post.client_feedback && post.client_feedback.trim());
+  const noteIsNewForStaff = !isClient && isClientNoteUnseen(post.id, post.updated_at, hasNote);
+
+  // Once a staff member sees the card with the note rendered, mark as seen.
+  useEffect(() => {
+    if (noteIsNewForStaff) {
+      const t = setTimeout(() => markClientNoteSeen(post.id, post.updated_at), 1200);
+      return () => clearTimeout(t);
+    }
+  }, [noteIsNewForStaff, post.id, post.updated_at]);
 
   const handleFiles = (files: FileList | File[]) => {
     const arr = Array.from(files).filter((f) => f.type.startsWith("image/"));
@@ -531,10 +543,20 @@ function PostCard({
           )}
           {!isClient && post.client_feedback && (
             <div className="pt-2 border-t">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold flex items-center gap-1">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold flex items-center gap-1.5">
                 <MessageSquare className="h-3 w-3" /> Client Notes
+                {noteIsNewForStaff && (
+                  <Badge className="text-[9px] px-1.5 py-0 h-4 bg-orange-500 text-white border-0 animate-pulse">
+                    NEW
+                  </Badge>
+                )}
               </p>
-              <p className="text-sm bg-amber-500/10 border border-amber-500/30 rounded p-2 mt-1">
+              <p className={cn(
+                "text-sm rounded p-2 mt-1 border",
+                noteIsNewForStaff
+                  ? "bg-orange-500/10 border-orange-500/40"
+                  : "bg-amber-500/10 border-amber-500/30"
+              )}>
                 {post.client_feedback}
               </p>
             </div>

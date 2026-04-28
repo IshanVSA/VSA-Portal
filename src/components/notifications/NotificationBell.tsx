@@ -11,7 +11,7 @@ import { formatDistanceToNow, isToday, isYesterday, isThisWeek } from "date-fns"
 
 interface Notification {
   id: string;
-  type: "post_approved" | "post_flagged" | "comment_added" | "status_changed" | "ticket_created" | "sm2_generated" | "sm2_sent" | "sm2_approved" | "sm2_feedback";
+  type: "post_approved" | "post_flagged" | "comment_added" | "status_changed" | "ticket_created" | "sm2_generated" | "sm2_sent" | "sm2_approved" | "sm2_feedback" | "client_note";
   title: string;
   message: string;
   read: boolean;
@@ -29,6 +29,7 @@ const typeConfig = {
   sm2_sent: { icon: Send, color: "text-blue-500", bg: "bg-blue-500/10" },
   sm2_approved: { icon: ThumbsUp, color: "text-emerald-500", bg: "bg-emerald-500/10" },
   sm2_feedback: { icon: MessageSquare, color: "text-orange-500", bg: "bg-orange-500/10" },
+  client_note: { icon: MessageSquare, color: "text-orange-500", bg: "bg-orange-500/10" },
 };
 
 function mapSM2Status(status: string): Notification["type"] {
@@ -81,6 +82,14 @@ function buildPostLink(clinicId: string | null | undefined, postId: string, role
   if (clinicId) params.set("clinic", clinicId);
   params.set("tab", role === "client" ? "my-posts" : "overview");
   params.set("post", postId);
+  return `/social?${params.toString()}`;
+}
+
+function buildSM2PostLink(clinicId: string | null | undefined, scheduledDate: string | null): string {
+  const params = new URLSearchParams();
+  if (clinicId) params.set("clinic", clinicId);
+  params.set("tab", "generation");
+  if (scheduledDate) params.set("sm2date", scheduledDate);
   return `/social?${params.toString()}`;
 }
 
@@ -174,7 +183,36 @@ export function NotificationBell() {
         link: buildSM2Link(g.clinic_id, role, g.approval_status),
       }));
 
-      const all = [...activityNotifs, ...ticketNotifs, ...sm2Notifs]
+      // Client notes on SM2 posts (staff-only relevant)
+      let noteNotifs: Notification[] = [];
+      if (role !== "client") {
+        const { data: noteData } = await supabase
+          .from("sm2_posts")
+          .select("id, post_number, scheduled_date, client_feedback, updated_at, clinic_id")
+          .not("client_feedback", "is", null)
+          .neq("client_feedback", "")
+          .order("updated_at", { ascending: false })
+          .limit(10);
+        noteNotifs = (noteData || []).map((p: any) => {
+          const fb = (p.client_feedback || "").trim();
+          const datePart = p.scheduled_date
+            ? new Date(p.scheduled_date + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })
+            : "";
+          const numPart = p.post_number != null ? `Post #${p.post_number}` : "Post";
+          const preview = fb.length > 80 ? fb.slice(0, 80) + "…" : fb;
+          return {
+            id: `sm2-note-${p.id}-${p.updated_at || ""}`,
+            type: "client_note" as const,
+            title: "New Client Notes",
+            message: `${numPart}${datePart ? ` (${datePart})` : ""}: ${preview}`,
+            read: false,
+            created_at: p.updated_at || new Date().toISOString(),
+            link: buildSM2PostLink(p.clinic_id, p.scheduled_date),
+          };
+        });
+      }
+
+      const all = [...activityNotifs, ...ticketNotifs, ...sm2Notifs, ...noteNotifs]
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         .slice(0, 30)
         .map(withRead);
@@ -240,6 +278,31 @@ export function NotificationBell() {
           read: false,
           created_at: g.updated_at || g.created_at || new Date().toISOString(),
           link: buildSM2Link(g.clinic_id, role, g.approval_status),
+        };
+        setNotifications(prev => [withRead(newNotif), ...prev].slice(0, 30));
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "sm2_posts" }, (payload) => {
+        // Only staff (admin/concierge) get client-note notifications
+        if (role === "client") return;
+        const newRow = payload.new as any;
+        const oldRow = payload.old as any;
+        const newFb = (newRow?.client_feedback || "").trim();
+        const oldFb = (oldRow?.client_feedback || "").trim();
+        // Notify only when client_feedback changed to a new non-empty value
+        if (!newFb || newFb === oldFb) return;
+        const datePart = newRow.scheduled_date
+          ? new Date(newRow.scheduled_date + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })
+          : "";
+        const numPart = newRow.post_number != null ? `Post #${newRow.post_number}` : "Post";
+        const preview = newFb.length > 80 ? newFb.slice(0, 80) + "…" : newFb;
+        const newNotif: Notification = {
+          id: `sm2-note-${newRow.id}-${newRow.updated_at || Date.now()}`,
+          type: "client_note",
+          title: "New Client Notes",
+          message: `${numPart}${datePart ? ` (${datePart})` : ""}: ${preview}`,
+          read: false,
+          created_at: newRow.updated_at || new Date().toISOString(),
+          link: buildSM2PostLink(newRow.clinic_id, newRow.scheduled_date),
         };
         setNotifications(prev => [withRead(newNotif), ...prev].slice(0, 30));
       })
