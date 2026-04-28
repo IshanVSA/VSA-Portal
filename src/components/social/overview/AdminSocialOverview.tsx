@@ -92,7 +92,7 @@ export function AdminSocialOverview({ clinicId }: AdminSocialOverviewProps) {
         supabase.from("content_posts").select("*", { count: "exact", head: true }).eq("clinic_id", clinicId).gte("created_at", monthStart),
         supabase.from("clinic_promotions").select("*", { count: "exact", head: true }).eq("clinic_id", clinicId).eq("status", "active").lte("start_date", today).gte("end_date", today),
         supabase.from("clinic_gbp_config").select("jurisdiction").eq("clinic_id", clinicId).maybeSingle(),
-        supabase.from("content_requests").select("status").eq("clinic_id", clinicId),
+        supabase.from("sm2_generations").select("approval_status, sent_to_client_at, failure_reason").eq("clinic_id", clinicId),
         (async () => {
           const days = Array.from({ length: 7 }, (_, i) => format(startOfDay(subDays(new Date(), 6 - i)), "yyyy-MM-dd"));
           const r = await supabase.from("content_posts").select("scheduled_date").eq("clinic_id", clinicId).gte("scheduled_date", days[0]).lte("scheduled_date", days[6]);
@@ -110,8 +110,11 @@ export function AdminSocialOverview({ clinicId }: AdminSocialOverviewProps) {
       setActivePromotions(promosRes.count || 0);
       setJurisdiction(gbpConfigRes.data?.jurisdiction || null);
 
-      const summary: Record<string, number> = { generated: 0, concierge_preferred: 0, admin_approved: 0, client_selected: 0, final_approved: 0 };
-      (requestsRes.data || []).forEach((r: any) => { if (r.status in summary) summary[r.status]++; });
+      const summary: Record<string, number> = { generated: 0, under_review: 0, approved: 0, changes_requested: 0, failed: 0 };
+      (requestsRes.data || []).forEach((r: any) => {
+        const b = bucketForSm2Row(r);
+        if (b) summary[b]++;
+      });
       setPipelineStages(STAGE_ORDER.map((s) => ({ ...s, count: summary[s.key] || 0 })));
 
       const countMap: Record<string, number> = {};
@@ -200,9 +203,11 @@ export function AdminSocialOverview({ clinicId }: AdminSocialOverviewProps) {
     );
   }
 
-  const finalApproved = pipelineStages.find((s) => s.key === "final_approved")?.count || 0;
-  const generated = pipelineStages.find((s) => s.key === "generated")?.count || 0;
-  const conversionPct = generated > 0 ? Math.round((finalApproved / generated) * 100) : 0;
+  const approvedCount = pipelineStages.find((s) => s.key === "approved")?.count || 0;
+  const activeTotal = pipelineStages
+    .filter((s) => ["generated", "under_review", "approved", "changes_requested"].includes(s.key))
+    .reduce((sum, s) => sum + s.count, 0);
+  const conversionPct = activeTotal > 0 ? Math.round((approvedCount / activeTotal) * 100) : 0;
 
   return (
     <div className="space-y-6">
