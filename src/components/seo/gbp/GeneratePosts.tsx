@@ -128,6 +128,37 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
 
     try {
       const clinicName = clinicNames[selectedConfig.clinic_id] || "Clinic";
+
+      // ── DUPLICATE PREVENTION: pull recent GBP posts + recent blog topics ──
+      const prevMonth = selectedMonth === 1 ? 12 : selectedMonth - 1;
+      const prevYear = selectedMonth === 1 ? selectedYear - 1 : selectedYear;
+      const [{ data: lastMonthGBP }, { data: recentBlogs }] = await Promise.all([
+        supabase
+          .from("gbp_post_history")
+          .select("topic, hook_style, primary_keyword, secondary_keywords, post_content, week_number")
+          .eq("clinic_id", selectedConfig.clinic_id)
+          .or(`and(month.eq.${prevMonth},year.eq.${prevYear}),and(month.eq.${selectedMonth},year.eq.${selectedYear})`)
+          .order("year", { ascending: false })
+          .order("month", { ascending: false })
+          .order("week_number", { ascending: true })
+          .limit(20),
+        supabase
+          .from("blog_posts")
+          .select("blog_1_topic, blog_2_topic, blog_3_topic, blog_1_slug, blog_2_slug, blog_3_slug, generation_date")
+          .eq("clinic_id", selectedConfig.clinic_id)
+          .order("generation_date", { ascending: false })
+          .limit(3),
+      ]);
+
+      const recentBlogList: { title: string; primary_keyword: string }[] = [];
+      (recentBlogs || []).forEach((b: any) => {
+        for (const i of [1, 2, 3]) {
+          if (b[`blog_${i}_topic`]) {
+            recentBlogList.push({ title: b[`blog_${i}_topic`], primary_keyword: b[`blog_${i}_slug`] || "" });
+          }
+        }
+      });
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 120000);
       const { data, error } = await supabase.functions.invoke("generate-gbp-posts", {
@@ -151,7 +182,15 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
             week_3: topics.week_3_topic,
             week_4: topics.week_4_topic,
           },
-          recent_content_context: { last_month_gbp: [], recent_blogs: [], recent_p2_pages: [] },
+          recent_content_context: {
+            last_month_gbp: (lastMonthGBP || []).map((p: any) => ({
+              topic: p.topic,
+              hook: (p.post_content || "").slice(0, 140),
+              keywords: [p.primary_keyword, ...(p.secondary_keywords || [])].filter(Boolean),
+            })),
+            recent_blogs: recentBlogList,
+            recent_p2_pages: [],
+          },
           // v2.0 DNA fields
           booking_url: (selectedConfig as any).booking_url || '',
           hours: (selectedConfig as any).hours || null,

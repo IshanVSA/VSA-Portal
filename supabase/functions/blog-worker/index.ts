@@ -88,13 +88,38 @@ async function processJob(job: any) {
   const gbpConfig = clinic.clinic_gbp_config?.[0];
   const synthesized = dna?.synthesized_profile || {};
 
-  const last3Slugs = Array.isArray(publishedSlugs)
-    ? publishedSlugs.slice(-9).map((s: any) => typeof s === "string" ? s : s.slug || "").join(", ")
-    : "NONE";
+  const slugList: string[] = Array.isArray(publishedSlugs)
+    ? publishedSlugs.map((s: any) => typeof s === "string" ? s : (s.slug || ""))
+        .filter((s: string) => !!s)
+    : [];
+  const last3MonthsSlugs = slugList.slice(-9).join(", ") || "NONE"; // 3 blogs/month × 3
+  const last12MonthsSlugs = slugList.slice(-36).join(", ") || "NONE"; // 3 blogs/month × 12
+
+  // Pull every prior topic + slug from blog_posts for the last 12 months for richer dedup signal
+  const twelveMonthsAgo = new Date();
+  twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+  const { data: priorBlogs } = await supabase
+    .from("blog_posts")
+    .select("blog_1_topic, blog_2_topic, blog_3_topic, blog_1_slug, blog_2_slug, blog_3_slug, generation_date")
+    .eq("clinic_id", job.clinic_id)
+    .gte("generation_date", twelveMonthsAgo.toISOString().slice(0, 10))
+    .neq("id", job.id || "00000000-0000-0000-0000-000000000000")
+    .order("generation_date", { ascending: false })
+    .limit(12);
+  const priorTopics: string[] = [];
+  (priorBlogs || []).forEach((b: any) => {
+    for (const i of [1, 2, 3]) {
+      const t = b[`blog_${i}_topic`];
+      const s = b[`blog_${i}_slug`];
+      if (t) priorTopics.push(s ? `${t} (${s})` : t);
+    }
+  });
+  const fullTopicHistory = priorTopics.length ? priorTopics.join(" | ") : last12MonthsSlugs;
 
   const userMessage = `BLOG_MONTH_COUNT: ${job.blog_month_count}
-PUBLISHED_SLUGS_LAST_3_MONTHS: ${last3Slugs || "NONE"}
-FULL_TOPIC_HISTORY_LAST_12_MONTHS: ${last3Slugs || "NONE"}
+PUBLISHED_SLUGS_LAST_3_MONTHS: ${last3MonthsSlugs}
+FULL_TOPIC_HISTORY_LAST_12_MONTHS: ${fullTopicHistory}
+DUPLICATE_RULE: Do NOT repeat any topic, slug, or near-synonym from FULL_TOPIC_HISTORY_LAST_12_MONTHS. Pick a fresh angle even if the broader subject is recurring.
 CLUSTER_CITY: ${gbpConfig?.city || clinic.address || "NONE"}
 CLUSTER_NEIGHBORS: NONE
 CLUSTER_PUBLISHED_THIS_MONTH: NONE

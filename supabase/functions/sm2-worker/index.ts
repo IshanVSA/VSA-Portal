@@ -344,6 +344,23 @@ async function runOneStage(supabase: any, job: any): Promise<{ done: boolean; st
     supabase.from("clinic_gbp_config").select("*").eq("clinic_id", clinic_id).maybeSingle(),
   ]);
 
+  // ── DUPLICATE PREVENTION: pull last 3 months of SM2 posts (excluding current month) ──
+  const priorPostsRes = await supabase
+    .from("sm2_posts")
+    .select("topic, hook, hook_b, caption, theme, scheduled_date")
+    .eq("clinic_id", clinic_id)
+    .neq("scheduled_date", null)
+    .order("scheduled_date", { ascending: false })
+    .limit(40);
+  const priorPosts = (priorPostsRes.data || []).filter((p: any) => {
+    if (!p.scheduled_date) return false;
+    const ym = String(p.scheduled_date).slice(0, 7);
+    return ym !== month_year; // exclude current month so retries don't self-poison
+  }).slice(0, 30);
+  const recentContentBlock = priorPosts.length === 0
+    ? "\n\n=== RECENT POSTS (LAST 3 MONTHS) ===\nNONE"
+    : `\n\n=== RECENT POSTS (LAST 3 MONTHS) — DO NOT REPEAT TOPIC, HOOK, OR CAPTION OPENING ===\n${priorPosts.map((p: any, i: number) => `${i+1}. [${p.scheduled_date}] theme="${p.theme || ""}" topic="${p.topic || ""}" hookA="${(p.hook || "").slice(0, 120)}" hookB="${(p.hook_b || "").slice(0, 120)}" captionStart="${(p.caption || "").slice(0, 140)}"`).join("\n")}\n\nRULES: Pick fresh topics, fresh angles, fresh opening lines. No reused metaphors, no near-duplicate hooks, no recycled captions.`;
+
   const clinic = clinicRes.data;
   const dna = dnaRes.data;
   const signals = signalsRes.data;
@@ -370,14 +387,14 @@ async function runOneStage(supabase: any, job: any): Promise<{ done: boolean; st
   switch (stageToRun) {
     case "research": {
       const r = await callAgent(AGENT_RESEARCHER,
-        `Clinic: ${clinic.clinic_name}\nLocation: ${gbpConfig?.city || ""}, ${gbpConfig?.state_or_province || ""}\nMonth: ${month_year}\nSpecies: ${JSON.stringify(gbpConfig?.species_treated || ["Dogs","Cats"])}`,
+        `Clinic: ${clinic.clinic_name}\nLocation: ${gbpConfig?.city || ""}, ${gbpConfig?.state_or_province || ""}\nMonth: ${month_year}\nSpecies: ${JSON.stringify(gbpConfig?.species_treated || ["Dogs","Cats"])}${recentContentBlock}`,
         3000, "Researcher");
       stageOutput = r.parsed; tokens = r.tokens;
       break;
     }
     case "plan": {
       const r = await callAgent(AGENT_PLANNER,
-        `${dnaPayload}\n\n=== TREND REPORT ===\n${JSON.stringify(data.research, null, 2)}`,
+        `${dnaPayload}\n\n=== TREND REPORT ===\n${JSON.stringify(data.research, null, 2)}${recentContentBlock}`,
         4000, "Planner");
       stageOutput = r.parsed; tokens = r.tokens;
       break;
@@ -386,7 +403,7 @@ async function runOneStage(supabase: any, job: any): Promise<{ done: boolean; st
       // 16000 tokens: 10 posts × ~1.5KB JSON each (caption + hashtags + hooks + alt_text + stories_hook)
       // Previously 4000 caused JSON truncation, leaving captions/hashtags empty in sm2_posts.
       const r = await callAgent(AGENT_WRITER,
-        `${dnaPayload}\n\n=== CONTENT PLAN ===\n${JSON.stringify(data.plan, null, 2)}`,
+        `${dnaPayload}\n\n=== CONTENT PLAN ===\n${JSON.stringify(data.plan, null, 2)}${recentContentBlock}`,
         16000, "Writer");
       stageOutput = r.parsed; tokens = r.tokens;
       break;
