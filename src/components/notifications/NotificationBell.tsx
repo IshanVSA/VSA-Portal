@@ -242,14 +242,58 @@ export function NotificationBell() {
     });
   };
 
+  const [tab, setTab] = useState<"all" | "unread">("all");
+
+  const visibleNotifications = useMemo(
+    () => (tab === "unread" ? notifications.filter(n => !n.read) : notifications),
+    [tab, notifications]
+  );
+
+  const grouped = useMemo(() => {
+    const groups: { label: string; items: Notification[] }[] = [
+      { label: "Today", items: [] },
+      { label: "Yesterday", items: [] },
+      { label: "This week", items: [] },
+      { label: "Earlier", items: [] },
+    ];
+    visibleNotifications.forEach(n => {
+      const d = new Date(n.created_at);
+      if (isToday(d)) groups[0].items.push(n);
+      else if (isYesterday(d)) groups[1].items.push(n);
+      else if (isThisWeek(d, { weekStartsOn: 1 })) groups[2].items.push(n);
+      else groups[3].items.push(n);
+    });
+    return groups.filter(g => g.items.length > 0);
+  }, [visibleNotifications]);
+
   return (
     <div className="relative">
-      <button ref={buttonRef} className="relative p-2 rounded-lg hover:bg-muted transition-colors" onClick={() => setOpen(!open)}>
-        <Bell className="h-[18px] w-[18px] text-muted-foreground" />
+      <button
+        ref={buttonRef}
+        className={cn(
+          "relative p-2 rounded-lg transition-all duration-200",
+          "hover:bg-muted active:scale-95",
+          open && "bg-muted"
+        )}
+        onClick={() => setOpen(!open)}
+        aria-label="Notifications"
+      >
+        <motion.div
+          animate={unreadCount > 0 ? { rotate: [0, -10, 10, -6, 6, 0] } : { rotate: 0 }}
+          transition={{ duration: 0.6, ease: "easeInOut" }}
+          key={unreadCount}
+        >
+          <Bell className={cn("h-[18px] w-[18px] transition-colors", unreadCount > 0 ? "text-foreground" : "text-muted-foreground")} />
+        </motion.div>
         <AnimatePresence>
           {unreadCount > 0 && (
-            <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-              className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] px-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
+            <motion.span
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 500, damping: 25 }}
+              className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] px-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-background"
+            >
               {unreadCount > 9 ? "9+" : unreadCount}
             </motion.span>
           )}
@@ -261,53 +305,151 @@ export function NotificationBell() {
           {open && (
             <motion.div
               ref={panelRef}
-              initial={{ opacity: 0, y: 8, scale: 0.96 }}
+              initial={{ opacity: 0, y: 10, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.96 }}
-              transition={{ duration: 0.2 }}
+              exit={{ opacity: 0, y: 8, scale: 0.97 }}
+              transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
               style={{ position: "fixed", top: pos.top, right: pos.right }}
-              className="w-80 sm:w-96 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-[100]">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-border/60">
-                <h3 className="font-semibold text-sm text-foreground">Notifications</h3>
-                {unreadCount > 0 && (
-                  <button onClick={markAllRead} className="text-xs text-primary hover:underline flex items-center gap-1">
-                    <Check className="h-3 w-3" /> Mark all read
-                  </button>
+              className={cn(
+                "w-[360px] sm:w-[400px] rounded-2xl overflow-hidden z-[100]",
+                "bg-card/95 backdrop-blur-xl border border-border/60",
+                "shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3),0_8px_20px_-8px_rgba(0,0,0,0.2)]"
+              )}
+            >
+              {/* Header */}
+              <div className="px-4 pt-4 pb-3">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-[15px] text-foreground tracking-tight">Notifications</h3>
+                    {unreadCount > 0 && (
+                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
+                        {unreadCount} new
+                      </span>
+                    )}
+                  </div>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={markAllRead}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 group"
+                    >
+                      <Check className="h-3 w-3 group-hover:text-primary transition-colors" />
+                      Mark all read
+                    </button>
+                  )}
+                </div>
+
+                {/* Tabs */}
+                <div className="flex items-center gap-1 p-0.5 bg-muted/60 rounded-lg w-fit">
+                  {(["all", "unread"] as const).map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setTab(t)}
+                      className={cn(
+                        "relative px-3 py-1 text-xs font-medium rounded-md transition-colors capitalize",
+                        tab === t ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {tab === t && (
+                        <motion.div
+                          layoutId="notif-tab-pill"
+                          className="absolute inset-0 bg-background rounded-md shadow-sm"
+                          transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                        />
+                      )}
+                      <span className="relative">
+                        {t} {t === "unread" && unreadCount > 0 && `(${unreadCount})`}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* List */}
+              <div className="max-h-[420px] overflow-y-auto px-1.5 pb-1.5 scrollbar-thin">
+                {visibleNotifications.length === 0 ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="py-14 text-center"
+                  >
+                    <div className="h-12 w-12 mx-auto mb-3 rounded-2xl bg-muted/60 flex items-center justify-center">
+                      <Inbox className="h-5 w-5 text-muted-foreground/60" />
+                    </div>
+                    <p className="text-sm font-medium text-foreground">
+                      {tab === "unread" ? "You're all caught up" : "No notifications yet"}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {tab === "unread" ? "New activity will show up here." : "We'll let you know when something happens."}
+                    </p>
+                  </motion.div>
+                ) : (
+                  <div className="space-y-3 pt-1">
+                    {grouped.map((group) => (
+                      <div key={group.label}>
+                        <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                          {group.label}
+                        </p>
+                        <div className="space-y-0.5">
+                          {group.items.map((notif, i) => {
+                            const config = typeConfig[notif.type];
+                            const Icon = config.icon;
+                            return (
+                              <motion.div
+                                key={notif.id}
+                                initial={{ opacity: 0, y: 4 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: Math.min(i * 0.02, 0.15) }}
+                                className={cn(
+                                  "group relative flex items-start gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-150",
+                                  "hover:bg-muted/60",
+                                  !notif.read && "bg-primary/[0.04]"
+                                )}
+                                onClick={() => markOneRead(notif.id)}
+                              >
+                                {!notif.read && (
+                                  <div className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-primary" />
+                                )}
+                                <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center shrink-0", config.bg)}>
+                                  <Icon className={cn("h-[18px] w-[18px]", config.color)} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <p className={cn("text-[13px] truncate", !notif.read ? "font-semibold text-foreground" : "font-medium text-foreground/90")}>
+                                      {notif.title}
+                                    </p>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground line-clamp-2 leading-snug mt-0.5">{notif.message}</p>
+                                  <p className="text-[10px] text-muted-foreground/60 mt-1">
+                                    {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true })}
+                                  </p>
+                                </div>
+                                {!notif.read && (
+                                  <div className="flex flex-col items-center gap-1 shrink-0">
+                                    <div className="h-2 w-2 rounded-full bg-primary mt-1.5" />
+                                  </div>
+                                )}
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
 
-              <div className="max-h-[380px] overflow-y-auto">
-                {notifications.length === 0 ? (
-                  <div className="py-10 text-center text-muted-foreground">
-                    <Bell className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">No notifications yet</p>
-                  </div>
-                ) : (
-                  notifications.map((notif, i) => {
-                    const config = typeConfig[notif.type];
-                    const Icon = config.icon;
-                    return (
-                      <motion.div key={notif.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}
-                        className={cn("flex items-start gap-3 px-4 py-3 border-b border-border/30 hover:bg-muted/30 transition-colors cursor-pointer", !notif.read && "bg-primary/[0.03]")}
-                        onClick={() => markOneRead(notif.id)}>
-                        <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5", config.bg)}>
-                          <Icon className={cn("h-4 w-4", config.color)} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium text-foreground truncate">{notif.title}</p>
-                            {!notif.read && <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />}
-                          </div>
-                          <p className="text-xs text-muted-foreground truncate">{notif.message}</p>
-                          <p className="text-[10px] text-muted-foreground/60 mt-0.5">
-                            {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true })}
-                          </p>
-                        </div>
-                      </motion.div>
-                    );
-                  })
-                )}
-              </div>
+              {/* Footer */}
+              {notifications.length > 0 && (
+                <div className="px-4 py-2.5 border-t border-border/60 bg-muted/20 flex items-center justify-between">
+                  <span className="text-[11px] text-muted-foreground">
+                    Showing {visibleNotifications.length} of {notifications.length}
+                  </span>
+                  <button className="text-[11px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                    <Settings2 className="h-3 w-3" />
+                    Preferences
+                  </button>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>,
