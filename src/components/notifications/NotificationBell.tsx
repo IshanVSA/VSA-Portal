@@ -46,8 +46,48 @@ function sm2Title(status: string): string {
   return "Content Generated";
 }
 
+const DEPARTMENT_ROUTE: Record<string, string> = {
+  website: "/website",
+  seo: "/seo",
+  google_ads: "/google-ads",
+  social_media: "/social",
+  ai_seo: "/ai-seo",
+};
+
+function buildTicketLink(department: string | null | undefined, clinicId: string | null | undefined, ticketId: string): string {
+  const base = DEPARTMENT_ROUTE[department || ""] || "/social";
+  const params = new URLSearchParams({ tab: "tickets", ticket: ticketId });
+  if (clinicId) params.set("clinic", clinicId);
+  return `${base}?${params.toString()}`;
+}
+
+function buildSM2Link(clinicId: string | null | undefined, role: string | null, status: string): string {
+  const params = new URLSearchParams();
+  if (clinicId) params.set("clinic", clinicId);
+  // Admin reviews live on /review; clients see their content under My Posts
+  if (role === "admin" && (status === "feedback_submitted" || status === "sent_to_client")) {
+    return `/review${params.toString() ? `?${params.toString()}` : ""}`;
+  }
+  if (role === "client") {
+    params.set("tab", "my-posts");
+  } else {
+    params.set("tab", "overview");
+  }
+  return `/social?${params.toString()}`;
+}
+
+function buildPostLink(clinicId: string | null | undefined, postId: string, role: string | null): string {
+  const params = new URLSearchParams();
+  if (clinicId) params.set("clinic", clinicId);
+  params.set("tab", role === "client" ? "my-posts" : "overview");
+  params.set("post", postId);
+  return `/social?${params.toString()}`;
+}
+
 export function NotificationBell() {
   const { user } = useAuth();
+  const { role } = useUserRole();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
