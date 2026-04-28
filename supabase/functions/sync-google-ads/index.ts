@@ -119,13 +119,21 @@ Deno.serve(async (req) => {
     const customerId = creds.google_ads_customer_id.replace(/-/g, "");
     const loginCustomerId = (creds.google_ads_login_customer_id || creds.google_ads_customer_id).replace(/-/g, "");
 
+    // Build explicit 90-day date range (Google Ads GAQL doesn't support LAST_90_DAYS literal)
+    const _today = new Date();
+    const _start = new Date();
+    _start.setUTCDate(_today.getUTCDate() - 90);
+    const fmt = (d: Date) => d.toISOString().slice(0, 10);
+    const startDate = fmt(_start);
+    const endDate = fmt(_today);
+
     // Query Google Ads API
     const gaqlQuery = `
       SELECT campaign.name, metrics.clicks, metrics.impressions,
              metrics.cost_micros, metrics.conversions,
              segments.date
       FROM campaign
-      WHERE segments.date DURING LAST_90_DAYS
+      WHERE segments.date BETWEEN '${startDate}' AND '${endDate}'
     `;
 
     const searchRes = await fetch(
