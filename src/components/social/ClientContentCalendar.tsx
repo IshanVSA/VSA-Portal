@@ -28,6 +28,8 @@ export default function ClientContentCalendar({ clinicId }: Props) {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("monthly");
   const [selectedPost, setSelectedPost] = useState<ContentPost | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const deepLinkPostId = searchParams.get("post");
 
   const { generations, isLoading: gensLoading } = useSM2Generation(clinicId);
 
