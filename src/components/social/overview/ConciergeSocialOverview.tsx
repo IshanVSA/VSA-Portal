@@ -64,6 +64,7 @@ export function ConciergeSocialOverview({ clinicId }: ConciergeSocialOverviewPro
   const [ticketSummary, setTicketSummary] = useState({ open: 0, inProgress: 0, completed: 0, emergency: 0 });
   const [dnaScore, setDnaScore] = useState(0);
   const [dnaActivated, setDnaActivated] = useState(false);
+  const [pipelineStages, setPipelineStages] = useState<PipelineStage[]>([]);
 
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
   const [bulkUploadsOpen, setBulkUploadsOpen] = useState(false);
