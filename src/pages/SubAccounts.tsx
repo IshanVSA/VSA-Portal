@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Plus, Trash2, Pencil, Eye, EyeOff, DollarSign, Mail, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -31,6 +33,8 @@ interface SubAccount {
 
 export default function SubAccounts() {
   const { user } = useAuth();
+  const { isSubAccount } = useUserRole();
+  if (isSubAccount) return <Navigate to="/dashboard" replace />;
   const [clinics, setClinics] = useState<ClinicLite[]>([]);
   const [subs, setSubs] = useState<SubAccount[]>([]);
   const [loading, setLoading] = useState(true);

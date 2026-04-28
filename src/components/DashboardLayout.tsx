@@ -118,7 +118,7 @@ const pageTitles: Record<string, string> = {
 
 export function DashboardLayout({ children }: { children?: React.ReactNode }) {
   const { clinics: navClinics, selectedClinicId: navSelectedClinicId, setSelectedClinicId: navSetSelectedClinicId, loading: navClinicsLoading } = useClinicSelector();
-  const { role } = useUserRole();
+  const { role, isSubAccount } = useUserRole();
   const { user, signOut } = useAuth();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -192,13 +192,13 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
 
 
   useEffect(() => {
-    if ((role === "client" || role === "sub_client") && user) {
-      // For sub_clients, RLS will limit results to assigned clinics; for clients, owner_user_id filter still works.
+    if (role === "client" && user) {
+      // For sub_accounts, RLS limits results to assigned clinics; for parent clients, filter by owner_user_id.
       let q = supabase
         .from("clinics")
         .select("id, clinic_name, website_enabled, seo_enabled, google_ads_enabled, ai_seo_enabled, social_media_enabled")
         .order("clinic_name");
-      if (role === "client") q = q.eq("owner_user_id", user.id);
+      if (!isSubAccount) q = q.eq("owner_user_id", user.id);
       q.then(({ data }) => {
           if (data && data.length > 0) {
             setClientClinics(data);
@@ -211,12 +211,12 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
           }
         });
     }
-  }, [role, user]);
+  }, [role, isSubAccount, user]);
 
   const clientClinic = clientClinics.find(c => c.id === clientSelectedId) || clientClinics[0] || null;
 
   const selectedClinicId = searchParams.get("clinic") || "";
-  const activeClinicId = (role === "client" || role === "sub_client") ? clientSelectedId : selectedClinicId || null;
+  const activeClinicId = role === "client" ? clientSelectedId : selectedClinicId || null;
   const { pendingRequests, pendingReview, socialPending } = usePendingCounts(activeClinicId);
 
   const [clinicAccessId, setClinicAccessId] = useState<string | null>(null);
@@ -283,7 +283,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
       { label: "Social Media", icon: Share2, path: "/social" },
     ]},
     { title: "ACCOUNT", items: [
-      ...(role === "client" ? [{ label: "Sub Accounts", icon: Users, path: "/sub-accounts" }] : []),
+      ...(role === "client" && !isSubAccount ? [{ label: "Sub Accounts", icon: Users, path: "/sub-accounts" }] : []),
       { label: "Settings", icon: Settings, path: "/settings" },
     ] },
   ];
@@ -329,11 +329,11 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
 
   const clinicSelectorPages = ["/website", "/seo", "/ai-seo", "/google-ads", "/social", "/reports"];
   const showClinicSelector = clinicSelectorPages.some(p => location.pathname === p || location.pathname.startsWith(p + "/"));
-  const selectedClinicName = (role === "client" || role === "sub_client")
+  const selectedClinicName = role === "client"
     ? clientClinic?.clinic_name || ""
     : navClinics.find(c => c.id === navSelectedClinicId)?.clinic_name || "";
-  const clinicSelectorClinics = (role === "client" || role === "sub_client") ? clientClinics : navClinics;
-  const clinicSelectorSelectedId = (role === "client" || role === "sub_client") ? clientSelectedId || "" : navSelectedClinicId;
+  const clinicSelectorClinics = role === "client" ? clientClinics : navClinics;
+  const clinicSelectorSelectedId = role === "client" ? clientSelectedId || "" : navSelectedClinicId;
 
   const isDepartmentLocked = (path: string) => {
     if (role === "admin") return false;
@@ -577,11 +577,11 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
                   <ClinicSelector
                     clinics={clinicSelectorClinics}
                     selectedClinicId={clinicSelectorSelectedId}
-                    onSelect={(role === "client" || role === "sub_client") ? (id: string) => {
+                    onSelect={role === "client" ? (id: string) => {
                       setClientSelectedId(id);
                       setSearchParams(prev => { const next = new URLSearchParams(prev); next.set("clinic", id); return next; }, { replace: true });
                     } : navSetSelectedClinicId}
-                    loading={(role === "client" || role === "sub_client") ? clientClinics.length === 0 : navClinicsLoading}
+                    loading={role === "client" ? clientClinics.length === 0 : navClinicsLoading}
                   />
                 </div>
               )}
