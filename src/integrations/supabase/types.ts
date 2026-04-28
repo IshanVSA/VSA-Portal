@@ -495,6 +495,33 @@ export type Database = {
           },
         ]
       }
+      client_sub_accounts: {
+        Row: {
+          created_at: string
+          hide_financials: boolean
+          id: string
+          parent_user_id: string
+          sub_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hide_financials?: boolean
+          id?: string
+          parent_user_id: string
+          sub_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hide_financials?: boolean
+          id?: string
+          parent_user_id?: string
+          sub_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       clinic_api_credentials: {
         Row: {
           clinic_id: string
@@ -2369,6 +2396,42 @@ export type Database = {
         }
         Relationships: []
       }
+      sub_account_clinics: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          id: string
+          sub_account_id: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          id?: string
+          sub_account_id: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          id?: string
+          sub_account_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sub_account_clinics_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sub_account_clinics_sub_account_id_fkey"
+            columns: ["sub_account_id"]
+            isOneToOne: false
+            referencedRelation: "client_sub_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       terms_acceptance_log: {
         Row: {
           acceptance_type: string
@@ -2609,7 +2672,15 @@ export type Database = {
         Returns: Database["public"]["Enums"]["ticket_status"]
       }
       delete_clinic_by_id: { Args: { _clinic_id: string }; Returns: undefined }
+      get_accessible_clinic_ids: {
+        Args: { _user_id: string }
+        Returns: string[]
+      }
       get_concierge_clinic_ids: {
+        Args: { _user_id: string }
+        Returns: string[]
+      }
+      get_sub_account_clinic_ids: {
         Args: { _user_id: string }
         Returns: string[]
       }
@@ -2650,6 +2721,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_sub_account: { Args: { _user_id: string }; Returns: boolean }
       pick_assignee_for_dept: {
         Args: {
           _clinic_id: string
@@ -2661,9 +2733,13 @@ export type Database = {
         Args: { _clinic_id: string; _month: number; _province: string }
         Returns: undefined
       }
+      sub_account_hides_financials: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      app_role: "admin" | "concierge" | "client"
+      app_role: "admin" | "concierge" | "client" | "sub_client"
       department_type: "website" | "seo" | "google_ads" | "social_media"
       ticket_priority: "regular" | "urgent" | "emergency"
       ticket_status: "open" | "in_progress" | "completed" | "emergency" | "void"
@@ -2794,7 +2870,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "concierge", "client"],
+      app_role: ["admin", "concierge", "client", "sub_client"],
       department_type: ["website", "seo", "google_ads", "social_media"],
       ticket_priority: ["regular", "urgent", "emergency"],
       ticket_status: ["open", "in_progress", "completed", "emergency", "void"],
