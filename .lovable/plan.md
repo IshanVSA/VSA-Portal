@@ -1,60 +1,93 @@
-## Goal
+# Production Reset — Clear All Test Data
 
-Make the **Content Pipeline Funnel** in the Social Overview (Admin + Concierge views) reflect the real SM2 monthly-batch workflow, counting calendars (one per target month) instead of legacy `content_requests` rows. Replace the unused "Client Selected" and "Final Approved" stages with more useful ops metrics.
+You're going live with real clients. This plan wipes every piece of test/operational data while keeping the foundation intact so new clients arrive at a clean slate.
 
-## Current problem
+## What WILL be deleted (cleared to zero)
 
-- The funnel queries the legacy `content_requests` table with stages `generated → concierge_preferred → admin_approved → client_selected → final_approved`. That table is no longer the source of truth for SM2 calendars, so all five buckets stay at `0`.
-- "Client Selected" / "Final Approved" don't map to anything in the SM2 v2.1 lifecycle and add noise.
+**Tickets & related**
 
-## New funnel — 5 stages
+- `department_tickets`, `department_ticket_assignments`, `ticket_assignees`, `ticket_audit_log`
 
-Counts come from the `sm2_generations` table, scoped to the selected clinic. Each row = one monthly calendar (target month).
+**Social media content (SM2)**
 
-| # | Stage | Source filter (sm2_generations) | Meaning |
-|---|---|---|---|
-| 1 | **Generated** | `approval_status = 'pending'` AND `sent_to_client_at IS NULL` | Calendar produced by SM2, not yet sent to client. Admin/concierge has it for internal review. |
-| 2 | **Under Review** | `sent_to_client_at IS NOT NULL` AND `approval_status IN ('sent_for_copy_review','sent_for_final_review')` | Sent to client, awaiting their copy or final review. Matches the "Awaiting Your Review" badge logic on the client side. |
-| 3 | **Approved** | `approval_status IN ('copy_approved','approved_client')` | Client signed off on a round (copy or final). Removed from "Under Review" automatically because status changes. |
-| 4 | **Changes Requested** *(new — replaces "Client Selected")* | `approval_status IN ('copy_changes_requested','final_changes_requested')` | Client kicked it back; needs concierge action. High-signal ops metric. |
-| 5 | **Failed / Blocked** *(new — replaces "Final Approved")* | `approval_status IN ('generation_failed','retrying')` OR `failure_reason IS NOT NULL AND approval_status NOT IN ('approved_client','copy_approved')` | Pipeline issues that need engineering/concierge intervention. |
+- `sm2_generations`, `sm2_posts`, `sm2_post_performance`
+- `content_posts`, `content_requests`, `content_versions`, `content_calendar`
+- `post_activity_log`, `post_comments`, `post_workflow`
+- `calendar_submissions`, `compliance_override_log`
 
-Notes:
-- A single row moves between stages over its lifetime — counts are mutually exclusive at any moment, so when a batch flips from `sent_for_copy_review` to `copy_approved`, "Under Review" decreases and "Approved" increases automatically (matches the user's request).
-- Counting is by **calendar** (sm2_generations row). If the user generates for April and May, that's 2 in "Generated", exactly as requested.
+**Brand DNA & monthly planning**
 
-## Scope: which screens change
+- `clinic_brand_dna` (full reset — every clinic re-does DNA collection)
+- `clinic_monthly_signals`, `clinic_promotions`
 
-1. **`src/components/social/overview/AdminSocialOverview.tsx`** — replace the existing pipeline data fetch + `STAGE_ORDER`.
-2. **`src/components/social/overview/ConciergeSocialOverview.tsx`** — currently has no funnel; add the same `<PipelineFunnel>` card so concierges see it too (the user explicitly asked for both).
+**GBP (Google Business Profile)**
 
-Client overview is not changed (it already has a different "Awaiting Your Review" KPI).
+- `gbp_post_history`, `gbp_recent_content`, `gbp_compliance_scans`,
+- `clinic_gbp_config` will be cleared (clinics re-sync from DNA)
 
-## Implementation details
+**Blogs**
 
-### AdminSocialOverview.tsx
-- Replace `STAGE_ORDER` with the 5 new stages above (keep colors: blue, amber, primary, violet, destructive).
-- Replace the `content_requests` query in the `Promise.all` block with a single `sm2_generations` query selecting `approval_status, sent_to_client_at, failure_reason` for the clinic.
-- Aggregate counts in JS by mapping each row to one bucket using the rules above (priority order: Failed > Changes Requested > Approved > Under Review > Generated, so a row only lands in one bucket).
-- Update the "Pipeline Health" KPI card: change `conversionPct` to `Approved / (Generated + Under Review + Approved + Changes Requested)` so it reflects the new model.
-- Click handler on funnel still routes to the `generation` tab.
+- `blog_posts`, `blog_client_submissions`, `blog_tracker`
+- &nbsp;
 
-### ConciergeSocialOverview.tsx
-- Add a new state `pipelineStages` and the same fetch/aggregation logic.
-- Insert a `<Card>` containing `<PipelineFunnel>` as a new row between "Quick Actions" (Row 2) and "Review Queue + Hard Gates" (Row 3). Reuse the same header style (`Workflow` icon, "Content Pipeline Funnel" title).
-- Click handler routes to `generation` tab.
+**Notifications & chat**
 
-### PipelineFunnel.tsx
-- No structural changes needed. The grid is already `sm:grid-cols-5` which fits 5 stages.
+- `department_chats`, `department_chat_reads`
+- Notification "read" state lives in browser localStorage per user — it auto-clears as soon as the underlying records (tickets/posts/sm2) are deleted, so the bell will be empty.
 
-## Out of scope
+**Client journey**
 
-- No DB migration — reading existing `sm2_generations` columns only.
-- No changes to client overview, generation tab, or the underlying SM2 worker.
+- `client_journey_steps` (clinics re-progress through onboarding from step 1)
 
-## Validation
+**Misc operational state**
 
-After implementation, on `/social?tab=overview` for a clinic with SM2 generations:
-- Counts should be non-zero where the data exists.
-- Approving a batch in "My Posts" → reload overview → that batch moves out of "Under Review" into "Approved".
-- Generating a new month creates +1 in "Generated".
+- `oauth_temp_tokens`, `cron_heartbeats`
+
+## What WILL be preserved
+
+- `clinics` — all clinic records stay
+- `profiles`, `user_roles`, `client_sub_accounts`, `sub_account_clinics` — all users/logins stay
+- `clinic_team_members`, `department_members` — staff assignments stay
+- `clinic_api_credentials` — Meta/Google Ads/GA4 connections stay
+- `terms_acceptance_log`, `terms_decline_log`, `terms_versions` — legal records preserved
+- `sm2_system_prompts`, `blog_prompt_versions`, `gbp_topic_library`, `statutory_holidays_reference` — reference data preserved
+
+## Execution
+
+A single SQL migration, ordered to respect foreign keys (children first, parents last). Each statement is a `DELETE` with a safe `WHERE` clause (no `TRUNCATE`, so RLS-protected tables and triggers behave correctly).
+
+Order:
+
+```text
+1. ticket_audit_log, ticket_assignees, department_ticket_assignments
+2. department_tickets
+3. post_activity_log, post_comments, post_workflow
+4. content_calendar, content_versions
+5. content_posts, content_requests
+6. sm2_post_performance, sm2_posts, sm2_generations
+7. compliance_override_log, calendar_submissions
+8. gbp_compliance_scans, gbp_post_history, gbp_recent_content, gbp_batches
+9. geo_clusters, clinic_gbp_config
+10. clinic_brand_dna, clinic_monthly_signals, clinic_promotions
+11. blog_client_submissions, blog_posts, blog_tracker
+12. analytics, seo_analytics, website_pageviews, pagespeed_scores
+13. department_chat_reads, department_chats
+14. client_journey_steps
+15. oauth_temp_tokens, cron_heartbeats
+```
+
+## After reset
+
+- All clinics will appear with zero tickets, zero content, zero analytics
+- Each clinic's onboarding journey resets to step 1
+- Brand DNA must be re-collected per clinic before SM2 generation unlocks
+- Notification bell becomes empty for all users
+- Logged-in users stay logged in (auth not touched)
+
+## Important notes
+
+- This is **irreversible**. Once executed there is no built-in undo.
+- It does NOT delete clinics or users. If you also want to remove specific test clinics or test user accounts, tell me which ones and I'll add that to the migration.
+- Storage files (deliverables in `department-files` bucket) are NOT touched by SQL. If you want those purged too, say so and I'll add a cleanup step.
+
+Approve to proceed.
