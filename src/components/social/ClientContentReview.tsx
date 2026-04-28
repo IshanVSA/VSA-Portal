@@ -87,16 +87,17 @@ export default function ClientContentReview({ clinicId }: Props) {
   };
 
   const handleSubmitFeedback = () => {
-    if (!feedbackGen || !feedbackText.trim()) return;
+    if (!feedbackGen) return;
+    const note = feedbackText.trim() || "Per-post changes requested. See post comments.";
     if (isCopyRound(feedbackGen)) {
       requestCopyChanges.mutate({
         generationId: feedbackGen.id,
-        feedback: feedbackText.trim(),
+        feedback: note,
       });
     } else if (isFinalRound(feedbackGen)) {
       requestFinalChanges.mutate({
         generationId: feedbackGen.id,
-        feedback: feedbackText.trim(),
+        feedback: note,
       });
     }
     setFeedbackGen(null);
