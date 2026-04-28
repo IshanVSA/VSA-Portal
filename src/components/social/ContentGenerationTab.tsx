@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSM2Generation, STAGE_LABELS, nextStageLabel } from "@/hooks/useSM2Generation";
 import { formatDistanceToNow } from "date-fns";
 import { useMonthlySignals } from "@/hooks/useMonthlySignals";
