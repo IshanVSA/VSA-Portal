@@ -10,11 +10,11 @@ import { useUserRole } from "./useUserRole";
  */
 export function useFinancialsVisible(): { visible: boolean; isLoading: boolean } {
   const { user } = useAuth();
-  const { role, isLoading: roleLoading } = useUserRole();
+  const { isSubAccount, isLoading: roleLoading } = useUserRole();
 
   const { data, isLoading } = useQuery({
     queryKey: ["sub-account-hide-financials", user?.id],
-    enabled: !!user && role === "sub_client",
+    enabled: !!user && isSubAccount,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data } = await (supabase
@@ -27,6 +27,6 @@ export function useFinancialsVisible(): { visible: boolean; isLoading: boolean }
   });
 
   if (roleLoading) return { visible: true, isLoading: true };
-  if (role !== "sub_client") return { visible: true, isLoading: false };
+  if (!isSubAccount) return { visible: true, isLoading: false };
   return { visible: !data, isLoading };
 }
