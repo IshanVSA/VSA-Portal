@@ -387,14 +387,14 @@ async function runOneStage(supabase: any, job: any): Promise<{ done: boolean; st
   switch (stageToRun) {
     case "research": {
       const r = await callAgent(AGENT_RESEARCHER,
-        `Clinic: ${clinic.clinic_name}\nLocation: ${gbpConfig?.city || ""}, ${gbpConfig?.state_or_province || ""}\nMonth: ${month_year}\nSpecies: ${JSON.stringify(gbpConfig?.species_treated || ["Dogs","Cats"])}`,
+        `Clinic: ${clinic.clinic_name}\nLocation: ${gbpConfig?.city || ""}, ${gbpConfig?.state_or_province || ""}\nMonth: ${month_year}\nSpecies: ${JSON.stringify(gbpConfig?.species_treated || ["Dogs","Cats"])}${recentContentBlock}`,
         3000, "Researcher");
       stageOutput = r.parsed; tokens = r.tokens;
       break;
     }
     case "plan": {
       const r = await callAgent(AGENT_PLANNER,
-        `${dnaPayload}\n\n=== TREND REPORT ===\n${JSON.stringify(data.research, null, 2)}`,
+        `${dnaPayload}\n\n=== TREND REPORT ===\n${JSON.stringify(data.research, null, 2)}${recentContentBlock}`,
         4000, "Planner");
       stageOutput = r.parsed; tokens = r.tokens;
       break;
@@ -403,7 +403,7 @@ async function runOneStage(supabase: any, job: any): Promise<{ done: boolean; st
       // 16000 tokens: 10 posts × ~1.5KB JSON each (caption + hashtags + hooks + alt_text + stories_hook)
       // Previously 4000 caused JSON truncation, leaving captions/hashtags empty in sm2_posts.
       const r = await callAgent(AGENT_WRITER,
-        `${dnaPayload}\n\n=== CONTENT PLAN ===\n${JSON.stringify(data.plan, null, 2)}`,
+        `${dnaPayload}\n\n=== CONTENT PLAN ===\n${JSON.stringify(data.plan, null, 2)}${recentContentBlock}`,
         16000, "Writer");
       stageOutput = r.parsed; tokens = r.tokens;
       break;
