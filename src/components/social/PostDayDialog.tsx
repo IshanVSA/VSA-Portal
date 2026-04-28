@@ -543,10 +543,20 @@ function PostCard({
           )}
           {!isClient && post.client_feedback && (
             <div className="pt-2 border-t">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold flex items-center gap-1">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold flex items-center gap-1.5">
                 <MessageSquare className="h-3 w-3" /> Client Notes
+                {noteIsNewForStaff && (
+                  <Badge className="text-[9px] px-1.5 py-0 h-4 bg-orange-500 text-white border-0 animate-pulse">
+                    NEW
+                  </Badge>
+                )}
               </p>
-              <p className="text-sm bg-amber-500/10 border border-amber-500/30 rounded p-2 mt-1">
+              <p className={cn(
+                "text-sm rounded p-2 mt-1 border",
+                noteIsNewForStaff
+                  ? "bg-orange-500/10 border-orange-500/40"
+                  : "bg-amber-500/10 border-amber-500/30"
+              )}>
                 {post.client_feedback}
               </p>
             </div>
