@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatsCard } from "@/components/StatsCard";
 import {
   Inbox, Clock, Ticket, CalendarDays, ShieldAlert, BarChart3, ListChecks, Plus,
-  Sparkles, ArrowRight, Dna, CheckCircle2, AlertTriangle,
+  Sparkles, ArrowRight, Dna, CheckCircle2, AlertTriangle, Workflow,
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { format, subDays, startOfDay, formatDistanceToNow, addDays } from "date-fns";
@@ -17,6 +17,25 @@ import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { BulkUploadsDialog } from "@/components/department/BulkUploadsDialog";
 import { HardGatesStatus, type GateStat } from "./shared/HardGatesStatus";
 import { DNAScoreRing } from "./shared/DNAScoreRing";
+import { PipelineFunnel, type PipelineStage } from "./shared/PipelineFunnel";
+
+const STAGE_ORDER: { key: string; label: string; color: string }[] = [
+  { key: "generated", label: "Generated", color: "bg-blue-500" },
+  { key: "under_review", label: "Under Review", color: "bg-amber-500" },
+  { key: "approved", label: "Approved", color: "bg-primary" },
+  { key: "changes_requested", label: "Changes Requested", color: "bg-violet-500" },
+  { key: "failed", label: "Failed / Blocked", color: "bg-destructive" },
+];
+
+function bucketForSm2Row(row: { approval_status?: string | null; sent_to_client_at?: string | null; failure_reason?: string | null }): string | null {
+  const s = row.approval_status || "";
+  if (s === "generation_failed" || s === "retrying") return "failed";
+  if (s === "copy_changes_requested" || s === "final_changes_requested") return "changes_requested";
+  if (s === "copy_approved" || s === "approved_client") return "approved";
+  if (row.sent_to_client_at && (s === "sent_for_copy_review" || s === "sent_for_final_review")) return "under_review";
+  if (s === "pending" && !row.sent_to_client_at) return "generated";
+  return null;
+}
 
 interface ConciergeSocialOverviewProps {
   clinicId?: string;
@@ -45,6 +64,7 @@ export function ConciergeSocialOverview({ clinicId }: ConciergeSocialOverviewPro
   const [ticketSummary, setTicketSummary] = useState({ open: 0, inProgress: 0, completed: 0, emergency: 0 });
   const [dnaScore, setDnaScore] = useState(0);
   const [dnaActivated, setDnaActivated] = useState(false);
+  const [pipelineStages, setPipelineStages] = useState<PipelineStage[]>([]);
 
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
   const [bulkUploadsOpen, setBulkUploadsOpen] = useState(false);
@@ -67,7 +87,7 @@ export function ConciergeSocialOverview({ clinicId }: ConciergeSocialOverviewPro
         supabase.from("department_tickets").select("status, assigned_to").eq("department", "social_media" as any).eq("clinic_id", clinicId),
         supabase.from("content_posts").select("*", { count: "exact", head: true }).eq("clinic_id", clinicId).gte("scheduled_date", weekStart).lte("scheduled_date", weekEnd),
         supabase.from("content_requests").select("id, created_at, status, intake_data").eq("clinic_id", clinicId).in("status", ["generated", "concierge_preferred"]).order("created_at", { ascending: false }).limit(5),
-        supabase.from("sm2_generations").select("pipeline_data").eq("clinic_id", clinicId).order("created_at", { ascending: false }).limit(20),
+        supabase.from("sm2_generations").select("pipeline_data, approval_status, sent_to_client_at, failure_reason").eq("clinic_id", clinicId).order("created_at", { ascending: false }).limit(50),
         (async () => {
           const days = Array.from({ length: 7 }, (_, i) => format(startOfDay(subDays(new Date(), 6 - i)), "yyyy-MM-dd"));
           const r = await supabase.from("content_posts").select("scheduled_date").eq("clinic_id", clinicId).gte("scheduled_date", days[0]).lte("scheduled_date", days[6]);
@@ -77,6 +97,14 @@ export function ConciergeSocialOverview({ clinicId }: ConciergeSocialOverviewPro
       ]);
 
       setPendingReview(reviewRes.count || 0);
+
+      // Pipeline funnel from sm2_generations
+      const summary: Record<string, number> = { generated: 0, under_review: 0, approved: 0, changes_requested: 0, failed: 0 };
+      (sm2Res.data || []).forEach((row: any) => {
+        const b = bucketForSm2Row(row);
+        if (b) summary[b]++;
+      });
+      setPipelineStages(STAGE_ORDER.map((s) => ({ ...s, count: summary[s.key] || 0 })));
 
       const awaitingList = (awaitingRes.data || []).filter((r: any) => r.auto_approve_at);
       const next = awaitingList
@@ -209,6 +237,19 @@ export function ConciergeSocialOverview({ clinicId }: ConciergeSocialOverviewPro
         clinicId={clinicId}
       />
       <BulkUploadsDialog open={bulkUploadsOpen} onOpenChange={setBulkUploadsOpen} department="social_media" />
+
+      {/* Row 2.5 — Content Pipeline Funnel */}
+      <Card className="overflow-hidden animate-fade-in" style={{ animationDelay: "180ms", animationFillMode: "both" }}>
+        <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Workflow className="h-4 w-4 text-primary" />
+            Content Pipeline Funnel
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <PipelineFunnel stages={pipelineStages} onStageClick={() => goTab("generation")} />
+        </CardContent>
+      </Card>
 
       {/* Row 3 — Review Queue + Hard Gates Alerts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

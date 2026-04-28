@@ -1,83 +1,60 @@
 ## Goal
 
-Let **clients** create and manage **sub-accounts** (employees) under their own login. Each sub-account:
-- Inherits client-level access, but only to the **clinics the parent client explicitly assigns**.
-- Has a **"Hide financials"** toggle that hides spend / cost / CPC / budget data across the app.
+Make the **Content Pipeline Funnel** in the Social Overview (Admin + Concierge views) reflect the real SM2 monthly-batch workflow, counting calendars (one per target month) instead of legacy `content_requests` rows. Replace the unused "Client Selected" and "Final Approved" stages with more useful ops metrics.
 
-Admins and concierges are unaffected.
+## Current problem
 
-## Data model (one migration)
+- The funnel queries the legacy `content_requests` table with stages `generated → concierge_preferred → admin_approved → client_selected → final_approved`. That table is no longer the source of truth for SM2 calendars, so all five buckets stay at `0`.
+- "Client Selected" / "Final Approved" don't map to anything in the SM2 v2.1 lifecycle and add noise.
 
-### New table `public.client_sub_accounts`
-- `id uuid pk`
-- `parent_user_id uuid not null` — the client (owner) who created the sub-account
-- `sub_user_id uuid not null unique` — the auth user created for the employee
-- `hide_financials boolean not null default false`
-- `created_at`, `updated_at`
+## New funnel — 5 stages
 
-### New table `public.sub_account_clinics`
-- `id uuid pk`
-- `sub_account_id uuid not null references client_sub_accounts(id) on delete cascade`
-- `clinic_id uuid not null`
-- `unique (sub_account_id, clinic_id)`
+Counts come from the `sm2_generations` table, scoped to the selected clinic. Each row = one monthly calendar (target month).
 
-### New `app_role` enum value
-- Add `'sub_client'` to `public.app_role` so we can distinguish them from full clients.
+| # | Stage | Source filter (sm2_generations) | Meaning |
+|---|---|---|---|
+| 1 | **Generated** | `approval_status = 'pending'` AND `sent_to_client_at IS NULL` | Calendar produced by SM2, not yet sent to client. Admin/concierge has it for internal review. |
+| 2 | **Under Review** | `sent_to_client_at IS NOT NULL` AND `approval_status IN ('sent_for_copy_review','sent_for_final_review')` | Sent to client, awaiting their copy or final review. Matches the "Awaiting Your Review" badge logic on the client side. |
+| 3 | **Approved** | `approval_status IN ('copy_approved','approved_client')` | Client signed off on a round (copy or final). Removed from "Under Review" automatically because status changes. |
+| 4 | **Changes Requested** *(new — replaces "Client Selected")* | `approval_status IN ('copy_changes_requested','final_changes_requested')` | Client kicked it back; needs concierge action. High-signal ops metric. |
+| 5 | **Failed / Blocked** *(new — replaces "Final Approved")* | `approval_status IN ('generation_failed','retrying')` OR `failure_reason IS NOT NULL AND approval_status NOT IN ('approved_client','copy_approved')` | Pipeline issues that need engineering/concierge intervention. |
 
-### RLS / helper functions
-- `public.is_sub_account(_user_id uuid) returns boolean` — security definer.
-- `public.get_sub_account_clinic_ids(_user_id uuid) returns setof uuid` — returns clinics assigned to the sub-account's row.
-- `public.sub_account_hides_financials(_user_id uuid) returns boolean`.
-- `public.get_accessible_clinic_ids(_user_id uuid) returns setof uuid` — unifies: client owns clinics, OR sub-account is assigned clinics. Used by all "client-scoped" RLS that currently checks `owner_user_id = auth.uid()`.
-- Update key RLS policies on `clinics`, `analytics`, `content_posts`, `department_tickets`, `sm2_*`, etc. that previously used `owner_user_id = auth.uid()` to also accept `clinic_id IN (SELECT public.get_accessible_clinic_ids(auth.uid()))`. (Same set of tables already enumerated for clients today.)
-- `client_sub_accounts` policies: parent client can manage own rows; sub-account can read its own row.
-- `sub_account_clinics` policies: parent client can manage rows belonging to their sub-accounts; sub-account can read its own assignments.
+Notes:
+- A single row moves between stages over its lifetime — counts are mutually exclusive at any moment, so when a batch flips from `sent_for_copy_review` to `copy_approved`, "Under Review" decreases and "Approved" increases automatically (matches the user's request).
+- Counting is by **calendar** (sm2_generations row). If the user generates for April and May, that's 2 in "Generated", exactly as requested.
 
-## Backend (edge functions)
+## Scope: which screens change
 
-### New `create-sub-account`
-- Auth required; caller must have role `client`.
-- Validates email, password ≥ 8, full_name, `clinic_ids[]` (must be subset of caller's owned clinics), `hide_financials` boolean.
-- Creates auth user via service role, sets profile, sets `user_roles.role = 'sub_client'`, inserts `client_sub_accounts` row + `sub_account_clinics` rows. Sends Zoho welcome email (reusing existing helper).
+1. **`src/components/social/overview/AdminSocialOverview.tsx`** — replace the existing pipeline data fetch + `STAGE_ORDER`.
+2. **`src/components/social/overview/ConciergeSocialOverview.tsx`** — currently has no funnel; add the same `<PipelineFunnel>` card so concierges see it too (the user explicitly asked for both).
 
-### New `delete-sub-account`
-- Caller must own the sub-account (`parent_user_id = caller`). Removes auth user + cascades.
+Client overview is not changed (it already has a different "Awaiting Your Review" KPI).
 
-### Update `useClinicSelector`
-- Replaces the current direct `select * from clinics` with a query that, for `sub_client` role, joins through `sub_account_clinics`. Easiest path: rely on RLS — `select` already returns only the visible clinics. The new RLS for `clinics` will filter automatically.
+## Implementation details
 
-## Frontend
+### AdminSocialOverview.tsx
+- Replace `STAGE_ORDER` with the 5 new stages above (keep colors: blue, amber, primary, violet, destructive).
+- Replace the `content_requests` query in the `Promise.all` block with a single `sm2_generations` query selecting `approval_status, sent_to_client_at, failure_reason` for the clinic.
+- Aggregate counts in JS by mapping each row to one bucket using the rules above (priority order: Failed > Changes Requested > Approved > Under Review > Generated, so a row only lands in one bucket).
+- Update the "Pipeline Health" KPI card: change `conversionPct` to `Approved / (Generated + Under Review + Approved + Changes Requested)` so it reflects the new model.
+- Click handler on funnel still routes to the `generation` tab.
 
-### New page: **Sub Accounts** (clients only)
-- Route `/sub-accounts`, sidebar entry visible only when `role === 'client'`.
-- Lists existing sub-accounts: name, email, assigned clinics (chips), "Financials hidden" badge, edit / delete.
-- "Add Sub-Account" dialog:
-  - Full name, email, password (with strength hint, ≥8 chars).
-  - Multi-select chips: only the parent client's clinics.
-  - Toggle: "Hide financial data (spend, CPC, budgets)".
-- "Edit Sub-Account" dialog: re-assign clinics, toggle financials. (Password reset = "Send reset email" button.)
-- Custom AlertDialog for delete (per project standard).
+### ConciergeSocialOverview.tsx
+- Add a new state `pipelineStages` and the same fetch/aggregation logic.
+- Insert a `<Card>` containing `<PipelineFunnel>` as a new row between "Quick Actions" (Row 2) and "Review Queue + Hard Gates" (Row 3). Reuse the same header style (`Workflow` icon, "Content Pipeline Funnel" title).
+- Click handler routes to `generation` tab.
 
-### Role / access wiring
-- Extend `AppRole` union in `useUserRole.ts` to include `'sub_client'`.
-- Add `useFinancialsVisible()` hook that returns `true` for admin/concierge/client and reads `client_sub_accounts.hide_financials` for sub-accounts (cached via react-query).
-- ProtectedRoute & sidebar: treat `sub_client` like `client` for everything except the Sub-Accounts page itself (sub-accounts cannot create more sub-accounts).
-
-### Hiding financial content when `hide_financials = true`
-Wrap the following with `useFinancialsVisible()`:
-- Google Ads Analytics tab: hide **Total Spend** KPI, **Avg. CPC** KPI, **Daily Ad Spend** chart, "Cost" + "CPC" columns in Campaigns and Search Terms tables.
-- Google Ads Overview KPIs in `GoogleAdsDepartment.tsx` (Ad Spend, Avg. CPC).
-- Google Ads PDF Reports (`GoogleAdsReportsTab`) — strip cost/CPC columns when generating.
-- Any social media "Boost / Ads recommendation" cost mentions (Performance Intelligence card).
-- Promotions section pricing fields if present.
-
-Empty-state placeholder where a card is hidden: the row simply collapses (no "redacted" boxes — cleaner UX).
-
-## Edge cases
-- A sub-account losing access to all clinics → still logs in but sees an empty-state ("No clinics assigned. Contact your account owner.").
-- Parent client deletes their account → cascade deletes `client_sub_accounts` rows; orphaned sub-account auth users are deleted by `delete-sub-account` style cleanup invoked from the existing user-delete flow. (Add to `delete-user` edge function.)
-- Existing migration `delete_clinic_by_id` does not need changes — sub-account assignments cascade via FK on `sub_account_clinics.sub_account_id`. We'll also add `ON DELETE CASCADE` on `clinic_id` via a manual cleanup statement (FK to clinics).
+### PipelineFunnel.tsx
+- No structural changes needed. The grid is already `sm:grid-cols-5` which fits 5 stages.
 
 ## Out of scope
-- Granular per-feature permissions beyond the financials toggle (can be added later as additional booleans on `client_sub_accounts`).
-- Sub-accounts creating sub-accounts.
+
+- No DB migration — reading existing `sm2_generations` columns only.
+- No changes to client overview, generation tab, or the underlying SM2 worker.
+
+## Validation
+
+After implementation, on `/social?tab=overview` for a clinic with SM2 generations:
+- Counts should be non-zero where the data exists.
+- Approving a batch in "My Posts" → reload overview → that batch moves out of "Under Review" into "Approved".
+- Generating a new month creates +1 in "Generated".
