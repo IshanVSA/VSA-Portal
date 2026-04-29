@@ -191,20 +191,42 @@ export function NotificationBell() {
         };
       });
 
+      const isClient = role === "client";
+
       const { data: ticketData } = await supabase
         .from("department_tickets")
-        .select("id, title, department, priority, created_at, clinic_id")
-        .order("created_at", { ascending: false })
-        .limit(10);
+        .select("id, title, department, priority, status, created_at, updated_at, clinic_id")
+        .order("updated_at", { ascending: false })
+        .limit(15);
 
-      const ticketNotifs: Notification[] = (ticketData || []).map((t: any) => ({
-        id: `ticket-${t.id}`, type: "ticket_created" as const,
-        title: "New Ticket",
-        message: `[${t.department}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
-        read: false, created_at: t.created_at,
-        link: buildTicketLink(t.department, t.clinic_id, t.id),
-        clinicId: t.clinic_id ?? null,
-      }));
+      const ticketNotifs: Notification[] = (ticketData || []).flatMap((t: any) => {
+        // Clients: only surface meaningful status changes (work done on their tickets),
+        // not raw "ticket created" events.
+        if (isClient) {
+          const label = TICKET_STATUS_LABELS_FOR_CLIENT[t.status];
+          if (!label) return [];
+          return [{
+            id: `ticket-status-${t.id}-${t.status}`,
+            type: "status_changed" as const,
+            title: label,
+            message: `[${t.department}] ${t.title}`,
+            read: false,
+            created_at: t.updated_at || t.created_at,
+            link: buildTicketLink(t.department, t.clinic_id, t.id),
+            clinicId: t.clinic_id ?? null,
+          }];
+        }
+        return [{
+          id: `ticket-${t.id}`,
+          type: "ticket_created" as const,
+          title: "New Ticket",
+          message: `[${t.department}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
+          read: false,
+          created_at: t.created_at,
+          link: buildTicketLink(t.department, t.clinic_id, t.id),
+          clinicId: t.clinic_id ?? null,
+        }];
+      });
 
       // SM2 generation notifications
       const { data: sm2Data } = await supabase
@@ -213,16 +235,19 @@ export function NotificationBell() {
         .order("updated_at", { ascending: false })
         .limit(10);
 
-      const sm2Notifs: Notification[] = (sm2Data || []).map((g: any) => ({
-        id: `sm2-${g.id}`,
-        type: mapSM2Status(g.approval_status),
-        title: sm2Title(g.approval_status),
-        message: `Social media content for ${g.month_year}`,
-        read: false,
-        created_at: g.updated_at || g.created_at,
-        link: buildSM2Link(g.clinic_id, role, g.approval_status),
-        clinicId: g.clinic_id ?? null,
-      }));
+      const sm2Notifs: Notification[] = (sm2Data || [])
+        // Clients only see "ready for review" and "approved/finalized" milestones
+        .filter((g: any) => !isClient || CLIENT_VISIBLE_SM2_STATUSES.has(g.approval_status))
+        .map((g: any) => ({
+          id: `sm2-${g.id}-${g.approval_status}`,
+          type: mapSM2Status(g.approval_status),
+          title: sm2Title(g.approval_status, isClient),
+          message: sm2Message(g.approval_status, g.month_year, isClient),
+          read: false,
+          created_at: g.updated_at || g.created_at,
+          link: buildSM2Link(g.clinic_id, role, g.approval_status),
+          clinicId: g.clinic_id ?? null,
+        }));
 
       // Client notes on SM2 posts (staff-only relevant)
       let noteNotifs: Notification[] = [];
