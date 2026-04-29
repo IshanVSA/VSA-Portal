@@ -61,10 +61,7 @@ export function ClientSocialOverview({ clinicId }: ClientSocialOverviewProps) {
       .then(({ data }) => { if (data?.full_name) setProfileName(data.full_name); });
   }, [user?.id]);
 
-  const firstName = profileName
-    || (user?.user_metadata as any)?.full_name
-    || user?.email?.split("@")[0]
-    || "there";
+  const displayName = resolveDisplayName(profileName, user);
 
   const goTab = (tab: string) =>
     setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", tab); return next; }, { replace: true });
