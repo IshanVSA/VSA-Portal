@@ -55,10 +55,20 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
   const [ticketAttachments, setTicketAttachments] = useState<TicketAttachment[]>([]);
   const [previewTicketAtt, setPreviewTicketAtt] = useState<TicketAttachment | null>(null);
 
-  const folder = `${department}/`;
+  // Scope uploads per clinic so files uploaded for one clinic don't appear in another.
+  // Falls back to the legacy department-only folder when no clinic is selected.
+  const listPath = clinicId ? `${department}/${clinicId}` : department;
+  const folder = `${listPath}/`;
 
   const fetchFiles = useCallback(async () => {
-    const { data, error } = await supabase.storage.from(BUCKET).list(department, {
+    setLoading(true);
+    setFiles([]);
+    if (!clinicId) {
+      // Without a selected clinic, don't show cross-clinic files.
+      setLoading(false);
+      return;
+    }
+    const { data, error } = await supabase.storage.from(BUCKET).list(listPath, {
       sortBy: { column: "created_at", order: "desc" },
     });
     if (error) {
@@ -67,7 +77,7 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
       return;
     }
     const filtered = (data || []).filter((f) => f.name !== ".emptyFolderPlaceholder");
-    
+
     // Generate signed URLs for private bucket
     const mapped: UploadedFile[] = [];
     for (const f of filtered) {
@@ -83,7 +93,7 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
     }
     setFiles(mapped);
     setLoading(false);
-  }, [department, folder]);
+  }, [listPath, folder, clinicId]);
 
   const fetchTicketAttachments = useCallback(async () => {
     const visibleTypes = getVisibleTicketTypes(department);
@@ -137,6 +147,10 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
 
   const handleUpload = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
+    if (!clinicId) {
+      toast.error("Select a clinic before uploading files");
+      return;
+    }
     setUploading(true);
     let successCount = 0;
     for (const file of Array.from(fileList)) {
@@ -237,8 +251,10 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
         <CardContent className="p-0">
           {loading ? (
             <div className="py-10 text-center text-muted-foreground text-sm">Loading...</div>
+          ) : !clinicId ? (
+            <div className="py-10 text-center text-muted-foreground text-sm">Select a clinic to view files</div>
           ) : files.length === 0 ? (
-            <div className="py-10 text-center text-muted-foreground text-sm">No files uploaded yet</div>
+            <div className="py-10 text-center text-muted-foreground text-sm">No files uploaded yet for this clinic</div>
           ) : (
             <ul className="divide-y divide-border/40">
               {files.map((file) => (
