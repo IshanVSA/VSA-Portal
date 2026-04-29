@@ -135,7 +135,7 @@ export function ClientSocialOverview({ clinicId }: ClientSocialOverviewProps) {
   }
 
   // ───────────── DNA Gate (replaces everything when score < 50) ─────────────
-  if (dnaScore < 50) {
+  if (dnaScore < 50 && !dnaCompleted) {
     return (
       <div className="space-y-6">
         <Card className="overflow-hidden border-amber-500/40 animate-fade-in">
