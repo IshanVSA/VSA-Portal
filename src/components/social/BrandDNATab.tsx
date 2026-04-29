@@ -28,6 +28,7 @@ const AdminDNAProfileCard = lazy(() => import("@/components/social/AdminDNAProfi
 const PromotionModule = lazy(() => import("@/components/social/PromotionModule"));
 const PostLimitTracker = lazy(() => import("@/components/social/PostLimitTracker"));
 const PostingSchedule = lazy(() => import("@/components/social/PostingSchedule"));
+import DNAJsonEditDialog from "@/components/social/DNAJsonEditDialog";
 
 const QUESTION_LABELS: Record<string, string> = {
   q1_differentiator: "Real Differentiator",
