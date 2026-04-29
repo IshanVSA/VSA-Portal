@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Search, Save } from "lucide-react";
+import { Search, Save, Undo2 } from "lucide-react";
 import type { GeoCluster, ClinicGBPConfig, HospitalType, Jurisdiction, ClusterPosition } from "@/lib/gbp/types";
 
 interface Props {
