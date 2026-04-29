@@ -382,7 +382,7 @@ export default function AdminDashboard() {
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-2">
             <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-              {userName ? `Welcome back, ${userName.split(" ")[0]}` : "Welcome back"}
+              {userName ? `Welcome back, ${formatDisplayName(userName)}` : "Welcome back"}
             </h1>
             <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
