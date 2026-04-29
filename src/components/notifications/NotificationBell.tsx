@@ -277,7 +277,7 @@ export function NotificationBell() {
           const numPart = p.post_number != null ? `Post #${p.post_number}` : "Post";
           const preview = fb.length > 80 ? fb.slice(0, 80) + "…" : fb;
           return {
-            id: `sm2-note-${p.id}-${p.updated_at || ""}`,
+            id: `sm2-note-${p.id}`,
             type: "client_note" as const,
             title: "New Client Notes",
             message: `${numPart}${datePart ? ` (${datePart})` : ""}: ${preview}`,
