@@ -142,7 +142,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ success: true, email }), {
+    const sentAt = new Date().toISOString();
+    await supabaseAdmin
+      .from("profiles")
+      .update({ welcome_email_sent_at: sentAt })
+      .eq("id", user_id);
+
+    return new Response(JSON.stringify({ success: true, email, welcome_email_sent_at: sentAt }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {

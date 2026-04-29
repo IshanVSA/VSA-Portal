@@ -16,7 +16,7 @@ import { Plus, Trash2, UserCheck, Mail, Loader2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
-interface Profile { id: string; full_name: string | null; email: string | null; }
+interface Profile { id: string; full_name: string | null; email: string | null; welcome_email_sent_at: string | null; }
 interface UserRole { user_id: string; role: string; }
 interface ClinicAssignment { user_id: string; clinic_names: string[]; }
 
@@ -32,7 +32,7 @@ export default function ClientsPage() {
 
   const fetchData = async () => {
     const [profilesRes, rolesRes, clinicsRes] = await Promise.all([
-      supabase.from("profiles").select("id, full_name, email"),
+      supabase.from("profiles").select("id, full_name, email, welcome_email_sent_at"),
       supabase.from("user_roles").select("user_id, role"),
       supabase.from("clinics").select("owner_user_id, clinic_name"),
     ]);
@@ -69,7 +69,27 @@ export default function ClientsPage() {
     const { data, error } = await supabase.functions.invoke("resend-welcome-email", { body: { user_id: userId } });
     setResendingId(null);
     if (error || data?.error) { toast.error(await extractEdgeFunctionError(error, data, "Failed to send welcome email")); return; }
-    toast.success(`Welcome email sent to ${name}`);
+    const sentAt = (data as any)?.welcome_email_sent_at as string | undefined;
+    toast.success(`Welcome email sent to ${name}${sentAt ? ` at ${new Date(sentAt).toLocaleString()}` : ""}`);
+    if (sentAt) {
+      setProfiles((prev) => prev.map((p) => (p.id === userId ? { ...p, welcome_email_sent_at: sentAt } : p)));
+    } else {
+      await fetchData();
+    }
+  };
+
+  const formatSentAt = (iso: string | null) => {
+    if (!iso) return null;
+    const d = new Date(iso);
+    const diffMs = Date.now() - d.getTime();
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return `${days}d ago`;
+    return d.toLocaleDateString();
   };
 
   const confirmDelete = async () => {
@@ -153,6 +173,7 @@ export default function ClientsPage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Clinics</TableHead>
+                  <TableHead>Welcome Email</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -169,6 +190,22 @@ export default function ClientsPage() {
                             {assignedClinics.map((name, i) => (<Badge key={i} variant="secondary" className="text-[11px] rounded-full">{name}</Badge>))}
                           </div>
                         ) : (<span className="text-muted-foreground text-xs italic">None</span>)}
+                      </TableCell>
+                      <TableCell>
+                        {p.welcome_email_sent_at ? (
+                          <TooltipProvider delayDuration={200}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge variant="secondary" className="text-[11px] rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20">
+                                  Sent · {formatSentAt(p.welcome_email_sent_at)}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent side="right">{new Date(p.welcome_email_sent_at).toLocaleString()}</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : (
+                          <Badge variant="outline" className="text-[11px] rounded-full text-muted-foreground">Never sent</Badge>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <TooltipProvider delayDuration={200}>

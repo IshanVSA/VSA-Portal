@@ -206,6 +206,11 @@ Deno.serve(async (req) => {
 
     if (!emailResult.ok) {
       console.error("Welcome email failed:", emailResult.error);
+    } else {
+      await supabaseAdmin
+        .from("profiles")
+        .update({ welcome_email_sent_at: new Date().toISOString() })
+        .eq("id", newUser.user.id);
     }
 
     return new Response(JSON.stringify({ id: newUser.user.id, email_sent: emailResult.ok && !emailResult.skipped }), {
