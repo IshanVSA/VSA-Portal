@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useGeoClusters, useClinicGBPConfigs } from "@/hooks/useGeoClusters";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +16,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, ChevronDown, ChevronRight, Pencil, Trash2, MapPin, Settings2, Users } from "lucide-react";
+import { Plus, ChevronDown, ChevronRight, Pencil, Trash2, MapPin, Settings2, Users, RefreshCw } from "lucide-react";
 import { ClinicGBPConfigForm } from "./ClinicGBPConfigForm";
 import type { GeoCluster, ClusterPosition, TopicVariant } from "@/lib/gbp/types";
 import { getHookStyleForPosition } from "@/lib/gbp/hookRotation";
@@ -31,6 +31,24 @@ export function ClusterManager() {
   const [editingCluster, setEditingCluster] = useState<Partial<GeoCluster> | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [showConfigSection, setShowConfigSection] = useState(false);
+  const [rebuilding, setRebuilding] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleRebuild = async () => {
+    setRebuilding(true);
+    try {
+      const { error } = await supabase.rpc("rebuild_geo_clusters" as any);
+      if (error) throw error;
+      toast.success("Clusters and batches rebuilt from clinic addresses");
+      queryClient.invalidateQueries({ queryKey: ["geo-clusters"] });
+      queryClient.invalidateQueries({ queryKey: ["clinic-gbp-configs"] });
+      queryClient.invalidateQueries({ queryKey: ["gbp-batches"] });
+    } catch (e: any) {
+      toast.error(e.message || "Failed to rebuild clusters");
+    } finally {
+      setRebuilding(false);
+    }
+  };
 
   // Fetch all clinics for reference
   const { data: allClinics = [] } = useQuery({
@@ -98,9 +116,15 @@ export function ClusterManager() {
           <Badge variant="secondary" className="text-xs">{clusters.length} clusters</Badge>
         </div>
         {isAdmin && (
-          <Button size="sm" className="gap-1.5 text-xs" onClick={() => { setEditingCluster({ cluster_id: "", region: "", clinics: [], is_solo: false }); setEditDialogOpen(true); }}>
-            <Plus className="h-3 w-3" /> Add Cluster
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={handleRebuild} disabled={rebuilding}>
+              <RefreshCw className={`h-3 w-3 ${rebuilding ? "animate-spin" : ""}`} />
+              {rebuilding ? "Rebuilding..." : "Auto-Rebuild from Addresses"}
+            </Button>
+            <Button size="sm" className="gap-1.5 text-xs" onClick={() => { setEditingCluster({ cluster_id: "", region: "", clinics: [], is_solo: false }); setEditDialogOpen(true); }}>
+              <Plus className="h-3 w-3" /> Add Cluster
+            </Button>
+          </div>
         )}
       </div>
 

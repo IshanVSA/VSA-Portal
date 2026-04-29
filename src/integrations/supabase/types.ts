@@ -2702,6 +2702,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _rebuild_gbp_batches_from_clusters: { Args: never; Returns: undefined }
       can_manage_clinic_logo: {
         Args: { _clinic_id: string; _user_id: string }
         Returns: boolean
@@ -2711,6 +2712,7 @@ export type Database = {
         Returns: Database["public"]["Enums"]["ticket_status"]
       }
       delete_clinic_by_id: { Args: { _clinic_id: string }; Returns: undefined }
+      extract_city_from_address: { Args: { _address: string }; Returns: string }
       get_accessible_clinic_ids: {
         Args: { _user_id: string }
         Returns: string[]
@@ -2783,10 +2785,12 @@ export type Database = {
         Args: { _clinic_id: string; _month: number; _province: string }
         Returns: undefined
       }
+      rebuild_geo_clusters: { Args: never; Returns: undefined }
       record_cron_heartbeat: {
         Args: { _error?: string; _job_name: string; _status?: string }
         Returns: undefined
       }
+      slugify_city: { Args: { _city: string }; Returns: string }
       sub_account_hides_financials: {
         Args: { _user_id: string }
         Returns: boolean
