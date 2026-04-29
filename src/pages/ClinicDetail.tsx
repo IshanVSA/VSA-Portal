@@ -781,40 +781,44 @@ export default function ClinicDetail() {
                 connectedAt={creds.gbp_connected_at}
                 onRefresh={() => { fetchCredentials(); }}
               />
-              <TrackingSetupCard clinicId={id!} />
+              {isDebraj && <TrackingSetupCard clinicId={id!} />}
 
               {/* Website URL Card */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Globe className="h-4 w-4 text-primary" />
-                    Website URL
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <WebsiteUrlField
-                    clinicId={id!}
-                    currentUrl={clinic?.website || ""}
-                    onSaved={(url) => setClinic((prev) => prev ? { ...prev, website: url } : prev)}
-                  />
-                </CardContent>
-              </Card>
+              {isDebraj && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Globe className="h-4 w-4 text-primary" />
+                      Website URL
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <WebsiteUrlField
+                      clinicId={id!}
+                      currentUrl={clinic?.website || ""}
+                      onSaved={(url) => setClinic((prev) => prev ? { ...prev, website: url } : prev)}
+                    />
+                  </CardContent>
+                </Card>
+              )}
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Globe className="h-4 w-4 text-primary" />
-                    Clinic Timezone
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <TimezoneField
-                    clinicId={id!}
-                    currentTimezone={clinic?.timezone ?? DEFAULT_CLINIC_TIMEZONE}
-                    onSaved={(timezone) => setClinic((prev) => prev ? { ...prev, timezone } : prev)}
-                  />
-                </CardContent>
-              </Card>
+              {isDebraj && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Globe className="h-4 w-4 text-primary" />
+                      Clinic Timezone
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <TimezoneField
+                      clinicId={id!}
+                      currentTimezone={clinic?.timezone ?? DEFAULT_CLINIC_TIMEZONE}
+                      onSaved={(timezone) => setClinic((prev) => prev ? { ...prev, timezone } : prev)}
+                    />
+                  </CardContent>
+                </Card>
+              )}
               
               <Card>
                 <CardHeader>
