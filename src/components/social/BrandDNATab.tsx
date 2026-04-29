@@ -1072,6 +1072,14 @@ function LocalityCard({ data, clinicId, canEdit }: { data: Record<string, any> |
           </div>
         )}
       </CardContent>
+      <DNAJsonEditDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        clinicId={clinicId}
+        title="Locality — Neighbourhood Profile"
+        value={data}
+        target={{ kind: "additional_field", key: "locality" }}
+      />
     </Card>
   );
 }
