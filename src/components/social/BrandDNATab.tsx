@@ -805,6 +805,14 @@ function WebsiteExtractionCard({ data, clinicId, canEdit }: { data: Record<strin
           </div>
         )}
       </CardContent>
+      <DNAJsonEditDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        clinicId={clinicId}
+        title="Layer 1 — Website Extraction"
+        value={data}
+        target={{ kind: "additional_field", key: "website_extraction" }}
+      />
     </Card>
   );
 }
