@@ -130,6 +130,8 @@ Deno.serve(async (req) => {
       }),
     });
 
+    const attemptedAt = new Date().toISOString();
+
     if (!emailResult.ok) {
       console.error("Welcome email failed:", emailResult.error);
       const friendly =
@@ -137,18 +139,28 @@ Deno.serve(async (req) => {
         : emailResult.errorKind === "timeout" || emailResult.errorKind === "network" ? "Email service is temporarily unreachable. Please try again."
         : emailResult.errorKind === "auth" ? "Email service authentication failed. Please contact support."
         : "Failed to send welcome email. Please try again.";
-      return new Response(JSON.stringify({ error: friendly }), {
+      await supabaseAdmin
+        .from("profiles")
+        .update({
+          welcome_email_last_attempt_at: attemptedAt,
+          welcome_email_last_error: friendly,
+        })
+        .eq("id", user_id);
+      return new Response(JSON.stringify({ error: friendly, welcome_email_last_attempt_at: attemptedAt }), {
         status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const sentAt = new Date().toISOString();
     await supabaseAdmin
       .from("profiles")
-      .update({ welcome_email_sent_at: sentAt })
+      .update({
+        welcome_email_sent_at: attemptedAt,
+        welcome_email_last_attempt_at: attemptedAt,
+        welcome_email_last_error: null,
+      })
       .eq("id", user_id);
 
-    return new Response(JSON.stringify({ success: true, email, welcome_email_sent_at: sentAt }), {
+    return new Response(JSON.stringify({ success: true, email, welcome_email_sent_at: attemptedAt }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
