@@ -418,10 +418,11 @@ function ImproveScoreChecklist({ profile }: { profile: Record<string, any> }) {
 }
 
 /* ── Synthesized Profile Card ── */
-function SynthesizedProfileCard({ profile, clinicId }: { profile: Record<string, any>; clinicId: string | undefined }) {
+function SynthesizedProfileCard({ profile, clinicId, canEdit }: { profile: Record<string, any>; clinicId: string | undefined; canEdit?: boolean }) {
   const score = profile.completeness_score || 0;
   const scoreColor = score >= 90 ? "text-green-600" : score >= 70 ? "text-amber-600" : "text-red-600";
   const scoreLabel = score >= 90 ? "Full Generation Ready" : score >= 70 ? "Generate with Warnings" : score >= 50 ? "Limited Generation" : "Do Not Activate";
+  const [editOpen, setEditOpen] = useState(false);
 
   return (
     <Card className="border-violet-500/20 bg-violet-500/5">
@@ -440,6 +441,11 @@ function SynthesizedProfileCard({ profile, clinicId }: { profile: Record<string,
               <span className="text-xs text-muted-foreground">
                 {format(new Date(profile.synthesized_at), "MMM d, yyyy h:mm a")}
               </span>
+            )}
+            {canEdit && (
+              <Button variant="outline" size="sm" onClick={() => setEditOpen(true)} className="gap-1.5 h-7 px-2">
+                <Edit2 className="h-3 w-3" /> Edit
+              </Button>
             )}
           </div>
         </div>
