@@ -82,7 +82,7 @@ export function ClientSocialOverview({ clinicId }: ClientSocialOverviewProps) {
         .in("approval_status", ["sent_for_copy_review", "sent_for_final_review"]);
 
       const [dnaRes, liveRes, readyRes, scheduledRes, autoRes, signalRes, promoRes] = await Promise.all([
-        supabase.from("clinic_brand_dna").select("completeness_score").eq("clinic_id", clinicId).maybeSingle(),
+        supabase.from("clinic_brand_dna").select("completeness_score, status, call_notes").eq("clinic_id", clinicId).maybeSingle(),
         supabase.from("content_posts").select("*", { count: "exact", head: true }).eq("clinic_id", clinicId).eq("status", "published").gte("published_at", monthStart),
         supabase.from("content_posts").select("*", { count: "exact", head: true }).eq("clinic_id", clinicId).in("status", ["scheduled", "published", "approved"]),
         supabase.from("content_posts").select("*", { count: "exact", head: true }).eq("clinic_id", clinicId).eq("status", "scheduled"),
