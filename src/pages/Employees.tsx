@@ -395,6 +395,15 @@ export default function Employees() {
               </div>
               <div className="space-y-2">
                 <Label>Assigned Clinics</Label>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    value={clinicSearch}
+                    onChange={(e) => setClinicSearch(e.target.value)}
+                    placeholder="Search clinics…"
+                    className="pl-8 h-9"
+                  />
+                </div>
                 <div className="max-h-48 overflow-y-auto space-y-1 border rounded-md p-2">
                   {allClinics.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-3">No active clinics found.</p>
