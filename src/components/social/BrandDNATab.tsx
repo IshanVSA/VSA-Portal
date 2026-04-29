@@ -196,7 +196,7 @@ export default function BrandDNATab({ clinicId }: Props) {
       </div>
 
       {/* Synthesized Profile */}
-      {hasSynthesis && <SynthesizedProfileCard profile={synthesizedProfile} clinicId={clinicId} canEdit={!isClient} />}
+      {hasSynthesis && <SynthesizedProfileCard profile={synthesizedProfile} clinicId={clinicId} canEdit={true} />}
 
       {/* Admin DNA Profile Card */}
       {hasSynthesis && (
@@ -221,13 +221,13 @@ export default function BrandDNATab({ clinicId }: Props) {
       </Suspense>
 
       {/* Layer 1: Website Extraction */}
-      <WebsiteExtractionCard data={websiteExtraction} clinicId={clinicId} canEdit={!isClient} />
+      <WebsiteExtractionCard data={websiteExtraction} clinicId={clinicId} canEdit={true} />
 
       {/* Layer 2: Review Mining */}
-      <ReviewMiningCard data={reviewMining} clinicId={clinicId} canEdit={!isClient} />
+      <ReviewMiningCard data={reviewMining} clinicId={clinicId} canEdit={true} />
 
       {/* Locality Data */}
-      <LocalityCard data={localityData} clinicId={clinicId} canEdit={!isClient} />
+      <LocalityCard data={localityData} clinicId={clinicId} canEdit={true} />
 
       {/* No DNA */}
       {!dna && !websiteExtraction && !reviewMining && (
