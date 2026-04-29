@@ -16,6 +16,7 @@ import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { BulkUploadsDialog } from "@/components/department/BulkUploadsDialog";
 import { DNAScoreRing } from "./shared/DNAScoreRing";
 import { RecentPostsPreview } from "./shared/RecentPostsPreview";
+import { resolveDisplayName } from "@/lib/display-name";
 
 interface ClientSocialOverviewProps {
   clinicId?: string;
@@ -60,10 +61,7 @@ export function ClientSocialOverview({ clinicId }: ClientSocialOverviewProps) {
       .then(({ data }) => { if (data?.full_name) setProfileName(data.full_name); });
   }, [user?.id]);
 
-  const firstName = profileName
-    || (user?.user_metadata as any)?.full_name
-    || user?.email?.split("@")[0]
-    || "there";
+  const displayName = resolveDisplayName(profileName, user);
 
   const goTab = (tab: string) =>
     setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", tab); return next; }, { replace: true });
@@ -192,7 +190,7 @@ export function ClientSocialOverview({ clinicId }: ClientSocialOverviewProps) {
             <div className="min-w-0">
               <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">{greeting()}</p>
               <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight mt-1">
-                Welcome back, {firstName}
+                Welcome back, {displayName}
               </h1>
               <p className="text-sm text-muted-foreground mt-2 max-w-xl">
                 {awaitingMyReview > 0
