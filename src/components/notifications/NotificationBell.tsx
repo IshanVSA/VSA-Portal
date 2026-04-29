@@ -383,7 +383,7 @@ export function NotificationBell() {
         // Clients only see "ready for review" and approval/finalization milestones.
         if (isClient && !CLIENT_VISIBLE_SM2_STATUSES.has(g.approval_status)) return;
         await enrichAndPush({
-          id: `sm2-${g.id}-${g.approval_status}-${g.updated_at || Date.now()}`,
+          id: `sm2-${g.id}-${g.approval_status}`,
           type: mapSM2Status(g.approval_status),
           title: sm2Title(g.approval_status, isClient),
           message: sm2Message(g.approval_status, g.month_year, isClient),
