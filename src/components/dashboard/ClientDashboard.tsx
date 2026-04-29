@@ -10,6 +10,7 @@ import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import UpcomingPosts from "./UpcomingPosts";
 import RecentActivity from "./RecentActivity";
 import { ClinicLogoUploader } from "@/components/clinic-detail/ClinicLogoUploader";
+import { formatDisplayName } from "@/lib/display-name";
 
 interface Clinic {
   id: string;
