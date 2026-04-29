@@ -24,6 +24,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 interface Profile { id: string; full_name: string | null; email: string | null; welcome_email_sent_at: string | null; welcome_email_last_attempt_at: string | null; welcome_email_last_error: string | null; }
 interface UserRole { user_id: string; role: string; }
 interface ClinicAssignment { user_id: string; clinic_names: string[]; }
+interface ClinicOption { id: string; clinic_name: string; owner_user_id: string | null; }
 
 const clientSchema = z.object({
   full_name: z.string().trim().min(1, "Full name is required").max(100, "Full name must be less than 100 characters"),
@@ -36,17 +37,20 @@ export default function ClientsPage() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [roles, setRoles] = useState<UserRole[]>([]);
   const [assignments, setAssignments] = useState<ClinicAssignment[]>([]);
+  const [allClinics, setAllClinics] = useState<ClinicOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ full_name: "", email: "", password: "" });
   const [formErrors, setFormErrors] = useState<{ full_name?: string; email?: string; password?: string }>({});
+  const [selectedClinicIds, setSelectedClinicIds] = useState<string[]>([]);
+  const [clinicPickerOpen, setClinicPickerOpen] = useState(false);
   const [creating, setCreating] = useState(false);
 
   const fetchData = async () => {
     const [profilesRes, rolesRes, clinicsRes] = await Promise.all([
       supabase.from("profiles").select("id, full_name, email, welcome_email_sent_at, welcome_email_last_attempt_at, welcome_email_last_error"),
       supabase.from("user_roles").select("user_id, role"),
-      supabase.from("clinics").select("owner_user_id, clinic_name"),
+      supabase.from("clinics").select("id, clinic_name, owner_user_id").order("clinic_name"),
     ]);
     const allRoles = rolesRes.data || [];
     const clientUserIds = allRoles.filter(r => r.role === "client").map(r => r.user_id);
@@ -54,6 +58,7 @@ export default function ClientsPage() {
     setRoles(allRoles);
 
     const clinics = clinicsRes.data || [];
+    setAllClinics(clinics);
     const assignMap = new Map<string, string[]>();
     clinics.forEach(c => {
       if (c.owner_user_id) {
