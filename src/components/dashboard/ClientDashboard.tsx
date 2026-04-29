@@ -52,7 +52,7 @@ export default function ClientDashboard() {
       {/* Compact Header */}
       <div className="pb-4 border-b border-border/60">
         <h1 className="text-xl font-bold text-foreground tracking-tight">
-          {user?.user_metadata?.full_name ? `${(user.user_metadata.full_name as string).split(" ")[0]}'s Portal` : "Client Portal"}
+          {user?.user_metadata?.full_name ? `${formatDisplayName(user.user_metadata.full_name as string)}'s Portal` : "Client Portal"}
         </h1>
         <p className="text-xs text-muted-foreground mt-0.5">
           {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })} · {clinics.length} clinic{clinics.length !== 1 ? "s" : ""}
