@@ -28,6 +28,7 @@ const AdminDNAProfileCard = lazy(() => import("@/components/social/AdminDNAProfi
 const PromotionModule = lazy(() => import("@/components/social/PromotionModule"));
 const PostLimitTracker = lazy(() => import("@/components/social/PostLimitTracker"));
 const PostingSchedule = lazy(() => import("@/components/social/PostingSchedule"));
+import DNAJsonEditDialog from "@/components/social/DNAJsonEditDialog";
 
 const QUESTION_LABELS: Record<string, string> = {
   q1_differentiator: "Real Differentiator",
@@ -195,7 +196,7 @@ export default function BrandDNATab({ clinicId }: Props) {
       </div>
 
       {/* Synthesized Profile */}
-      {hasSynthesis && <SynthesizedProfileCard profile={synthesizedProfile} clinicId={clinicId} />}
+      {hasSynthesis && <SynthesizedProfileCard profile={synthesizedProfile} clinicId={clinicId} canEdit={!isClient} />}
 
       {/* Admin DNA Profile Card */}
       {hasSynthesis && (
@@ -220,13 +221,13 @@ export default function BrandDNATab({ clinicId }: Props) {
       </Suspense>
 
       {/* Layer 1: Website Extraction */}
-      <WebsiteExtractionCard data={websiteExtraction} />
+      <WebsiteExtractionCard data={websiteExtraction} clinicId={clinicId} canEdit={!isClient} />
 
       {/* Layer 2: Review Mining */}
-      <ReviewMiningCard data={reviewMining} />
+      <ReviewMiningCard data={reviewMining} clinicId={clinicId} canEdit={!isClient} />
 
       {/* Locality Data */}
-      <LocalityCard data={localityData} />
+      <LocalityCard data={localityData} clinicId={clinicId} canEdit={!isClient} />
 
       {/* No DNA */}
       {!dna && !websiteExtraction && !reviewMining && (
@@ -417,10 +418,11 @@ function ImproveScoreChecklist({ profile }: { profile: Record<string, any> }) {
 }
 
 /* ── Synthesized Profile Card ── */
-function SynthesizedProfileCard({ profile, clinicId }: { profile: Record<string, any>; clinicId: string | undefined }) {
+function SynthesizedProfileCard({ profile, clinicId, canEdit }: { profile: Record<string, any>; clinicId: string | undefined; canEdit?: boolean }) {
   const score = profile.completeness_score || 0;
   const scoreColor = score >= 90 ? "text-green-600" : score >= 70 ? "text-amber-600" : "text-red-600";
   const scoreLabel = score >= 90 ? "Full Generation Ready" : score >= 70 ? "Generate with Warnings" : score >= 50 ? "Limited Generation" : "Do Not Activate";
+  const [editOpen, setEditOpen] = useState(false);
 
   return (
     <Card className="border-violet-500/20 bg-violet-500/5">
@@ -439,6 +441,11 @@ function SynthesizedProfileCard({ profile, clinicId }: { profile: Record<string,
               <span className="text-xs text-muted-foreground">
                 {format(new Date(profile.synthesized_at), "MMM d, yyyy h:mm a")}
               </span>
+            )}
+            {canEdit && (
+              <Button variant="outline" size="sm" onClick={() => setEditOpen(true)} className="gap-1.5 h-7 px-2">
+                <Edit2 className="h-3 w-3" /> Edit
+              </Button>
             )}
           </div>
         </div>
@@ -661,12 +668,21 @@ function SynthesizedProfileCard({ profile, clinicId }: { profile: Record<string,
           </details>
         )}
       </CardContent>
+      <DNAJsonEditDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        clinicId={clinicId}
+        title="Synthesized DNA Profile"
+        description="Edit any field in the synthesized profile. Changes merge into the existing profile and are reflected immediately across content generation."
+        value={profile}
+        target={{ kind: "synthesized_profile" }}
+      />
     </Card>
   );
 }
-
 /* ── Layer 1 Card ── */
-function WebsiteExtractionCard({ data }: { data: Record<string, any> | undefined }) {
+function WebsiteExtractionCard({ data, clinicId, canEdit }: { data: Record<string, any> | undefined; clinicId?: string; canEdit?: boolean }) {
+  const [editOpen, setEditOpen] = useState(false);
   if (!data) return null;
   return (
     <Card className="border-primary/20 bg-primary/5">
@@ -686,6 +702,11 @@ function WebsiteExtractionCard({ data }: { data: Record<string, any> | undefined
               <span className="text-xs text-muted-foreground">
                 {format(new Date(data.extracted_at), "MMM d, yyyy h:mm a")}
               </span>
+            )}
+            {canEdit && (
+              <Button variant="outline" size="sm" onClick={() => setEditOpen(true)} className="gap-1.5 h-7 px-2">
+                <Edit2 className="h-3 w-3" /> Edit
+              </Button>
             )}
           </div>
         </div>
@@ -784,12 +805,21 @@ function WebsiteExtractionCard({ data }: { data: Record<string, any> | undefined
           </div>
         )}
       </CardContent>
+      <DNAJsonEditDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        clinicId={clinicId}
+        title="Layer 1 — Website Extraction"
+        value={data}
+        target={{ kind: "additional_field", key: "website_extraction" }}
+      />
     </Card>
   );
 }
 
 /* ── Layer 2 Card ── */
-function ReviewMiningCard({ data }: { data: Record<string, any> | undefined }) {
+function ReviewMiningCard({ data, clinicId, canEdit }: { data: Record<string, any> | undefined; clinicId?: string; canEdit?: boolean }) {
+  const [editOpen, setEditOpen] = useState(false);
   if (!data) return null;
   return (
     <Card className="border-amber-500/20 bg-amber-500/5">
@@ -815,6 +845,11 @@ function ReviewMiningCard({ data }: { data: Record<string, any> | undefined }) {
               <span className="text-xs text-muted-foreground">
                 {format(new Date(data.mined_at), "MMM d, yyyy h:mm a")}
               </span>
+            )}
+            {canEdit && (
+              <Button variant="outline" size="sm" onClick={() => setEditOpen(true)} className="gap-1.5 h-7 px-2">
+                <Edit2 className="h-3 w-3" /> Edit
+              </Button>
             )}
           </div>
         </div>
@@ -911,12 +946,21 @@ function ReviewMiningCard({ data }: { data: Record<string, any> | undefined }) {
           </div>
         )}
       </CardContent>
+      <DNAJsonEditDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        clinicId={clinicId}
+        title="Layer 2 — Review Mining"
+        value={data}
+        target={{ kind: "additional_field", key: "review_mining" }}
+      />
     </Card>
   );
 }
 
 /* ── Locality Card ── */
-function LocalityCard({ data }: { data: Record<string, any> | undefined }) {
+function LocalityCard({ data, clinicId, canEdit }: { data: Record<string, any> | undefined; clinicId?: string; canEdit?: boolean }) {
+  const [editOpen, setEditOpen] = useState(false);
   if (!data) return null;
   return (
     <Card className="border-emerald-500/20 bg-emerald-500/5">
@@ -936,6 +980,11 @@ function LocalityCard({ data }: { data: Record<string, any> | undefined }) {
               <span className="text-xs text-muted-foreground">
                 {format(new Date(data.fetched_at), "MMM d, yyyy h:mm a")}
               </span>
+            )}
+            {canEdit && (
+              <Button variant="outline" size="sm" onClick={() => setEditOpen(true)} className="gap-1.5 h-7 px-2">
+                <Edit2 className="h-3 w-3" /> Edit
+              </Button>
             )}
           </div>
         </div>
@@ -1023,6 +1072,14 @@ function LocalityCard({ data }: { data: Record<string, any> | undefined }) {
           </div>
         )}
       </CardContent>
+      <DNAJsonEditDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        clinicId={clinicId}
+        title="Locality — Neighbourhood Profile"
+        value={data}
+        target={{ kind: "additional_field", key: "locality" }}
+      />
     </Card>
   );
 }
