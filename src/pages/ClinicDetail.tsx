@@ -450,7 +450,7 @@ export default function ClinicDetail() {
             <TabsTrigger value="facebook">Facebook</TabsTrigger>
             <TabsTrigger value="google">Google Ads</TabsTrigger>
             <TabsTrigger value="ai">Tony AI Insights</TabsTrigger>
-            {role === "admin" && <TabsTrigger value="connections">Connections</TabsTrigger>}
+            {(role === "admin" || isDebraj) && <TabsTrigger value="connections">Connections</TabsTrigger>}
             {(role === "admin" || role === "concierge") && <TabsTrigger value="journey">Client Journey</TabsTrigger>}
           </TabsList>
 
