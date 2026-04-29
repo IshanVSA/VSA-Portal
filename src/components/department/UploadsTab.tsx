@@ -251,8 +251,10 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
         <CardContent className="p-0">
           {loading ? (
             <div className="py-10 text-center text-muted-foreground text-sm">Loading...</div>
+          ) : !clinicId ? (
+            <div className="py-10 text-center text-muted-foreground text-sm">Select a clinic to view files</div>
           ) : files.length === 0 ? (
-            <div className="py-10 text-center text-muted-foreground text-sm">No files uploaded yet</div>
+            <div className="py-10 text-center text-muted-foreground text-sm">No files uploaded yet for this clinic</div>
           ) : (
             <ul className="divide-y divide-border/40">
               {files.map((file) => (
