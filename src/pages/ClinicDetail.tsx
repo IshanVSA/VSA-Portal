@@ -178,7 +178,9 @@ export default function ClinicDetail() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { role } = useUserRole();
   const { user } = useAuth();
-  const isDebraj = user?.id === DEBRAJ_USER_ID;
+  const isDebraj =
+    user?.id === DEBRAJ_USER_ID ||
+    (user?.email?.toLowerCase() === "debraj@vsavetmedia.ca");
   const [clinic, setClinic] = useState<ClinicData | null>(null);
   const [creds, setCreds] = useState<ClinicCredentials>({
     meta_page_id: null, meta_instagram_business_id: null, meta_page_name: null, meta_granted_scopes: null,
