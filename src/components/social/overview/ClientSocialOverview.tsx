@@ -60,8 +60,8 @@ export function ClientSocialOverview({ clinicId }: ClientSocialOverviewProps) {
       .then(({ data }) => { if (data?.full_name) setProfileName(data.full_name); });
   }, [user?.id]);
 
-  const firstName = profileName?.split(" ")[0]
-    || (user?.user_metadata as any)?.full_name?.split(" ")[0]
+  const firstName = profileName
+    || (user?.user_metadata as any)?.full_name
     || user?.email?.split("@")[0]
     || "there";
 
