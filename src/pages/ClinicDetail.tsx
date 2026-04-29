@@ -178,7 +178,9 @@ export default function ClinicDetail() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { role } = useUserRole();
   const { user } = useAuth();
-  const isDebraj = user?.id === DEBRAJ_USER_ID;
+  const isDebraj =
+    user?.id === DEBRAJ_USER_ID ||
+    (user?.email?.toLowerCase() === "debraj@vsavetmedia.ca");
   const [clinic, setClinic] = useState<ClinicData | null>(null);
   const [creds, setCreds] = useState<ClinicCredentials>({
     meta_page_id: null, meta_instagram_business_id: null, meta_page_name: null, meta_granted_scopes: null,
@@ -448,7 +450,7 @@ export default function ClinicDetail() {
             <TabsTrigger value="facebook">Facebook</TabsTrigger>
             <TabsTrigger value="google">Google Ads</TabsTrigger>
             <TabsTrigger value="ai">Tony AI Insights</TabsTrigger>
-            {role === "admin" && <TabsTrigger value="connections">Connections</TabsTrigger>}
+            {(role === "admin" || isDebraj) && <TabsTrigger value="connections">Connections</TabsTrigger>}
             {(role === "admin" || role === "concierge") && <TabsTrigger value="journey">Client Journey</TabsTrigger>}
           </TabsList>
 
@@ -753,7 +755,7 @@ export default function ClinicDetail() {
             </Card>
           </TabsContent>
 
-          {role === "admin" && (
+          {(role === "admin" || isDebraj) && (
             <TabsContent value="connections" className="space-y-4 mt-4">
               <MetaConnectionCard
                 clinicId={id!}
