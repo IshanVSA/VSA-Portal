@@ -72,7 +72,20 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) toast.error(error.message);
+    if (error) {
+      const m = (error.message || "").toLowerCase();
+      if (m.includes("invalid") && (m.includes("credential") || m.includes("login"))) {
+        toast.error("The email or password you entered is incorrect. Please try again.");
+      } else if (m.includes("email not confirmed")) {
+        toast.error("Please confirm your email address before signing in.");
+      } else if (m.includes("rate") || m.includes("too many")) {
+        toast.error("Too many sign-in attempts. Please wait a minute and try again.");
+      } else if (m.includes("network") || m.includes("fetch")) {
+        toast.error("We're having trouble connecting. Please check your internet and try again.");
+      } else {
+        toast.error("We couldn't sign you in. Please try again.");
+      }
+    }
     else navigate("/");
     setLoading(false);
   };
