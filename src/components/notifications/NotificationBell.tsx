@@ -129,7 +129,9 @@ export function NotificationBell() {
   const clinicNameMapRef = useRef<Map<string, string>>(new Map());
 
   const storageKey = user ? `notif-read-ids:${user.id}` : null;
+  const readAllKey = user ? `notif-read-all-at:${user.id}` : null;
   const readIdsRef = useRef<Set<string>>(new Set());
+  const readAllAtRef = useRef<number>(0);
 
   const getClinicName = async (clinicId: string | null | undefined): Promise<string | null> => {
     if (!clinicId) return null;
