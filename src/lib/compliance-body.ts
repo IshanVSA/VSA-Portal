@@ -185,6 +185,29 @@ export function detectComplianceBody(address: string | null | undefined): string
     return CA_PROVINCE_MAP[caCanon[1].toUpperCase()];
   }
 
+  // 1a) "City, FullStateName" or "City, FullProvinceName" — with or without
+  // a trailing ZIP/postal code. Full names are unambiguous between countries
+  // (no overlap), so this is a very strong signal. Sort by length desc so
+  // multi-word names ("NEW YORK", "NORTH CAROLINA") match before shorter
+  // substrings.
+  const usNamesByLen = Object.entries(US_STATE_NAME_TO_CODE).sort(
+    (a, b) => b[0].length - a[0].length,
+  );
+  const caNamesByLen = Object.entries(CA_NAME_TO_CODE).sort(
+    (a, b) => b[0].length - a[0].length,
+  );
+  for (const [name, code] of usNamesByLen) {
+    // "City, StateName" optionally followed by ZIP or end-of-string.
+    const re = new RegExp(`,\\s*${name}\\b(?:\\s+\\d{5}(?:-\\d{4})?)?\\s*$`);
+    if (re.test(upper)) return US_STATE_MAP[code];
+  }
+  for (const [name, code] of caNamesByLen) {
+    const re = new RegExp(
+      `,\\s*${name}\\b(?:\\s+[A-Z]\\d[A-Z]\\s?\\d[A-Z]\\d)?\\s*$`,
+    );
+    if (re.test(upper)) return CA_PROVINCE_MAP[code];
+  }
+
   // 1b) "City, ST" with no postal code. Disambiguate codes shared by both
   // countries (e.g. "ON", "NB") using country signal; if there's no signal,
   // prefer US since unqualified "City, ST" is overwhelmingly a US convention.
