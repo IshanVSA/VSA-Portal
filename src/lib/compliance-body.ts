@@ -116,11 +116,14 @@ const GENERIC = "General Veterinary Advertising Standards";
 const CA_POSTAL_RE = /\b[A-Z]\d[A-Z]\s?\d[A-Z]\d\b/i;
 const US_ZIP_RE = /\b\d{5}(?:-\d{4})?\b/;
 
-// Canonical "City, ST 12345" or "City ST 12345" pattern (US) and
-// "City, ST A1A 1A1" pattern (Canada). The province/state code lives
-// immediately before the postal code so it's an extremely strong signal.
+// Canonical "City, ST 12345" / "City ST 12345" (US) and
+// "City, ST A1A 1A1" (Canada). The province/state code lives next to the
+// postal code so it's an extremely strong signal.
 const US_CITY_STATE_ZIP_RE = /(?:,\s*|\s+)([A-Z]{2})\s+\d{5}(?:-\d{4})?/;
 const CA_CITY_PROV_POSTAL_RE = /(?:,\s*|\s+)([A-Z]{2})\s+[A-Z]\d[A-Z]\s?\d[A-Z]\d/i;
+// "City, ST" with no postal code at all (e.g. "Centennial, CO").
+// Anchored to end-of-string so we don't pick up mid-address tokens.
+const CITY_STATE_NOZIP_RE = /(?:,\s*|\s+)([A-Z]{2})\s*$/;
 
 const CA_CODES = new Set(Object.keys(CA_PROVINCE_MAP));
 const US_CODES = new Set(Object.keys(US_STATE_MAP));
@@ -182,6 +185,21 @@ export function detectComplianceBody(address: string | null | undefined): string
     return CA_PROVINCE_MAP[caCanon[1].toUpperCase()];
   }
 
+  // 1b) "City, ST" with no postal code. Disambiguate codes shared by both
+  // countries (e.g. "ON", "NB") using country signal; if there's no signal,
+  // prefer US since unqualified "City, ST" is overwhelmingly a US convention.
+  const noZip = CITY_STATE_NOZIP_RE.exec(upper);
+  if (noZip) {
+    const code = noZip[1].toUpperCase();
+    const inUS = US_CODES.has(code);
+    const inCA = CA_CODES.has(code);
+    if (inUS && !inCA) return US_STATE_MAP[code];
+    if (inCA && !inUS) return CA_PROVINCE_MAP[code];
+    if (inUS && inCA) {
+      if (country === "CA") return CA_PROVINCE_MAP[code];
+      return US_STATE_MAP[code]; // default to US for shared codes
+    }
+  }
   // 2) Full state / province name anywhere in the string.
   if (country === "CA" || country === null) {
     for (const [name, code] of Object.entries(CA_NAME_TO_CODE)) {
