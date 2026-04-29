@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 
@@ -20,6 +21,12 @@ interface Profile { id: string; full_name: string | null; email: string | null; 
 interface UserRole { user_id: string; role: string; }
 interface ClinicAssignment { user_id: string; clinic_names: string[]; }
 
+const clientSchema = z.object({
+  full_name: z.string().trim().min(1, "Full name is required").max(100, "Full name must be less than 100 characters"),
+  email: z.string().trim().min(1, "Email is required").email("Invalid email address").max(255, "Email must be less than 255 characters"),
+  password: z.string().min(8, "Password must be at least 8 characters").max(128, "Password must be less than 128 characters"),
+});
+
 export default function ClientsPage() {
   const { role } = useUserRole();
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -28,6 +35,7 @@ export default function ClientsPage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ full_name: "", email: "", password: "" });
+  const [formErrors, setFormErrors] = useState<{ full_name?: string; email?: string; password?: string }>({});
   const [creating, setCreating] = useState(false);
 
   const fetchData = async () => {
@@ -123,7 +131,7 @@ export default function ClientsPage() {
               <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Clients</h1>
               <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">Manage your clinic clients</p>
             </div>
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setFormErrors({}); }}>
               <DialogTrigger asChild>
                 <Button className="rounded-lg shadow-sm w-full sm:w-auto"><Plus className="h-4 w-4 mr-2" />Add Client</Button>
               </DialogTrigger>
@@ -133,16 +141,41 @@ export default function ClientsPage() {
                   <DialogDescription>Create a new client account.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-2">
-                  <div className="space-y-2"><Label>Full Name</Label><Input value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} placeholder="Jane Doe" className="input-glow" /></div>
-                  <div className="space-y-2"><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="jane@example.com" className="input-glow" /></div>
-                  <div className="space-y-2"><Label>Password</Label><Input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="Min 8 characters" className="input-glow" /></div>
+                  <div className="space-y-2">
+                    <Label>Full Name</Label>
+                    <Input value={form.full_name} onChange={e => { setForm(f => ({ ...f, full_name: e.target.value })); if (formErrors.full_name) setFormErrors(p => ({ ...p, full_name: undefined })); }} placeholder="Jane Doe" className="input-glow" aria-invalid={!!formErrors.full_name} />
+                    {formErrors.full_name && <p className="text-xs text-destructive">{formErrors.full_name}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Email</Label>
+                    <Input type="email" autoComplete="email" value={form.email} onChange={e => { setForm(f => ({ ...f, email: e.target.value })); if (formErrors.email) setFormErrors(p => ({ ...p, email: undefined })); }} onBlur={() => {
+                      const r = clientSchema.shape.email.safeParse(form.email);
+                      setFormErrors(p => ({ ...p, email: r.success ? undefined : r.error.issues[0]?.message }));
+                    }} placeholder="jane@example.com" className="input-glow" aria-invalid={!!formErrors.email} />
+                    {formErrors.email && <p className="text-xs text-destructive">{formErrors.email}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Password</Label>
+                    <Input type="password" value={form.password} onChange={e => { setForm(f => ({ ...f, password: e.target.value })); if (formErrors.password) setFormErrors(p => ({ ...p, password: undefined })); }} placeholder="Min 8 characters" className="input-glow" aria-invalid={!!formErrors.password} />
+                    {formErrors.password && <p className="text-xs text-destructive">{formErrors.password}</p>}
+                  </div>
                 </div>
                 <DialogFooter className="flex-col gap-2 sm:flex-row">
                   <Button className="w-full sm:w-auto" disabled={creating} onClick={async () => {
-                    if (!form.full_name || !form.email || !form.password) { toast.error("All fields are required"); return; }
-                    if (form.password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
+                    const parsed = clientSchema.safeParse(form);
+                    if (!parsed.success) {
+                      const errs: { full_name?: string; email?: string; password?: string } = {};
+                      for (const issue of parsed.error.issues) {
+                        const key = issue.path[0] as "full_name" | "email" | "password";
+                        if (key && !errs[key]) errs[key] = issue.message;
+                      }
+                      setFormErrors(errs);
+                      toast.error(parsed.error.issues[0]?.message || "Please fix the highlighted fields");
+                      return;
+                    }
+                    setFormErrors({});
                     setCreating(true);
-                    const { data, error } = await supabase.functions.invoke("create-team-member", { body: { ...form, role: "client" } });
+                    const { data, error } = await supabase.functions.invoke("create-team-member", { body: { ...parsed.data, role: "client" } });
                     setCreating(false);
                     if (error || data?.error) { toast.error(await extractEdgeFunctionError(error, data, "Failed to create client")); return; }
                     toast.success("Client created");
