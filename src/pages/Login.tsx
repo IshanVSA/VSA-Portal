@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
 import vsaLogo from "@/assets/vsa-logo.jpg";
+import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -131,7 +132,7 @@ export default function Login() {
                           body: { email: resetEmail },
                         });
                         if (error || (data && (data as any).error)) {
-                          const msg = (data as any)?.error || error?.message || "Failed to send reset link";
+                          const msg = await extractEdgeFunctionError(error, data, "Failed to send reset link");
                           toast.error(msg);
                         } else {
                           const d = data as any;
