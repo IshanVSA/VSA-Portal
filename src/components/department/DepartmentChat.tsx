@@ -405,15 +405,21 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     try {
       let attachments: FileAttachment[] = [];
       if (hasFiles) attachments = await uploadFiles(pendingFiles);
-      await supabase.from("department_chats").insert({
+      const { error } = await supabase.from("department_chats").insert({
         department, clinic_id: clinicId, user_id: user.id,
         message: newMessage.trim() || (attachments.length > 0 ? `Sent ${attachments.length} file${attachments.length > 1 ? "s" : ""}` : ""),
         attachments: attachments as any,
         reply_to: replyTo?.id || null,
       } as any);
+      if (error) {
+        toast.error(error.message || "Failed to send message");
+        return;
+      }
       setNewMessage("");
       setPendingFiles([]);
       setReplyTo(null);
+      // Refetch immediately so the sender sees their message without waiting for realtime
+      await queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
     } finally { setSending(false); }
   };
 
