@@ -32,7 +32,7 @@ export default function ClientsPage() {
 
   const fetchData = async () => {
     const [profilesRes, rolesRes, clinicsRes] = await Promise.all([
-      supabase.from("profiles").select("id, full_name, email, welcome_email_sent_at"),
+      supabase.from("profiles").select("id, full_name, email, welcome_email_sent_at, welcome_email_last_attempt_at, welcome_email_last_error"),
       supabase.from("user_roles").select("user_id, role"),
       supabase.from("clinics").select("owner_user_id, clinic_name"),
     ]);
