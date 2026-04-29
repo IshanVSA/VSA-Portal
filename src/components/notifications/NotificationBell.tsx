@@ -318,7 +318,11 @@ export function NotificationBell() {
 
     const enrichAndPush = async (notif: Notification) => {
       const clinicName = await getClinicName(notif.clinicId);
-      setNotifications(prev => [withRead({ ...notif, clinicName }), ...prev].slice(0, 30));
+      setNotifications(prev => {
+        const enriched = withRead({ ...notif, clinicName });
+        const filtered = prev.filter(n => n.id !== enriched.id);
+        return [enriched, ...filtered].slice(0, 30);
+      });
     };
 
     const channel = supabase
