@@ -408,7 +408,7 @@ export function NotificationBell() {
         const numPart = newRow.post_number != null ? `Post #${newRow.post_number}` : "Post";
         const preview = newFb.length > 80 ? newFb.slice(0, 80) + "…" : newFb;
         await enrichAndPush({
-          id: `sm2-note-${newRow.id}-${newRow.updated_at || Date.now()}`,
+          id: `sm2-note-${newRow.id}`,
           type: "client_note",
           title: "New Client Notes",
           message: `${numPart}${datePart ? ` (${datePart})` : ""}: ${preview}`,
