@@ -41,13 +41,38 @@ function mapSM2Status(status: string): Notification["type"] {
   return "sm2_generated";
 }
 
-function sm2Title(status: string): string {
-  if (status === "sent_to_client") return "Content Sent to Client";
+function sm2Title(status: string, isClient = false): string {
+  if (status === "sent_to_client") return isClient ? "Content Ready for Your Review" : "Content Sent to Client";
   if (status === "approved_client") return "Client Approved Content";
   if (status === "approved_auto") return "Content Auto-Approved";
+  if (status === "final_approved") return isClient ? "Final Content with Images Ready" : "Content Finalized";
   if (status === "feedback_submitted") return "Client Submitted Feedback";
   return "Content Generated";
 }
+
+function sm2Message(status: string, monthYear: string, isClient: boolean): string {
+  if (isClient) {
+    if (status === "sent_to_client") return `Your ${monthYear} social calendar is ready for review.`;
+    if (status === "final_approved") return `Your ${monthYear} content is finalized with images and ready to publish.`;
+    if (status === "approved_client" || status === "approved_auto") return `Your ${monthYear} content has been approved.`;
+  }
+  return `Social media content for ${monthYear}`;
+}
+
+// Statuses surfaced to clients in their notification bell
+const CLIENT_VISIBLE_SM2_STATUSES = new Set([
+  "sent_to_client",
+  "approved_client",
+  "approved_auto",
+  "final_approved",
+]);
+
+const TICKET_STATUS_LABELS_FOR_CLIENT: Record<string, string> = {
+  in_progress: "Ticket In Progress",
+  completed: "Ticket Resolved",
+  resolved: "Ticket Resolved",
+  closed: "Ticket Closed",
+};
 
 const DEPARTMENT_ROUTE: Record<string, string> = {
   website: "/website",
@@ -166,20 +191,42 @@ export function NotificationBell() {
         };
       });
 
+      const isClient = role === "client";
+
       const { data: ticketData } = await supabase
         .from("department_tickets")
-        .select("id, title, department, priority, created_at, clinic_id")
-        .order("created_at", { ascending: false })
-        .limit(10);
+        .select("id, title, department, priority, status, created_at, updated_at, clinic_id")
+        .order("updated_at", { ascending: false })
+        .limit(15);
 
-      const ticketNotifs: Notification[] = (ticketData || []).map((t: any) => ({
-        id: `ticket-${t.id}`, type: "ticket_created" as const,
-        title: "New Ticket",
-        message: `[${t.department}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
-        read: false, created_at: t.created_at,
-        link: buildTicketLink(t.department, t.clinic_id, t.id),
-        clinicId: t.clinic_id ?? null,
-      }));
+      const ticketNotifs: Notification[] = (ticketData || []).flatMap((t: any): Notification[] => {
+        // Clients: only surface meaningful status changes (work done on their tickets),
+        // not raw "ticket created" events.
+        if (isClient) {
+          const label = TICKET_STATUS_LABELS_FOR_CLIENT[t.status];
+          if (!label) return [];
+          return [{
+            id: `ticket-status-${t.id}-${t.status}`,
+            type: "status_changed" as const,
+            title: label,
+            message: `[${t.department}] ${t.title}`,
+            read: false,
+            created_at: t.updated_at || t.created_at,
+            link: buildTicketLink(t.department, t.clinic_id, t.id),
+            clinicId: t.clinic_id ?? null,
+          }];
+        }
+        return [{
+          id: `ticket-${t.id}`,
+          type: "ticket_created" as const,
+          title: "New Ticket",
+          message: `[${t.department}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
+          read: false,
+          created_at: t.created_at,
+          link: buildTicketLink(t.department, t.clinic_id, t.id),
+          clinicId: t.clinic_id ?? null,
+        }];
+      });
 
       // SM2 generation notifications
       const { data: sm2Data } = await supabase
@@ -188,16 +235,19 @@ export function NotificationBell() {
         .order("updated_at", { ascending: false })
         .limit(10);
 
-      const sm2Notifs: Notification[] = (sm2Data || []).map((g: any) => ({
-        id: `sm2-${g.id}`,
-        type: mapSM2Status(g.approval_status),
-        title: sm2Title(g.approval_status),
-        message: `Social media content for ${g.month_year}`,
-        read: false,
-        created_at: g.updated_at || g.created_at,
-        link: buildSM2Link(g.clinic_id, role, g.approval_status),
-        clinicId: g.clinic_id ?? null,
-      }));
+      const sm2Notifs: Notification[] = (sm2Data || [])
+        // Clients only see "ready for review" and "approved/finalized" milestones
+        .filter((g: any) => !isClient || CLIENT_VISIBLE_SM2_STATUSES.has(g.approval_status))
+        .map((g: any) => ({
+          id: `sm2-${g.id}-${g.approval_status}`,
+          type: mapSM2Status(g.approval_status),
+          title: sm2Title(g.approval_status, isClient),
+          message: sm2Message(g.approval_status, g.month_year, isClient),
+          read: false,
+          created_at: g.updated_at || g.created_at,
+          link: buildSM2Link(g.clinic_id, role, g.approval_status),
+          clinicId: g.clinic_id ?? null,
+        }));
 
       // Client notes on SM2 posts (staff-only relevant)
       let noteNotifs: Notification[] = [];
@@ -285,6 +335,8 @@ export function NotificationBell() {
         });
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "department_tickets" }, async (payload) => {
+        // Clients should not see "ticket created" — they already know they made it.
+        if (role === "client") return;
         const t = payload.new as any;
         await enrichAndPush({
           id: `ticket-${t.id}`, type: "ticket_created",
@@ -297,9 +349,17 @@ export function NotificationBell() {
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "department_tickets" }, async (payload) => {
         const t = payload.new as any;
+        const isClient = role === "client";
+        // Clients only get notified about meaningful resolution / progress updates.
+        const clientLabel = TICKET_STATUS_LABELS_FOR_CLIENT[t.status];
+        if (isClient && !clientLabel) return;
+        const title = isClient
+          ? clientLabel
+          : `Ticket ${String(t.status).replace(/_/g, " ")}`;
         await enrichAndPush({
-          id: `ticket-upd-${t.id}-${Date.now()}`, type: "status_changed",
-          title: `Ticket ${t.status.replace(/_/g, " ")}`,
+          id: `ticket-upd-${t.id}-${t.status}-${t.updated_at || Date.now()}`,
+          type: "status_changed",
+          title,
           message: `[${t.department}] ${t.title}`,
           read: false, created_at: t.updated_at || new Date().toISOString(),
           link: buildTicketLink(t.department, t.clinic_id, t.id),
@@ -309,11 +369,14 @@ export function NotificationBell() {
       .on("postgres_changes", { event: "*", schema: "public", table: "sm2_generations" }, async (payload) => {
         const g = payload.new as any;
         if (!g) return;
+        const isClient = role === "client";
+        // Clients only see "ready for review" and approval/finalization milestones.
+        if (isClient && !CLIENT_VISIBLE_SM2_STATUSES.has(g.approval_status)) return;
         await enrichAndPush({
-          id: `sm2-${g.id}-${Date.now()}`,
+          id: `sm2-${g.id}-${g.approval_status}-${g.updated_at || Date.now()}`,
           type: mapSM2Status(g.approval_status),
-          title: sm2Title(g.approval_status),
-          message: `Social media content for ${g.month_year}`,
+          title: sm2Title(g.approval_status, isClient),
+          message: sm2Message(g.approval_status, g.month_year, isClient),
           read: false,
           created_at: g.updated_at || g.created_at || new Date().toISOString(),
           link: buildSM2Link(g.clinic_id, role, g.approval_status),
