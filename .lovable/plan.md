@@ -1,73 +1,48 @@
-## Goal
+## Problem
 
-Auto-create geographic clusters and batches for every existing clinic, and keep them auto-maintained for any new clinic added in the future — no manual setup required.
+The compliance body shown in the Promotion Module and Pop-up Offers ticket form falls back to **"General Veterinary Advertising Standards"** for any clinic outside Canada. US clinics like Cherry Knolls Veterinary Clinic (Centennial, Colorado) should instead show **CVMA (Colorado Veterinary Medical Association)**.
 
-## How clusters will be derived
+Canadian provinces are already mapped correctly. The detector simply has no US coverage.
 
-Today, `geo_clusters` is empty and clusters are admin-curated. We'll switch to **automatic city-based clustering**:
+## Where the bug lives
 
-- A cluster = one city. `cluster_id` = uppercased city slug (e.g. `SURREY`, `VANCOUVER`, `BURNABY`).
-- `region` = the same city name (display-friendly).
-- City is parsed from `clinics.address` (no `city` column exists, so we extract it from the comma-separated address text — the second-to-last comma group before the postal code, with a small province/postal-code stripper).
-- A clinic with no parseable city goes into a fallback cluster `UNASSIGNED` (still gets a batch as a solo entry).
-- `is_solo` is computed from final cluster size (1 → solo, ≥2 → shared).
+The same `detectComplianceBody(address)` function is duplicated in two files:
 
-A quick scan of current data shows we'll get clusters like:
-SURREY (8), VANCOUVER (10+), BURNABY (3), ABBOTSFORD (4), CALGARY (2), NANAIMO (2), MISSION (2), LANGLEY (2), MAPLE-RIDGE, SQUAMISH, KELOWNA, VICTORIA, COQUITLAM, NORTH-VANCOUVER, CENTENNIAL, SAN-FRANCISCO, LADNER, etc.
+- `src/components/social/PromotionModule.tsx` (lines 42–74)
+- `src/components/department/ticket-forms/PopupOffersForm.tsx` (lines 23–59)
 
-## Plan
+Both only check Canadian provinces, then return the generic string.
 
-### 1. DB migration: address parser + auto-cluster engine
+## Changes
 
-Add three SECURITY DEFINER functions in a migration:
+### 1. New shared helper: `src/lib/compliance-body.ts`
 
-- `extract_city_from_address(_address text) → text` — splits on commas, strips postal codes (Canadian `A1A 1A1`, US 5-digit), strips province codes (BC/AB/ON/CA/CO/WA…), trims, returns the cleaned city or `NULL`.
-- `slugify_city(_city text) → text` — uppercases, replaces spaces with `-`, strips punctuation. Used as `cluster_id`.
-- `rebuild_geo_clusters() → void` — recomputes `geo_clusters` rows from current clinics:
-  - Groups all `clinics.id` by extracted city.
-  - Upserts `geo_clusters` (cluster_id, region, clinics, is_solo).
-  - Deletes `geo_clusters` rows whose `cluster_id` no longer has any clinics.
-  - Ensures every clinic has a `clinic_gbp_config` row (insert with defaults — `geo_radius_km=7`, `hospital_type=NULL`, `local_landmarks='{}'`, `cluster_position` assigned A/B/C/D round-robin within the cluster).
-  - Calls the existing `regenerate_gbp_batches()` trigger function once at the end (re-creates `gbp_batches` from clusters + configs).
+A single `detectComplianceBody(address)` function used by both call sites. It will:
 
-### 2. Trigger: keep it auto on clinic add/edit/delete
+- Detect country first using postal-code shape (`A1A 1A1` for Canada, 5-digit ZIP for US) plus explicit "USA" / "Canada" tokens.
+- For **Canada**, keep the existing province → college/association mapping (ABVMA, CVBC, CVO, OMVQ, etc.). Replace the misleading `"AVMA (general)"` entries for NT/NU/YT with **CVMA (Canadian Veterinary Medical Association)**.
+- For **US**, add a full mapping of all 50 states + DC to their state Veterinary Medical Association (or the closest equivalent professional body). Examples:
+  - CO → CVMA (Colorado Veterinary Medical Association)
+  - CA → CVMA (California Veterinary Medical Association)
+  - NY → NYSVMS (New York State Veterinary Medical Society)
+  - TX → TVMA (Texas Veterinary Medical Association)
+  - FL → FVMA, IL → ISVMA, SC → SCAV, etc.
+- Recognize states by full name (`"COLORADO"`) **or** 2-letter code, but only honor a 2-letter code when a US ZIP / Canadian postal code in the same string confirms the country — prevents false positives (e.g. "OR" matching Oregon inside a Canadian address, or "ON" matching Ontario inside a US address).
+- National fallbacks: **AVMA** (US) and **CVMA** (Canada) when the country is known but the region isn't. Generic label only when the country itself can't be determined.
 
-Add an AFTER INSERT/UPDATE/DELETE trigger on `public.clinics` that calls `rebuild_geo_clusters()` whenever:
-- A new clinic is inserted, OR
-- An existing clinic's `address` changes, OR
-- A clinic is deleted.
+### 2. Refactor the two components
 
-This replaces the manual "Add Cluster" workflow for the common case while keeping the existing manual UI working as an override.
+In both `PromotionModule.tsx` and `PopupOffersForm.tsx`:
+- Delete the local `PROVINCE_MAP`, `nameMap`, and `detectComplianceBody` definitions.
+- `import { detectComplianceBody } from "@/lib/compliance-body";`
+- No UI changes — the existing "Compliance: …" badge and the AI verification call (which already passes the resolved `complianceBody` string to `verify-popup-offer`) automatically pick up the correct value.
 
-### 3. One-time backfill
+### 3. Edge function awareness (no code change required)
 
-Run `SELECT public.rebuild_geo_clusters();` immediately after the migration so all current clinics, configs, and batches exist on first load.
+`supabase/functions/verify-popup-offer/index.ts` receives `complianceBody` as a string from the client and uses it inside the prompt. It will now receive the correct US state body (e.g. "CVMA (Colorado Veterinary Medical Association)") and validate against those standards.
 
-### 4. Light UI updates (Cluster Manager)
+## Notes on accuracy
 
-In `src/components/seo/gbp/ClusterManager.tsx`:
-
-- Add a small **"Auto-Generated"** badge next to clusters whose `cluster_id` matches a city slug pattern, plus an admin **"Rebuild from clinic addresses"** button at the top that calls `supabase.rpc('rebuild_geo_clusters')`.
-- Keep the existing "Add Cluster" / Edit / Delete controls unchanged so admins can still curate manually when an auto-generated grouping isn't right.
-
-### 5. UI fix: Generate Batches button
-
-While here, also add the missing admin **"Generate Batches"** button in `src/components/seo/gbp/BatchQueue.tsx` (the empty-state copy already references it but it's never rendered). It calls the existing `generate-batch-queue` edge function and the existing `useGBPBatches.generateQueue` mutation.
-
-## Files / artifacts
-
-- **Migration** (new): create `extract_city_from_address`, `slugify_city`, `rebuild_geo_clusters`, the `clinics` trigger, and a final `SELECT public.rebuild_geo_clusters();` backfill.
-- **Edit:** `src/components/seo/gbp/ClusterManager.tsx` — Rebuild button + Auto-Generated badge.
-- **Edit:** `src/components/seo/gbp/BatchQueue.tsx` — admin Generate Batches button.
-
-No edge function changes; no new secrets.
-
-## What this does NOT do
-
-- Does not geocode addresses. Cities are parsed from the existing address string only — clinics with vague addresses like *"Abbotsford, BC, Canada"* will still cluster correctly (city = Abbotsford), but malformed addresses fall into `UNASSIGNED` and an admin can manually move them.
-- Does not auto-fill landmarks or hospital type. Those remain admin-editable in the Clinic GBP Configuration form.
-- Does not change the existing `regenerate_gbp_batches()` logic — we reuse it.
-
-## End-state for Brentwood
-
-After this change, on next page load Brentwood will appear in cluster `BURNABY` (with Deer Lake Animal Hospital) and a corresponding batch will exist in Batch Queue automatically.
+- Where two associations exist, I'm using the state VMA (the body that publishes advertising/professional-conduct guidance) rather than the state licensing board, matching the pattern used for Canadian provinces.
+- Acronyms reuse the same letters across states (e.g. "CVMA" for both California and Colorado) — that's intentional and matches how each association brands itself. The full name in parentheses disambiguates.
+- This is a pure client-side heuristic over `clinics.address`. Clinics with malformed addresses will still fall back to AVMA / CVMA / generic in that order.
