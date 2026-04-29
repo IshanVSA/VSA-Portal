@@ -9,6 +9,54 @@ import { Eye, EyeOff } from "lucide-react";
 import vsaLogo from "@/assets/vsa-logo.jpg";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 
+/**
+ * Map any raw error string (technical or otherwise) into a friendly,
+ * non-technical message suitable for end users. Strips out things like
+ * "Edge Function", HTTP status codes, "non-2xx", stack traces, etc.
+ */
+function toFriendlyResetError(raw: string): string {
+  const msg = (raw || "").toLowerCase();
+
+  if (!msg) return "We couldn't send the reset link. Please try again in a moment.";
+
+  if (msg.includes("no account") || msg.includes("not found") || msg.includes("404")) {
+    return "We couldn't find an account with that email address. Please check the spelling and try again.";
+  }
+  if (msg.includes("rate") || msg.includes("too many") || msg.includes("429")) {
+    return "Too many attempts right now. Please wait a minute and try again.";
+  }
+  if (msg.includes("timeout") || msg.includes("timed out")) {
+    return "The request took too long. Please check your connection and try again.";
+  }
+  if (msg.includes("network") || msg.includes("fetch") || msg.includes("unreachable")) {
+    return "We're having trouble reaching the email service. Please try again in a moment.";
+  }
+  if (msg.includes("invalid") && msg.includes("email")) {
+    return "That doesn't look like a valid email address. Please check and try again.";
+  }
+  if (msg.includes("auth")) {
+    return "The email service is temporarily unavailable. Please try again shortly or contact support.";
+  }
+
+  // Strip technical jargon from any leftover message
+  if (
+    msg.includes("edge function") ||
+    msg.includes("non-2xx") ||
+    msg.includes("status code") ||
+    msg.includes("500") ||
+    msg.includes("502") ||
+    msg.includes("503")
+  ) {
+    return "Something went wrong on our end. Please try again in a moment.";
+  }
+
+  // If it's already a clean human sentence, keep it; otherwise generic fallback
+  if (raw.length < 160 && !raw.includes("{") && !raw.includes("Error:")) {
+    return raw;
+  }
+  return "We couldn't send the reset link. Please try again in a moment.";
+}
+
 export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
