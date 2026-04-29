@@ -423,7 +423,14 @@ export default function Employees() {
                         });
                       });
                     }
-                    return allClinics.map(c => {
+                    const q = clinicSearch.trim().toLowerCase();
+                    const visible = q
+                      ? allClinics.filter(c => c.clinic_name.toLowerCase().includes(q))
+                      : allClinics;
+                    if (visible.length === 0) {
+                      return <p className="text-sm text-muted-foreground text-center py-3">No clinics match "{clinicSearch}".</p>;
+                    }
+                    return visible.map(c => {
                       const existingMembers = sameRoleMap.get(c.id);
                       return (
                         <label key={c.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer">
