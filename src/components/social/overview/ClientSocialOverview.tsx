@@ -16,6 +16,7 @@ import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { BulkUploadsDialog } from "@/components/department/BulkUploadsDialog";
 import { DNAScoreRing } from "./shared/DNAScoreRing";
 import { RecentPostsPreview } from "./shared/RecentPostsPreview";
+import { resolveDisplayName } from "@/lib/display-name";
 
 interface ClientSocialOverviewProps {
   clinicId?: string;
