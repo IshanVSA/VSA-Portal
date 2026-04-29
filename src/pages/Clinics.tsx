@@ -282,9 +282,13 @@ export default function Clinics() {
     setExtractingWebsite(true);
 
     try {
+      // Always grab the freshest session token to avoid 401 on stale/revoked tokens
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token ?? session?.access_token;
+
       const { data, error } = await supabase.functions.invoke("extract-clinic-website", {
         body: { website: normalizedWebsite },
-        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
       });
 
       if (error) {
