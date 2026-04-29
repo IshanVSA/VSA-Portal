@@ -783,10 +783,10 @@ export default function ClinicDetail() {
                 connectedAt={creds.gbp_connected_at}
                 onRefresh={() => { fetchCredentials(); }}
               />
-              {isDebraj && <TrackingSetupCard clinicId={id!} />}
+              {(role === "admin" || isDebraj) && <TrackingSetupCard clinicId={id!} />}
 
               {/* Website URL Card */}
-              {isDebraj && (
+              {(role === "admin" || isDebraj) && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-base flex items-center gap-2">
@@ -804,7 +804,7 @@ export default function ClinicDetail() {
                 </Card>
               )}
 
-              {isDebraj && (
+              {(role === "admin" || isDebraj) && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-base flex items-center gap-2">
