@@ -140,7 +140,7 @@ export default function ClientsPage() {
               <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Clients</h1>
               <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">Manage your clinic clients</p>
             </div>
-            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setFormErrors({}); }}>
+            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setFormErrors({}); setSelectedClinicIds([]); } }}>
               <DialogTrigger asChild>
                 <Button className="rounded-lg shadow-sm w-full sm:w-auto"><Plus className="h-4 w-4 mr-2" />Add Client</Button>
               </DialogTrigger>
