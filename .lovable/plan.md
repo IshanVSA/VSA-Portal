@@ -1,93 +1,73 @@
-# Production Reset — Clear All Test Data
+## Goal
 
-You're going live with real clients. This plan wipes every piece of test/operational data while keeping the foundation intact so new clients arrive at a clean slate.
+Auto-create geographic clusters and batches for every existing clinic, and keep them auto-maintained for any new clinic added in the future — no manual setup required.
 
-## What WILL be deleted (cleared to zero)
+## How clusters will be derived
 
-**Tickets & related**
+Today, `geo_clusters` is empty and clusters are admin-curated. We'll switch to **automatic city-based clustering**:
 
-- `department_tickets`, `department_ticket_assignments`, `ticket_assignees`, `ticket_audit_log`
+- A cluster = one city. `cluster_id` = uppercased city slug (e.g. `SURREY`, `VANCOUVER`, `BURNABY`).
+- `region` = the same city name (display-friendly).
+- City is parsed from `clinics.address` (no `city` column exists, so we extract it from the comma-separated address text — the second-to-last comma group before the postal code, with a small province/postal-code stripper).
+- A clinic with no parseable city goes into a fallback cluster `UNASSIGNED` (still gets a batch as a solo entry).
+- `is_solo` is computed from final cluster size (1 → solo, ≥2 → shared).
 
-**Social media content (SM2)**
+A quick scan of current data shows we'll get clusters like:
+SURREY (8), VANCOUVER (10+), BURNABY (3), ABBOTSFORD (4), CALGARY (2), NANAIMO (2), MISSION (2), LANGLEY (2), MAPLE-RIDGE, SQUAMISH, KELOWNA, VICTORIA, COQUITLAM, NORTH-VANCOUVER, CENTENNIAL, SAN-FRANCISCO, LADNER, etc.
 
-- `sm2_generations`, `sm2_posts`, `sm2_post_performance`
-- `content_posts`, `content_requests`, `content_versions`, `content_calendar`
-- `post_activity_log`, `post_comments`, `post_workflow`
-- `calendar_submissions`, `compliance_override_log`
+## Plan
 
-**Brand DNA & monthly planning**
+### 1. DB migration: address parser + auto-cluster engine
 
-- `clinic_brand_dna` (full reset — every clinic re-does DNA collection)
-- `clinic_monthly_signals`, `clinic_promotions`
+Add three SECURITY DEFINER functions in a migration:
 
-**GBP (Google Business Profile)**
+- `extract_city_from_address(_address text) → text` — splits on commas, strips postal codes (Canadian `A1A 1A1`, US 5-digit), strips province codes (BC/AB/ON/CA/CO/WA…), trims, returns the cleaned city or `NULL`.
+- `slugify_city(_city text) → text` — uppercases, replaces spaces with `-`, strips punctuation. Used as `cluster_id`.
+- `rebuild_geo_clusters() → void` — recomputes `geo_clusters` rows from current clinics:
+  - Groups all `clinics.id` by extracted city.
+  - Upserts `geo_clusters` (cluster_id, region, clinics, is_solo).
+  - Deletes `geo_clusters` rows whose `cluster_id` no longer has any clinics.
+  - Ensures every clinic has a `clinic_gbp_config` row (insert with defaults — `geo_radius_km=7`, `hospital_type=NULL`, `local_landmarks='{}'`, `cluster_position` assigned A/B/C/D round-robin within the cluster).
+  - Calls the existing `regenerate_gbp_batches()` trigger function once at the end (re-creates `gbp_batches` from clusters + configs).
 
-- `gbp_post_history`, `gbp_recent_content`, `gbp_compliance_scans`,
-- `clinic_gbp_config` will be cleared (clinics re-sync from DNA)
+### 2. Trigger: keep it auto on clinic add/edit/delete
 
-**Blogs**
+Add an AFTER INSERT/UPDATE/DELETE trigger on `public.clinics` that calls `rebuild_geo_clusters()` whenever:
+- A new clinic is inserted, OR
+- An existing clinic's `address` changes, OR
+- A clinic is deleted.
 
-- `blog_posts`, `blog_client_submissions`, `blog_tracker`
-- &nbsp;
+This replaces the manual "Add Cluster" workflow for the common case while keeping the existing manual UI working as an override.
 
-**Notifications & chat**
+### 3. One-time backfill
 
-- `department_chats`, `department_chat_reads`
-- Notification "read" state lives in browser localStorage per user — it auto-clears as soon as the underlying records (tickets/posts/sm2) are deleted, so the bell will be empty.
+Run `SELECT public.rebuild_geo_clusters();` immediately after the migration so all current clinics, configs, and batches exist on first load.
 
-**Client journey**
+### 4. Light UI updates (Cluster Manager)
 
-- `client_journey_steps` (clinics re-progress through onboarding from step 1)
+In `src/components/seo/gbp/ClusterManager.tsx`:
 
-**Misc operational state**
+- Add a small **"Auto-Generated"** badge next to clusters whose `cluster_id` matches a city slug pattern, plus an admin **"Rebuild from clinic addresses"** button at the top that calls `supabase.rpc('rebuild_geo_clusters')`.
+- Keep the existing "Add Cluster" / Edit / Delete controls unchanged so admins can still curate manually when an auto-generated grouping isn't right.
 
-- `oauth_temp_tokens`, `cron_heartbeats`
+### 5. UI fix: Generate Batches button
 
-## What WILL be preserved
+While here, also add the missing admin **"Generate Batches"** button in `src/components/seo/gbp/BatchQueue.tsx` (the empty-state copy already references it but it's never rendered). It calls the existing `generate-batch-queue` edge function and the existing `useGBPBatches.generateQueue` mutation.
 
-- `clinics` — all clinic records stay
-- `profiles`, `user_roles`, `client_sub_accounts`, `sub_account_clinics` — all users/logins stay
-- `clinic_team_members`, `department_members` — staff assignments stay
-- `clinic_api_credentials` — Meta/Google Ads/GA4 connections stay
-- `terms_acceptance_log`, `terms_decline_log`, `terms_versions` — legal records preserved
-- `sm2_system_prompts`, `blog_prompt_versions`, `gbp_topic_library`, `statutory_holidays_reference` — reference data preserved
+## Files / artifacts
 
-## Execution
+- **Migration** (new): create `extract_city_from_address`, `slugify_city`, `rebuild_geo_clusters`, the `clinics` trigger, and a final `SELECT public.rebuild_geo_clusters();` backfill.
+- **Edit:** `src/components/seo/gbp/ClusterManager.tsx` — Rebuild button + Auto-Generated badge.
+- **Edit:** `src/components/seo/gbp/BatchQueue.tsx` — admin Generate Batches button.
 
-A single SQL migration, ordered to respect foreign keys (children first, parents last). Each statement is a `DELETE` with a safe `WHERE` clause (no `TRUNCATE`, so RLS-protected tables and triggers behave correctly).
+No edge function changes; no new secrets.
 
-Order:
+## What this does NOT do
 
-```text
-1. ticket_audit_log, ticket_assignees, department_ticket_assignments
-2. department_tickets
-3. post_activity_log, post_comments, post_workflow
-4. content_calendar, content_versions
-5. content_posts, content_requests
-6. sm2_post_performance, sm2_posts, sm2_generations
-7. compliance_override_log, calendar_submissions
-8. gbp_compliance_scans, gbp_post_history, gbp_recent_content, gbp_batches
-9. geo_clusters, clinic_gbp_config
-10. clinic_brand_dna, clinic_monthly_signals, clinic_promotions
-11. blog_client_submissions, blog_posts, blog_tracker
-12. analytics, seo_analytics, website_pageviews, pagespeed_scores
-13. department_chat_reads, department_chats
-14. client_journey_steps
-15. oauth_temp_tokens, cron_heartbeats
-```
+- Does not geocode addresses. Cities are parsed from the existing address string only — clinics with vague addresses like *"Abbotsford, BC, Canada"* will still cluster correctly (city = Abbotsford), but malformed addresses fall into `UNASSIGNED` and an admin can manually move them.
+- Does not auto-fill landmarks or hospital type. Those remain admin-editable in the Clinic GBP Configuration form.
+- Does not change the existing `regenerate_gbp_batches()` logic — we reuse it.
 
-## After reset
+## End-state for Brentwood
 
-- All clinics will appear with zero tickets, zero content, zero analytics
-- Each clinic's onboarding journey resets to step 1
-- Brand DNA must be re-collected per clinic before SM2 generation unlocks
-- Notification bell becomes empty for all users
-- Logged-in users stay logged in (auth not touched)
-
-## Important notes
-
-- This is **irreversible**. Once executed there is no built-in undo.
-- It does NOT delete clinics or users. If you also want to remove specific test clinics or test user accounts, tell me which ones and I'll add that to the migration.
-- Storage files (deliverables in `department-files` bucket) are NOT touched by SQL. If you want those purged too, say so and I'll add a cleanup step.
-
-Approve to proceed.
+After this change, on next page load Brentwood will appear in cluster `BURNABY` (with Deer Lake Animal Hospital) and a corresponding batch will exist in Batch Queue automatically.
