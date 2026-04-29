@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useAuth } from "@/hooks/useAuth";
+
+const DEBRAJ_USER_ID = "ac32880b-4a29-4617-9ab9-d4b28ed7b998";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -174,6 +177,8 @@ export default function ClinicDetail() {
   const { id } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const { role } = useUserRole();
+  const { user } = useAuth();
+  const isDebraj = user?.id === DEBRAJ_USER_ID;
   const [clinic, setClinic] = useState<ClinicData | null>(null);
   const [creds, setCreds] = useState<ClinicCredentials>({
     meta_page_id: null, meta_instagram_business_id: null, meta_page_name: null, meta_granted_scopes: null,
@@ -776,40 +781,44 @@ export default function ClinicDetail() {
                 connectedAt={creds.gbp_connected_at}
                 onRefresh={() => { fetchCredentials(); }}
               />
-              <TrackingSetupCard clinicId={id!} />
+              {isDebraj && <TrackingSetupCard clinicId={id!} />}
 
               {/* Website URL Card */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Globe className="h-4 w-4 text-primary" />
-                    Website URL
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <WebsiteUrlField
-                    clinicId={id!}
-                    currentUrl={clinic?.website || ""}
-                    onSaved={(url) => setClinic((prev) => prev ? { ...prev, website: url } : prev)}
-                  />
-                </CardContent>
-              </Card>
+              {isDebraj && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Globe className="h-4 w-4 text-primary" />
+                      Website URL
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <WebsiteUrlField
+                      clinicId={id!}
+                      currentUrl={clinic?.website || ""}
+                      onSaved={(url) => setClinic((prev) => prev ? { ...prev, website: url } : prev)}
+                    />
+                  </CardContent>
+                </Card>
+              )}
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Globe className="h-4 w-4 text-primary" />
-                    Clinic Timezone
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <TimezoneField
-                    clinicId={id!}
-                    currentTimezone={clinic?.timezone ?? DEFAULT_CLINIC_TIMEZONE}
-                    onSaved={(timezone) => setClinic((prev) => prev ? { ...prev, timezone } : prev)}
-                  />
-                </CardContent>
-              </Card>
+              {isDebraj && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Globe className="h-4 w-4 text-primary" />
+                      Clinic Timezone
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <TimezoneField
+                      clinicId={id!}
+                      currentTimezone={clinic?.timezone ?? DEFAULT_CLINIC_TIMEZONE}
+                      onSaved={(timezone) => setClinic((prev) => prev ? { ...prev, timezone } : prev)}
+                    />
+                  </CardContent>
+                </Card>
+              )}
               
               <Card>
                 <CardHeader>
