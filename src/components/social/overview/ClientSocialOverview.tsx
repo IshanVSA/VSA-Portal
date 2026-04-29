@@ -37,6 +37,7 @@ export function ClientSocialOverview({ clinicId }: ClientSocialOverviewProps) {
 
   const [loading, setLoading] = useState(true);
   const [dnaScore, setDnaScore] = useState(0);
+  const [dnaCompleted, setDnaCompleted] = useState(false);
   const [awaitingMyReview, setAwaitingMyReview] = useState(0);
   const [postsLiveThisMonth, setPostsLiveThisMonth] = useState(0);
   const [postsReady, setPostsReady] = useState(0);
@@ -82,7 +83,7 @@ export function ClientSocialOverview({ clinicId }: ClientSocialOverviewProps) {
         .in("approval_status", ["sent_for_copy_review", "sent_for_final_review"]);
 
       const [dnaRes, liveRes, readyRes, scheduledRes, autoRes, signalRes, promoRes] = await Promise.all([
-        supabase.from("clinic_brand_dna").select("completeness_score").eq("clinic_id", clinicId).maybeSingle(),
+        supabase.from("clinic_brand_dna").select("completeness_score, status, call_notes").eq("clinic_id", clinicId).maybeSingle(),
         supabase.from("content_posts").select("*", { count: "exact", head: true }).eq("clinic_id", clinicId).eq("status", "published").gte("published_at", monthStart),
         supabase.from("content_posts").select("*", { count: "exact", head: true }).eq("clinic_id", clinicId).in("status", ["scheduled", "published", "approved"]),
         supabase.from("content_posts").select("*", { count: "exact", head: true }).eq("clinic_id", clinicId).eq("status", "scheduled"),
@@ -92,6 +93,10 @@ export function ClientSocialOverview({ clinicId }: ClientSocialOverviewProps) {
       ]);
 
       setDnaScore(dnaRes.data?.completeness_score || 0);
+      const REQUIRED_Q_KEYS = ["q1_differentiator","q2_myth","q3_target_client","q4_founding_story","q5_owner_presence","q6_growth_priority","q7_content_exclusions","q8_community_connections","q9_patient_consent","q10_stat_holidays"];
+      const cn = (dnaRes.data?.call_notes ?? {}) as Record<string, any>;
+      const answered = REQUIRED_Q_KEYS.filter((k) => cn[k] !== undefined && String(cn[k]).trim() !== "").length;
+      setDnaCompleted(answered >= REQUIRED_Q_KEYS.length || dnaRes.data?.status === "completed" || dnaRes.data?.status === "active");
       setAwaitingMyReview(awaitingRes.count || 0);
       setPostsLiveThisMonth(liveRes.count || 0);
       setPostsReady(readyRes.count || 0);
@@ -130,7 +135,7 @@ export function ClientSocialOverview({ clinicId }: ClientSocialOverviewProps) {
   }
 
   // ───────────── DNA Gate (replaces everything when score < 50) ─────────────
-  if (dnaScore < 50) {
+  if (dnaScore < 50 && !dnaCompleted) {
     return (
       <div className="space-y-6">
         <Card className="overflow-hidden border-amber-500/40 animate-fade-in">
