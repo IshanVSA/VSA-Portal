@@ -680,7 +680,9 @@ function SynthesizedProfileCard({ profile, clinicId, canEdit }: { profile: Recor
     </Card>
   );
 }
-function WebsiteExtractionCard({ data }: { data: Record<string, any> | undefined }) {
+/* ── Layer 1 Card ── */
+function WebsiteExtractionCard({ data, clinicId, canEdit }: { data: Record<string, any> | undefined; clinicId?: string; canEdit?: boolean }) {
+  const [editOpen, setEditOpen] = useState(false);
   if (!data) return null;
   return (
     <Card className="border-primary/20 bg-primary/5">
@@ -700,6 +702,11 @@ function WebsiteExtractionCard({ data }: { data: Record<string, any> | undefined
               <span className="text-xs text-muted-foreground">
                 {format(new Date(data.extracted_at), "MMM d, yyyy h:mm a")}
               </span>
+            )}
+            {canEdit && (
+              <Button variant="outline" size="sm" onClick={() => setEditOpen(true)} className="gap-1.5 h-7 px-2">
+                <Edit2 className="h-3 w-3" /> Edit
+              </Button>
             )}
           </div>
         </div>
