@@ -959,7 +959,8 @@ function ReviewMiningCard({ data, clinicId, canEdit }: { data: Record<string, an
 }
 
 /* ── Locality Card ── */
-function LocalityCard({ data }: { data: Record<string, any> | undefined }) {
+function LocalityCard({ data, clinicId, canEdit }: { data: Record<string, any> | undefined; clinicId?: string; canEdit?: boolean }) {
+  const [editOpen, setEditOpen] = useState(false);
   if (!data) return null;
   return (
     <Card className="border-emerald-500/20 bg-emerald-500/5">
@@ -979,6 +980,11 @@ function LocalityCard({ data }: { data: Record<string, any> | undefined }) {
               <span className="text-xs text-muted-foreground">
                 {format(new Date(data.fetched_at), "MMM d, yyyy h:mm a")}
               </span>
+            )}
+            {canEdit && (
+              <Button variant="outline" size="sm" onClick={() => setEditOpen(true)} className="gap-1.5 h-7 px-2">
+                <Edit2 className="h-3 w-3" /> Edit
+              </Button>
             )}
           </div>
         </div>
