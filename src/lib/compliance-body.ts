@@ -116,45 +116,103 @@ const GENERIC = "General Veterinary Advertising Standards";
 const CA_POSTAL_RE = /\b[A-Z]\d[A-Z]\s?\d[A-Z]\d\b/i;
 const US_ZIP_RE = /\b\d{5}(?:-\d{4})?\b/;
 
+// Canonical "City, ST 12345" or "City ST 12345" pattern (US) and
+// "City, ST A1A 1A1" pattern (Canada). The province/state code lives
+// immediately before the postal code so it's an extremely strong signal.
+const US_CITY_STATE_ZIP_RE = /(?:,\s*|\s+)([A-Z]{2})\s+\d{5}(?:-\d{4})?/;
+const CA_CITY_PROV_POSTAL_RE = /(?:,\s*|\s+)([A-Z]{2})\s+[A-Z]\d[A-Z]\s?\d[A-Z]\d/i;
+
+const CA_CODES = new Set(Object.keys(CA_PROVINCE_MAP));
+const US_CODES = new Set(Object.keys(US_STATE_MAP));
+
+function stripNoise(input: string): string {
+  // Drop email addresses and URLs which can contain false-positive 2-letter
+  // tokens (".CO", ".IN", ".CA"), then collapse separators to plain spaces.
+  return input
+    .replace(/\S+@\S+/g, " ")
+    .replace(/https?:\/\/\S+/gi, " ")
+    .replace(/www\.\S+/gi, " ")
+    .replace(/[\/\\|;]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function detectCountry(upper: string): "US" | "CA" | null {
   if (/\bCANADA\b/.test(upper)) return "CA";
-  if (/\b(UNITED STATES|U\.S\.A?\.?|USA)\b/.test(upper)) return "US";
+  if (/\b(UNITED STATES OF AMERICA|UNITED STATES|U\.S\.A?\.?|USA)\b/.test(upper)) return "US";
   if (CA_POSTAL_RE.test(upper)) return "CA";
   if (US_ZIP_RE.test(upper)) return "US";
   return null;
 }
 
+function pickByProximity(
+  upper: string,
+  codes: Set<string>,
+  postalRe: RegExp,
+): string | null {
+  // Prefer the 2-letter code that sits closest to the postal/ZIP code.
+  const postalMatch = postalRe.exec(upper);
+  if (!postalMatch) return null;
+  const postalIdx = postalMatch.index;
+
+  let best: { code: string; dist: number } | null = null;
+  const codeRe = /\b([A-Z]{2})\b/g;
+  let m: RegExpExecArray | null;
+  while ((m = codeRe.exec(upper)) !== null) {
+    const code = m[1];
+    if (!codes.has(code)) continue;
+    const dist = Math.abs(m.index - postalIdx);
+    if (!best || dist < best.dist) best = { code, dist };
+  }
+  return best?.code ?? null;
+}
+
 export function detectComplianceBody(address: string | null | undefined): string {
   if (!address) return GENERIC;
-  const upper = String(address).toUpperCase();
+  const upper = stripNoise(String(address).toUpperCase());
   const country = detectCountry(upper);
 
-  // Canada
+  // 1) Strongest signal: "City, ST POSTAL" canonical patterns.
+  const usCanon = US_CITY_STATE_ZIP_RE.exec(upper);
+  if (usCanon && US_CODES.has(usCanon[1])) {
+    return US_STATE_MAP[usCanon[1]];
+  }
+  const caCanon = CA_CITY_PROV_POSTAL_RE.exec(upper);
+  if (caCanon && CA_CODES.has(caCanon[1].toUpperCase())) {
+    return CA_PROVINCE_MAP[caCanon[1].toUpperCase()];
+  }
+
+  // 2) Full state / province name anywhere in the string.
   if (country === "CA" || country === null) {
     for (const [name, code] of Object.entries(CA_NAME_TO_CODE)) {
-      if (upper.includes(name)) return CA_PROVINCE_MAP[code];
-    }
-    if (CA_POSTAL_RE.test(upper)) {
-      for (const [code, body] of Object.entries(CA_PROVINCE_MAP)) {
-        if (new RegExp(`\\b${code}\\b`).test(upper)) return body;
-      }
+      if (new RegExp(`\\b${name}\\b`).test(upper)) return CA_PROVINCE_MAP[code];
     }
   }
-
-  // US
   if (country === "US" || country === null) {
     for (const [name, code] of Object.entries(US_STATE_NAME_TO_CODE)) {
-      if (upper.includes(name)) return US_STATE_MAP[code];
-    }
-    if (US_ZIP_RE.test(upper)) {
-      for (const [code, body] of Object.entries(US_STATE_MAP)) {
-        if (new RegExp(`\\b${code}\\b`).test(upper)) return body;
-      }
-      return US_NATIONAL;
+      if (new RegExp(`\\b${name}\\b`).test(upper)) return US_STATE_MAP[code];
     }
   }
 
-  if (country === "US") return US_NATIONAL;
-  if (country === "CA") return CA_NATIONAL;
+  // 3) Code closest to the postal/ZIP, scoped to the detected country.
+  if (country === "CA") {
+    const code = pickByProximity(upper, CA_CODES, CA_POSTAL_RE);
+    if (code) return CA_PROVINCE_MAP[code];
+    return CA_NATIONAL;
+  }
+  if (country === "US") {
+    const code = pickByProximity(upper, US_CODES, US_ZIP_RE);
+    if (code) return US_STATE_MAP[code];
+    return US_NATIONAL;
+  }
+
+  // 4) Country still unknown — try proximity for both, prefer whichever
+  // postal-code form appears in the string.
+  const caCode = pickByProximity(upper, CA_CODES, CA_POSTAL_RE);
+  if (caCode) return CA_PROVINCE_MAP[caCode];
+  const usCode = pickByProximity(upper, US_CODES, US_ZIP_RE);
+  if (usCode) return US_STATE_MAP[usCode];
+
   return GENERIC;
 }
+
