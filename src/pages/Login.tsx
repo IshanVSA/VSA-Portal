@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
 import vsaLogo from "@/assets/vsa-logo.jpg";
+import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 
 export default function Login() {
   const navigate = useNavigate();
