@@ -37,6 +37,7 @@ export function ClientSocialOverview({ clinicId }: ClientSocialOverviewProps) {
 
   const [loading, setLoading] = useState(true);
   const [dnaScore, setDnaScore] = useState(0);
+  const [dnaCompleted, setDnaCompleted] = useState(false);
   const [awaitingMyReview, setAwaitingMyReview] = useState(0);
   const [postsLiveThisMonth, setPostsLiveThisMonth] = useState(0);
   const [postsReady, setPostsReady] = useState(0);
