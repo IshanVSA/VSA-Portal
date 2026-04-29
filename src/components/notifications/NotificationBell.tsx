@@ -199,7 +199,7 @@ export function NotificationBell() {
         .order("updated_at", { ascending: false })
         .limit(15);
 
-      const ticketNotifs: Notification[] = (ticketData || []).flatMap((t: any) => {
+      const ticketNotifs: Notification[] = (ticketData || []).flatMap((t: any): Notification[] => {
         // Clients: only surface meaningful status changes (work done on their tickets),
         // not raw "ticket created" events.
         if (isClient) {
