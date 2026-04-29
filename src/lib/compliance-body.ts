@@ -185,6 +185,21 @@ export function detectComplianceBody(address: string | null | undefined): string
     return CA_PROVINCE_MAP[caCanon[1].toUpperCase()];
   }
 
+  // 1b) "City, ST" with no postal code. Disambiguate codes shared by both
+  // countries (e.g. "ON", "NB") using country signal; if there's no signal,
+  // prefer US since unqualified "City, ST" is overwhelmingly a US convention.
+  const noZip = CITY_STATE_NOZIP_RE.exec(upper);
+  if (noZip) {
+    const code = noZip[1].toUpperCase();
+    const inUS = US_CODES.has(code);
+    const inCA = CA_CODES.has(code);
+    if (inUS && !inCA) return US_STATE_MAP[code];
+    if (inCA && !inUS) return CA_PROVINCE_MAP[code];
+    if (inUS && inCA) {
+      if (country === "CA") return CA_PROVINCE_MAP[code];
+      return US_STATE_MAP[code]; // default to US for shared codes
+    }
+  }
   // 2) Full state / province name anywhere in the string.
   if (country === "CA" || country === null) {
     for (const [name, code] of Object.entries(CA_NAME_TO_CODE)) {
