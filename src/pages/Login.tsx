@@ -126,17 +126,18 @@ export default function Login() {
                     <div className="flex gap-2">
                       <Button variant="outline" className="flex-1 bg-white text-gray-900 border-gray-200 hover:bg-gray-50" onClick={() => setForgotMode(false)}>Cancel</Button>
                       <Button className="flex-1" disabled={resetLoading} onClick={async () => {
-                        if (!resetEmail) { toast.error("Enter your email"); return; }
+                        if (!resetEmail) { toast.error("Please enter your email address"); return; }
                         setResetLoading(true);
                         const { data, error } = await supabase.functions.invoke("request-password-reset", {
                           body: { email: resetEmail },
                         });
                         if (error || (data && (data as any).error)) {
-                          const msg = await extractEdgeFunctionError(error, data, "Failed to send reset link");
-                          toast.error(msg);
+                          const raw = await extractEdgeFunctionError(error, data, "");
+                          const friendly = toFriendlyResetError(raw);
+                          toast.error(friendly);
                         } else {
                           const d = data as any;
-                          toast.success("Reset link sent");
+                          toast.success("Reset link sent! Please check your email.");
                           setResetSentInfo({
                             expiresAt: d?.expiresAt ?? new Date(Date.now() + 60 * 60 * 1000).toISOString(),
                             minutes: d?.expiresInMinutes ?? 60,
