@@ -13,6 +13,7 @@ import { format, parse } from "date-fns";
 import { Shield, ShieldCheck, ShieldAlert, Loader2, AlertTriangle, Lightbulb, CalendarIcon } from "lucide-react";
 import { VoiceDictation } from "./VoiceDictation";
 import { logComplianceOverride } from "@/lib/compliance-override-log";
+import { detectComplianceBody } from "@/lib/compliance-body";
 
 interface PopupOffersFormProps {
   onChange: (description: string) => void;
@@ -20,43 +21,7 @@ interface PopupOffersFormProps {
   clinicId?: string;
 }
 
-const PROVINCE_MAP: Record<string, string> = {
-  AB: "ABVMA (Alberta Veterinary Medical Association)",
-  BC: "CVBC (College of Veterinarians of British Columbia)",
-  ON: "CVO (College of Veterinarians of Ontario)",
-  SK: "SVMA (Saskatchewan Veterinary Medical Association)",
-  MB: "MVMA (Manitoba Veterinary Medical Association)",
-  QC: "OMVQ (Ordre des médecins vétérinaires du Québec)",
-  NS: "NSVMA (Nova Scotia Veterinary Medical Association)",
-  NB: "NBVMA (New Brunswick Veterinary Medical Association)",
-  PE: "PEIVMA (PEI Veterinary Medical Association)",
-  NL: "NLVMA (Newfoundland & Labrador Veterinary Medical Association)",
-  NT: "AVMA (general)",
-  NU: "AVMA (general)",
-  YT: "AVMA (general)",
-};
 
-function detectComplianceBody(address: string): string {
-  if (!address) return "General Veterinary Advertising Standards";
-  const upper = address.toUpperCase();
-  for (const [code, body] of Object.entries(PROVINCE_MAP)) {
-    const patterns = [
-      new RegExp(`\\b${code}\\b`),
-      new RegExp(`\\b${code}\\s+[A-Z]\\d[A-Z]`, "i"),
-    ];
-    if (patterns.some(p => p.test(upper))) return body;
-  }
-  const nameMap: Record<string, string> = {
-    ALBERTA: "AB", BRITISH_COLUMBIA: "BC", "BRITISH COLUMBIA": "BC",
-    ONTARIO: "ON", SASKATCHEWAN: "SK", MANITOBA: "MB", QUEBEC: "QC",
-    "NOVA SCOTIA": "NS", "NEW BRUNSWICK": "NB",
-    "PRINCE EDWARD ISLAND": "PE", NEWFOUNDLAND: "NL",
-  };
-  for (const [name, code] of Object.entries(nameMap)) {
-    if (upper.includes(name)) return PROVINCE_MAP[code];
-  }
-  return "General Veterinary Advertising Standards";
-}
 
 export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOffersFormProps) {
   const [offerTitle, setOfferTitle] = useState("");
