@@ -244,28 +244,17 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
   // Realtime
   useEffect(() => {
     if (!clinicId || !user) return;
+    const invalidate = () => {
+      queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
+    };
     const channel = supabase
-      .channel(`dept-chat-${department}-${clinicId}`)
+      .channel(`dept-chat-${department}-${clinicId}-${user.id}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "department_chats", filter: `clinic_id=eq.${clinicId}` },
+        { event: "*", schema: "public", table: "department_chats", filter: `clinic_id=eq.${clinicId}` },
         () => {
-          queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
+          invalidate();
           onVisible?.();
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "department_chats", filter: `clinic_id=eq.${clinicId}` },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "DELETE", schema: "public", table: "department_chats", filter: `clinic_id=eq.${clinicId}` },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
         }
       )
       .on(
@@ -285,14 +274,24 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
           return { ...prev, [payload.user_id]: { name: payload.name, timeout } };
         });
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          // Fallback: ensure UI eventually catches up if realtime drops
+          invalidate();
+        }
+      });
     typingChannelRef.current = channel;
+
+    // Safety net: poll every 8s in case realtime drops silently
+    const pollInterval = setInterval(invalidate, 8000);
+
     return () => {
+      clearInterval(pollInterval);
       setTypingUsers((prev) => { Object.values(prev).forEach((v) => clearTimeout(v.timeout)); return {}; });
       supabase.removeChannel(channel);
       typingChannelRef.current = null;
     };
-  }, [clinicId, department, user, queryClient]);
+  }, [clinicId, department, user?.id, queryClient]);
 
   const broadcastTyping = useCallback(() => {
     if (!typingChannelRef.current || !user || !ownProfile) return;
@@ -406,15 +405,21 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     try {
       let attachments: FileAttachment[] = [];
       if (hasFiles) attachments = await uploadFiles(pendingFiles);
-      await supabase.from("department_chats").insert({
+      const { error } = await supabase.from("department_chats").insert({
         department, clinic_id: clinicId, user_id: user.id,
         message: newMessage.trim() || (attachments.length > 0 ? `Sent ${attachments.length} file${attachments.length > 1 ? "s" : ""}` : ""),
         attachments: attachments as any,
         reply_to: replyTo?.id || null,
       } as any);
+      if (error) {
+        toast.error(error.message || "Failed to send message");
+        return;
+      }
       setNewMessage("");
       setPendingFiles([]);
       setReplyTo(null);
+      // Refetch immediately so the sender sees their message without waiting for realtime
+      await queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
     } finally { setSending(false); }
   };
 
