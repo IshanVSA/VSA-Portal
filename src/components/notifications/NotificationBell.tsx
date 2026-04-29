@@ -335,6 +335,8 @@ export function NotificationBell() {
         });
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "department_tickets" }, async (payload) => {
+        // Clients should not see "ticket created" — they already know they made it.
+        if (role === "client") return;
         const t = payload.new as any;
         await enrichAndPush({
           id: `ticket-${t.id}`, type: "ticket_created",
@@ -347,9 +349,17 @@ export function NotificationBell() {
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "department_tickets" }, async (payload) => {
         const t = payload.new as any;
+        const isClient = role === "client";
+        // Clients only get notified about meaningful resolution / progress updates.
+        const clientLabel = TICKET_STATUS_LABELS_FOR_CLIENT[t.status];
+        if (isClient && !clientLabel) return;
+        const title = isClient
+          ? clientLabel
+          : `Ticket ${String(t.status).replace(/_/g, " ")}`;
         await enrichAndPush({
-          id: `ticket-upd-${t.id}-${Date.now()}`, type: "status_changed",
-          title: `Ticket ${t.status.replace(/_/g, " ")}`,
+          id: `ticket-upd-${t.id}-${t.status}-${t.updated_at || Date.now()}`,
+          type: "status_changed",
+          title,
           message: `[${t.department}] ${t.title}`,
           read: false, created_at: t.updated_at || new Date().toISOString(),
           link: buildTicketLink(t.department, t.clinic_id, t.id),
@@ -359,11 +369,14 @@ export function NotificationBell() {
       .on("postgres_changes", { event: "*", schema: "public", table: "sm2_generations" }, async (payload) => {
         const g = payload.new as any;
         if (!g) return;
+        const isClient = role === "client";
+        // Clients only see "ready for review" and approval/finalization milestones.
+        if (isClient && !CLIENT_VISIBLE_SM2_STATUSES.has(g.approval_status)) return;
         await enrichAndPush({
-          id: `sm2-${g.id}-${Date.now()}`,
+          id: `sm2-${g.id}-${g.approval_status}-${g.updated_at || Date.now()}`,
           type: mapSM2Status(g.approval_status),
-          title: sm2Title(g.approval_status),
-          message: `Social media content for ${g.month_year}`,
+          title: sm2Title(g.approval_status, isClient),
+          message: sm2Message(g.approval_status, g.month_year, isClient),
           read: false,
           created_at: g.updated_at || g.created_at || new Date().toISOString(),
           link: buildSM2Link(g.clinic_id, role, g.approval_status),
