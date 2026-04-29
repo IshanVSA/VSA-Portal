@@ -20,6 +20,7 @@ import {
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { logComplianceOverride } from "@/lib/compliance-override-log";
+import { detectComplianceBody } from "@/lib/compliance-body";
 
 interface Promotion {
   id: string;
