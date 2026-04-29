@@ -173,6 +173,7 @@ export default function ClientsPage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Clinics</TableHead>
+                  <TableHead>Welcome Email</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -189,6 +190,22 @@ export default function ClientsPage() {
                             {assignedClinics.map((name, i) => (<Badge key={i} variant="secondary" className="text-[11px] rounded-full">{name}</Badge>))}
                           </div>
                         ) : (<span className="text-muted-foreground text-xs italic">None</span>)}
+                      </TableCell>
+                      <TableCell>
+                        {p.welcome_email_sent_at ? (
+                          <TooltipProvider delayDuration={200}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge variant="secondary" className="text-[11px] rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20">
+                                  Sent · {formatSentAt(p.welcome_email_sent_at)}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent side="right">{new Date(p.welcome_email_sent_at).toLocaleString()}</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : (
+                          <Badge variant="outline" className="text-[11px] rounded-full text-muted-foreground">Never sent</Badge>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <TooltipProvider delayDuration={200}>
