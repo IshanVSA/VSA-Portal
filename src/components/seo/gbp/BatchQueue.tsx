@@ -103,12 +103,22 @@ export function BatchQueue({ clinicId }: BatchQueueProps) {
   return (
     <div className="space-y-4">
       {/* Controls */}
-      {isAdmin && batches.length > 0 && (
+      {isAdmin && (
         <Card className="border-border/50">
-          <CardContent className="pt-4 pb-4 px-4">
+          <CardContent className="pt-4 pb-4 px-4 flex items-center justify-between gap-3">
             <span className="text-xs text-muted-foreground">
               Batches reflect current cluster groupings and update automatically when clinics are added or removed.
             </span>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 text-xs shrink-0"
+              onClick={() => generateQueue.mutate()}
+              disabled={generateQueue.isPending}
+            >
+              <RefreshCw className={`h-3 w-3 ${generateQueue.isPending ? "animate-spin" : ""}`} />
+              {generateQueue.isPending ? "Generating..." : batches.length > 0 ? "Regenerate Batches" : "Generate Batches"}
+            </Button>
           </CardContent>
         </Card>
       )}
