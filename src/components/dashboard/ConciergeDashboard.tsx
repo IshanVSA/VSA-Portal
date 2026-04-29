@@ -11,6 +11,7 @@ import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import UpcomingPosts from "./UpcomingPosts";
 import RecentActivity from "./RecentActivity";
 import MyTickets from "./MyTickets";
+import { formatDisplayName } from "@/lib/display-name";
 
 interface Clinic {
   id: string;
