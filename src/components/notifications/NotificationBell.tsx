@@ -277,7 +277,7 @@ export function NotificationBell() {
           const numPart = p.post_number != null ? `Post #${p.post_number}` : "Post";
           const preview = fb.length > 80 ? fb.slice(0, 80) + "…" : fb;
           return {
-            id: `sm2-note-${p.id}-${p.updated_at || ""}`,
+            id: `sm2-note-${p.id}`,
             type: "client_note" as const,
             title: "New Client Notes",
             message: `${numPart}${datePart ? ` (${datePart})` : ""}: ${preview}`,
@@ -318,7 +318,11 @@ export function NotificationBell() {
 
     const enrichAndPush = async (notif: Notification) => {
       const clinicName = await getClinicName(notif.clinicId);
-      setNotifications(prev => [withRead({ ...notif, clinicName }), ...prev].slice(0, 30));
+      setNotifications(prev => {
+        const enriched = withRead({ ...notif, clinicName });
+        const filtered = prev.filter(n => n.id !== enriched.id);
+        return [enriched, ...filtered].slice(0, 30);
+      });
     };
 
     const channel = supabase
@@ -367,7 +371,7 @@ export function NotificationBell() {
           ? clientLabel
           : `Ticket ${String(t.status).replace(/_/g, " ")}`;
         await enrichAndPush({
-          id: `ticket-upd-${t.id}-${t.status}-${t.updated_at || Date.now()}`,
+          id: `ticket-status-${t.id}-${t.status}`,
           type: "status_changed",
           title,
           message: `[${t.department}] ${t.title}`,
@@ -383,7 +387,7 @@ export function NotificationBell() {
         // Clients only see "ready for review" and approval/finalization milestones.
         if (isClient && !CLIENT_VISIBLE_SM2_STATUSES.has(g.approval_status)) return;
         await enrichAndPush({
-          id: `sm2-${g.id}-${g.approval_status}-${g.updated_at || Date.now()}`,
+          id: `sm2-${g.id}-${g.approval_status}`,
           type: mapSM2Status(g.approval_status),
           title: sm2Title(g.approval_status, isClient),
           message: sm2Message(g.approval_status, g.month_year, isClient),
@@ -408,7 +412,7 @@ export function NotificationBell() {
         const numPart = newRow.post_number != null ? `Post #${newRow.post_number}` : "Post";
         const preview = newFb.length > 80 ? newFb.slice(0, 80) + "…" : newFb;
         await enrichAndPush({
-          id: `sm2-note-${newRow.id}-${newRow.updated_at || Date.now()}`,
+          id: `sm2-note-${newRow.id}`,
           type: "client_note",
           title: "New Client Notes",
           message: `${numPart}${datePart ? ` (${datePart})` : ""}: ${preview}`,
