@@ -328,10 +328,22 @@ export function ClinicGBPConfigForm({ clusters }: Props) {
             </div>
 
             {isAdmin && (
-              <Button size="sm" className="gap-1.5 text-xs" onClick={handleSave} disabled={upsertConfig.isPending}>
-                <Save className="h-3 w-3" />
-                {upsertConfig.isPending ? "Saving..." : "Save Configuration"}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button size="sm" className="gap-1.5 text-xs" onClick={handleSave} disabled={upsertConfig.isPending}>
+                  <Save className="h-3 w-3" />
+                  {upsertConfig.isPending ? "Saving..." : "Save Configuration"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 text-xs"
+                  onClick={() => handleSelectClinic(selectedClinicId!)}
+                  disabled={upsertConfig.isPending}
+                >
+                  <Undo2 className="h-3 w-3" />
+                  Discard Changes
+                </Button>
+              </div>
             )}
           </CardContent>
         </Card>
