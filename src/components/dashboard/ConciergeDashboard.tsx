@@ -60,7 +60,7 @@ export default function ConciergeDashboard() {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 pb-4 border-b border-border/60">
         <div>
           <h1 className="text-xl font-bold text-foreground tracking-tight">
-            {user?.user_metadata?.full_name ? `${(user.user_metadata.full_name as string).split(" ")[0]}'s Dashboard` : "Dashboard"}
+            {user?.user_metadata?.full_name ? `${formatDisplayName(user.user_metadata.full_name as string)}'s Dashboard` : "Dashboard"}
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">{statusLine}</p>
         </div>
