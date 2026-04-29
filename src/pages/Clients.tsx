@@ -236,10 +236,24 @@ export default function ClientsPage() {
                     setFormErrors({});
                     setCreating(true);
                     const { data, error } = await supabase.functions.invoke("create-team-member", { body: { ...parsed.data, role: "client" } });
+                    if (error || data?.error) { setCreating(false); toast.error(await extractEdgeFunctionError(error, data, "Failed to create client")); return; }
+                    const newUserId = (data as any)?.id as string | undefined;
+                    if (newUserId && selectedClinicIds.length > 0) {
+                      const { error: assignErr } = await supabase
+                        .from("clinics")
+                        .update({ owner_user_id: newUserId })
+                        .in("id", selectedClinicIds);
+                      if (assignErr) {
+                        toast.warning(`Client created, but assigning clinics failed: ${assignErr.message}`);
+                      } else {
+                        toast.success(`Client created and assigned to ${selectedClinicIds.length} clinic${selectedClinicIds.length === 1 ? "" : "s"}`);
+                      }
+                    } else {
+                      toast.success("Client created");
+                    }
                     setCreating(false);
-                    if (error || data?.error) { toast.error(await extractEdgeFunctionError(error, data, "Failed to create client")); return; }
-                    toast.success("Client created");
                     setForm({ full_name: "", email: "", password: "" });
+                    setSelectedClinicIds([]);
                     setDialogOpen(false);
                     await fetchData();
                   }}>
