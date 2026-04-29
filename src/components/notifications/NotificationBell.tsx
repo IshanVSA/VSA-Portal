@@ -41,13 +41,38 @@ function mapSM2Status(status: string): Notification["type"] {
   return "sm2_generated";
 }
 
-function sm2Title(status: string): string {
-  if (status === "sent_to_client") return "Content Sent to Client";
+function sm2Title(status: string, isClient = false): string {
+  if (status === "sent_to_client") return isClient ? "Content Ready for Your Review" : "Content Sent to Client";
   if (status === "approved_client") return "Client Approved Content";
   if (status === "approved_auto") return "Content Auto-Approved";
+  if (status === "final_approved") return isClient ? "Final Content with Images Ready" : "Content Finalized";
   if (status === "feedback_submitted") return "Client Submitted Feedback";
   return "Content Generated";
 }
+
+function sm2Message(status: string, monthYear: string, isClient: boolean): string {
+  if (isClient) {
+    if (status === "sent_to_client") return `Your ${monthYear} social calendar is ready for review.`;
+    if (status === "final_approved") return `Your ${monthYear} content is finalized with images and ready to publish.`;
+    if (status === "approved_client" || status === "approved_auto") return `Your ${monthYear} content has been approved.`;
+  }
+  return `Social media content for ${monthYear}`;
+}
+
+// Statuses surfaced to clients in their notification bell
+const CLIENT_VISIBLE_SM2_STATUSES = new Set([
+  "sent_to_client",
+  "approved_client",
+  "approved_auto",
+  "final_approved",
+]);
+
+const TICKET_STATUS_LABELS_FOR_CLIENT: Record<string, string> = {
+  in_progress: "Ticket In Progress",
+  completed: "Ticket Resolved",
+  resolved: "Ticket Resolved",
+  closed: "Ticket Closed",
+};
 
 const DEPARTMENT_ROUTE: Record<string, string> = {
   website: "/website",
