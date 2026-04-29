@@ -755,7 +755,7 @@ export default function ClinicDetail() {
             </Card>
           </TabsContent>
 
-          {role === "admin" && (
+          {(role === "admin" || isDebraj) && (
             <TabsContent value="connections" className="space-y-4 mt-4">
               <MetaConnectionCard
                 clinicId={id!}
