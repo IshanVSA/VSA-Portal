@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Search, Save } from "lucide-react";
+import { Search, Save, Undo2 } from "lucide-react";
 import type { GeoCluster, ClinicGBPConfig, HospitalType, Jurisdiction, ClusterPosition } from "@/lib/gbp/types";
 
 interface Props {
@@ -328,10 +328,22 @@ export function ClinicGBPConfigForm({ clusters }: Props) {
             </div>
 
             {isAdmin && (
-              <Button size="sm" className="gap-1.5 text-xs" onClick={handleSave} disabled={upsertConfig.isPending}>
-                <Save className="h-3 w-3" />
-                {upsertConfig.isPending ? "Saving..." : "Save Configuration"}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button size="sm" className="gap-1.5 text-xs" onClick={handleSave} disabled={upsertConfig.isPending}>
+                  <Save className="h-3 w-3" />
+                  {upsertConfig.isPending ? "Saving..." : "Save Configuration"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 text-xs"
+                  onClick={() => handleSelectClinic(selectedClinicId!)}
+                  disabled={upsertConfig.isPending}
+                >
+                  <Undo2 className="h-3 w-3" />
+                  Discard Changes
+                </Button>
+              </div>
             )}
           </CardContent>
         </Card>
