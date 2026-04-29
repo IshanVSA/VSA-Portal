@@ -166,8 +166,16 @@ export function NotificationBell() {
     if (!user) return;
 
     readIdsRef.current = loadReadIds();
+    if (readAllKey) {
+      const raw = localStorage.getItem(readAllKey);
+      readAllAtRef.current = raw ? Number(raw) || 0 : 0;
+    }
 
-    const withRead = (n: Notification): Notification => ({ ...n, read: readIdsRef.current.has(n.id) });
+    const isReadById = (n: Notification) =>
+      readIdsRef.current.has(n.id) ||
+      (readAllAtRef.current > 0 && new Date(n.created_at).getTime() <= readAllAtRef.current);
+
+    const withRead = (n: Notification): Notification => ({ ...n, read: isReadById(n) });
 
     const fetchNotifications = async () => {
       const { data: activityData } = await supabase
