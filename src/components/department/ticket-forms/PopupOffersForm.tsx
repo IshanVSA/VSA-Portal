@@ -13,6 +13,7 @@ import { format, parse } from "date-fns";
 import { Shield, ShieldCheck, ShieldAlert, Loader2, AlertTriangle, Lightbulb, CalendarIcon } from "lucide-react";
 import { VoiceDictation } from "./VoiceDictation";
 import { logComplianceOverride } from "@/lib/compliance-override-log";
+import { detectComplianceBody } from "@/lib/compliance-body";
 
 interface PopupOffersFormProps {
   onChange: (description: string) => void;
