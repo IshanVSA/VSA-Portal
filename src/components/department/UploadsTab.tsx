@@ -147,20 +147,6 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
 
   const handleUpload = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
-    setUploading(true);
-    let successCount = 0;
-    for (const file of Array.from(fileList)) {
-      const path = `${folder}${file.name}`;
-      const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true });
-      if (error) {
-        toast.error(`Failed to upload ${file.name}`);
-        console.error(error);
-      } else {
-        successCount++;
-      }
-    }
-  const handleUpload = async (fileList: FileList | null) => {
-    if (!fileList || fileList.length === 0) return;
     if (!clinicId) {
       toast.error("Select a clinic before uploading files");
       return;
