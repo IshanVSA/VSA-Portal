@@ -49,6 +49,7 @@ export default function Employees() {
   const [editDialogUser, setEditDialogUser] = useState<Profile | null>(null);
   const [editForm, setEditForm] = useState({ role: "", team_role: "", clinicIds: [] as string[] });
   const [savingEdit, setSavingEdit] = useState(false);
+  const [clinicSearch, setClinicSearch] = useState("");
 
   const fetchData = async () => {
     const [profilesRes, rolesRes, clinicsRes, teamAssignRes] = await Promise.all([
