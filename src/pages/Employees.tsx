@@ -49,6 +49,7 @@ export default function Employees() {
   const [editDialogUser, setEditDialogUser] = useState<Profile | null>(null);
   const [editForm, setEditForm] = useState({ role: "", team_role: "", clinicIds: [] as string[] });
   const [savingEdit, setSavingEdit] = useState(false);
+  const [clinicSearch, setClinicSearch] = useState("");
 
   const fetchData = async () => {
     const [profilesRes, rolesRes, clinicsRes, teamAssignRes] = await Promise.all([
@@ -119,6 +120,7 @@ export default function Employees() {
       team_role: user.team_role || "",
       clinicIds: getAssignedClinicIds(user.id),
     });
+    setClinicSearch("");
   };
 
   const handleSaveEdit = async () => {
@@ -393,6 +395,15 @@ export default function Employees() {
               </div>
               <div className="space-y-2">
                 <Label>Assigned Clinics</Label>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    value={clinicSearch}
+                    onChange={(e) => setClinicSearch(e.target.value)}
+                    placeholder="Search clinics…"
+                    className="pl-8 h-9"
+                  />
+                </div>
                 <div className="max-h-48 overflow-y-auto space-y-1 border rounded-md p-2">
                   {allClinics.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-3">No active clinics found.</p>
@@ -412,7 +423,14 @@ export default function Employees() {
                         });
                       });
                     }
-                    return allClinics.map(c => {
+                    const q = clinicSearch.trim().toLowerCase();
+                    const visible = q
+                      ? allClinics.filter(c => c.clinic_name.toLowerCase().includes(q))
+                      : allClinics;
+                    if (visible.length === 0) {
+                      return <p className="text-sm text-muted-foreground text-center py-3">No clinics match "{clinicSearch}".</p>;
+                    }
+                    return visible.map(c => {
                       const existingMembers = sameRoleMap.get(c.id);
                       return (
                         <label key={c.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer">
