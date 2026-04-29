@@ -199,20 +199,44 @@ export default function ClientsPage() {
                         ) : (<span className="text-muted-foreground text-xs italic">None</span>)}
                       </TableCell>
                       <TableCell>
-                        {p.welcome_email_sent_at ? (
-                          <TooltipProvider delayDuration={200}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Badge variant="secondary" className="text-[11px] rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20">
-                                  Sent · {formatSentAt(p.welcome_email_sent_at)}
-                                </Badge>
-                              </TooltipTrigger>
-                              <TooltipContent side="right">{new Date(p.welcome_email_sent_at).toLocaleString()}</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        ) : (
-                          <Badge variant="outline" className="text-[11px] rounded-full text-muted-foreground">Never sent</Badge>
-                        )}
+                        {(() => {
+                          const sentAt = p.welcome_email_sent_at;
+                          const attemptAt = p.welcome_email_last_attempt_at;
+                          const lastErr = p.welcome_email_last_error;
+                          const failedLatest = !!lastErr && (!sentAt || (attemptAt && new Date(attemptAt) > new Date(sentAt)));
+                          if (failedLatest) {
+                            return (
+                              <TooltipProvider delayDuration={200}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge variant="secondary" className="text-[11px] rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20">
+                                      Failed{attemptAt ? ` · ${formatSentAt(attemptAt)}` : ""}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="right">
+                                    {lastErr}
+                                    {attemptAt ? ` (${new Date(attemptAt).toLocaleString()})` : ""}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            );
+                          }
+                          if (sentAt) {
+                            return (
+                              <TooltipProvider delayDuration={200}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge variant="secondary" className="text-[11px] rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20">
+                                      Sent · {formatSentAt(sentAt)}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="right">{new Date(sentAt).toLocaleString()}</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            );
+                          }
+                          return <Badge variant="outline" className="text-[11px] rounded-full text-muted-foreground">Never sent</Badge>;
+                        })()}
                       </TableCell>
                       <TableCell className="text-right">
                         <TooltipProvider delayDuration={200}>
