@@ -90,10 +90,13 @@ export function BatchQueue({ clinicId }: BatchQueueProps) {
     }
   }, [batches]);
 
-  // Filter batches to only show the one containing the selected clinic
+  // Filter batches to only show the one containing the selected clinic.
+  // Fallback: if no batch matches (e.g., clinic just added before rebuild), show all
+  // so the queue is never mysteriously empty.
   const filteredBatches = useMemo(() => {
     if (!clinicId) return batches;
-    return batches.filter(b => b.clinics.includes(clinicId));
+    const matched = batches.filter(b => b.clinics.includes(clinicId));
+    return matched.length > 0 ? matched : batches;
   }, [batches, clinicId]);
 
   const totalClinics = new Set(filteredBatches.flatMap(b => b.clinics)).size;
