@@ -129,7 +129,9 @@ export function NotificationBell() {
   const clinicNameMapRef = useRef<Map<string, string>>(new Map());
 
   const storageKey = user ? `notif-read-ids:${user.id}` : null;
+  const readAllKey = user ? `notif-read-all-at:${user.id}` : null;
   const readIdsRef = useRef<Set<string>>(new Set());
+  const readAllAtRef = useRef<number>(0);
 
   const getClinicName = async (clinicId: string | null | undefined): Promise<string | null> => {
     if (!clinicId) return null;
@@ -164,8 +166,16 @@ export function NotificationBell() {
     if (!user) return;
 
     readIdsRef.current = loadReadIds();
+    if (readAllKey) {
+      const raw = localStorage.getItem(readAllKey);
+      readAllAtRef.current = raw ? Number(raw) || 0 : 0;
+    }
 
-    const withRead = (n: Notification): Notification => ({ ...n, read: readIdsRef.current.has(n.id) });
+    const isReadById = (n: Notification) =>
+      readIdsRef.current.has(n.id) ||
+      (readAllAtRef.current > 0 && new Date(n.created_at).getTime() <= readAllAtRef.current);
+
+    const withRead = (n: Notification): Notification => ({ ...n, read: isReadById(n) });
 
     const fetchNotifications = async () => {
       const { data: activityData } = await supabase
@@ -446,6 +456,11 @@ export function NotificationBell() {
 
 
   const markAllRead = () => {
+    const now = Date.now();
+    readAllAtRef.current = now;
+    if (readAllKey) {
+      try { localStorage.setItem(readAllKey, String(now)); } catch {}
+    }
     setNotifications(prev => {
       const next = prev.map(n => ({ ...n, read: true }));
       next.forEach(n => readIdsRef.current.add(n.id));
