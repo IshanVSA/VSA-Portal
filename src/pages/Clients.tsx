@@ -13,13 +13,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
-import { Plus, Trash2, UserCheck, Mail, Loader2 } from "lucide-react";
+import { Plus, Trash2, UserCheck, Mail, Loader2, Check, ChevronDown, Building2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface Profile { id: string; full_name: string | null; email: string | null; welcome_email_sent_at: string | null; welcome_email_last_attempt_at: string | null; welcome_email_last_error: string | null; }
 interface UserRole { user_id: string; role: string; }
 interface ClinicAssignment { user_id: string; clinic_names: string[]; }
+interface ClinicOption { id: string; clinic_name: string; owner_user_id: string | null; }
 
 const clientSchema = z.object({
   full_name: z.string().trim().min(1, "Full name is required").max(100, "Full name must be less than 100 characters"),
@@ -32,17 +37,20 @@ export default function ClientsPage() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [roles, setRoles] = useState<UserRole[]>([]);
   const [assignments, setAssignments] = useState<ClinicAssignment[]>([]);
+  const [allClinics, setAllClinics] = useState<ClinicOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ full_name: "", email: "", password: "" });
   const [formErrors, setFormErrors] = useState<{ full_name?: string; email?: string; password?: string }>({});
+  const [selectedClinicIds, setSelectedClinicIds] = useState<string[]>([]);
+  const [clinicPickerOpen, setClinicPickerOpen] = useState(false);
   const [creating, setCreating] = useState(false);
 
   const fetchData = async () => {
     const [profilesRes, rolesRes, clinicsRes] = await Promise.all([
       supabase.from("profiles").select("id, full_name, email, welcome_email_sent_at, welcome_email_last_attempt_at, welcome_email_last_error"),
       supabase.from("user_roles").select("user_id, role"),
-      supabase.from("clinics").select("owner_user_id, clinic_name"),
+      supabase.from("clinics").select("id, clinic_name, owner_user_id").order("clinic_name"),
     ]);
     const allRoles = rolesRes.data || [];
     const clientUserIds = allRoles.filter(r => r.role === "client").map(r => r.user_id);
@@ -50,6 +58,7 @@ export default function ClientsPage() {
     setRoles(allRoles);
 
     const clinics = clinicsRes.data || [];
+    setAllClinics(clinics);
     const assignMap = new Map<string, string[]>();
     clinics.forEach(c => {
       if (c.owner_user_id) {
@@ -131,7 +140,7 @@ export default function ClientsPage() {
               <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Clients</h1>
               <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">Manage your clinic clients</p>
             </div>
-            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setFormErrors({}); }}>
+            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setFormErrors({}); setSelectedClinicIds([]); } }}>
               <DialogTrigger asChild>
                 <Button className="rounded-lg shadow-sm w-full sm:w-auto"><Plus className="h-4 w-4 mr-2" />Add Client</Button>
               </DialogTrigger>
@@ -159,6 +168,57 @@ export default function ClientsPage() {
                     <Input type="password" value={form.password} onChange={e => { setForm(f => ({ ...f, password: e.target.value })); if (formErrors.password) setFormErrors(p => ({ ...p, password: undefined })); }} placeholder="Min 8 characters" className="input-glow" aria-invalid={!!formErrors.password} />
                     {formErrors.password && <p className="text-xs text-destructive">{formErrors.password}</p>}
                   </div>
+                  <div className="space-y-2">
+                    <Label>Assign Clinics <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                    <Popover open={clinicPickerOpen} onOpenChange={setClinicPickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button type="button" variant="outline" role="combobox" className="w-full justify-between font-normal">
+                          <span className="flex items-center gap-2 truncate">
+                            <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+                            {selectedClinicIds.length === 0
+                              ? <span className="text-muted-foreground">Select clinics to assign…</span>
+                              : <span className="truncate">{selectedClinicIds.length} clinic{selectedClinicIds.length === 1 ? "" : "s"} selected</span>}
+                          </span>
+                          <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search clinics…" />
+                          <CommandList>
+                            <CommandEmpty>No clinics found.</CommandEmpty>
+                            <CommandGroup>
+                              <ScrollArea className="max-h-64">
+                                {allClinics.map((c) => {
+                                  const checked = selectedClinicIds.includes(c.id);
+                                  const ownedByOther = !!c.owner_user_id;
+                                  return (
+                                    <CommandItem
+                                      key={c.id}
+                                      value={c.clinic_name}
+                                      onSelect={() => {
+                                        setSelectedClinicIds((prev) => prev.includes(c.id) ? prev.filter(x => x !== c.id) : [...prev, c.id]);
+                                      }}
+                                      className="flex items-center gap-2"
+                                    >
+                                      <div className={cn("flex h-4 w-4 items-center justify-center rounded border border-primary/40", checked && "bg-primary text-primary-foreground")}>
+                                        {checked && <Check className="h-3 w-3" />}
+                                      </div>
+                                      <span className="flex-1 truncate">{c.clinic_name}</span>
+                                      {ownedByOther && <Badge variant="outline" className="text-[10px] rounded-full">Assigned</Badge>}
+                                    </CommandItem>
+                                  );
+                                })}
+                              </ScrollArea>
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    {selectedClinicIds.some(id => allClinics.find(c => c.id === id)?.owner_user_id) && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400">Some selected clinics already have an owner. Saving will reassign them to this new client.</p>
+                    )}
+                  </div>
                 </div>
                 <DialogFooter className="flex-col gap-2 sm:flex-row">
                   <Button className="w-full sm:w-auto" disabled={creating} onClick={async () => {
@@ -176,10 +236,24 @@ export default function ClientsPage() {
                     setFormErrors({});
                     setCreating(true);
                     const { data, error } = await supabase.functions.invoke("create-team-member", { body: { ...parsed.data, role: "client" } });
+                    if (error || data?.error) { setCreating(false); toast.error(await extractEdgeFunctionError(error, data, "Failed to create client")); return; }
+                    const newUserId = (data as any)?.id as string | undefined;
+                    if (newUserId && selectedClinicIds.length > 0) {
+                      const { error: assignErr } = await supabase
+                        .from("clinics")
+                        .update({ owner_user_id: newUserId })
+                        .in("id", selectedClinicIds);
+                      if (assignErr) {
+                        toast.warning(`Client created, but assigning clinics failed: ${assignErr.message}`);
+                      } else {
+                        toast.success(`Client created and assigned to ${selectedClinicIds.length} clinic${selectedClinicIds.length === 1 ? "" : "s"}`);
+                      }
+                    } else {
+                      toast.success("Client created");
+                    }
                     setCreating(false);
-                    if (error || data?.error) { toast.error(await extractEdgeFunctionError(error, data, "Failed to create client")); return; }
-                    toast.success("Client created");
                     setForm({ full_name: "", email: "", password: "" });
+                    setSelectedClinicIds([]);
                     setDialogOpen(false);
                     await fetchData();
                   }}>
