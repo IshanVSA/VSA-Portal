@@ -168,6 +168,57 @@ export default function ClientsPage() {
                     <Input type="password" value={form.password} onChange={e => { setForm(f => ({ ...f, password: e.target.value })); if (formErrors.password) setFormErrors(p => ({ ...p, password: undefined })); }} placeholder="Min 8 characters" className="input-glow" aria-invalid={!!formErrors.password} />
                     {formErrors.password && <p className="text-xs text-destructive">{formErrors.password}</p>}
                   </div>
+                  <div className="space-y-2">
+                    <Label>Assign Clinics <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                    <Popover open={clinicPickerOpen} onOpenChange={setClinicPickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button type="button" variant="outline" role="combobox" className="w-full justify-between font-normal">
+                          <span className="flex items-center gap-2 truncate">
+                            <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+                            {selectedClinicIds.length === 0
+                              ? <span className="text-muted-foreground">Select clinics to assign…</span>
+                              : <span className="truncate">{selectedClinicIds.length} clinic{selectedClinicIds.length === 1 ? "" : "s"} selected</span>}
+                          </span>
+                          <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search clinics…" />
+                          <CommandList>
+                            <CommandEmpty>No clinics found.</CommandEmpty>
+                            <CommandGroup>
+                              <ScrollArea className="max-h-64">
+                                {allClinics.map((c) => {
+                                  const checked = selectedClinicIds.includes(c.id);
+                                  const ownedByOther = !!c.owner_user_id;
+                                  return (
+                                    <CommandItem
+                                      key={c.id}
+                                      value={c.clinic_name}
+                                      onSelect={() => {
+                                        setSelectedClinicIds((prev) => prev.includes(c.id) ? prev.filter(x => x !== c.id) : [...prev, c.id]);
+                                      }}
+                                      className="flex items-center gap-2"
+                                    >
+                                      <div className={cn("flex h-4 w-4 items-center justify-center rounded border border-primary/40", checked && "bg-primary text-primary-foreground")}>
+                                        {checked && <Check className="h-3 w-3" />}
+                                      </div>
+                                      <span className="flex-1 truncate">{c.clinic_name}</span>
+                                      {ownedByOther && <Badge variant="outline" className="text-[10px] rounded-full">Assigned</Badge>}
+                                    </CommandItem>
+                                  );
+                                })}
+                              </ScrollArea>
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    {selectedClinicIds.some(id => allClinics.find(c => c.id === id)?.owner_user_id) && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400">Some selected clinics already have an owner. Saving will reassign them to this new client.</p>
+                    )}
+                  </div>
                 </div>
                 <DialogFooter className="flex-col gap-2 sm:flex-row">
                   <Button className="w-full sm:w-auto" disabled={creating} onClick={async () => {
