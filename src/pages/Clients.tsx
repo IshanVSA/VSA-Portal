@@ -21,8 +21,22 @@ interface Profile { id: string; full_name: string | null; email: string | null; 
 interface UserRole { user_id: string; role: string; }
 interface ClinicAssignment { user_id: string; clinic_names: string[]; }
 
+const clientSchema = z.object({
+  full_name: z.string().trim().min(1, "Full name is required").max(100, "Full name must be less than 100 characters"),
+  email: z.string().trim().min(1, "Email is required").email("Invalid email address").max(255, "Email must be less than 255 characters"),
+  password: z.string().min(8, "Password must be at least 8 characters").max(128, "Password must be less than 128 characters"),
+});
+
 export default function ClientsPage() {
   const { role } = useUserRole();
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [roles, setRoles] = useState<UserRole[]>([]);
+  const [assignments, setAssignments] = useState<ClinicAssignment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState({ full_name: "", email: "", password: "" });
+  const [formErrors, setFormErrors] = useState<{ full_name?: string; email?: string; password?: string }>({});
+  const [creating, setCreating] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [roles, setRoles] = useState<UserRole[]>([]);
   const [assignments, setAssignments] = useState<ClinicAssignment[]>([]);
