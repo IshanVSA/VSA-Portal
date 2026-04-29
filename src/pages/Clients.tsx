@@ -37,13 +37,6 @@ export default function ClientsPage() {
   const [form, setForm] = useState({ full_name: "", email: "", password: "" });
   const [formErrors, setFormErrors] = useState<{ full_name?: string; email?: string; password?: string }>({});
   const [creating, setCreating] = useState(false);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [roles, setRoles] = useState<UserRole[]>([]);
-  const [assignments, setAssignments] = useState<ClinicAssignment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ full_name: "", email: "", password: "" });
-  const [creating, setCreating] = useState(false);
 
   const fetchData = async () => {
     const [profilesRes, rolesRes, clinicsRes] = await Promise.all([
