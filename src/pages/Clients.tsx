@@ -12,7 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
-import { Plus, Trash2, UserCheck } from "lucide-react";
+import { Plus, Trash2, UserCheck, Mail, Loader2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface Profile { id: string; full_name: string | null; email: string | null; }
@@ -61,6 +62,15 @@ export default function ClientsPage() {
   const getAssignedClinics = (userId: string) => assignments.find(a => a.user_id === userId)?.clinic_names || [];
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [resendingId, setResendingId] = useState<string | null>(null);
+
+  const handleResendWelcome = async (userId: string, name: string) => {
+    setResendingId(userId);
+    const { data, error } = await supabase.functions.invoke("resend-welcome-email", { body: { user_id: userId } });
+    setResendingId(null);
+    if (error || data?.error) { toast.error(await extractEdgeFunctionError(error, data, "Failed to send welcome email")); return; }
+    toast.success(`Welcome email sent to ${name}`);
+  };
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
@@ -161,6 +171,22 @@ export default function ClientsPage() {
                         ) : (<span className="text-muted-foreground text-xs italic">None</span>)}
                       </TableCell>
                       <TableCell className="text-right">
+                        <TooltipProvider delayDuration={200}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8"
+                                disabled={resendingId === p.id}
+                                onClick={() => handleResendWelcome(p.id, p.full_name || "client")}
+                              >
+                                {resendingId === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="right">Resend welcome email</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                         <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => setDeleteTarget({ id: p.id, name: p.full_name || "User" })}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
