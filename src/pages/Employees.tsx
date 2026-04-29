@@ -120,6 +120,7 @@ export default function Employees() {
       team_role: user.team_role || "",
       clinicIds: getAssignedClinicIds(user.id),
     });
+    setClinicSearch("");
   };
 
   const handleSaveEdit = async () => {
