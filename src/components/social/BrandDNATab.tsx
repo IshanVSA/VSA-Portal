@@ -668,11 +668,18 @@ function SynthesizedProfileCard({ profile, clinicId, canEdit }: { profile: Recor
           </details>
         )}
       </CardContent>
+      <DNAJsonEditDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        clinicId={clinicId}
+        title="Synthesized DNA Profile"
+        description="Edit any field in the synthesized profile. Changes merge into the existing profile and are reflected immediately across content generation."
+        value={profile}
+        target={{ kind: "synthesized_profile" }}
+      />
     </Card>
   );
 }
-
-/* ── Layer 1 Card ── */
 function WebsiteExtractionCard({ data }: { data: Record<string, any> | undefined }) {
   if (!data) return null;
   return (
