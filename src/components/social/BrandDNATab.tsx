@@ -946,6 +946,14 @@ function ReviewMiningCard({ data, clinicId, canEdit }: { data: Record<string, an
           </div>
         )}
       </CardContent>
+      <DNAJsonEditDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        clinicId={clinicId}
+        title="Layer 2 — Review Mining"
+        value={data}
+        target={{ kind: "additional_field", key: "review_mining" }}
+      />
     </Card>
   );
 }
