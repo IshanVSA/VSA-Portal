@@ -367,7 +367,7 @@ export function NotificationBell() {
           ? clientLabel
           : `Ticket ${String(t.status).replace(/_/g, " ")}`;
         await enrichAndPush({
-          id: `ticket-upd-${t.id}-${t.status}-${t.updated_at || Date.now()}`,
+          id: `ticket-status-${t.id}-${t.status}`,
           type: "status_changed",
           title,
           message: `[${t.department}] ${t.title}`,
