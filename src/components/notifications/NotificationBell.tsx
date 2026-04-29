@@ -456,6 +456,11 @@ export function NotificationBell() {
 
 
   const markAllRead = () => {
+    const now = Date.now();
+    readAllAtRef.current = now;
+    if (readAllKey) {
+      try { localStorage.setItem(readAllKey, String(now)); } catch {}
+    }
     setNotifications(prev => {
       const next = prev.map(n => ({ ...n, read: true }));
       next.forEach(n => readIdsRef.current.add(n.id));
