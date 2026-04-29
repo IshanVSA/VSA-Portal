@@ -93,6 +93,10 @@ export function ClientSocialOverview({ clinicId }: ClientSocialOverviewProps) {
       ]);
 
       setDnaScore(dnaRes.data?.completeness_score || 0);
+      const REQUIRED_Q_KEYS = ["q1_differentiator","q2_myth","q3_target_client","q4_founding_story","q5_owner_presence","q6_growth_priority","q7_content_exclusions","q8_community_connections","q9_patient_consent","q10_stat_holidays"];
+      const cn = (dnaRes.data?.call_notes ?? {}) as Record<string, any>;
+      const answered = REQUIRED_Q_KEYS.filter((k) => cn[k] !== undefined && String(cn[k]).trim() !== "").length;
+      setDnaCompleted(answered >= REQUIRED_Q_KEYS.length || dnaRes.data?.status === "completed" || dnaRes.data?.status === "active");
       setAwaitingMyReview(awaitingRes.count || 0);
       setPostsLiveThisMonth(liveRes.count || 0);
       setPostsReady(readyRes.count || 0);
