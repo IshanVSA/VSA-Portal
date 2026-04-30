@@ -75,7 +75,12 @@ export function TermsAcceptanceModal({ currentVersion }: Props) {
     }
   };
 
-  if (declined) return <TermsBlockedScreen />;
+  if (declined) return <TermsBlockedScreen onReviewAgain={() => {
+    setDeclined(false);
+    setAgreed(false);
+    setCaslConsent(false);
+    setScrolledToBottom(false);
+  }} />;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80">
