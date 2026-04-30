@@ -318,8 +318,29 @@ Deno.serve(async (req) => {
     profile.synthesized_at = new Date().toISOString();
     profile.synthesized_by = authData.user.id;
 
-    // Save to DB — auto-activate when completeness score is sufficient (>=50)
-    const roundedScore = Math.round(profile.completeness_score || 0);
+    // Milestone-based completeness score (25% each):
+    //   1) Collection call notes answered (>=10 questions)
+    //   2) Website extraction (Layer 1) complete
+    //   3) Review mining + Locality fetch (Layer 2) complete
+    //   4) Synthesized DNA profile created (this run)
+    const REQUIRED_Q_KEYS = [
+      "q1_differentiator","q2_myth","q3_target_client","q4_founding_story",
+      "q5_owner_presence","q6_growth_priority","q7_content_exclusions",
+      "q8_community_connections","q9_patient_consent","q10_stat_holidays",
+    ];
+    const callAnswered = REQUIRED_Q_KEYS.every(
+      (k) => callNotes[k] !== undefined && String(callNotes[k]).trim() !== ""
+    );
+    const localityData = additionalFields.locality || additionalFields.locality_fetch || null;
+    const milestones = [
+      callAnswered,
+      !!websiteExtraction,
+      !!reviewMining && !!localityData,
+      true, // synthesized profile created right now
+    ];
+    const completedMilestones = milestones.filter(Boolean).length;
+    const roundedScore = Math.round((completedMilestones / milestones.length) * 100);
+    profile.completeness_score = roundedScore;
     const nextStatus = roundedScore >= 50 ? "active" : "synthesized";
     const { error: updateError } = await serviceClient
       .from("clinic_brand_dna")
