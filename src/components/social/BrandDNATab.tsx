@@ -205,21 +205,6 @@ export default function BrandDNATab({ clinicId }: Props) {
         </Suspense>
       )}
 
-      {/* Posting Schedule */}
-      <Suspense fallback={<Skeleton className="h-32 w-full" />}>
-        <PostingSchedule clinicId={clinicId} />
-      </Suspense>
-
-      {/* Post Limit Tracker */}
-      <Suspense fallback={<Skeleton className="h-16 w-full" />}>
-        <PostLimitTracker clinicId={clinicId} />
-      </Suspense>
-
-      {/* Promotion Module */}
-      <Suspense fallback={<Skeleton className="h-32 w-full" />}>
-        <PromotionModule clinicId={clinicId} jurisdiction={synthesizedProfile?.jurisdiction} />
-      </Suspense>
-
       {/* Layer 1: Website Extraction */}
       <WebsiteExtractionCard data={websiteExtraction} clinicId={clinicId} canEdit={true} />
 
