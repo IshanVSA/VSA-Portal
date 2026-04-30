@@ -1,8 +1,12 @@
 import { Button } from "@/components/ui/button";
-import { LogOut, ShieldAlert } from "lucide-react";
+import { LogOut, ShieldAlert, RefreshCw } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
-export function TermsBlockedScreen() {
+interface Props {
+  onReviewAgain?: () => void;
+}
+
+export function TermsBlockedScreen({ onReviewAgain }: Props) {
   const { signOut } = useAuth();
 
   return (
@@ -16,11 +20,24 @@ export function TermsBlockedScreen() {
           <p className="text-muted-foreground text-sm leading-relaxed">
             Your access has been temporarily suspended pending review. A member of the VSA team will contact you within two business days to discuss your concerns.
           </p>
+          {onReviewAgain && (
+            <p className="text-muted-foreground text-xs leading-relaxed pt-2">
+              Changed your mind? You can review the Privacy Policy & Terms of Use again and accept to restore access immediately.
+            </p>
+          )}
         </div>
-        <Button variant="outline" size="sm" onClick={signOut} className="gap-2">
-          <LogOut className="h-4 w-4" />
-          Sign Out
-        </Button>
+        <div className="flex flex-col gap-2 items-center">
+          {onReviewAgain && (
+            <Button onClick={onReviewAgain} size="sm" className="gap-2 w-full max-w-[220px]">
+              <RefreshCw className="h-4 w-4" />
+              Review Terms Again
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={signOut} className="gap-2 w-full max-w-[220px]">
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </Button>
+        </div>
       </div>
     </div>
   );
