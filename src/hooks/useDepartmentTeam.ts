@@ -11,7 +11,7 @@ const departmentRoleMap: Record<string, string[]> = {
   website: ["Developer", "Maintenance"],
   seo: ["SEO Lead"],
   google_ads: ["Ads Strategist", "Ads Analyst"],
-  social_media: ["Social & Concierge"],
+  social_media: ["Social & Concierge", "Meta Ads Specialist"],
 };
 
 export function useDepartmentTeam(department: string, clinicId?: string): { team: TeamMember[]; loading: boolean } {

@@ -165,6 +165,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
     "Ads Strategist": ["google_ads"],
     "Ads Analyst": ["google_ads"],
     "Social & Concierge": ["social_media"],
+    "Meta Ads Specialist": ["social_media"],
   };
 
   useEffect(() => {
