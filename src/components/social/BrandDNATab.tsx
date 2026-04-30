@@ -25,9 +25,6 @@ import { format } from "date-fns";
 import { lazy, Suspense } from "react";
 
 const AdminDNAProfileCard = lazy(() => import("@/components/social/AdminDNAProfileCard"));
-const PromotionModule = lazy(() => import("@/components/social/PromotionModule"));
-const PostLimitTracker = lazy(() => import("@/components/social/PostLimitTracker"));
-const PostingSchedule = lazy(() => import("@/components/social/PostingSchedule"));
 import DNAJsonEditDialog from "@/components/social/DNAJsonEditDialog";
 
 const QUESTION_LABELS: Record<string, string> = {
@@ -204,21 +201,6 @@ export default function BrandDNATab({ clinicId }: Props) {
           <AdminDNAProfileCard clinicId={clinicId} />
         </Suspense>
       )}
-
-      {/* Posting Schedule */}
-      <Suspense fallback={<Skeleton className="h-32 w-full" />}>
-        <PostingSchedule clinicId={clinicId} />
-      </Suspense>
-
-      {/* Post Limit Tracker */}
-      <Suspense fallback={<Skeleton className="h-16 w-full" />}>
-        <PostLimitTracker clinicId={clinicId} />
-      </Suspense>
-
-      {/* Promotion Module */}
-      <Suspense fallback={<Skeleton className="h-32 w-full" />}>
-        <PromotionModule clinicId={clinicId} jurisdiction={synthesizedProfile?.jurisdiction} />
-      </Suspense>
 
       {/* Layer 1: Website Extraction */}
       <WebsiteExtractionCard data={websiteExtraction} clinicId={clinicId} canEdit={true} />
