@@ -14,7 +14,7 @@ const DEPT_ROLES: Record<string, string[]> = {
   website: ["Developer", "Maintenance"],
   seo: ["SEO Lead"],
   google_ads: ["Ads Strategist", "Ads Analyst"],
-  social_media: ["Social & Concierge"],
+  social_media: ["Social & Concierge", "Meta Ads Specialist"],
 };
 
 const DEPT_LABEL: Record<string, string> = {

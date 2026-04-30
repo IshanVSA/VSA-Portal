@@ -68,7 +68,7 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
         website: ["Developer", "Maintenance"],
         seo: ["SEO Lead"],
         google_ads: ["Ads Strategist", "Ads Analyst"],
-        social_media: ["Social & Concierge"],
+        social_media: ["Social & Concierge", "Meta Ads Specialist"],
       };
       const allowedRoles = departmentRoleMap[department] || [];
       if (!allowedRoles.length) return [];
