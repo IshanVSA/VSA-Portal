@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
 
     const emailResult = await sendZohoEmail({
       to: email,
-      subject: "Welcome to the Future of Veterinary Marketing — Beta Access to VSA Vet Media",
+      subject: "Your VSA Vet Media beta access",
       html: brandedEmailWrapper({
         heading: `Welcome to VSA Vet Media`,
         preheader: "Exclusive beta access to our AI-powered veterinary marketing platform.",

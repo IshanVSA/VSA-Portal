@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
     }
 
     const timestamp = new Date().toISOString();
-    const subject = `⚠️ Terms Declined — ${userName} (${clinicName})`;
+    const subject = `Terms declined - ${userName} (${clinicName})`;
     const htmlBody = `
       <div style="font-family: Arial, sans-serif; max-width: 600px;">
         <h2 style="color: #dc2626;">Terms of Use Declined</h2>
