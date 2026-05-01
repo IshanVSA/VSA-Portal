@@ -26,8 +26,31 @@ export interface SendEmailParams {
   to: string | string[];
   subject: string;
   html: string;
+  text?: string;
   cc?: string | string[];
   bcc?: string | string[];
+}
+
+// Strip HTML to a readable plain-text fallback for clients that prefer text/plain
+// or for spam filters that penalize HTML-only emails.
+function htmlToPlainText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<\/(p|div|h\d|li|tr|br)>/gi, "\n")
+    .replace(/<br\s*\/?>(?!\n)/gi, "\n")
+    .replace(/<li[^>]*>/gi, "• ")
+    .replace(/<a [^>]*href="([^"]+)"[^>]*>([^<]*)<\/a>/gi, "$2 ($1)")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .trim();
 }
 
 export interface SendEmailResult {
