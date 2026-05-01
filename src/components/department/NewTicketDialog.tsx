@@ -112,6 +112,23 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
   }, [open, defaultType]);
 
   useEffect(() => {
+    if (!open || !needsClinicSelection || clinics.length > 0 || clinicsLoading) return;
+    let cancelled = false;
+    setClinicsLoading(true);
+    (async () => {
+      const { data, error } = await (supabase
+        .from("clinics" as any)
+        .select("id, clinic_name") as any)
+        .eq("status", "active")
+        .order("clinic_name");
+      if (cancelled) return;
+      if (!error && data) setClinics(data as ClinicOption[]);
+      setClinicsLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [open, needsClinicSelection]);
+
+  useEffect(() => {
     if (AUTO_TITLES[ticketType] && (!title || Object.values(AUTO_TITLES).includes(title))) {
       setTitle(AUTO_TITLES[ticketType]);
     }
