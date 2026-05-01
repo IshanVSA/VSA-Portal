@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
           </a>
         </p>
         <div style="margin:0 0 24px;padding:12px 14px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;font-size:13px;color:#9a3412;">
-          ⏱ This link expires in <strong>${RESET_LINK_TTL_MINUTES} minutes</strong> (around <strong>${expiresAtPretty}</strong>). Request a new one if it has expired.
+          This link expires in <strong>${RESET_LINK_TTL_MINUTES} minutes</strong> (around <strong>${expiresAtPretty}</strong>). Request a new one if it has expired.
         </div>
         <p style="margin:0 0 8px;font-size:13px;color:#6b7280;">If the button doesn't work, copy and paste this link into your browser:</p>
         <p style="margin:0 0 24px;font-size:13px;word-break:break-all;"><a href="${actionLink}" style="color:#2563eb;">${actionLink}</a></p>

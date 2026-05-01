@@ -193,8 +193,8 @@ Deno.serve(async (req) => {
     const emailResult = await sendZohoEmail({
       to: email,
       subject: isClient
-        ? "Welcome to the Future of Veterinary Marketing — Beta Access to VSA Vet Media"
-        : "Welcome to VSA Vet Media — your login details",
+        ? "Your VSA Vet Media beta access"
+        : "Your VSA Vet Media account details",
       html: brandedEmailWrapper({
         heading: isClient ? `Welcome to VSA Vet Media` : `Welcome, ${firstName}`,
         preheader: isClient
