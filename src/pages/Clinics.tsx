@@ -20,6 +20,7 @@ import { Plus, Search, Eye, Trash2, Pencil, Building2, Users, X, Loader2, Sparkl
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 import { ClinicLogoUploader } from "@/components/clinic-detail/ClinicLogoUploader";
+import { DepartmentTeamPicker } from "@/components/clinic-detail/DepartmentTeamPicker";
 
 interface Clinic {
   id: string;
@@ -169,6 +170,7 @@ export default function Clinics() {
   const [editAddress, setEditAddress] = useState("");
   const [editOwnerId, setEditOwnerId] = useState("");
   const [editAccess, setEditAccess] = useState<ClinicAccessSettings>(defaultClinicAccessSettings);
+  const [editTeamMembers, setEditTeamMembers] = useState<string[]>([]);
 
   // Team assignment dialog
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
@@ -400,39 +402,16 @@ export default function Clinics() {
       ai_seo_enabled: clinic.ai_seo_enabled ?? false,
       social_media_enabled: clinic.social_media_enabled ?? true,
     });
+    setEditTeamMembers(
+      teamAssignments.filter((a) => a.clinic_id === clinic.id).map((a) => a.user_id)
+    );
     setEditDialogOpen(true);
   };
 
-  const saveEdit = async () => {
-    if (!editClinic || !editName.trim()) return;
-    const { error } = await (supabase.from("clinics" as any).update({
-      clinic_name: editName.trim(),
-      phone: editPhone || null,
-      address: editAddress || null,
-      owner_user_id: editOwnerId && editOwnerId !== "none" ? editOwnerId : null,
-      ...editAccess,
-    } as any).eq("id", editClinic.id) as any);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Clinic updated!");
-    setEditDialogOpen(false);
-    setEditClinic(null);
-    fetchClinics();
-  };
-
-  const openTeamDialog = (clinic: Clinic) => {
-    setTeamDialogClinic(clinic);
-    const currentMembers = teamAssignments.filter(a => a.clinic_id === clinic.id).map(a => a.user_id);
-    setSelectedMembers(currentMembers);
-    setTeamDialogOpen(true);
-  };
-
-  const saveTeamAssignments = async () => {
-    if (!teamDialogClinic) return;
-    const clinicId = teamDialogClinic.id;
+  const persistTeamAssignments = async (clinicId: string, nextMembers: string[]) => {
     const currentMembers = teamAssignments.filter(a => a.clinic_id === clinicId).map(a => a.user_id);
-
-    const toAdd = selectedMembers.filter(id => !currentMembers.includes(id));
-    const toRemove = currentMembers.filter(id => !selectedMembers.includes(id));
+    const toAdd = nextMembers.filter(id => !currentMembers.includes(id));
+    const toRemove = currentMembers.filter(id => !nextMembers.includes(id));
 
     const promises: Promise<any>[] = [];
     if (toAdd.length > 0) {
@@ -450,8 +429,37 @@ export default function Clinics() {
           .eq("user_id", userId) as any)
       );
     }
-
     await Promise.all(promises);
+  };
+
+  const saveEdit = async () => {
+    if (!editClinic || !editName.trim()) return;
+    const { error } = await (supabase.from("clinics" as any).update({
+      clinic_name: editName.trim(),
+      phone: editPhone || null,
+      address: editAddress || null,
+      owner_user_id: editOwnerId && editOwnerId !== "none" ? editOwnerId : null,
+      ...editAccess,
+    } as any).eq("id", editClinic.id) as any);
+    if (error) { toast.error(error.message); return; }
+    await persistTeamAssignments(editClinic.id, editTeamMembers);
+    toast.success("Clinic updated!");
+    setEditDialogOpen(false);
+    setEditClinic(null);
+    fetchClinics();
+    fetchTeamAssignments();
+  };
+
+  const openTeamDialog = (clinic: Clinic) => {
+    setTeamDialogClinic(clinic);
+    const currentMembers = teamAssignments.filter(a => a.clinic_id === clinic.id).map(a => a.user_id);
+    setSelectedMembers(currentMembers);
+    setTeamDialogOpen(true);
+  };
+
+  const saveTeamAssignments = async () => {
+    if (!teamDialogClinic) return;
+    await persistTeamAssignments(teamDialogClinic.id, selectedMembers);
     toast.success("Team assignments updated");
     setTeamDialogOpen(false);
     fetchTeamAssignments();
@@ -732,7 +740,7 @@ export default function Clinics() {
 
         {/* Edit Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent>
+          <DialogContent className="max-h-[85vh] overflow-y-auto max-w-[95vw] sm:max-w-2xl">
             <DialogHeader><DialogTitle>Edit Clinic</DialogTitle></DialogHeader>
             <div className="space-y-4 pt-2">
               <div className="space-y-2"><Label>Clinic Name</Label><Input value={editName} onChange={e => setEditName(e.target.value)} className="input-glow" /></div>
@@ -754,6 +762,21 @@ export default function Clinics() {
                 value={editAccess}
                 onToggle={toggleEditAccess}
               />
+              <div className="space-y-2">
+                <Label>Team Members by Department</Label>
+                <p className="text-xs text-muted-foreground">
+                  Assign one or more staff to each department. Members appear in pickers, ticket pools, and team views for this clinic.
+                </p>
+                <DepartmentTeamPicker
+                  staff={allStaff}
+                  selected={editTeamMembers}
+                  onToggle={(id) =>
+                    setEditTeamMembers((prev) =>
+                      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+                    )
+                  }
+                />
+              </div>
               <Button onClick={saveEdit} className="w-full">Save Changes</Button>
             </div>
           </DialogContent>
@@ -761,35 +784,22 @@ export default function Clinics() {
 
         {/* Team Assignment Dialog */}
         <Dialog open={teamDialogOpen} onOpenChange={setTeamDialogOpen}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Assign Team Members</DialogTitle>
               <DialogDescription>
-                Select team members to assign to <span className="font-medium text-foreground">{teamDialogClinic?.clinic_name}</span>
+                Assign staff per department to <span className="font-medium text-foreground">{teamDialogClinic?.clinic_name}</span>. Each department can have multiple members.
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-1 max-h-[50vh] overflow-y-auto py-2">
-              {allStaff.map(member => (
-                <label
-                  key={member.user_id}
-                  className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                >
-                  <Checkbox
-                    checked={selectedMembers.includes(member.user_id)}
-                    onCheckedChange={() => toggleMember(member.user_id)}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{member.full_name}</p>
-                    {member.team_role && (
-                      <p className="text-xs text-muted-foreground">{member.team_role}</p>
-                    )}
-                  </div>
-                </label>
-              ))}
-              {allStaff.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">No team members available</p>
-              )}
-            </div>
+            {allStaff.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">No team members available</p>
+            ) : (
+              <DepartmentTeamPicker
+                staff={allStaff}
+                selected={selectedMembers}
+                onToggle={toggleMember}
+              />
+            )}
             {selectedMembers.length > 0 && (
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {selectedMembers.map(id => {
