@@ -145,12 +145,17 @@ export async function sendZohoEmail(
   const ccAddress = Array.isArray(params.cc) ? params.cc.join(",") : params.cc;
   const bccAddress = Array.isArray(params.bcc) ? params.bcc.join(",") : params.bcc;
 
+  const plainText = params.text ?? htmlToPlainText(params.html);
+
   const body: Record<string, unknown> = {
     fromAddress: FROM_ADDRESS,
     toAddress,
     subject: params.subject,
     content: params.html,
     mailFormat: "html",
+    // Zoho includes the plain-text alternative when supplied; this satisfies
+    // multipart/alternative requirements that improve inbox placement.
+    plainTextContent: plainText,
   };
   if (ccAddress) body.ccAddress = ccAddress;
   if (bccAddress) body.bccAddress = bccAddress;
