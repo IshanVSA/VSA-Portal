@@ -95,7 +95,7 @@ export default function ClientDashboard() {
                   />
                   <span className="font-medium text-sm text-foreground">{clinic.clinic_name}</span>
                 </div>
-                <Link to={`/clinics/${clinic.id}`}>
+                <Link to={`/website?clinic=${clinic.id}`}>
                   <Button size="sm" variant="ghost" className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-primary">
                     View <ArrowRight className="h-3.5 w-3.5" />
                   </Button>
