@@ -119,6 +119,57 @@ function sanitizeText(html: string) {
     .trim();
 }
 
+/** Pull all <script type="application/ld+json"> blocks (raw JSON strings). */
+function extractJsonLdBlocks(html: string): string[] {
+  const out: string[] = [];
+  const re = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null) {
+    const raw = m[1]?.trim();
+    if (raw) out.push(raw.slice(0, 4000));
+  }
+  return out.slice(0, 5);
+}
+
+/** Pull <footer>…</footer> sanitized text (footers usually contain the full address). */
+function extractFooterText(html: string): string {
+  const m = html.match(/<footer[\s\S]*?<\/footer>/i);
+  if (!m) return "";
+  return sanitizeText(m[0]).slice(0, 2000);
+}
+
+const POSTAL_RE = /([A-Za-z]\d[A-Za-z]\s?\d[A-Za-z]\d|\d{5}(?:-\d{4})?)/;
+
+function composeAddress(parts: {
+  street?: string | null;
+  city?: string | null;
+  region?: string | null;
+  postal_code?: string | null;
+  country?: string | null;
+}): string | null {
+  const ordered = [parts.street, parts.city, parts.region, parts.postal_code, parts.country]
+    .map((v) => (typeof v === "string" ? v.trim() : ""))
+    .filter(Boolean);
+  if (!ordered.length) return null;
+  // street, city, "region postal", country
+  const left = [parts.street, parts.city].map((v) => (typeof v === "string" ? v.trim() : "")).filter(Boolean);
+  const regionPostal = [parts.region, parts.postal_code]
+    .map((v) => (typeof v === "string" ? v.trim() : ""))
+    .filter(Boolean)
+    .join(" ");
+  const tail = parts.country ? String(parts.country).trim() : "";
+  return [...left, regionPostal, tail].filter(Boolean).join(", ");
+}
+
+/** A "complete" address has a street number AND a postal/ZIP code. */
+function isCompleteAddress(addr: string | null | undefined): boolean {
+  if (!addr) return false;
+  const s = String(addr);
+  if (!/\d/.test(s)) return false; // need a street number
+  if (!POSTAL_RE.test(s)) return false; // need postal/ZIP
+  return true;
+}
+
 function getTagContent(html: string, pattern: RegExp) {
   return html.match(pattern)?.[1]?.trim() ?? "";
 }
