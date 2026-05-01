@@ -334,6 +334,18 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
             </DialogHeader>
 
             <div className="space-y-4 py-2">
+              {needsClinicSelection && (
+                <div className="space-y-1.5">
+                  <Label>Clinic *</Label>
+                  <ClinicSelector
+                    clinics={clinics}
+                    selectedClinicId={selectedClinicId}
+                    onSelect={setSelectedClinicId}
+                    loading={clinicsLoading}
+                  />
+                  <p className="text-xs text-muted-foreground">Select which clinic this ticket is for.</p>
+                </div>
+              )}
               {!isCustomForm && (
                 <div className="space-y-1.5">
                   <Label htmlFor="ticket-title">Title *</Label>
