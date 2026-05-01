@@ -24,7 +24,13 @@ const extractionTool = {
       clinic_name: { type: "string" },
       phone: { type: "string" },
       email: { type: "string" },
-      address: { type: "string" },
+      // Structured address — required to be the FULL postal address.
+      street: { type: "string", description: "Street number and name, e.g. '5020 48 Ave' or '123 Main Street, Suite 4'." },
+      city: { type: "string", description: "City / municipality only, e.g. 'Delta'." },
+      region: { type: "string", description: "Province or state, full name or abbreviation, e.g. 'BC' or 'British Columbia'." },
+      postal_code: { type: "string", description: "Postal code (Canadian like 'V4K 3V3') or US ZIP ('98101' / '98101-1234')." },
+      country: { type: "string", description: "Country name, e.g. 'Canada' or 'United States'." },
+      address: { type: "string", description: "Full single-line postal address combining street, city, region, postal/ZIP, country, exactly as printed on the website (footer / Contact page / schema.org JSON-LD). Must include street number AND postal/ZIP code. Never return a city-only or region-only value — set to null instead." },
       website: { type: "string" },
       timezone: { type: "string", description: "IANA timezone inferred from the clinic address, like America/New_York" },
       notes: { type: "string" },
@@ -111,6 +117,57 @@ function sanitizeText(html: string) {
     .replace(/&#39;/gi, "'")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/** Pull all <script type="application/ld+json"> blocks (raw JSON strings). */
+function extractJsonLdBlocks(html: string): string[] {
+  const out: string[] = [];
+  const re = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null) {
+    const raw = m[1]?.trim();
+    if (raw) out.push(raw.slice(0, 4000));
+  }
+  return out.slice(0, 5);
+}
+
+/** Pull <footer>…</footer> sanitized text (footers usually contain the full address). */
+function extractFooterText(html: string): string {
+  const m = html.match(/<footer[\s\S]*?<\/footer>/i);
+  if (!m) return "";
+  return sanitizeText(m[0]).slice(0, 2000);
+}
+
+const POSTAL_RE = /([A-Za-z]\d[A-Za-z]\s?\d[A-Za-z]\d|\d{5}(?:-\d{4})?)/;
+
+function composeAddress(parts: {
+  street?: string | null;
+  city?: string | null;
+  region?: string | null;
+  postal_code?: string | null;
+  country?: string | null;
+}): string | null {
+  const ordered = [parts.street, parts.city, parts.region, parts.postal_code, parts.country]
+    .map((v) => (typeof v === "string" ? v.trim() : ""))
+    .filter(Boolean);
+  if (!ordered.length) return null;
+  // street, city, "region postal", country
+  const left = [parts.street, parts.city].map((v) => (typeof v === "string" ? v.trim() : "")).filter(Boolean);
+  const regionPostal = [parts.region, parts.postal_code]
+    .map((v) => (typeof v === "string" ? v.trim() : ""))
+    .filter(Boolean)
+    .join(" ");
+  const tail = parts.country ? String(parts.country).trim() : "";
+  return [...left, regionPostal, tail].filter(Boolean).join(", ");
+}
+
+/** A "complete" address has a street number AND a postal/ZIP code. */
+function isCompleteAddress(addr: string | null | undefined): boolean {
+  if (!addr) return false;
+  const s = String(addr);
+  if (!/\d/.test(s)) return false; // need a street number
+  if (!POSTAL_RE.test(s)) return false; // need postal/ZIP
+  return true;
 }
 
 function getTagContent(html: string, pattern: RegExp) {
@@ -253,6 +310,48 @@ async function requireAdmin(req: Request) {
   }
 }
 
+async function callAnthropic(
+  anthropicKey: string,
+  systemPrompt: string,
+  userContent: string,
+) {
+  const response = await fetch(ANTHROPIC_URL, {
+    method: "POST",
+    headers: {
+      "x-api-key": anthropicKey,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "claude-opus-4-6",
+      max_tokens: 4096,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userContent }],
+      tools: [extractionTool],
+      tool_choice: { type: "tool", name: "extract_clinic_details" },
+    }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 429) {
+      throw new Response(JSON.stringify({ error: "Rate limited. Please try again shortly." }), {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const text = await response.text();
+    if (response.status === 400 && text.includes("credit balance is too low")) {
+      throw new Error("Anthropic API credit balance is too low. Please top up your Anthropic account at https://console.anthropic.com to continue using AI features.");
+    }
+    throw new Error(`AI extraction failed [${response.status}]: ${text}`);
+  }
+
+  const data = await response.json();
+  const toolBlock = data.content?.find((b: any) => b.type === "tool_use" && b.name === "extract_clinic_details");
+  if (!toolBlock?.input) throw new Error("AI extraction returned no structured result");
+  return toolBlock.input as Record<string, any>;
+}
+
 async function extractWithAi(website: string, pages: PageData[]) {
   const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
   if (!anthropicKey) throw new Error("ANTHROPIC_API_KEY not configured");
@@ -266,69 +365,82 @@ async function extractWithAi(website: string, pages: PageData[]) {
         page.description ? `Description: ${page.description}` : "",
         `Content: ${page.text}`,
       ].filter(Boolean).join("\n");
-
       return section;
     })
     .join("\n\n---\n\n")
     .slice(0, MAX_COMBINED_TEXT_LENGTH);
 
-  const response = await fetch(ANTHROPIC_URL, {
-    method: "POST",
-    headers: {
-      "x-api-key": anthropicKey,
-      "anthropic-version": "2023-06-01",
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "claude-opus-4-6",
-      max_tokens: 4096,
-      system: [
-        "You extract public clinic details from website content.",
-        "Return only fields you can support from the provided pages.",
-        "Infer timezone from the address using a valid IANA timezone like America/New_York.",
-        "If multiple locations exist, choose the primary/main clinic or the best-supported single location.",
-        "Use the provided website as the canonical website field unless a clearer canonical URL is shown.",
-      ].join(" "),
-      messages: [
-        {
-          role: "user",
-          content: `Website: ${website}\n\nWebsite pages:\n${combinedPages}`,
-        },
-      ],
-      tools: [extractionTool],
-      tool_choice: { type: "tool", name: "extract_clinic_details" },
-    }),
+  // Boost the address signal with footer text + JSON-LD blocks from every fetched page.
+  const footerSections: string[] = [];
+  const jsonLdSections: string[] = [];
+  for (const page of pages) {
+    const footer = extractFooterText(page.html);
+    if (footer) footerSections.push(`Footer (${page.url}):\n${footer}`);
+    for (const block of extractJsonLdBlocks(page.html)) {
+      jsonLdSections.push(`JSON-LD (${page.url}):\n${block}`);
+    }
+  }
+  const footerBlob = footerSections.join("\n\n").slice(0, 4000);
+  const jsonLdBlob = jsonLdSections.join("\n\n").slice(0, 6000);
+
+  const baseSystem = [
+    "You extract public clinic details from website content.",
+    "Return only fields you can support from the provided pages.",
+    "Infer timezone from the address using a valid IANA timezone like America/New_York.",
+    "If multiple locations exist, choose the primary/main clinic or the best-supported single location.",
+    "Use the provided website as the canonical website field unless a clearer canonical URL is shown.",
+    "ADDRESS RULES: Always return the FULL postal address. Fill street, city, region, postal_code, country as separate fields, and also compose a single-line `address` exactly as printed on the site (typically in the footer, Contact page, or schema.org JSON-LD / PostalAddress block).",
+    "The address MUST contain the street number AND the postal/ZIP code. Never return a city-only or region-only address. If you cannot confidently locate the full street address with postal/ZIP, set address (and the missing sub-fields) to null and lower confidence to 'low'.",
+  ].join(" ");
+
+  const buildUserContent = (extraNote = "") =>
+    `Website: ${website}\n\n` +
+    (footerBlob ? `=== Page footers (often contain the full address) ===\n${footerBlob}\n\n` : "") +
+    (jsonLdBlob ? `=== Schema.org JSON-LD blocks (PostalAddress / LocalBusiness) ===\n${jsonLdBlob}\n\n` : "") +
+    `=== Website pages ===\n${combinedPages}` +
+    (extraNote ? `\n\n=== IMPORTANT ===\n${extraNote}` : "");
+
+  let parsed = await callAnthropic(anthropicKey, baseSystem, buildUserContent());
+
+  let composed = composeAddress({
+    street: parsed.street,
+    city: parsed.city,
+    region: parsed.region,
+    postal_code: parsed.postal_code,
+    country: parsed.country,
   });
+  let addressOut = composed && isCompleteAddress(composed)
+    ? composed
+    : (typeof parsed.address === "string" && isCompleteAddress(parsed.address) ? parsed.address.trim() : null);
 
-  if (!response.ok) {
-    if (response.status === 429) {
-      throw new Response(JSON.stringify({ error: "Rate limited. Please try again shortly." }), {
-        status: 429,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const text = await response.text();
-    if (response.status === 400 && text.includes("credit balance is too low")) {
-      throw new Error("Anthropic API credit balance is too low. Please top up your Anthropic account at https://console.anthropic.com to continue using AI features.");
-    }
-    throw new Error(`AI extraction failed [${response.status}]: ${text}`);
+  // Retry once if the model returned an incomplete address but raw signals look usable.
+  if (!addressOut && (footerBlob || jsonLdBlob)) {
+    parsed = await callAnthropic(
+      anthropicKey,
+      baseSystem,
+      buildUserContent(
+        "Your previous answer was missing the full street address. Re-read the footer and JSON-LD PostalAddress blocks above and return the COMPLETE address with street number, street name, city, province/state, postal/ZIP code, and country. If still impossible, set address to null.",
+      ),
+    );
+    composed = composeAddress({
+      street: parsed.street,
+      city: parsed.city,
+      region: parsed.region,
+      postal_code: parsed.postal_code,
+      country: parsed.country,
+    });
+    addressOut = composed && isCompleteAddress(composed)
+      ? composed
+      : (typeof parsed.address === "string" && isCompleteAddress(parsed.address) ? parsed.address.trim() : null);
   }
 
-  const data = await response.json();
-  const toolBlock = data.content?.find((b: any) => b.type === "tool_use" && b.name === "extract_clinic_details");
-  if (!toolBlock?.input) {
-    throw new Error("AI extraction returned no structured result");
-  }
-
-  const parsed = toolBlock.input;
   const timezone = isValidTimeZone(parsed.timezone) ? parsed.timezone : null;
 
   return {
     clinic_name: typeof parsed.clinic_name === "string" ? parsed.clinic_name.trim() : null,
     phone: typeof parsed.phone === "string" ? parsed.phone.trim() : null,
     email: typeof parsed.email === "string" ? parsed.email.trim() : null,
-    address: typeof parsed.address === "string" ? parsed.address.trim() : null,
+    address: addressOut,
     website: typeof parsed.website === "string" ? parsed.website.trim() : website,
     timezone,
     notes: typeof parsed.notes === "string" ? parsed.notes.trim() : null,
