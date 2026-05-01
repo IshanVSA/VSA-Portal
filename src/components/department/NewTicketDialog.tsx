@@ -32,6 +32,8 @@ import { ClientVisitForm } from "./ticket-forms/ClientVisitForm";
 import { SpecialPromotionForm } from "./ticket-forms/SpecialPromotionForm";
 import { BoostForm } from "./ticket-forms/BoostForm";
 import { BulkUploadsForm } from "./ticket-forms/BulkUploadsForm";
+import { ClinicSelector } from "@/components/department/ClinicSelector";
+import type { ClinicOption } from "@/hooks/useClinicSelector";
 
 interface NewTicketDialogProps {
   open: boolean;
@@ -76,6 +78,11 @@ const AUTO_TITLES: Record<string, string> = {
 
 export function NewTicketDialog({ open, onOpenChange, department, services, onCreated, defaultType = "", clinicId }: NewTicketDialogProps) {
   const { user } = useAuth();
+  const needsClinicSelection = !clinicId;
+  const [clinics, setClinics] = useState<ClinicOption[]>([]);
+  const [clinicsLoading, setClinicsLoading] = useState(false);
+  const [selectedClinicId, setSelectedClinicId] = useState<string>("");
+  const effectiveClinicId = clinicId || selectedClinicId;
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [title, setTitle] = useState("");
@@ -105,6 +112,23 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
   }, [open, defaultType]);
 
   useEffect(() => {
+    if (!open || !needsClinicSelection || clinics.length > 0 || clinicsLoading) return;
+    let cancelled = false;
+    setClinicsLoading(true);
+    (async () => {
+      const { data, error } = await (supabase
+        .from("clinics" as any)
+        .select("id, clinic_name") as any)
+        .eq("status", "active")
+        .order("clinic_name");
+      if (cancelled) return;
+      if (!error && data) setClinics(data as ClinicOption[]);
+      setClinicsLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [open, needsClinicSelection]);
+
+  useEffect(() => {
     if (AUTO_TITLES[ticketType] && (!title || Object.values(AUTO_TITLES).includes(title))) {
       setTitle(AUTO_TITLES[ticketType]);
     }
@@ -124,6 +148,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     setPopupConsented(false);
     setPromoteSocial(false);
     setSubmitted(false);
+    setSelectedClinicId("");
   };
 
   const handleCustomFormChange = useCallback((desc: string) => {
@@ -147,6 +172,10 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
   };
 
   const handleSubmit = async () => {
+    if (needsClinicSelection && !selectedClinicId) {
+      toast.error("Please select a clinic for this ticket");
+      return;
+    }
     if (!isCustomForm && (!title.trim() || !ticketType)) {
       toast.error("Title and Type are required");
       return;
@@ -190,7 +219,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
       description: finalDescription,
       notes: notes.trim() || null,
       created_by: user.id,
-      ...(clinicId ? { clinic_id: clinicId } : {}),
+      ...(effectiveClinicId ? { clinic_id: effectiveClinicId } : {}),
     } as any).select("id").single();
 
     if (error || !ticket) {
@@ -323,6 +352,18 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
             </DialogHeader>
 
             <div className="space-y-4 py-2">
+              {needsClinicSelection && (
+                <div className="space-y-1.5">
+                  <Label>Clinic *</Label>
+                  <ClinicSelector
+                    clinics={clinics}
+                    selectedClinicId={selectedClinicId}
+                    onSelect={setSelectedClinicId}
+                    loading={clinicsLoading}
+                  />
+                  <p className="text-xs text-muted-foreground">Select which clinic this ticket is for.</p>
+                </div>
+              )}
               {!isCustomForm && (
                 <div className="space-y-1.5">
                   <Label htmlFor="ticket-title">Title *</Label>
