@@ -20,6 +20,7 @@ import { Plus, Search, Eye, Trash2, Pencil, Building2, Users, X, Loader2, Sparkl
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 import { ClinicLogoUploader } from "@/components/clinic-detail/ClinicLogoUploader";
+import { DepartmentTeamPicker } from "@/components/clinic-detail/DepartmentTeamPicker";
 
 interface Clinic {
   id: string;
@@ -169,6 +170,7 @@ export default function Clinics() {
   const [editAddress, setEditAddress] = useState("");
   const [editOwnerId, setEditOwnerId] = useState("");
   const [editAccess, setEditAccess] = useState<ClinicAccessSettings>(defaultClinicAccessSettings);
+  const [editTeamMembers, setEditTeamMembers] = useState<string[]>([]);
 
   // Team assignment dialog
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
