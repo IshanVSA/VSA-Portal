@@ -130,6 +130,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     setPopupConsented(false);
     setPromoteSocial(false);
     setSubmitted(false);
+    setSelectedClinicId("");
   };
 
   const handleCustomFormChange = useCallback((desc: string) => {
