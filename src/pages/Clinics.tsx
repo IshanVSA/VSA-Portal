@@ -402,39 +402,16 @@ export default function Clinics() {
       ai_seo_enabled: clinic.ai_seo_enabled ?? false,
       social_media_enabled: clinic.social_media_enabled ?? true,
     });
+    setEditTeamMembers(
+      teamAssignments.filter((a) => a.clinic_id === clinic.id).map((a) => a.user_id)
+    );
     setEditDialogOpen(true);
   };
 
-  const saveEdit = async () => {
-    if (!editClinic || !editName.trim()) return;
-    const { error } = await (supabase.from("clinics" as any).update({
-      clinic_name: editName.trim(),
-      phone: editPhone || null,
-      address: editAddress || null,
-      owner_user_id: editOwnerId && editOwnerId !== "none" ? editOwnerId : null,
-      ...editAccess,
-    } as any).eq("id", editClinic.id) as any);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Clinic updated!");
-    setEditDialogOpen(false);
-    setEditClinic(null);
-    fetchClinics();
-  };
-
-  const openTeamDialog = (clinic: Clinic) => {
-    setTeamDialogClinic(clinic);
-    const currentMembers = teamAssignments.filter(a => a.clinic_id === clinic.id).map(a => a.user_id);
-    setSelectedMembers(currentMembers);
-    setTeamDialogOpen(true);
-  };
-
-  const saveTeamAssignments = async () => {
-    if (!teamDialogClinic) return;
-    const clinicId = teamDialogClinic.id;
+  const persistTeamAssignments = async (clinicId: string, nextMembers: string[]) => {
     const currentMembers = teamAssignments.filter(a => a.clinic_id === clinicId).map(a => a.user_id);
-
-    const toAdd = selectedMembers.filter(id => !currentMembers.includes(id));
-    const toRemove = currentMembers.filter(id => !selectedMembers.includes(id));
+    const toAdd = nextMembers.filter(id => !currentMembers.includes(id));
+    const toRemove = currentMembers.filter(id => !nextMembers.includes(id));
 
     const promises: Promise<any>[] = [];
     if (toAdd.length > 0) {
@@ -452,8 +429,37 @@ export default function Clinics() {
           .eq("user_id", userId) as any)
       );
     }
-
     await Promise.all(promises);
+  };
+
+  const saveEdit = async () => {
+    if (!editClinic || !editName.trim()) return;
+    const { error } = await (supabase.from("clinics" as any).update({
+      clinic_name: editName.trim(),
+      phone: editPhone || null,
+      address: editAddress || null,
+      owner_user_id: editOwnerId && editOwnerId !== "none" ? editOwnerId : null,
+      ...editAccess,
+    } as any).eq("id", editClinic.id) as any);
+    if (error) { toast.error(error.message); return; }
+    await persistTeamAssignments(editClinic.id, editTeamMembers);
+    toast.success("Clinic updated!");
+    setEditDialogOpen(false);
+    setEditClinic(null);
+    fetchClinics();
+    fetchTeamAssignments();
+  };
+
+  const openTeamDialog = (clinic: Clinic) => {
+    setTeamDialogClinic(clinic);
+    const currentMembers = teamAssignments.filter(a => a.clinic_id === clinic.id).map(a => a.user_id);
+    setSelectedMembers(currentMembers);
+    setTeamDialogOpen(true);
+  };
+
+  const saveTeamAssignments = async () => {
+    if (!teamDialogClinic) return;
+    await persistTeamAssignments(teamDialogClinic.id, selectedMembers);
     toast.success("Team assignments updated");
     setTeamDialogOpen(false);
     fetchTeamAssignments();
