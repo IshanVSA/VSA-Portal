@@ -154,6 +154,10 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
   };
 
   const handleSubmit = async () => {
+    if (needsClinicSelection && !selectedClinicId) {
+      toast.error("Please select a clinic for this ticket");
+      return;
+    }
     if (!isCustomForm && (!title.trim() || !ticketType)) {
       toast.error("Title and Type are required");
       return;
