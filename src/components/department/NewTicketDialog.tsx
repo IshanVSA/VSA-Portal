@@ -32,8 +32,8 @@ import { ClientVisitForm } from "./ticket-forms/ClientVisitForm";
 import { SpecialPromotionForm } from "./ticket-forms/SpecialPromotionForm";
 import { BoostForm } from "./ticket-forms/BoostForm";
 import { BulkUploadsForm } from "./ticket-forms/BulkUploadsForm";
-import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { ClinicSelector } from "@/components/department/ClinicSelector";
+import type { ClinicOption } from "@/hooks/useClinicSelector";
 
 interface NewTicketDialogProps {
   open: boolean;
