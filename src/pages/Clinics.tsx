@@ -740,7 +740,7 @@ export default function Clinics() {
 
         {/* Edit Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent>
+          <DialogContent className="max-h-[85vh] overflow-y-auto max-w-[95vw] sm:max-w-2xl">
             <DialogHeader><DialogTitle>Edit Clinic</DialogTitle></DialogHeader>
             <div className="space-y-4 pt-2">
               <div className="space-y-2"><Label>Clinic Name</Label><Input value={editName} onChange={e => setEditName(e.target.value)} className="input-glow" /></div>
@@ -762,6 +762,21 @@ export default function Clinics() {
                 value={editAccess}
                 onToggle={toggleEditAccess}
               />
+              <div className="space-y-2">
+                <Label>Team Members by Department</Label>
+                <p className="text-xs text-muted-foreground">
+                  Assign one or more staff to each department. Members appear in pickers, ticket pools, and team views for this clinic.
+                </p>
+                <DepartmentTeamPicker
+                  staff={allStaff}
+                  selected={editTeamMembers}
+                  onToggle={(id) =>
+                    setEditTeamMembers((prev) =>
+                      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+                    )
+                  }
+                />
+              </div>
               <Button onClick={saveEdit} className="w-full">Save Changes</Button>
             </div>
           </DialogContent>
@@ -769,35 +784,22 @@ export default function Clinics() {
 
         {/* Team Assignment Dialog */}
         <Dialog open={teamDialogOpen} onOpenChange={setTeamDialogOpen}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Assign Team Members</DialogTitle>
               <DialogDescription>
-                Select team members to assign to <span className="font-medium text-foreground">{teamDialogClinic?.clinic_name}</span>
+                Assign staff per department to <span className="font-medium text-foreground">{teamDialogClinic?.clinic_name}</span>. Each department can have multiple members.
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-1 max-h-[50vh] overflow-y-auto py-2">
-              {allStaff.map(member => (
-                <label
-                  key={member.user_id}
-                  className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                >
-                  <Checkbox
-                    checked={selectedMembers.includes(member.user_id)}
-                    onCheckedChange={() => toggleMember(member.user_id)}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{member.full_name}</p>
-                    {member.team_role && (
-                      <p className="text-xs text-muted-foreground">{member.team_role}</p>
-                    )}
-                  </div>
-                </label>
-              ))}
-              {allStaff.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">No team members available</p>
-              )}
-            </div>
+            {allStaff.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">No team members available</p>
+            ) : (
+              <DepartmentTeamPicker
+                staff={allStaff}
+                selected={selectedMembers}
+                onToggle={toggleMember}
+              />
+            )}
             {selectedMembers.length > 0 && (
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {selectedMembers.map(id => {
