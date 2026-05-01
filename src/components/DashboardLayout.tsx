@@ -25,8 +25,8 @@ import { motion, AnimatePresence } from "framer-motion";
 const departmentServices: Record<string, { label: string; services: string[] }> = {
   website: { label: "Website", services: ["Time Changes", "Pop-up Offers", "Third Party Integrations", "Payment Options", "Add/Remove Team Members", "New Forms", "Paper-to-Digital Conversion", "Price List Updates", "Tech Issues", "Others"] },
   seo: { label: "SEO", services: ["Backlinking", "Ranking Reports", "Keyword Research", "Manual Work Reports", "Search Atlas Integration", "SEO Thread Updates", "Others"] },
-  google_ads: { label: "Google Ads", services: ["Dashboard Access", "Analytics Review", "Monthly Performance Report", "Call Volume Issues", "Wrong Call Tracking", "Campaign Adjustments", "Others"] },
-  social_media: { label: "Social Media", services: ["Content Calendar", "Post Approval", "Analytics", "Campaign Planning", "Others"] },
+  google_ads: { label: "Google Ads", services: ["Call Volume Issues", "Wrong Call Tracking", "Others"] },
+  social_media: { label: "Social Media", services: ["Content Request", "Client Visit", "Bulk Uploads", "Special Promotion", "Boost", "Others"] },
 };
 
 /* Department color dots for nav */
