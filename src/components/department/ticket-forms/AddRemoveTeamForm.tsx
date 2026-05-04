@@ -19,6 +19,7 @@ interface TeamMemberEntry {
   action: "add" | "remove";
   name: string;
   role: string;
+  bio: string;
 }
 
 const memberSchema = z.object({
