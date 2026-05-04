@@ -295,16 +295,16 @@ Deno.serve(async (req) => {
       if (error) { perms.fb_posts = "missing"; console.warn("fb_posts", JSON.stringify(error)); }
       else {
         perms.fb_posts = "ok";
-        recentPosts = (data.data || []).map((post: any) => ({
+        recentPosts = await Promise.all((data.data || []).map(async (post: any) => ({
           id: post.id,
           message: (post.message || "").slice(0, 200),
           created_time: post.created_time,
-          picture: post.full_picture || null,
+          picture: await cacheRemoteImage(supabase, post.full_picture, clinic_id, `fb_${post.id}`),
           permalink: post.permalink_url || null,
           likes: post.likes?.summary?.total_count || 0,
           comments: post.comments?.summary?.total_count || 0,
           shares: post.shares?.count || 0,
-        }));
+        })));
       }
     }
 
