@@ -67,6 +67,7 @@ export default function SocialMedia() {
   const currentTab = searchParams.get("tab") || "overview";
   const { isLocked, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "social_media", clinicsLoading);
   const { dna, isLoading: dnaLoading, isCompleted: dnaCompleted } = useBrandDNA(selectedClinicId);
+  const [contentRequestOpen, setContentRequestOpen] = useState(false);
 
   const isStaff = role === "admin" || role === "concierge";
   const isClient = role === "client";
