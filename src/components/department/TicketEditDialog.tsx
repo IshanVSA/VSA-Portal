@@ -263,6 +263,48 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
               </SelectContent>
             </Select>
           </div>
+
+          {attachments.length > 0 && (
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5">
+                <Paperclip className="h-3.5 w-3.5" />
+                Attachments
+                <span className="text-muted-foreground font-normal">({attachments.length})</span>
+              </Label>
+              <ul className="rounded-md border border-border/60 divide-y divide-border/40 overflow-hidden">
+                {attachments.map((att) => (
+                  <li key={att.path} className="flex items-center gap-2 px-3 py-2 bg-muted/20 hover:bg-muted/40 transition-colors">
+                    {isImagePath(att.path) ? (
+                      <ImageIcon className="h-4 w-4 text-emerald-400 shrink-0" />
+                    ) : (
+                      <FileIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                    )}
+                    <p className="text-xs font-medium text-foreground truncate flex-1 min-w-0">{att.name}</p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 px-2 text-[11px]"
+                      onClick={() => setPreviewAtt(att)}
+                    >
+                      <Eye className="h-3 w-3 mr-1" />
+                      View
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-[11px]"
+                      onClick={() => handleDownload(att)}
+                    >
+                      <Download className="h-3 w-3 mr-1" />
+                      Download
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
