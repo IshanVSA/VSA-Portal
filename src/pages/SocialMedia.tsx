@@ -1,9 +1,12 @@
 import { useSearchParams } from "react-router-dom";
+import { useState } from "react";
 
 import { useUserRole } from "@/hooks/useUserRole";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Share2, LayoutDashboard, BarChart3, Ticket, Upload, MessageSquare, Dna, Sparkles, Eye, SlidersHorizontal, MapPin, Tag, Megaphone } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Share2, LayoutDashboard, BarChart3, Ticket, Upload, MessageSquare, Dna, Sparkles, Eye, SlidersHorizontal, MapPin, Tag, Megaphone, FileText } from "lucide-react";
+import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { ComingSoonTab } from "@/components/department/ComingSoonTab";
 import { GBPPostsTab } from "@/components/seo/gbp/GBPPostsTab";
 import { SocialOverview } from "@/components/social/SocialOverview";
