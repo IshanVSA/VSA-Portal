@@ -11,6 +11,20 @@ import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
 import { formatDistanceToNow } from "date-fns";
 import { syncSpecialPromotionFromTicket } from "@/lib/special-promotion-sync";
+import { FileIcon, Image as ImageIcon, Eye, Download, Paperclip } from "lucide-react";
+import { FilePreviewDialog } from "@/components/FilePreviewDialog";
+
+const ATTACHMENT_BUCKET = "department-files";
+
+interface TicketAttachmentItem {
+  path: string;
+  name: string;
+}
+
+function isImagePath(p: string) {
+  const ext = p.split(".").pop()?.toLowerCase() || "";
+  return ["jpg", "jpeg", "png", "gif", "webp", "svg", "avif", "bmp"].includes(ext);
+}
 
 interface TeamMemberOption { id: string; name: string; }
 
