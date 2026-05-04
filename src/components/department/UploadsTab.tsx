@@ -675,6 +675,15 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
                       View
                     </Button>
                     <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() => downloadFile(att.path, att.name)}
+                      title="Download"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
                       variant="ghost"
                       size="sm"
                       className="h-8 text-xs"
