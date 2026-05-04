@@ -80,6 +80,8 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
   const [status, setStatus] = useState<EditableTicket["status"]>("open");
   const [assignedTo, setAssignedTo] = useState<string>(UNASSIGNED);
   const [saving, setSaving] = useState(false);
+  const [attachments, setAttachments] = useState<TicketAttachmentItem[]>([]);
+  const [previewAtt, setPreviewAtt] = useState<TicketAttachmentItem | null>(null);
 
   useEffect(() => {
     if (ticket) {
@@ -90,6 +92,48 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
       setAssignedTo(ticket.assigned_to || UNASSIGNED);
     }
   }, [ticket]);
+
+  // Fetch attachments for this ticket whenever it opens
+  useEffect(() => {
+    if (!ticket || !open) {
+      setAttachments([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("department_tickets" as any)
+        .select("attachments")
+        .eq("id", ticket.id)
+        .single();
+      if (cancelled) return;
+      if (error || !data) {
+        setAttachments([]);
+        return;
+      }
+      const paths: string[] = Array.isArray((data as any).attachments) ? (data as any).attachments : [];
+      setAttachments(paths.map((p) => ({ path: p, name: p.split("/").pop() || p })));
+    })();
+    return () => { cancelled = true; };
+  }, [ticket, open]);
+
+  const handleDownload = async (att: TicketAttachmentItem) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from(ATTACHMENT_BUCKET)
+        .createSignedUrl(att.path, 3600, { download: att.name });
+      if (error || !data?.signedUrl) throw error || new Error("No signed URL");
+      // Trigger download via temporary anchor
+      const a = document.createElement("a");
+      a.href = data.signedUrl;
+      a.download = att.name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to download file");
+    }
+  };
 
   if (!ticket) return null;
 
