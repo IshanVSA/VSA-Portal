@@ -358,7 +358,16 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
                       {ig.stories.map((s: any) => (
                         <a key={s.id} href={s.permalink} target="_blank" rel="noopener noreferrer" className="block">
                           <div className="aspect-[9/16] rounded-lg overflow-hidden bg-muted">
-                            {s.thumbnail_url && <img src={s.thumbnail_url} alt="" className="h-full w-full object-cover" />}
+                            {s.thumbnail_url && (
+                              <img
+                                src={s.thumbnail_url}
+                                alt=""
+                                referrerPolicy="no-referrer"
+                                loading="lazy"
+                                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                                className="h-full w-full object-cover"
+                              />
+                            )}
                           </div>
                           <div className="text-[10px] text-muted-foreground mt-1 flex justify-between">
                             <span>{num(s.reach || 0)} reach</span>
