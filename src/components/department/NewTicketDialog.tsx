@@ -155,6 +155,8 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     setCustomDescription(desc);
   }, []);
 
+  const [teamFormValid, setTeamFormValid] = useState(false);
+
 
   const uploadFiles = async (ticketId: string): Promise<string[]> => {
     const paths: string[] = [];
@@ -174,6 +176,10 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
   const handleSubmit = async () => {
     if (needsClinicSelection && !selectedClinicId) {
       toast.error("Please select a clinic for this ticket");
+      return;
+    }
+    if (ticketType === "Add/Remove Team Members" && !teamFormValid) {
+      toast.error("Please fix the highlighted member fields before submitting");
       return;
     }
     if (!isCustomForm && (!title.trim() || !ticketType)) {
@@ -267,7 +273,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
       case "Payment Options":
         return <PaymentOptionsForm onChange={handleCustomFormChange} />;
       case "Add/Remove Team Members":
-        return <AddRemoveTeamForm onChange={handleCustomFormChange} />;
+        return <AddRemoveTeamForm onChange={handleCustomFormChange} onValidityChange={setTeamFormValid} />;
       case "New Forms":
         return <NewFormsForm onChange={handleCustomFormChange} files={files} onFilesChange={setFiles} />;
       case "Price List Updates":
@@ -421,7 +427,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
 
             <DialogFooter>
               <Button variant="outline" onClick={handleClose}>Cancel</Button>
-              <Button onClick={handleSubmit} disabled={loading || uploading || (ticketType === "Pop-up Offers" && !popupConsented)}>
+              <Button onClick={handleSubmit} disabled={loading || uploading || (ticketType === "Pop-up Offers" && !popupConsented) || (ticketType === "Add/Remove Team Members" && !teamFormValid)}>
                 {uploading ? (
                   <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Uploading…</>
                 ) : loading ? "Creating…" : "Create Ticket"}
