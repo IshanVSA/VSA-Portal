@@ -400,10 +400,10 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
                 </div>
               )}
 
-              {ticketType !== "Pop-up Offers" && !["Content Request","Client Visit","Special Promotion","Boost","Bulk Uploads"].includes(ticketType) && (
+              {ticketType !== "Pop-up Offers" && !["Content Request","Client Visit","Special Promotion","Boost","Bulk Uploads","Add/Remove Team Members"].includes(ticketType) && (
                 <div className="space-y-1.5">
-                  <Label htmlFor="ticket-notes">{ticketType === "Add/Remove Team Members" ? "Bio" : "Notes"}</Label>
-                  <Textarea id="ticket-notes" placeholder={ticketType === "Add/Remove Team Members" ? "Short bio for the team member..." : "Additional notes..."} value={notes} onChange={e => setNotes(e.target.value)} rows={2} maxLength={1000} />
+                  <Label htmlFor="ticket-notes">Notes</Label>
+                  <Textarea id="ticket-notes" placeholder="Additional notes..." value={notes} onChange={e => setNotes(e.target.value)} rows={2} maxLength={1000} />
                 </div>
               )}
 
