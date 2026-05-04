@@ -155,12 +155,10 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
             </div>
           )}
         </div>
-        {isStaff && (
-          <Button onClick={handleSync} disabled={syncing} size="sm">
-            {syncing ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1.5" />}
-            Sync Now
-          </Button>
-        )}
+        <Button onClick={handleSync} disabled={syncing} size="sm" variant={isStaff ? "default" : "outline"}>
+          {syncing ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1.5" />}
+          {isStaff ? "Sync Now" : "Refresh Posts"}
+        </Button>
       </div>
 
       {missingPerms.length > 0 && (
