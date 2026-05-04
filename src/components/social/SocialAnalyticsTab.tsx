@@ -244,7 +244,16 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
                   <CardContent className="space-y-3">
                     {fb.recent_posts.map((p: any) => (
                       <div key={p.id} className="flex gap-3 p-3 rounded-lg border border-border/60 hover:bg-muted/30 transition-colors">
-                        {p.picture && <img src={p.picture} alt="" className="h-16 w-16 rounded object-cover shrink-0" />}
+                        {p.picture && (
+                          <img
+                            src={p.picture}
+                            alt=""
+                            referrerPolicy="no-referrer"
+                            loading="lazy"
+                            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                            className="h-16 w-16 rounded object-cover shrink-0 bg-muted"
+                          />
+                        )}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-foreground line-clamp-2">{p.message || <span className="italic text-muted-foreground">No caption</span>}</p>
                           <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-muted-foreground">
