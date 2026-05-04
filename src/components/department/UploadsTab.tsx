@@ -341,6 +341,23 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
                       <Eye className="h-3.5 w-3.5 mr-1" />
                       View
                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() => {
+                        setSearchParams((prev) => {
+                          const next = new URLSearchParams(prev);
+                          next.set("tab", "tickets");
+                          next.set("ticket", att.ticket_id);
+                          return next;
+                        });
+                      }}
+                      title="Open this ticket"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                      Open Ticket
+                    </Button>
                   </div>
                 </li>
               ))}
