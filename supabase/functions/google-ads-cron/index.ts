@@ -173,6 +173,85 @@ async function syncClinic(
       conversions: data.conversions,
     }));
 
+    // ---- Search Terms query (90 days) ----
+    const searchTermsQuery = `
+      SELECT search_term_view.search_term,
+             segments.keyword.info.text,
+             metrics.clicks, metrics.impressions,
+             metrics.cost_micros, metrics.conversions,
+             segments.date
+      FROM search_term_view
+      WHERE segments.date BETWEEN '${startDate}' AND '${endDate}'
+    `;
+
+    let searchTerms: Array<{
+      term: string; keyword: string; clicks: number; impressions: number;
+      cost: number; conversions: number;
+      daily: Array<{ date: string; clicks: number; impressions: number; cost: number; conversions: number }>;
+    }> = [];
+
+    try {
+      const stRes = await fetch(
+        `https://googleads.googleapis.com/v23/customers/${cid}/googleAds:searchStream`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "developer-token": GOOGLE_ADS_DEVELOPER_TOKEN,
+            "login-customer-id": lcid,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ query: searchTermsQuery }),
+        }
+      );
+      const stRaw = await stRes.text();
+      const stBatches = parseSearchStream(stRaw);
+      if (stBatches.length > 0 && stBatches[0].error) {
+        console.error(`Search terms API error for ${clinicName}:`, stBatches[0].error.message);
+      } else {
+        type STAgg = {
+          term: string; keyword: string; clicks: number; impressions: number;
+          cost_micros: number; conversions: number;
+          dailyMap: Record<string, { clicks: number; impressions: number; cost_micros: number; conversions: number }>;
+        };
+        const stMap: Record<string, STAgg> = {};
+        for (const batch of stBatches) {
+          for (const row of batch.results || []) {
+            const term = row.searchTermView?.searchTerm || "(unknown)";
+            const keyword = row.segments?.keyword?.info?.text || "";
+            const clicks = parseInt(row.metrics?.clicks || "0");
+            const impressions = parseInt(row.metrics?.impressions || "0");
+            const costMicros = parseInt(row.metrics?.costMicros || "0");
+            const conversions = parseFloat(row.metrics?.conversions || "0");
+            const date = row.segments?.date || "unknown";
+            const key = `${term}__${keyword}`;
+            if (!stMap[key]) stMap[key] = { term, keyword, clicks: 0, impressions: 0, cost_micros: 0, conversions: 0, dailyMap: {} };
+            const agg = stMap[key];
+            agg.clicks += clicks; agg.impressions += impressions;
+            agg.cost_micros += costMicros; agg.conversions += conversions;
+            if (!agg.dailyMap[date]) agg.dailyMap[date] = { clicks: 0, impressions: 0, cost_micros: 0, conversions: 0 };
+            agg.dailyMap[date].clicks += clicks;
+            agg.dailyMap[date].impressions += impressions;
+            agg.dailyMap[date].cost_micros += costMicros;
+            agg.dailyMap[date].conversions += conversions;
+          }
+        }
+        searchTerms = Object.values(stMap).map((a) => ({
+          term: a.term, keyword: a.keyword,
+          clicks: a.clicks, impressions: a.impressions,
+          cost: a.cost_micros / 1_000_000, conversions: a.conversions,
+          daily: Object.entries(a.dailyMap)
+            .sort(([d1], [d2]) => d1.localeCompare(d2))
+            .map(([date, d]) => ({
+              date, clicks: d.clicks, impressions: d.impressions,
+              cost: d.cost_micros / 1_000_000, conversions: d.conversions,
+            })),
+        })).sort((a, b) => b.cost - a.cost || b.clicks - a.clicks).slice(0, 200);
+      }
+    } catch (e) {
+      console.error(`Search terms fetch failed for ${clinicName}:`, e);
+    }
+
     const today = new Date().toISOString().slice(0, 10);
 
     const { error: insertError } = await supabase.from("analytics").insert({
@@ -188,6 +267,7 @@ async function syncClinic(
         conversions: totalConversions,
         daily_trends: dailyTrends,
         campaigns,
+        search_terms: searchTerms,
       },
     });
 
