@@ -15,8 +15,6 @@ type CategoryKey =
   | "brochures"
   | "flyers"
   | "social_post"
-  | "signage"
-  | "merchandise"
   | "other";
 
 const CATEGORIES: {
@@ -73,22 +71,6 @@ const CATEGORIES: {
     defaultDescription:
       "Please create a social media post.\n• Topic / message:\n• Platform(s) (Instagram, Facebook, etc.):\n• Preferred publish date:\n• Call to action:",
     defaultNotes: "Tone, references, or links:",
-  },
-  {
-    value: "signage",
-    label: "Signage / Banners",
-    defaultTitle: "Signage / Banner Request",
-    defaultDescription:
-      "Please design signage / a banner for our clinic.\n• Type (indoor sign, outdoor banner, window decal):\n• Dimensions:\n• Quantity needed:\n• Message / content:",
-    defaultNotes: "Installation location and design references:",
-  },
-  {
-    value: "merchandise",
-    label: "Merchandise (Mugs, T-shirts, etc.)",
-    defaultTitle: "Merchandise Design Request",
-    defaultDescription:
-      "Please design merchandise for our clinic.\n• Item type (mug, t-shirt, tote, etc.):\n• Quantity needed:\n• Sizes / variants:\n• Message or artwork concept:",
-    defaultNotes: "Brand colors, references, or must-include elements:",
   },
   {
     value: "other",
