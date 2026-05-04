@@ -241,6 +241,18 @@ export function AddRemoveTeamForm({ onChange, onValidityChange }: AddRemoveTeamF
                   </p>
                 )}
               </div>
+              {m.action === "add" && (
+                <div className="space-y-1.5">
+                  <Label>Bio</Label>
+                  <Textarea
+                    placeholder="Short bio for this team member..."
+                    value={m.bio}
+                    onChange={(e) => updateMember(m.id, { bio: e.target.value })}
+                    rows={3}
+                    maxLength={1000}
+                  />
+                </div>
+              )}
             </div>
           );
         })}
