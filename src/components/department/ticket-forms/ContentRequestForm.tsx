@@ -15,8 +15,6 @@ type CategoryKey =
   | "brochures"
   | "flyers"
   | "social_post"
-  | "signage"
-  | "merchandise"
   | "other";
 
 const CATEGORIES: {
