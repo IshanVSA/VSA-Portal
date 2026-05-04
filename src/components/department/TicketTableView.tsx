@@ -105,6 +105,10 @@ export function TicketTableView({ tickets, teamMembers, currentDepartment, onUpd
       if (newStatus === "completed" && ticket?.ticket_type === "Bulk Uploads") {
         await moveBulkUploadsToDepartmentFolder(ticketId, currentDepartment || ticket.department);
       }
+      if (newStatus === "completed") {
+        supabase.functions.invoke("notify-ticket-completed", { body: { ticketId } })
+          .catch((e) => console.warn("notify-ticket-completed failed", e));
+      }
       toast.success(`Status updated`);
       onUpdated();
     }
