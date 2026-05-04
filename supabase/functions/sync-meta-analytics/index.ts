@@ -369,7 +369,7 @@ Deno.serve(async (req) => {
           followers = data.followers_count || 0;
           mediaCount = data.media_count || 0;
           username = data.username || "";
-          profilePic = data.profile_picture_url || "";
+          profilePic = await cacheRemoteImage(supabase, data.profile_picture_url || "", clinic_id, `ig_profile_${igId}`) || "";
         }
       }
 
