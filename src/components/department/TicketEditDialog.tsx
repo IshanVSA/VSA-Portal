@@ -318,6 +318,19 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
           )}
         </DialogFooter>
       </DialogContent>
+
+      <FilePreviewDialog
+        open={!!previewAtt}
+        onOpenChange={(o) => { if (!o) setPreviewAtt(null); }}
+        filename={previewAtt?.name || ""}
+        getUrl={previewAtt ? async () => {
+          const { data, error } = await supabase.storage
+            .from(ATTACHMENT_BUCKET)
+            .createSignedUrl(previewAtt.path, 3600);
+          if (error || !data?.signedUrl) throw error || new Error("No signed URL");
+          return data.signedUrl;
+        } : undefined}
+      />
     </Dialog>
   );
 }
