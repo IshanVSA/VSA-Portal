@@ -52,6 +52,65 @@ async function gget(url: string): Promise<{ data: any; error: any }> {
   }
 }
 
+/**
+ * Cache an Instagram/Facebook CDN image into the public `department-files`
+ * bucket so the UI never depends on expiring signed CDN URLs. Returns a stable
+ * public URL, or the original URL on failure.
+ *
+ * Path: ig-thumbnails/{clinic_id}/{media_id}.jpg
+ * Re-fetches at most every 72h (TTL well under IG's typical signed-url window).
+ */
+async function cacheRemoteImage(
+  supabase: any,
+  remoteUrl: string | null | undefined,
+  clinicId: string,
+  mediaId: string,
+): Promise<string | null> {
+  if (!remoteUrl) return null;
+  // Already a stable Supabase storage URL — nothing to do.
+  if (remoteUrl.includes("/storage/v1/object/public/")) return remoteUrl;
+
+  const path = `ig-thumbnails/${clinicId}/${mediaId}.jpg`;
+  const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/department-files/${path}`;
+
+  try {
+    // Skip refresh if a recent cached copy exists (< 72h old).
+    const folder = `ig-thumbnails/${clinicId}`;
+    const { data: existing } = await supabase.storage
+      .from("department-files")
+      .list(folder, { search: `${mediaId}.jpg`, limit: 1 });
+    const found = existing?.find((f: any) => f.name === `${mediaId}.jpg`);
+    if (found?.updated_at) {
+      const ageMs = Date.now() - new Date(found.updated_at).getTime();
+      if (ageMs < 72 * 60 * 60 * 1000) return publicUrl;
+    }
+
+    // Fetch the bytes from the CDN with a Referer that the Meta CDN accepts.
+    const imgRes = await fetch(remoteUrl, {
+      headers: { Referer: "https://www.instagram.com/", "User-Agent": "Mozilla/5.0" },
+    });
+    if (!imgRes.ok) return remoteUrl;
+    const bytes = new Uint8Array(await imgRes.arrayBuffer());
+    if (bytes.byteLength === 0) return remoteUrl;
+
+    const { error: upErr } = await supabase.storage
+      .from("department-files")
+      .upload(path, bytes, {
+        contentType: imgRes.headers.get("content-type") || "image/jpeg",
+        upsert: true,
+        cacheControl: "604800",
+      });
+    if (upErr) {
+      console.warn("cacheRemoteImage upload failed", mediaId, upErr.message);
+      return remoteUrl;
+    }
+    return publicUrl;
+  } catch (e: any) {
+    console.warn("cacheRemoteImage error", mediaId, e?.message);
+    return remoteUrl;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
