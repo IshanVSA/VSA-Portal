@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, FolderOpen, FileText, Image, Eye, Trash2, Loader2, ExternalLink, Folder, ChevronDown, ChevronRight, Sparkles } from "lucide-react";
+import { Upload, FolderOpen, FileText, Image, Eye, Trash2, Loader2, ExternalLink, Folder, ChevronDown, ChevronRight, Sparkles, Download } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { formatDistanceToNow, format } from "date-fns";
