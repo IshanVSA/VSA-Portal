@@ -397,12 +397,14 @@ Deno.serve(async (req) => {
         );
         if (!error && data?.data) {
           for (const m of data.data) {
+            const rawThumb = m.thumbnail_url || m.media_url;
+            const cachedThumb = await cacheRemoteImage(supabase, rawThumb, clinic_id, `ig_${m.id}`);
             const item: any = {
               id: m.id,
               caption: (m.caption || "").slice(0, 200),
               media_type: m.media_type,
               media_url: m.media_url,
-              thumbnail_url: m.thumbnail_url || m.media_url,
+              thumbnail_url: cachedThumb,
               permalink: m.permalink,
               timestamp: m.timestamp,
               likes: m.like_count || 0,
