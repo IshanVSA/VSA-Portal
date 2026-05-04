@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Plus, Trash2, Users, AlertCircle } from "lucide-react";
@@ -18,6 +19,7 @@ interface TeamMemberEntry {
   action: "add" | "remove";
   name: string;
   role: string;
+  bio: string;
 }
 
 const memberSchema = z.object({
@@ -43,6 +45,7 @@ function newEntry(action: "add" | "remove" = "add"): TeamMemberEntry {
     action,
     name: "",
     role: "",
+    bio: "",
   };
 }
 
@@ -86,6 +89,9 @@ export function AddRemoveTeamForm({ onChange, onValidityChange }: AddRemoveTeamF
       lines.push(`Action: ${first.action === "add" ? "Add" : "Remove"} Team Member`);
       lines.push(`Name: ${first.name || "N/A"}`);
       lines.push(`Role/Title: ${first.role || "N/A"}`);
+      if (first.bio.trim()) {
+        lines.push(`Bio: ${first.bio.trim()}`);
+      }
     }
 
     if (members.length > 1) {
@@ -96,6 +102,9 @@ export function AddRemoveTeamForm({ onChange, onValidityChange }: AddRemoveTeamF
         lines.push(`#${idx + 1} — ${m.action === "add" ? "Add" : "Remove"}`);
         lines.push(`  Name: ${m.name || "N/A"}`);
         lines.push(`  Role/Title: ${m.role || "N/A"}`);
+        if (m.bio.trim()) {
+          lines.push(`  Bio: ${m.bio.trim()}`);
+        }
       });
     }
 
@@ -232,6 +241,18 @@ export function AddRemoveTeamForm({ onChange, onValidityChange }: AddRemoveTeamF
                   </p>
                 )}
               </div>
+              {m.action === "add" && (
+                <div className="space-y-1.5">
+                  <Label>Bio</Label>
+                  <Textarea
+                    placeholder="Short bio for this team member..."
+                    value={m.bio}
+                    onChange={(e) => updateMember(m.id, { bio: e.target.value })}
+                    rows={3}
+                    maxLength={1000}
+                  />
+                </div>
+              )}
             </div>
           );
         })}
