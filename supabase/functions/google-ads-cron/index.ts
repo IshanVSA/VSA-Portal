@@ -59,13 +59,21 @@ async function syncClinic(
     const cid = customerId.replace(/-/g, "");
     const lcid = (loginCustomerId || customerId).replace(/-/g, "");
 
-    // Query Google Ads API
+    // Build explicit 90-day date range (GAQL doesn't support LAST_90_DAYS literal)
+    const _today = new Date();
+    const _start = new Date();
+    _start.setUTCDate(_today.getUTCDate() - 90);
+    const fmt = (d: Date) => d.toISOString().slice(0, 10);
+    const startDate = fmt(_start);
+    const endDate = fmt(_today);
+
+    // Query Google Ads API (90 days so the UI's 30D/90D filters all have data)
     const gaqlQuery = `
       SELECT campaign.name, metrics.clicks, metrics.impressions,
              metrics.cost_micros, metrics.conversions,
              segments.date
       FROM campaign
-      WHERE segments.date DURING LAST_30_DAYS
+      WHERE segments.date BETWEEN '${startDate}' AND '${endDate}'
     `;
 
     const searchRes = await fetch(
