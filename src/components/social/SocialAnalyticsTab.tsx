@@ -244,7 +244,16 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
                   <CardContent className="space-y-3">
                     {fb.recent_posts.map((p: any) => (
                       <div key={p.id} className="flex gap-3 p-3 rounded-lg border border-border/60 hover:bg-muted/30 transition-colors">
-                        {p.picture && <img src={p.picture} alt="" className="h-16 w-16 rounded object-cover shrink-0" />}
+                        {p.picture && (
+                          <img
+                            src={p.picture}
+                            alt=""
+                            referrerPolicy="no-referrer"
+                            loading="lazy"
+                            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                            className="h-16 w-16 rounded object-cover shrink-0 bg-muted"
+                          />
+                        )}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-foreground line-clamp-2">{p.message || <span className="italic text-muted-foreground">No caption</span>}</p>
                           <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-muted-foreground">
@@ -288,8 +297,28 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                       {ig.recent_media.map((m: any) => (
                         <a key={m.id} href={m.permalink} target="_blank" rel="noopener noreferrer" className="block group">
-                          <div className="relative aspect-square rounded-lg overflow-hidden bg-muted">
-                            {m.thumbnail_url && <img src={m.thumbnail_url} alt="" className="h-full w-full object-cover group-hover:scale-105 transition-transform" />}
+                          <div className="relative aspect-square rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                            {m.thumbnail_url ? (
+                              <img
+                                src={m.thumbnail_url}
+                                alt=""
+                                referrerPolicy="no-referrer"
+                                loading="lazy"
+                                onError={(e) => {
+                                  const img = e.currentTarget as HTMLImageElement;
+                                  img.style.display = "none";
+                                  const fallback = img.nextElementSibling as HTMLElement | null;
+                                  if (fallback) fallback.style.display = "flex";
+                                }}
+                                className="h-full w-full object-cover group-hover:scale-105 transition-transform"
+                              />
+                            ) : null}
+                            <div
+                              className="absolute inset-0 items-center justify-center text-muted-foreground/60"
+                              style={{ display: m.thumbnail_url ? "none" : "flex" }}
+                            >
+                              <ImageIcon className="h-8 w-8" />
+                            </div>
                             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 text-white text-[11px] flex justify-between">
                               <span className="flex items-center gap-1"><Heart className="h-3 w-3" />{num(m.likes)}</span>
                               <span className="flex items-center gap-1"><MessageCircle className="h-3 w-3" />{num(m.comments)}</span>
@@ -329,7 +358,16 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
                       {ig.stories.map((s: any) => (
                         <a key={s.id} href={s.permalink} target="_blank" rel="noopener noreferrer" className="block">
                           <div className="aspect-[9/16] rounded-lg overflow-hidden bg-muted">
-                            {s.thumbnail_url && <img src={s.thumbnail_url} alt="" className="h-full w-full object-cover" />}
+                            {s.thumbnail_url && (
+                              <img
+                                src={s.thumbnail_url}
+                                alt=""
+                                referrerPolicy="no-referrer"
+                                loading="lazy"
+                                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                                className="h-full w-full object-cover"
+                              />
+                            )}
                           </div>
                           <div className="text-[10px] text-muted-foreground mt-1 flex justify-between">
                             <span>{num(s.reach || 0)} reach</span>
