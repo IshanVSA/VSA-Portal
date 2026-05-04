@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, FolderOpen, FileText, Image, Eye, Trash2, Loader2, ExternalLink } from "lucide-react";
+import { Upload, FolderOpen, FileText, Image, Eye, Trash2, Loader2, ExternalLink, Folder, ChevronDown, ChevronRight, Sparkles } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { cn } from "@/lib/utils";
 import { FilePreviewDialog } from "@/components/FilePreviewDialog";
@@ -17,6 +17,7 @@ interface UploadedFile {
   created_at: string;
   size: number;
   url: string;
+  monthKey: string; // e.g. "2026-05"
 }
 
 interface TicketAttachment {
@@ -26,6 +27,12 @@ interface TicketAttachment {
   ticket_id: string;
   ticket_title: string;
   ticket_type: string;
+}
+
+interface BrandAsset {
+  name: string;
+  created_at: string;
+  size: number;
 }
 
 const BUCKET = "department-files";
@@ -44,58 +51,106 @@ function getFileIcon(name: string) {
   return <FileText className="h-4 w-4 text-muted-foreground" />;
 }
 
+function currentMonthKey() {
+  return format(new Date(), "yyyy-MM");
+}
+
+function monthKeyLabel(key: string) {
+  const [y, m] = key.split("-").map(Number);
+  return format(new Date(y, (m || 1) - 1, 1), "MMMM yyyy");
+}
+
 export function UploadsTab({ department, clinicId }: { department: string; clinicId?: string }) {
   const { role } = useUserRole();
   const [, setSearchParams] = useSearchParams();
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [dragging, setDragging] = useState(false);
+  const [uploadTargetMonth, setUploadTargetMonth] = useState<string>(currentMonthKey());
+  const [dragOverMonth, setDragOverMonth] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [previewFile, setPreviewFile] = useState<UploadedFile | null>(null);
+  const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set([currentMonthKey()]));
   const inputRef = useRef<HTMLInputElement>(null);
+  const monthInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const [ticketAttachments, setTicketAttachments] = useState<TicketAttachment[]>([]);
   const [previewTicketAtt, setPreviewTicketAtt] = useState<TicketAttachment | null>(null);
 
-  // Scope uploads per clinic so files uploaded for one clinic don't appear in another.
-  // Falls back to the legacy department-only folder when no clinic is selected.
-  const listPath = clinicId ? `${department}/${clinicId}` : department;
-  const folder = `${listPath}/`;
+  // Brand assets
+  const [brandAssets, setBrandAssets] = useState<BrandAsset[]>([]);
+  const [brandUploading, setBrandUploading] = useState(false);
+  const [brandDragging, setBrandDragging] = useState(false);
+  const [brandLoading, setBrandLoading] = useState(true);
+  const [previewBrand, setPreviewBrand] = useState<BrandAsset | null>(null);
+  const brandInputRef = useRef<HTMLInputElement>(null);
+
+  // Department files are organized as {department}/{clinicId}/{yyyy-MM}/filename
+  const baseDeptPath = clinicId ? `${department}/${clinicId}` : department;
+  const brandPath = clinicId ? `brand-assets/${clinicId}` : null;
 
   const fetchFiles = useCallback(async () => {
     setLoading(true);
     setFiles([]);
     if (!clinicId) {
-      // Without a selected clinic, don't show cross-clinic files.
       setLoading(false);
       return;
     }
-    const { data, error } = await supabase.storage.from(BUCKET).list(listPath, {
-      sortBy: { column: "created_at", order: "desc" },
-    });
-    if (error) {
-      console.error("Error listing files:", error);
-      setLoading(false);
-      return;
-    }
-    const filtered = (data || []).filter((f) => f.name !== ".emptyFolderPlaceholder");
 
-    // Generate signed URLs for private bucket
-    const mapped: UploadedFile[] = [];
-    for (const f of filtered) {
-      const { data: signedData } = await supabase.storage
+    // List month folders under base path
+    const { data: monthDirs, error: monthsErr } = await supabase.storage.from(BUCKET).list(baseDeptPath);
+    if (monthsErr) {
+      console.error("Error listing months:", monthsErr);
+      setLoading(false);
+      return;
+    }
+
+    const collected: UploadedFile[] = [];
+
+    // Legacy: any files directly under baseDeptPath (no month folder) — bucket them under current month for display
+    const legacyFiles = (monthDirs || []).filter(
+      (d) => d.name !== ".emptyFolderPlaceholder" && d.metadata && d.metadata.size != null
+    );
+    for (const f of legacyFiles) {
+      const { data: signed } = await supabase.storage
         .from(BUCKET)
-        .createSignedUrl(`${folder}${f.name}`, 3600); // 1 hour expiry
-      mapped.push({
+        .createSignedUrl(`${baseDeptPath}/${f.name}`, 3600);
+      collected.push({
         name: f.name,
         created_at: f.created_at || new Date().toISOString(),
         size: f.metadata?.size || 0,
-        url: signedData?.signedUrl || "",
+        url: signed?.signedUrl || "",
+        monthKey: format(new Date(f.created_at || Date.now()), "yyyy-MM"),
       });
     }
-    setFiles(mapped);
+
+    // Folders (month buckets) — entries without metadata
+    const monthFolders = (monthDirs || []).filter(
+      (d) => d.name !== ".emptyFolderPlaceholder" && (!d.metadata || d.metadata.size == null) && /^\d{4}-\d{2}$/.test(d.name)
+    );
+
+    for (const folder of monthFolders) {
+      const folderPath = `${baseDeptPath}/${folder.name}`;
+      const { data: monthFiles, error } = await supabase.storage
+        .from(BUCKET)
+        .list(folderPath, { sortBy: { column: "created_at", order: "desc" } });
+      if (error) continue;
+      for (const f of (monthFiles || []).filter((x) => x.name !== ".emptyFolderPlaceholder")) {
+        const { data: signed } = await supabase.storage
+          .from(BUCKET)
+          .createSignedUrl(`${folderPath}/${f.name}`, 3600);
+        collected.push({
+          name: f.name,
+          created_at: f.created_at || new Date().toISOString(),
+          size: f.metadata?.size || 0,
+          url: signed?.signedUrl || "",
+          monthKey: folder.name,
+        });
+      }
+    }
+
+    setFiles(collected);
     setLoading(false);
-  }, [listPath, folder, clinicId]);
+  }, [baseDeptPath, clinicId]);
 
   const fetchTicketAttachments = useCallback(async () => {
     const visibleTypes = getVisibleTicketTypes(department);
@@ -120,7 +175,6 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
     for (const t of (data || []) as any[]) {
       const paths: string[] = Array.isArray(t.attachments) ? t.attachments : [];
       if (paths.length === 0) continue;
-      // Conditional rule: Add/Remove Team Members only shown in social_media if Promote: Yes
       if (
         department === "social_media" &&
         t.ticket_type === "Add/Remove Team Members" &&
@@ -142,21 +196,61 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
     setTicketAttachments(collected);
   }, [department, clinicId]);
 
+  const fetchBrandAssets = useCallback(async () => {
+    setBrandLoading(true);
+    setBrandAssets([]);
+    if (!brandPath) {
+      setBrandLoading(false);
+      return;
+    }
+    const { data, error } = await supabase.storage.from(BUCKET).list(brandPath, {
+      sortBy: { column: "created_at", order: "desc" },
+    });
+    if (error) {
+      console.error("Error listing brand assets:", error);
+      setBrandLoading(false);
+      return;
+    }
+    const filtered = (data || []).filter((f) => f.name !== ".emptyFolderPlaceholder" && f.metadata?.size != null);
+    setBrandAssets(
+      filtered.map((f) => ({
+        name: f.name,
+        created_at: f.created_at || new Date().toISOString(),
+        size: f.metadata?.size || 0,
+      }))
+    );
+    setBrandLoading(false);
+  }, [brandPath]);
+
   useEffect(() => {
     fetchFiles();
     fetchTicketAttachments();
-  }, [fetchFiles, fetchTicketAttachments]);
+    fetchBrandAssets();
+  }, [fetchFiles, fetchTicketAttachments, fetchBrandAssets]);
 
-  const handleUpload = async (fileList: FileList | null) => {
+  // Group files by month, ensuring current month is always present
+  const filesByMonth = useMemo(() => {
+    const map = new Map<string, UploadedFile[]>();
+    map.set(currentMonthKey(), []);
+    for (const f of files) {
+      if (!map.has(f.monthKey)) map.set(f.monthKey, []);
+      map.get(f.monthKey)!.push(f);
+    }
+    // Sort entries newest-month first
+    return Array.from(map.entries()).sort(([a], [b]) => (a < b ? 1 : -1));
+  }, [files]);
+
+  const handleUpload = async (fileList: FileList | null, monthKey: string) => {
     if (!fileList || fileList.length === 0) return;
     if (!clinicId) {
       toast.error("Select a clinic before uploading files");
       return;
     }
     setUploading(true);
+    setUploadTargetMonth(monthKey);
     let successCount = 0;
     for (const file of Array.from(fileList)) {
-      const path = `${folder}${file.name}`;
+      const path = `${baseDeptPath}/${monthKey}/${file.name}`;
       const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true });
       if (error) {
         toast.error(`Failed to upload ${file.name}`);
@@ -165,84 +259,84 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
         successCount++;
       }
     }
-    if (successCount > 0) toast.success(`${successCount} file(s) uploaded`);
+    if (successCount > 0) {
+      toast.success(`${successCount} file(s) uploaded to ${monthKeyLabel(monthKey)}`);
+      // Auto-expand month we uploaded to
+      setExpandedMonths((prev) => new Set(prev).add(monthKey));
+    }
     setUploading(false);
     fetchFiles();
   };
 
-  const handleDelete = async (name: string) => {
-    const { error } = await supabase.storage.from(BUCKET).remove([`${folder}${name}`]);
-    if (error) {
-      toast.error("Failed to delete file");
-    } else {
+  const handleDelete = async (file: UploadedFile) => {
+    // Try month-folder path first; fall back to legacy path at root.
+    const candidates = [
+      `${baseDeptPath}/${file.monthKey}/${file.name}`,
+      `${baseDeptPath}/${file.name}`,
+    ];
+    let deleted = false;
+    for (const path of candidates) {
+      const { error } = await supabase.storage.from(BUCKET).remove([path]);
+      if (!error) {
+        deleted = true;
+        break;
+      }
+    }
+    if (!deleted) toast.error("Failed to delete file");
+    else {
       toast.success("File deleted");
       fetchFiles();
     }
   };
 
-  const onDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setDragging(false);
-      handleUpload(e.dataTransfer.files);
-    },
-    [folder]
-  );
+  const handleBrandUpload = async (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return;
+    if (!brandPath) {
+      toast.error("Select a clinic before uploading brand assets");
+      return;
+    }
+    setBrandUploading(true);
+    let successCount = 0;
+    for (const file of Array.from(fileList)) {
+      const path = `${brandPath}/${file.name}`;
+      const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true });
+      if (error) {
+        toast.error(`Failed to upload ${file.name}`);
+        console.error(error);
+      } else {
+        successCount++;
+      }
+    }
+    if (successCount > 0) toast.success(`${successCount} brand asset(s) uploaded`);
+    setBrandUploading(false);
+    fetchBrandAssets();
+  };
+
+  const handleBrandDelete = async (name: string) => {
+    if (!brandPath) return;
+    const { error } = await supabase.storage.from(BUCKET).remove([`${brandPath}/${name}`]);
+    if (error) toast.error("Failed to delete brand asset");
+    else {
+      toast.success("Brand asset deleted");
+      fetchBrandAssets();
+    }
+  };
+
+  const toggleMonth = (key: string) => {
+    setExpandedMonths((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   const canDelete = role === "admin" || role === "concierge";
   const deptLabel = department.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
 
   return (
     <div className="space-y-6">
-      {/* Upload Zone */}
-      <Card className="overflow-hidden border-border/60">
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
-            <Upload className="h-4 w-4 text-primary" />
-            <CardTitle className="text-base font-semibold">Upload Files</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragging(true);
-            }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={onDrop}
-            onClick={() => inputRef.current?.click()}
-            className={cn(
-              "border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all",
-              dragging
-                ? "border-primary bg-primary/5"
-                : "border-border/60 hover:border-primary/40 hover:bg-muted/20"
-            )}
-          >
-            {uploading ? (
-              <Loader2 className="h-8 w-8 text-primary animate-spin" />
-            ) : (
-              <FolderOpen className="h-10 w-10 text-amber-500/80" />
-            )}
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">
-                {uploading ? "Uploading..." : "Drop files here or click to upload"}
-              </p>
-              <p className="text-xs text-muted-foreground/60 mt-1">
-                Papers, logos, forms, price lists, team photos
-              </p>
-            </div>
-            <input
-              ref={inputRef}
-              type="file"
-              multiple
-              className="hidden"
-              onChange={(e) => handleUpload(e.target.files)}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* File List */}
+      {/* Files in {department} — month-bucketed */}
       <Card className="overflow-hidden border-border/60">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
@@ -255,21 +349,201 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
             <div className="py-10 text-center text-muted-foreground text-sm">Loading...</div>
           ) : !clinicId ? (
             <div className="py-10 text-center text-muted-foreground text-sm">Select a clinic to view files</div>
-          ) : files.length === 0 ? (
-            <div className="py-10 text-center text-muted-foreground text-sm">No files uploaded yet for this clinic</div>
           ) : (
             <ul className="divide-y divide-border/40">
-              {files.map((file) => (
+              {filesByMonth.map(([monthKey, monthFiles]) => {
+                const expanded = expandedMonths.has(monthKey);
+                const isCurrent = monthKey === currentMonthKey();
+                return (
+                  <li key={monthKey} className="bg-transparent">
+                    <div
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setDragOverMonth(monthKey);
+                      }}
+                      onDragLeave={() => setDragOverMonth((m) => (m === monthKey ? null : m))}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setDragOverMonth(null);
+                        handleUpload(e.dataTransfer.files, monthKey);
+                      }}
+                      className={cn(
+                        "flex items-center justify-between px-4 sm:px-6 py-3 transition-colors",
+                        dragOverMonth === monthKey ? "bg-primary/5" : "hover:bg-muted/20"
+                      )}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleMonth(monthKey)}
+                        className="flex items-center gap-3 min-w-0 flex-1 text-left"
+                      >
+                        {expanded ? (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                        )}
+                        <Folder className="h-4 w-4 text-amber-500/80 shrink-0" />
+                        <span className="text-sm font-medium text-foreground">
+                          {monthKeyLabel(monthKey)}
+                          {isCurrent && (
+                            <Badge variant="secondary" className="ml-2 text-[10px]">Current</Badge>
+                          )}
+                        </span>
+                        <Badge variant="outline" className="ml-1 text-[10px]">
+                          {monthFiles.length}
+                        </Badge>
+                      </button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs shrink-0"
+                        onClick={() => monthInputRefs.current[monthKey]?.click()}
+                        disabled={uploading && uploadTargetMonth === monthKey}
+                      >
+                        {uploading && uploadTargetMonth === monthKey ? (
+                          <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                        ) : (
+                          <Upload className="h-3.5 w-3.5 mr-1" />
+                        )}
+                        Upload
+                      </Button>
+                      <input
+                        ref={(el) => (monthInputRefs.current[monthKey] = el)}
+                        type="file"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => {
+                          handleUpload(e.target.files, monthKey);
+                          if (e.target) e.target.value = "";
+                        }}
+                      />
+                    </div>
+                    {expanded && (
+                      <ul className="bg-muted/10 divide-y divide-border/30">
+                        {monthFiles.length === 0 ? (
+                          <li className="px-10 py-5 text-xs text-muted-foreground italic">
+                            No files yet — drop files here or click Upload
+                          </li>
+                        ) : (
+                          monthFiles.map((file) => (
+                            <li
+                              key={`${monthKey}/${file.name}`}
+                              className="flex items-center justify-between pl-10 pr-4 sm:pr-6 py-2.5 hover:bg-muted/30 transition-colors"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                {getFileIcon(file.name)}
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-foreground truncate">{file.name}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {formatDistanceToNow(new Date(file.created_at), { addSuffix: true })} · {formatSize(file.size)}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 text-xs"
+                                  onClick={() => setPreviewFile(file)}
+                                >
+                                  <Eye className="h-3.5 w-3.5 mr-1" />
+                                  View
+                                </Button>
+                                {canDelete && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 text-xs text-destructive hover:text-destructive"
+                                    onClick={() => handleDelete(file)}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
+                              </div>
+                            </li>
+                          ))
+                        )}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Brand Assets */}
+      <Card className="overflow-hidden border-border/60">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-violet-400" />
+            <CardTitle className="text-base font-semibold">Brand Assets</CardTitle>
+            <Badge variant="secondary" className="ml-1 text-[10px]">{brandAssets.length}</Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              setBrandDragging(true);
+            }}
+            onDragLeave={() => setBrandDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setBrandDragging(false);
+              handleBrandUpload(e.dataTransfer.files);
+            }}
+            onClick={() => brandInputRef.current?.click()}
+            className={cn(
+              "border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all",
+              brandDragging
+                ? "border-violet-400 bg-violet-400/5"
+                : "border-border/60 hover:border-violet-400/40 hover:bg-muted/20"
+            )}
+          >
+            {brandUploading ? (
+              <Loader2 className="h-7 w-7 text-violet-400 animate-spin" />
+            ) : (
+              <Sparkles className="h-8 w-8 text-violet-400/80" />
+            )}
+            <p className="text-sm text-muted-foreground">
+              {brandUploading ? "Uploading..." : "Drop brand assets here or click to upload"}
+            </p>
+            <p className="text-xs text-muted-foreground/60">
+              Logos, color palettes, brand guidelines, fonts
+            </p>
+            <input
+              ref={brandInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                handleBrandUpload(e.target.files);
+                if (e.target) e.target.value = "";
+              }}
+            />
+          </div>
+
+          {brandLoading ? (
+            <div className="py-6 text-center text-muted-foreground text-sm">Loading...</div>
+          ) : !clinicId ? (
+            <div className="py-6 text-center text-muted-foreground text-sm">Select a clinic to view brand assets</div>
+          ) : brandAssets.length === 0 ? (
+            <div className="py-6 text-center text-muted-foreground text-sm">No brand assets uploaded yet</div>
+          ) : (
+            <ul className="divide-y divide-border/40 -mx-6">
+              {brandAssets.map((asset) => (
                 <li
-                  key={file.name}
-                  className="flex items-center justify-between px-4 sm:px-6 py-3 hover:bg-muted/30 transition-colors"
+                  key={asset.name}
+                  className="flex items-center justify-between px-6 py-3 hover:bg-muted/30 transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    {getFileIcon(file.name)}
+                    {getFileIcon(asset.name)}
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{file.name}</p>
+                      <p className="text-sm font-medium text-foreground truncate">{asset.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(file.created_at), { addSuffix: true })} · {formatSize(file.size)}
+                        {formatDistanceToNow(new Date(asset.created_at), { addSuffix: true })} · {formatSize(asset.size)}
                       </p>
                     </div>
                   </div>
@@ -278,7 +552,7 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
                       variant="outline"
                       size="sm"
                       className="h-8 text-xs"
-                      onClick={() => setPreviewFile(file)}
+                      onClick={() => setPreviewBrand(asset)}
                     >
                       <Eye className="h-3.5 w-3.5 mr-1" />
                       View
@@ -288,7 +562,7 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
                         variant="ghost"
                         size="sm"
                         className="h-8 text-xs text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(file.name)}
+                        onClick={() => handleBrandDelete(asset.name)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
@@ -371,11 +645,16 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
         onOpenChange={(o) => { if (!o) setPreviewFile(null); }}
         filename={previewFile?.name || ""}
         getUrl={previewFile ? async () => {
-          const { data, error } = await supabase.storage
-            .from(BUCKET)
-            .createSignedUrl(`${folder}${previewFile.name}`, 3600);
-          if (error || !data?.signedUrl) throw error || new Error("No signed URL");
-          return data.signedUrl;
+          // Try month-folder path first; fall back to legacy root path
+          const candidates = [
+            `${baseDeptPath}/${previewFile.monthKey}/${previewFile.name}`,
+            `${baseDeptPath}/${previewFile.name}`,
+          ];
+          for (const path of candidates) {
+            const { data } = await supabase.storage.from(BUCKET).createSignedUrl(path, 3600);
+            if (data?.signedUrl) return data.signedUrl;
+          }
+          throw new Error("No signed URL");
         } : undefined}
       />
 
@@ -387,6 +666,19 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
           const { data, error } = await supabase.storage
             .from(BUCKET)
             .createSignedUrl(previewTicketAtt.path, 3600);
+          if (error || !data?.signedUrl) throw error || new Error("No signed URL");
+          return data.signedUrl;
+        } : undefined}
+      />
+
+      <FilePreviewDialog
+        open={!!previewBrand}
+        onOpenChange={(o) => { if (!o) setPreviewBrand(null); }}
+        filename={previewBrand?.name || ""}
+        getUrl={previewBrand && brandPath ? async () => {
+          const { data, error } = await supabase.storage
+            .from(BUCKET)
+            .createSignedUrl(`${brandPath}/${previewBrand.name}`, 3600);
           if (error || !data?.signedUrl) throw error || new Error("No signed URL");
           return data.signedUrl;
         } : undefined}
