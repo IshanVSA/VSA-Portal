@@ -297,8 +297,28 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                       {ig.recent_media.map((m: any) => (
                         <a key={m.id} href={m.permalink} target="_blank" rel="noopener noreferrer" className="block group">
-                          <div className="relative aspect-square rounded-lg overflow-hidden bg-muted">
-                            {m.thumbnail_url && <img src={m.thumbnail_url} alt="" className="h-full w-full object-cover group-hover:scale-105 transition-transform" />}
+                          <div className="relative aspect-square rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                            {m.thumbnail_url ? (
+                              <img
+                                src={m.thumbnail_url}
+                                alt=""
+                                referrerPolicy="no-referrer"
+                                loading="lazy"
+                                onError={(e) => {
+                                  const img = e.currentTarget as HTMLImageElement;
+                                  img.style.display = "none";
+                                  const fallback = img.nextElementSibling as HTMLElement | null;
+                                  if (fallback) fallback.style.display = "flex";
+                                }}
+                                className="h-full w-full object-cover group-hover:scale-105 transition-transform"
+                              />
+                            ) : null}
+                            <div
+                              className="absolute inset-0 items-center justify-center text-muted-foreground/60"
+                              style={{ display: m.thumbnail_url ? "none" : "flex" }}
+                            >
+                              <ImageIcon className="h-8 w-8" />
+                            </div>
                             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 text-white text-[11px] flex justify-between">
                               <span className="flex items-center gap-1"><Heart className="h-3 w-3" />{num(m.likes)}</span>
                               <span className="flex items-center gap-1"><MessageCircle className="h-3 w-3" />{num(m.comments)}</span>
