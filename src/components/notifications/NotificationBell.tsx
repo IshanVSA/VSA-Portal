@@ -363,6 +363,10 @@ export function NotificationBell() {
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "department_tickets" }, async (payload) => {
         const t = payload.new as any;
+        const oldT = payload.old as any;
+        // Only notify when the status actually changed — other field edits
+        // (description, assignee, etc.) shouldn't resurrect the bell.
+        if (!oldT || oldT.status === t.status) return;
         const isClient = role === "client";
         // Clients only get notified about meaningful resolution / progress updates.
         const clientLabel = TICKET_STATUS_LABELS_FOR_CLIENT[t.status];
@@ -382,7 +386,11 @@ export function NotificationBell() {
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "sm2_generations" }, async (payload) => {
         const g = payload.new as any;
+        const oldG = payload.old as any;
         if (!g) return;
+        // For UPDATEs, only notify on approval_status transitions — other
+        // field edits should not flip the bell back to unread.
+        if (payload.eventType === "UPDATE" && oldG && oldG.approval_status === g.approval_status) return;
         const isClient = role === "client";
         // Clients only see "ready for review" and approval/finalization milestones.
         if (isClient && !CLIENT_VISIBLE_SM2_STATUSES.has(g.approval_status)) return;
