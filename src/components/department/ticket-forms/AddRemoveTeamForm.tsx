@@ -89,6 +89,9 @@ export function AddRemoveTeamForm({ onChange, onValidityChange }: AddRemoveTeamF
       lines.push(`Action: ${first.action === "add" ? "Add" : "Remove"} Team Member`);
       lines.push(`Name: ${first.name || "N/A"}`);
       lines.push(`Role/Title: ${first.role || "N/A"}`);
+      if (first.bio.trim()) {
+        lines.push(`Bio: ${first.bio.trim()}`);
+      }
     }
 
     if (members.length > 1) {
@@ -99,6 +102,9 @@ export function AddRemoveTeamForm({ onChange, onValidityChange }: AddRemoveTeamF
         lines.push(`#${idx + 1} — ${m.action === "add" ? "Add" : "Remove"}`);
         lines.push(`  Name: ${m.name || "N/A"}`);
         lines.push(`  Role/Title: ${m.role || "N/A"}`);
+        if (m.bio.trim()) {
+          lines.push(`  Bio: ${m.bio.trim()}`);
+        }
       });
     }
 
