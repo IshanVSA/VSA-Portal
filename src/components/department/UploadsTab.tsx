@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, FolderOpen, FileText, Image, Eye, Trash2, Loader2, ExternalLink, Folder, ChevronDown, ChevronRight, Sparkles } from "lucide-react";
+import { Upload, FolderOpen, FileText, Image, Eye, Trash2, Loader2, ExternalLink, Folder, ChevronDown, ChevronRight, Sparkles, Download } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { formatDistanceToNow, format } from "date-fns";
@@ -322,6 +322,47 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
     }
   };
 
+  const downloadFile = async (storagePath: string, filename: string) => {
+    try {
+      const { data, error } = await supabase.storage.from(BUCKET).download(storagePath);
+      if (error || !data) throw error || new Error("Download failed");
+      const url = URL.createObjectURL(data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      console.error("Download error:", e);
+      toast.error("Failed to download file");
+    }
+  };
+
+  const downloadDeptFile = async (file: UploadedFile) => {
+    // Try month-folder path first; fall back to legacy root path
+    const candidates = [
+      `${baseDeptPath}/${file.monthKey}/${file.name}`,
+      `${baseDeptPath}/${file.name}`,
+    ];
+    for (const path of candidates) {
+      const { data } = await supabase.storage.from(BUCKET).download(path);
+      if (data) {
+        const url = URL.createObjectURL(data);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = file.name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        return;
+      }
+    }
+    toast.error("Failed to download file");
+  };
+
   const toggleMonth = (key: string) => {
     setExpandedMonths((prev) => {
       const next = new Set(prev);
@@ -449,6 +490,15 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
                                   <Eye className="h-3.5 w-3.5 mr-1" />
                                   View
                                 </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 text-xs"
+                                  onClick={() => downloadDeptFile(file)}
+                                  title="Download"
+                                >
+                                  <Download className="h-3.5 w-3.5" />
+                                </Button>
                                 {canDelete && (
                                   <Button
                                     variant="ghost"
@@ -557,6 +607,15 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
                       <Eye className="h-3.5 w-3.5 mr-1" />
                       View
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() => brandPath && downloadFile(`${brandPath}/${asset.name}`, asset.name)}
+                      title="Download"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                    </Button>
                     {canDelete && (
                       <Button
                         variant="ghost"
@@ -614,6 +673,15 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
                     >
                       <Eye className="h-3.5 w-3.5 mr-1" />
                       View
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() => downloadFile(att.path, att.name)}
+                      title="Download"
+                    >
+                      <Download className="h-3.5 w-3.5" />
                     </Button>
                     <Button
                       variant="ghost"
