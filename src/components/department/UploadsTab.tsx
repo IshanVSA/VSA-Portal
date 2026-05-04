@@ -322,6 +322,47 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
     }
   };
 
+  const downloadFile = async (storagePath: string, filename: string) => {
+    try {
+      const { data, error } = await supabase.storage.from(BUCKET).download(storagePath);
+      if (error || !data) throw error || new Error("Download failed");
+      const url = URL.createObjectURL(data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      console.error("Download error:", e);
+      toast.error("Failed to download file");
+    }
+  };
+
+  const downloadDeptFile = async (file: UploadedFile) => {
+    // Try month-folder path first; fall back to legacy root path
+    const candidates = [
+      `${baseDeptPath}/${file.monthKey}/${file.name}`,
+      `${baseDeptPath}/${file.name}`,
+    ];
+    for (const path of candidates) {
+      const { data } = await supabase.storage.from(BUCKET).download(path);
+      if (data) {
+        const url = URL.createObjectURL(data);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = file.name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        return;
+      }
+    }
+    toast.error("Failed to download file");
+  };
+
   const toggleMonth = (key: string) => {
     setExpandedMonths((prev) => {
       const next = new Set(prev);
