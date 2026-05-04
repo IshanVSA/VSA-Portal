@@ -16,6 +16,7 @@ import { syncSpecialPromotionFromTicket } from "@/lib/special-promotion-sync";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { TicketEditDialog } from "./TicketEditDialog";
+import { useSearchParams } from "react-router-dom";
 
 interface TeamMemberOption {
   id: string;
