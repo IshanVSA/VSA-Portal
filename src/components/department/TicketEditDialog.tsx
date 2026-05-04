@@ -199,7 +199,7 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             Edit Ticket
