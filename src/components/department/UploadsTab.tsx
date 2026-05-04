@@ -46,6 +46,7 @@ function getFileIcon(name: string) {
 
 export function UploadsTab({ department, clinicId }: { department: string; clinicId?: string }) {
   const { role } = useUserRole();
+  const [, setSearchParams] = useSearchParams();
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
