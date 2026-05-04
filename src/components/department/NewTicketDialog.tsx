@@ -178,6 +178,10 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
       toast.error("Please select a clinic for this ticket");
       return;
     }
+    if (ticketType === "Add/Remove Team Members" && !teamFormValid) {
+      toast.error("Please fix the highlighted member fields before submitting");
+      return;
+    }
     if (!isCustomForm && (!title.trim() || !ticketType)) {
       toast.error("Title and Type are required");
       return;
