@@ -52,6 +52,65 @@ async function gget(url: string): Promise<{ data: any; error: any }> {
   }
 }
 
+/**
+ * Cache an Instagram/Facebook CDN image into the public `department-files`
+ * bucket so the UI never depends on expiring signed CDN URLs. Returns a stable
+ * public URL, or the original URL on failure.
+ *
+ * Path: ig-thumbnails/{clinic_id}/{media_id}.jpg
+ * Re-fetches at most every 72h (TTL well under IG's typical signed-url window).
+ */
+async function cacheRemoteImage(
+  supabase: any,
+  remoteUrl: string | null | undefined,
+  clinicId: string,
+  mediaId: string,
+): Promise<string | null> {
+  if (!remoteUrl) return null;
+  // Already a stable Supabase storage URL — nothing to do.
+  if (remoteUrl.includes("/storage/v1/object/public/")) return remoteUrl;
+
+  const path = `ig-thumbnails/${clinicId}/${mediaId}.jpg`;
+  const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/department-files/${path}`;
+
+  try {
+    // Skip refresh if a recent cached copy exists (< 72h old).
+    const folder = `ig-thumbnails/${clinicId}`;
+    const { data: existing } = await supabase.storage
+      .from("department-files")
+      .list(folder, { search: `${mediaId}.jpg`, limit: 1 });
+    const found = existing?.find((f: any) => f.name === `${mediaId}.jpg`);
+    if (found?.updated_at) {
+      const ageMs = Date.now() - new Date(found.updated_at).getTime();
+      if (ageMs < 72 * 60 * 60 * 1000) return publicUrl;
+    }
+
+    // Fetch the bytes from the CDN with a Referer that the Meta CDN accepts.
+    const imgRes = await fetch(remoteUrl, {
+      headers: { Referer: "https://www.instagram.com/", "User-Agent": "Mozilla/5.0" },
+    });
+    if (!imgRes.ok) return remoteUrl;
+    const bytes = new Uint8Array(await imgRes.arrayBuffer());
+    if (bytes.byteLength === 0) return remoteUrl;
+
+    const { error: upErr } = await supabase.storage
+      .from("department-files")
+      .upload(path, bytes, {
+        contentType: imgRes.headers.get("content-type") || "image/jpeg",
+        upsert: true,
+        cacheControl: "604800",
+      });
+    if (upErr) {
+      console.warn("cacheRemoteImage upload failed", mediaId, upErr.message);
+      return remoteUrl;
+    }
+    return publicUrl;
+  } catch (e: any) {
+    console.warn("cacheRemoteImage error", mediaId, e?.message);
+    return remoteUrl;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -236,16 +295,16 @@ Deno.serve(async (req) => {
       if (error) { perms.fb_posts = "missing"; console.warn("fb_posts", JSON.stringify(error)); }
       else {
         perms.fb_posts = "ok";
-        recentPosts = (data.data || []).map((post: any) => ({
+        recentPosts = await Promise.all((data.data || []).map(async (post: any) => ({
           id: post.id,
           message: (post.message || "").slice(0, 200),
           created_time: post.created_time,
-          picture: post.full_picture || null,
+          picture: await cacheRemoteImage(supabase, post.full_picture, clinic_id, `fb_${post.id}`),
           permalink: post.permalink_url || null,
           likes: post.likes?.summary?.total_count || 0,
           comments: post.comments?.summary?.total_count || 0,
           shares: post.shares?.count || 0,
-        }));
+        })));
       }
     }
 
@@ -310,7 +369,7 @@ Deno.serve(async (req) => {
           followers = data.followers_count || 0;
           mediaCount = data.media_count || 0;
           username = data.username || "";
-          profilePic = data.profile_picture_url || "";
+          profilePic = await cacheRemoteImage(supabase, data.profile_picture_url || "", clinic_id, `ig_profile_${igId}`) || "";
         }
       }
 
@@ -338,12 +397,14 @@ Deno.serve(async (req) => {
         );
         if (!error && data?.data) {
           for (const m of data.data) {
+            const rawThumb = m.thumbnail_url || m.media_url;
+            const cachedThumb = await cacheRemoteImage(supabase, rawThumb, clinic_id, `ig_${m.id}`);
             const item: any = {
               id: m.id,
               caption: (m.caption || "").slice(0, 200),
               media_type: m.media_type,
               media_url: m.media_url,
-              thumbnail_url: m.thumbnail_url || m.media_url,
+              thumbnail_url: cachedThumb,
               permalink: m.permalink,
               timestamp: m.timestamp,
               likes: m.like_count || 0,
@@ -416,10 +477,12 @@ Deno.serve(async (req) => {
         );
         if (!error && data?.data) {
           for (const s of data.data) {
+            const rawStoryThumb = s.thumbnail_url || s.media_url;
+            const cachedStoryThumb = await cacheRemoteImage(supabase, rawStoryThumb, clinic_id, `igs_${s.id}`);
             const item: any = {
               id: s.id,
               media_type: s.media_type,
-              thumbnail_url: s.thumbnail_url || s.media_url,
+              thumbnail_url: cachedStoryThumb,
               permalink: s.permalink,
               timestamp: s.timestamp,
             };
