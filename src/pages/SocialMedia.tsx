@@ -201,6 +201,15 @@ export default function SocialMedia() {
           )}
         </AnimatePresence>
       </div>
+      <NewTicketDialog
+        open={contentRequestOpen}
+        onOpenChange={setContentRequestOpen}
+        department="social_media"
+        services={socialServices}
+        clinicId={selectedClinicId || undefined}
+        defaultType="Content Request"
+        onCreated={() => setContentRequestOpen(false)}
+      />
     </>
   );
 }
