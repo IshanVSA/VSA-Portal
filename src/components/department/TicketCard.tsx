@@ -139,6 +139,10 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
     if (error) {
       toast.error("Failed to update status");
     } else {
+      if (newStatus === "completed") {
+        supabase.functions.invoke("notify-ticket-completed", { body: { ticketId: id } })
+          .catch((e) => console.warn("notify-ticket-completed failed", e));
+      }
       toast.success(`Status updated to ${newStatus.replace("_", " ")}`);
       onUpdated?.();
     }

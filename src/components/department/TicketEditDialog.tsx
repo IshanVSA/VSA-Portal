@@ -187,6 +187,10 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
         if (res.inserted) toast.success("Promotion added to Active Promotions");
       }
 
+      if (status === "completed") {
+        supabase.functions.invoke("notify-ticket-completed", { body: { ticketId: ticket.id } })
+          .catch((e) => console.warn("notify-ticket-completed failed", e));
+      }
       toast.success("Ticket updated");
       onUpdated();
       onOpenChange(false);

@@ -204,6 +204,10 @@ export function TicketKanbanView({ tickets, teamMembers, assignableMembers, curr
         });
         if (res.inserted) toast.success("Promotion added to Active Promotions");
       }
+      if (newStatus === "completed") {
+        supabase.functions.invoke("notify-ticket-completed", { body: { ticketId } })
+          .catch((e) => console.warn("notify-ticket-completed failed", e));
+      }
       toast.success(`Status updated`);
       onUpdated();
     }
