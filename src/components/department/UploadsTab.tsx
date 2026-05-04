@@ -490,6 +490,15 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
                                   <Eye className="h-3.5 w-3.5 mr-1" />
                                   View
                                 </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 text-xs"
+                                  onClick={() => downloadDeptFile(file)}
+                                  title="Download"
+                                >
+                                  <Download className="h-3.5 w-3.5" />
+                                </Button>
                                 {canDelete && (
                                   <Button
                                     variant="ghost"
