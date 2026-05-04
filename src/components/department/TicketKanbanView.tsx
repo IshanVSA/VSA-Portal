@@ -16,6 +16,7 @@ import { syncSpecialPromotionFromTicket } from "@/lib/special-promotion-sync";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { TicketEditDialog } from "./TicketEditDialog";
+import { useSearchParams } from "react-router-dom";
 
 interface TeamMemberOption {
   id: string;
@@ -88,6 +89,23 @@ export function TicketKanbanView({ tickets, teamMembers, assignableMembers, curr
   const [optimisticStatus, setOptimisticStatus] = useState<Record<string, KanbanTicket["status"]>>({});
   const { role } = useUserRole();
   const isClient = role === "client";
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Auto-open the edit dialog when navigated to with `?ticket=<id>` (e.g. from the Uploads tab).
+  // Wait until tickets are loaded so we can verify the id exists in this department's view.
+  useEffect(() => {
+    const target = searchParams.get("ticket");
+    if (!target) return;
+    const exists = tickets.some(t => t.id === target);
+    if (!exists) return;
+    setEditingId(target);
+    // Strip the param so it doesn't keep re-opening
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("ticket");
+      return next;
+    }, { replace: true });
+  }, [searchParams, setSearchParams, tickets]);
 
   // Drop overrides for ids whose incoming server status now matches the optimistic value
   useEffect(() => {

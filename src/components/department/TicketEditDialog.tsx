@@ -11,6 +11,20 @@ import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
 import { formatDistanceToNow } from "date-fns";
 import { syncSpecialPromotionFromTicket } from "@/lib/special-promotion-sync";
+import { FileIcon, Image as ImageIcon, Eye, Download, Paperclip } from "lucide-react";
+import { FilePreviewDialog } from "@/components/FilePreviewDialog";
+
+const ATTACHMENT_BUCKET = "department-files";
+
+interface TicketAttachmentItem {
+  path: string;
+  name: string;
+}
+
+function isImagePath(p: string) {
+  const ext = p.split(".").pop()?.toLowerCase() || "";
+  return ["jpg", "jpeg", "png", "gif", "webp", "svg", "avif", "bmp"].includes(ext);
+}
 
 interface TeamMemberOption { id: string; name: string; }
 
@@ -66,6 +80,8 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
   const [status, setStatus] = useState<EditableTicket["status"]>("open");
   const [assignedTo, setAssignedTo] = useState<string>(UNASSIGNED);
   const [saving, setSaving] = useState(false);
+  const [attachments, setAttachments] = useState<TicketAttachmentItem[]>([]);
+  const [previewAtt, setPreviewAtt] = useState<TicketAttachmentItem | null>(null);
 
   useEffect(() => {
     if (ticket) {
@@ -76,6 +92,48 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
       setAssignedTo(ticket.assigned_to || UNASSIGNED);
     }
   }, [ticket]);
+
+  // Fetch attachments for this ticket whenever it opens
+  useEffect(() => {
+    if (!ticket || !open) {
+      setAttachments([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("department_tickets" as any)
+        .select("attachments")
+        .eq("id", ticket.id)
+        .single();
+      if (cancelled) return;
+      if (error || !data) {
+        setAttachments([]);
+        return;
+      }
+      const paths: string[] = Array.isArray((data as any).attachments) ? (data as any).attachments : [];
+      setAttachments(paths.map((p) => ({ path: p, name: p.split("/").pop() || p })));
+    })();
+    return () => { cancelled = true; };
+  }, [ticket, open]);
+
+  const handleDownload = async (att: TicketAttachmentItem) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from(ATTACHMENT_BUCKET)
+        .createSignedUrl(att.path, 3600, { download: att.name });
+      if (error || !data?.signedUrl) throw error || new Error("No signed URL");
+      // Trigger download via temporary anchor
+      const a = document.createElement("a");
+      a.href = data.signedUrl;
+      a.download = att.name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to download file");
+    }
+  };
 
   if (!ticket) return null;
 
@@ -141,7 +199,7 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             Edit Ticket
@@ -205,6 +263,48 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
               </SelectContent>
             </Select>
           </div>
+
+          {attachments.length > 0 && (
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5">
+                <Paperclip className="h-3.5 w-3.5" />
+                Attachments
+                <span className="text-muted-foreground font-normal">({attachments.length})</span>
+              </Label>
+              <ul className="rounded-md border border-border/60 divide-y divide-border/40 overflow-hidden">
+                {attachments.map((att) => (
+                  <li key={att.path} className="flex items-center gap-2 px-3 py-2 bg-muted/20 hover:bg-muted/40 transition-colors">
+                    {isImagePath(att.path) ? (
+                      <ImageIcon className="h-4 w-4 text-emerald-400 shrink-0" />
+                    ) : (
+                      <FileIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                    )}
+                    <p className="text-xs font-medium text-foreground truncate flex-1 min-w-0">{att.name}</p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 px-2 text-[11px]"
+                      onClick={() => setPreviewAtt(att)}
+                    >
+                      <Eye className="h-3 w-3 mr-1" />
+                      View
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-[11px]"
+                      onClick={() => handleDownload(att)}
+                    >
+                      <Download className="h-3 w-3 mr-1" />
+                      Download
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
@@ -218,6 +318,19 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
           )}
         </DialogFooter>
       </DialogContent>
+
+      <FilePreviewDialog
+        open={!!previewAtt}
+        onOpenChange={(o) => { if (!o) setPreviewAtt(null); }}
+        filename={previewAtt?.name || ""}
+        getUrl={previewAtt ? async () => {
+          const { data, error } = await supabase.storage
+            .from(ATTACHMENT_BUCKET)
+            .createSignedUrl(previewAtt.path, 3600);
+          if (error || !data?.signedUrl) throw error || new Error("No signed URL");
+          return data.signedUrl;
+        } : undefined}
+      />
     </Dialog>
   );
 }

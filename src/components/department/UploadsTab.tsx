@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, FolderOpen, FileText, Image, Eye, Trash2, Loader2 } from "lucide-react";
+import { Upload, FolderOpen, FileText, Image, Eye, Trash2, Loader2, ExternalLink } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -45,6 +46,7 @@ function getFileIcon(name: string) {
 
 export function UploadsTab({ department, clinicId }: { department: string; clinicId?: string }) {
   const { role } = useUserRole();
+  const [, setSearchParams] = useSearchParams();
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -338,6 +340,23 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
                     >
                       <Eye className="h-3.5 w-3.5 mr-1" />
                       View
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() => {
+                        setSearchParams((prev) => {
+                          const next = new URLSearchParams(prev);
+                          next.set("tab", "tickets");
+                          next.set("ticket", att.ticket_id);
+                          return next;
+                        });
+                      }}
+                      title="Open this ticket"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                      Open Ticket
                     </Button>
                   </div>
                 </li>
