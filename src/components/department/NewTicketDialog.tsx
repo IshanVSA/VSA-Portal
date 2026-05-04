@@ -155,6 +155,8 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     setCustomDescription(desc);
   }, []);
 
+  const [teamFormValid, setTeamFormValid] = useState(false);
+
 
   const uploadFiles = async (ticketId: string): Promise<string[]> => {
     const paths: string[] = [];
