@@ -45,6 +45,7 @@ function newEntry(action: "add" | "remove" = "add"): TeamMemberEntry {
     action,
     name: "",
     role: "",
+    bio: "",
   };
 }
 
