@@ -344,15 +344,12 @@ export default function AdminDashboard() {
     filteredRequests.forEach(r => { sc[r.status] = (sc[r.status] || 0) + 1; });
     return [
       { label: "Generated", status: "generated", count: sc["generated"] || 0, tone: "muted" },
-      { label: "Concierge Preferred", status: "concierge_preferred", count: sc["concierge_preferred"] || 0, tone: "warning" },
-      { label: "Admin Approved", status: "admin_approved", count: sc["admin_approved"] || 0, tone: "primary" },
       { label: "Client Selected", status: "client_selected", count: sc["client_selected"] || 0, tone: "success" },
       { label: "Finalized", status: "final_approved", count: sc["final_approved"] || 0, tone: "success" },
     ];
   }, [filteredRequests]);
 
   const pendingRequests =
-    (filteredRequests.filter(r => r.status === "concierge_preferred").length) +
     (filteredRequests.filter(r => r.status === "client_selected").length);
 
   const trendData: TrendPoint[] = useMemo(() => {
