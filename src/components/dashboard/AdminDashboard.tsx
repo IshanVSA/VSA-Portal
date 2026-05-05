@@ -244,6 +244,8 @@ export default function AdminDashboard() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [userName, setUserName] = useState<string | null>(null);
   const [teamCount, setTeamCount] = useState(0);
+  const [activeClientCount, setActiveClientCount] = useState(0);
+  const [totalClientCount, setTotalClientCount] = useState(0);
 
   // raw datasets so we can recompute under filters
   const [tickets, setTickets] = useState<TicketRow[]>([]);
