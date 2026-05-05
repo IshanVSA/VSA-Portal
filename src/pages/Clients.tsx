@@ -93,6 +93,27 @@ export default function ClientsPage() {
 
   const getAssignedClinics = (userId: string) => assignments.find(a => a.user_id === userId)?.clinic_names || [];
 
+  // Activity helpers (admin-only metrics on the Clients page)
+  const activityByUser = new Map(activity.map(a => [a.user_id, a]));
+  const subAccountsByParent = new Map<string, ActivityRow[]>();
+  for (const a of activity) {
+    if (a.role === "sub_client" && a.parent_user_id) {
+      const arr = subAccountsByParent.get(a.parent_user_id) || [];
+      arr.push(a);
+      subAccountsByParent.set(a.parent_user_id, arr);
+    }
+  }
+  const clientRows = activity.filter(a => a.role === "client");
+  const totalClients = clientRows.length;
+  const everLoggedIn = clientRows.filter(a => !!a.last_seen_at).length;
+  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const activeLast30 = clientRows.filter(a => a.last_seen_at && new Date(a.last_seen_at).getTime() >= thirtyDaysAgo).length;
+
+  const formatLastSeen = (iso: string | null) => {
+    if (!iso) return null;
+    try { return formatDistanceToNow(new Date(iso), { addSuffix: true }); } catch { return null; }
+  };
+
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
 
