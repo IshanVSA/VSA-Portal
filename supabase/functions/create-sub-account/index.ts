@@ -39,13 +39,26 @@ Deno.serve(async (req) => {
     const password = String(body.password ?? "");
     const hide_financials = !!body.hide_financials;
     const clinic_ids: string[] = Array.isArray(body.clinic_ids) ? body.clinic_ids.filter((x: any) => typeof x === "string") : [];
+    const parent_user_id_input = typeof body.parent_user_id === "string" ? body.parent_user_id : null;
 
     if (!full_name || !email || !password) return json({ error: "Missing required fields" }, 400);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: "Invalid email format" }, 400);
     if (password.length < 8 || password.length > 128) return json({ error: "Password must be 8 to 128 characters" }, 400);
     if (clinic_ids.length === 0) return json({ error: "Assign at least one clinic" }, 400);
 
-    // Validate caller owns these clinics (admin can pick any)
+    // Resolve parent client. Admins MUST specify which client owns the sub-account.
+    let parentUserId: string;
+    if (roleData?.role === "admin") {
+      if (!parent_user_id_input) return json({ error: "Admins must specify parent_user_id" }, 400);
+      const { data: parentRole } = await admin
+        .from("user_roles").select("role").eq("user_id", parent_user_id_input).maybeSingle();
+      if (parentRole?.role !== "client") return json({ error: "parent_user_id must reference a client" }, 400);
+      parentUserId = parent_user_id_input;
+    } else {
+      parentUserId = callerId;
+    }
+
+    // Validate clinic ownership (admin can pick any clinic owned by the chosen parent or unassigned)
     if (roleData?.role === "client") {
       const { data: ownedClinics } = await admin
         .from("clinics")
