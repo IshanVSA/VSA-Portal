@@ -28,7 +28,7 @@ import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { motion } from "framer-motion";
 import UpcomingPosts from "./UpcomingPosts";
 import RecentActivity from "./RecentActivity";
-import MyTickets from "./MyTickets";
+
 import { cn } from "@/lib/utils";
 
 interface Clinic {
