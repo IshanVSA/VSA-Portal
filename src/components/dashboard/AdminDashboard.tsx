@@ -797,9 +797,8 @@ export default function AdminDashboard() {
         </section>
       </div>
 
-      {/* ROW: Tickets / Posts / Activity */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <MyTickets filter={filter} />
+      {/* ROW: Posts / Activity */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <UpcomingPosts filter={filter} />
         <RecentActivity filter={filter} />
       </div>
