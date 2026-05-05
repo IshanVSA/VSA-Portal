@@ -270,20 +270,35 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
 
   const handleDelete = async (file: UploadedFile) => {
     // Try month-folder path first; fall back to legacy path at root.
+    // NOTE: supabase storage .remove() returns { data: [], error: null } when
+    // nothing matched (path missing or RLS filtered it out). We must inspect
+    // the returned data array to confirm a real deletion happened.
     const candidates = [
       `${baseDeptPath}/${file.monthKey}/${file.name}`,
       `${baseDeptPath}/${file.name}`,
     ];
     let deleted = false;
+    let lastError: string | null = null;
     for (const path of candidates) {
-      const { error } = await supabase.storage.from(BUCKET).remove([path]);
-      if (!error) {
+      const { data, error } = await supabase.storage.from(BUCKET).remove([path]);
+      if (error) {
+        lastError = error.message;
+        continue;
+      }
+      if (data && data.length > 0) {
         deleted = true;
         break;
       }
     }
-    if (!deleted) toast.error("Failed to delete file");
-    else {
+    if (!deleted) {
+      toast.error(
+        lastError
+          ? `Failed to delete file: ${lastError}`
+          : "Couldn't delete file — you may not have permission, or it was already removed. Try refreshing."
+      );
+      // Refresh anyway in case the listing is stale
+      fetchFiles();
+    } else {
       toast.success("File deleted");
       fetchFiles();
     }
@@ -314,9 +329,13 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
 
   const handleBrandDelete = async (name: string) => {
     if (!brandPath) return;
-    const { error } = await supabase.storage.from(BUCKET).remove([`${brandPath}/${name}`]);
-    if (error) toast.error("Failed to delete brand asset");
-    else {
+    const { data, error } = await supabase.storage.from(BUCKET).remove([`${brandPath}/${name}`]);
+    if (error) {
+      toast.error(`Failed to delete brand asset: ${error.message}`);
+    } else if (!data || data.length === 0) {
+      toast.error("Couldn't delete brand asset — you may not have permission, or it was already removed.");
+      fetchBrandAssets();
+    } else {
       toast.success("Brand asset deleted");
       fetchBrandAssets();
     }
