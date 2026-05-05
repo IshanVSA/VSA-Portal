@@ -352,9 +352,14 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
               {(() => {
                 const depts = getVisibleDepartmentLabels(ticketType);
                 // For Add/Remove Team Members with social promotion, add Social Media
-                const finalDepts = ticketType === "Add/Remove Team Members" && promoteSocial
+                let finalDepts = ticketType === "Add/Remove Team Members" && promoteSocial
                   ? [...depts, "Social Media"]
                   : depts;
+                // Filter out departments that are locked for this clinic so the
+                // confirmation never advertises a forward to a disabled service.
+                if (clinicServices) {
+                  finalDepts = finalDepts.filter(d => clinicServices[d] !== false);
+                }
                 return finalDepts.length > 0 ? (
                   <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3 text-sm text-muted-foreground w-full">
                     <p className="mb-1.5 font-medium text-foreground text-xs uppercase tracking-wide">Forwarded to</p>
