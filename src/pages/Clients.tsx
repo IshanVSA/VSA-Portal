@@ -301,6 +301,56 @@ export default function ClientsPage() {
           </div>
         </div>
 
+
+        {!loading && (
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Card className="border-border/60">
+              <CardContent className="flex items-center gap-3 py-4">
+                <div className="rounded-lg bg-primary/10 p-2"><UserCircle2 className="h-4 w-4 text-primary" /></div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Total clients</p>
+                  <p className="text-xl font-semibold text-foreground">{totalClients}</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-border/60">
+              <CardContent className="flex items-center gap-3 py-4">
+                <div className="rounded-lg bg-emerald-500/10 p-2"><Activity className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /></div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Logged in ever</p>
+                  <p className="text-xl font-semibold text-foreground">{everLoggedIn}<span className="text-sm font-normal text-muted-foreground"> / {totalClients}</span></p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-border/60">
+              <CardContent className="flex items-center gap-3 py-4">
+                <div className="rounded-lg bg-amber-500/10 p-2"><Clock4 className="h-4 w-4 text-amber-600 dark:text-amber-400" /></div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Active last 30 days</p>
+                  <p className="text-xl font-semibold text-foreground">{activeLast30}<span className="text-sm font-normal text-muted-foreground"> / {totalClients}</span></p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {!loading && profiles.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Filter</span>
+            {(["all", "active", "never"] as ActivityFilter[]).map((f) => (
+              <Button
+                key={f}
+                variant={activityFilter === f ? "default" : "outline"}
+                size="sm"
+                className="h-7 rounded-full px-3 text-xs"
+                onClick={() => setActivityFilter(f)}
+              >
+                {f === "all" ? "All" : f === "active" ? "Active 30d" : "Never logged in"}
+              </Button>
+            ))}
+          </div>
+        )}
+
         {loading ? (
           <Card><CardContent className="py-12 text-center text-muted-foreground">
             <div className="inline-flex items-center gap-2">
