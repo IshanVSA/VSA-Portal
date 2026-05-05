@@ -118,7 +118,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     (async () => {
       const { data, error } = await (supabase
         .from("clinics" as any)
-        .select("id, clinic_name") as any)
+        .select("id, clinic_name, website_enabled, seo_enabled, google_ads_enabled, ai_seo_enabled, social_media_enabled") as any)
         .eq("status", "active")
         .order("clinic_name");
       if (cancelled) return;
@@ -127,6 +127,29 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     })();
     return () => { cancelled = true; };
   }, [open, needsClinicSelection]);
+
+  // Load enabled services for the effective clinic so we can filter the
+  // "Forwarded to" list and not show locked departments.
+  const [clinicServices, setClinicServices] = useState<Record<string, boolean> | null>(null);
+  useEffect(() => {
+    if (!open || !effectiveClinicId) { setClinicServices(null); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await (supabase
+        .from("clinics" as any)
+        .select("website_enabled, seo_enabled, google_ads_enabled, ai_seo_enabled, social_media_enabled") as any)
+        .eq("id", effectiveClinicId)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      setClinicServices({
+        Website: (data as any).website_enabled ?? true,
+        SEO: (data as any).seo_enabled ?? true,
+        "Google Ads": (data as any).google_ads_enabled ?? true,
+        "Social Media": (data as any).social_media_enabled ?? true,
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [open, effectiveClinicId]);
 
   useEffect(() => {
     if (AUTO_TITLES[ticketType] && (!title || Object.values(AUTO_TITLES).includes(title))) {
@@ -329,9 +352,14 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
               {(() => {
                 const depts = getVisibleDepartmentLabels(ticketType);
                 // For Add/Remove Team Members with social promotion, add Social Media
-                const finalDepts = ticketType === "Add/Remove Team Members" && promoteSocial
+                let finalDepts = ticketType === "Add/Remove Team Members" && promoteSocial
                   ? [...depts, "Social Media"]
                   : depts;
+                // Filter out departments that are locked for this clinic so the
+                // confirmation never advertises a forward to a disabled service.
+                if (clinicServices) {
+                  finalDepts = finalDepts.filter(d => clinicServices[d] !== false);
+                }
                 return finalDepts.length > 0 ? (
                   <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3 text-sm text-muted-foreground w-full">
                     <p className="mb-1.5 font-medium text-foreground text-xs uppercase tracking-wide">Forwarded to</p>
