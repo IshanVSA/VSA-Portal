@@ -404,6 +404,53 @@ export default function ClientsPage() {
                       </TableCell>
                       <TableCell>
                         {(() => {
+                          const lastSeen = a?.last_seen_at;
+                          const seenLabel = formatLastSeen(lastSeen ?? null);
+                          const badge = lastSeen
+                            ? (
+                              <Badge variant="secondary" className="text-[11px] rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20">
+                                {seenLabel}
+                              </Badge>
+                            )
+                            : (
+                              <Badge variant="outline" className="text-[11px] rounded-full text-muted-foreground">Never</Badge>
+                            );
+                          const tooltipBody = (
+                            <div className="space-y-1 text-xs">
+                              <div>
+                                {lastSeen ? `Last seen ${new Date(lastSeen).toLocaleString()}` : "Has not logged into the portal yet"}
+                              </div>
+                              {a?.first_login_at && (
+                                <div className="text-muted-foreground">First login {new Date(a.first_login_at).toLocaleDateString()}</div>
+                              )}
+                              {typeof a?.login_count === "number" && a.login_count > 0 && (
+                                <div className="text-muted-foreground">Total sessions: {a.login_count}</div>
+                              )}
+                              {subs.length > 0 && (
+                                <div className="pt-1 mt-1 border-t border-border/40">
+                                  <div className="font-medium text-foreground">Sub-accounts ({subs.length})</div>
+                                  {subs.map(s => (
+                                    <div key={s.user_id} className="flex justify-between gap-3">
+                                      <span className="truncate">{s.full_name || s.email || "—"}</span>
+                                      <span className="text-muted-foreground">{s.last_seen_at ? formatLastSeen(s.last_seen_at) : "Never"}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                          return (
+                            <TooltipProvider delayDuration={200}>
+                              <Tooltip>
+                                <TooltipTrigger asChild><span>{badge}</span></TooltipTrigger>
+                                <TooltipContent side="right" className="max-w-xs">{tooltipBody}</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          );
+                        })()}
+                      </TableCell>
+                      <TableCell>
+                        {(() => {
                           const sentAt = p.welcome_email_sent_at;
                           const attemptAt = p.welcome_email_last_attempt_at;
                           const lastErr = p.welcome_email_last_error;
