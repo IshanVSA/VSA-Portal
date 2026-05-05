@@ -13,7 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
-import { Plus, Trash2, UserCheck, Mail, Loader2, Check, ChevronDown, Building2, Activity, UserCircle2, Clock4 } from "lucide-react";
+import { Plus, Trash2, UserCheck, Mail, Loader2, Check, ChevronDown, Building2, Activity, UserCircle2, Clock4, Users } from "lucide-react";
+import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -490,6 +491,21 @@ export default function ClientsPage() {
                         })()}
                       </TableCell>
                       <TableCell className="text-right">
+                        <TooltipProvider delayDuration={200}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button asChild variant="ghost" size="sm" className="h-8">
+                                <Link to={`/sub-accounts?parent=${p.id}`}>
+                                  <Users className="h-3.5 w-3.5" />
+                                  {subs.length > 0 && (
+                                    <span className="ml-1 text-[11px] text-muted-foreground">{subs.length}</span>
+                                  )}
+                                </Link>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="left">Manage sub-accounts</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                         <TooltipProvider delayDuration={200}>
                           <Tooltip>
                             <TooltipTrigger asChild>

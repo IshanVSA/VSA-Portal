@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useSearchParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Plus, Trash2, Pencil, Eye, EyeOff, DollarSign, Mail, Building2 } from "lucide-react";
+import { Plus, Trash2, Pencil, Eye, EyeOff, DollarSign, Mail, Building2, ArrowLeft, UserCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -14,16 +14,19 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-interface ClinicLite { id: string; clinic_name: string; }
+interface ClinicLite { id: string; clinic_name: string; owner_user_id?: string | null; }
+interface ClientLite { id: string; full_name: string | null; email: string | null; }
 interface SubAccount {
   id: string;
   sub_user_id: string;
+  parent_user_id: string;
   hide_financials: boolean;
   created_at: string;
   full_name?: string | null;
@@ -33,9 +36,16 @@ interface SubAccount {
 
 export default function SubAccounts() {
   const { user } = useAuth();
-  const { isSubAccount } = useUserRole();
+  const { role, isSubAccount } = useUserRole();
+  const [searchParams] = useSearchParams();
+  const isAdmin = role === "admin";
+  // Admins can scope the page to a single parent client via ?parent=<uuid>
+  const parentFilter = isAdmin ? searchParams.get("parent") : null;
+
   if (isSubAccount) return <Navigate to="/dashboard" replace />;
-  const [clinics, setClinics] = useState<ClinicLite[]>([]);
+
+  const [allClinics, setAllClinics] = useState<ClinicLite[]>([]);
+  const [clients, setClients] = useState<ClientLite[]>([]); // admin-only
   const [subs, setSubs] = useState<SubAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -50,24 +60,69 @@ export default function SubAccounts() {
   const [password, setPassword] = useState("");
   const [hideFin, setHideFin] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [parentUserId, setParentUserId] = useState<string>(""); // admin-only
 
   const resetForm = () => {
     setFullName(""); setEmail(""); setPassword(""); setHideFin(false); setPicked(new Set());
+    setParentUserId(parentFilter ?? "");
   };
 
   const load = async () => {
     if (!user) return;
     setLoading(true);
+
+    if (isAdmin) {
+      // Admin: load all clinics, all clients, all sub-accounts (optionally scoped to a parent)
+      const [{ data: clinicRows }, { data: clientRoles }, { data: profRows }, subRowsRes] = await Promise.all([
+        supabase.from("clinics").select("id, clinic_name, owner_user_id").order("clinic_name"),
+        supabase.from("user_roles").select("user_id").eq("role", "client"),
+        supabase.from("profiles").select("id, full_name, email"),
+        (() => {
+          let q = (supabase.from("client_sub_accounts" as any)
+            .select("id, sub_user_id, parent_user_id, hide_financials, created_at")
+            .order("created_at", { ascending: false }) as any);
+          if (parentFilter) q = q.eq("parent_user_id", parentFilter);
+          return q;
+        })(),
+      ]);
+      setAllClinics(clinicRows ?? []);
+
+      const clientIds = new Set((clientRoles ?? []).map((r: any) => r.user_id));
+      const profsAll = (profRows ?? []) as Array<{ id: string; full_name: string | null; email: string | null }>;
+      const profMapAll = new Map(profsAll.map(p => [p.id, p]));
+      setClients(profsAll.filter(p => clientIds.has(p.id)));
+
+      const subBase = ((subRowsRes as any).data ?? []) as Array<{ id: string; sub_user_id: string; parent_user_id: string; hide_financials: boolean; created_at: string }>;
+      if (subBase.length === 0) { setSubs([]); setLoading(false); return; }
+      const subIds = subBase.map(s => s.id);
+      const { data: assigns } = await (supabase.from("sub_account_clinics" as any)
+        .select("sub_account_id, clinic_id").in("sub_account_id", subIds) as any);
+      const assignMap = new Map<string, string[]>();
+      (assigns ?? []).forEach((a: any) => {
+        const arr = assignMap.get(a.sub_account_id) || [];
+        arr.push(a.clinic_id); assignMap.set(a.sub_account_id, arr);
+      });
+      setSubs(subBase.map(s => ({
+        ...s,
+        full_name: profMapAll.get(s.sub_user_id)?.full_name ?? null,
+        email: profMapAll.get(s.sub_user_id)?.email ?? null,
+        clinic_ids: assignMap.get(s.id) ?? [],
+      })));
+      setLoading(false);
+      return;
+    }
+
+    // Client: original scoped view
     const [{ data: clinicRows }, { data: subRows }] = await Promise.all([
       supabase.from("clinics").select("id, clinic_name").eq("owner_user_id", user.id).order("clinic_name"),
       (supabase.from("client_sub_accounts" as any)
-        .select("id, sub_user_id, hide_financials, created_at")
+        .select("id, sub_user_id, parent_user_id, hide_financials, created_at")
         .eq("parent_user_id", user.id)
         .order("created_at", { ascending: false }) as any),
     ]);
-    setClinics(clinicRows ?? []);
+    setAllClinics(clinicRows ?? []);
 
-    const subBase = (subRows ?? []) as Array<{ id: string; sub_user_id: string; hide_financials: boolean; created_at: string }>;
+    const subBase = (subRows ?? []) as Array<{ id: string; sub_user_id: string; parent_user_id: string; hide_financials: boolean; created_at: string }>;
     if (subBase.length === 0) { setSubs([]); setLoading(false); return; }
     const userIds = subBase.map(s => s.sub_user_id);
     const subIds = subBase.map(s => s.id);
@@ -96,7 +151,7 @@ export default function SubAccounts() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [user]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user, isAdmin, parentFilter]);
 
   const togglePick = (id: string) => {
     setPicked(prev => {
@@ -106,9 +161,21 @@ export default function SubAccounts() {
     });
   };
 
+  // Clinics shown in the create form. For admins, filter to those owned by the
+  // selected parent client (admin must pick the parent first).
+  const formClinics: ClinicLite[] = (() => {
+    if (!isAdmin) return allClinics;
+    if (!parentUserId) return [];
+    return allClinics.filter(c => c.owner_user_id === parentUserId);
+  })();
+
   const submitCreate = async () => {
     if (!fullName.trim() || !email.trim() || password.length < 8) {
       toast({ title: "Missing fields", description: "Full name, email, and password (min 8 chars) are required.", variant: "destructive" });
+      return;
+    }
+    if (isAdmin && !parentUserId) {
+      toast({ title: "Pick a client", description: "Choose which client this sub-account belongs to.", variant: "destructive" });
       return;
     }
     if (picked.size === 0) {
@@ -116,9 +183,12 @@ export default function SubAccounts() {
       return;
     }
     setCreating(true);
-    const { data, error } = await supabase.functions.invoke("create-sub-account", {
-      body: { full_name: fullName.trim(), email: email.trim(), password, hide_financials: hideFin, clinic_ids: Array.from(picked) },
-    });
+    const body: Record<string, unknown> = {
+      full_name: fullName.trim(), email: email.trim(), password,
+      hide_financials: hideFin, clinic_ids: Array.from(picked),
+    };
+    if (isAdmin) body.parent_user_id = parentUserId;
+    const { data, error } = await supabase.functions.invoke("create-sub-account", { body });
     setCreating(false);
     if (error || (data as any)?.error) {
       toast({ title: "Failed to create", description: (data as any)?.error || error?.message || "Unknown error", variant: "destructive" });
@@ -132,6 +202,7 @@ export default function SubAccounts() {
     setEditTarget(s);
     setHideFin(s.hide_financials);
     setPicked(new Set(s.clinic_ids));
+    if (isAdmin) setParentUserId(s.parent_user_id);
   };
 
   const submitEdit = async () => {
@@ -168,15 +239,34 @@ export default function SubAccounts() {
     setDeleteTarget(null); load();
   };
 
-  const clinicName = (id: string) => clinics.find(c => c.id === id)?.clinic_name || "Unknown";
+  const clinicName = (id: string) => allClinics.find(c => c.id === id)?.clinic_name || "Unknown";
+  const clientName = (id: string) => {
+    const c = clients.find(x => x.id === id);
+    return c?.full_name || c?.email || "Unknown client";
+  };
+
+  // For edit dialog, scope clinic picker to that sub-account's parent (admins).
+  const editFormClinics: ClinicLite[] = (() => {
+    if (!isAdmin || !editTarget) return allClinics;
+    return allClinics.filter(c => c.owner_user_id === editTarget.parent_user_id);
+  })();
 
   return (
     <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Sub Accounts</h1>
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          {isAdmin && parentFilter && (
+            <Link to="/clients" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mb-2">
+              <ArrowLeft className="h-3 w-3" /> Back to Clients
+            </Link>
+          )}
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {isAdmin && parentFilter ? `Sub Accounts · ${clientName(parentFilter)}` : "Sub Accounts"}
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Create logins for your team. Choose which clinics they can access and whether to hide financial data.
+            {isAdmin
+              ? "Create and manage sub-account logins on behalf of any client."
+              : "Create logins for your team. Choose which clinics they can access and whether to hide financial data."}
           </p>
         </div>
         <Button onClick={() => { resetForm(); setOpenCreate(true); }} className="gap-2">
@@ -202,6 +292,11 @@ export default function SubAccounts() {
                   <div className="space-y-1 min-w-0">
                     <CardTitle className="text-base truncate">{s.full_name || "(no name)"}</CardTitle>
                     <div className="text-xs text-muted-foreground truncate">{s.email}</div>
+                    {isAdmin && (
+                      <div className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
+                        <UserCircle2 className="h-3 w-3" /> Parent: {clientName(s.parent_user_id)}
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {s.hide_financials ? (
@@ -235,13 +330,29 @@ export default function SubAccounts() {
             <DialogTitle>Add sub-account</DialogTitle>
             <DialogDescription>The new user will be able to log in with this email and password.</DialogDescription>
           </DialogHeader>
+          {isAdmin && (
+            <div className="grid gap-2 mb-2">
+              <Label>Parent client</Label>
+              <Select value={parentUserId} onValueChange={(v) => { setParentUserId(v); setPicked(new Set()); }} disabled={!!parentFilter}>
+                <SelectTrigger><SelectValue placeholder="Choose the client who owns this sub-account" /></SelectTrigger>
+                <SelectContent>
+                  {clients.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.full_name || c.email || c.id}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {parentUserId && formClinics.length === 0 && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">This client doesn't own any clinics yet.</p>
+              )}
+            </div>
+          )}
           <SubAccountForm
             mode="create"
             fullName={fullName} setFullName={setFullName}
             email={email} setEmail={setEmail}
             password={password} setPassword={setPassword}
             hideFin={hideFin} setHideFin={setHideFin}
-            clinics={clinics} picked={picked} togglePick={togglePick}
+            clinics={formClinics} picked={picked} togglePick={togglePick}
           />
           <DialogFooter>
             <Button variant="ghost" onClick={() => { setOpenCreate(false); resetForm(); }} disabled={creating}>Cancel</Button>
@@ -263,7 +374,7 @@ export default function SubAccounts() {
             email="" setEmail={() => {}}
             password="" setPassword={() => {}}
             hideFin={hideFin} setHideFin={setHideFin}
-            clinics={clinics} picked={picked} togglePick={togglePick}
+            clinics={editFormClinics} picked={picked} togglePick={togglePick}
           />
           <DialogFooter>
             <Button variant="ghost" onClick={() => { setEditTarget(null); resetForm(); }} disabled={busy}>Cancel</Button>
@@ -335,7 +446,7 @@ function SubAccountForm(props: {
         <Label>Clinics this user can access</Label>
         <ScrollArea className="h-48 rounded-lg border">
           <div className="p-2 space-y-1">
-            {clinics.length === 0 && <div className="text-xs text-muted-foreground p-2">You don't own any clinics yet.</div>}
+            {clinics.length === 0 && <div className="text-xs text-muted-foreground p-2">No clinics available.</div>}
             {clinics.map(c => (
               <label key={c.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer">
                 <Checkbox checked={picked.has(c.id)} onCheckedChange={() => togglePick(c.id)} />
