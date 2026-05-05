@@ -26,6 +26,17 @@ interface Profile { id: string; full_name: string | null; email: string | null; 
 interface UserRole { user_id: string; role: string; }
 interface ClinicAssignment { user_id: string; clinic_names: string[]; }
 interface ClinicOption { id: string; clinic_name: string; owner_user_id: string | null; }
+interface ActivityRow {
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+  role: string;
+  parent_user_id: string | null;
+  first_login_at: string | null;
+  last_seen_at: string | null;
+  login_count: number;
+}
+type ActivityFilter = "all" | "active" | "never";
 
 const clientSchema = z.object({
   full_name: z.string().trim().min(1, "Full name is required").max(100, "Full name must be less than 100 characters"),
