@@ -264,21 +264,35 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const fetchAll = async () => {
-      const [clinicsRes, profilesRes, rolesRes, postsRes, ticketsRes, contentReqRes] = await Promise.all([
+      const [clinicsRes, profilesRes, rolesRes, postsRes, ticketsRes, contentReqRes, loginRes] = await Promise.all([
         supabase.from("clinics").select("id, clinic_name, status, assigned_concierge_id, website_enabled, seo_enabled, google_ads_enabled, social_media_enabled"),
         supabase.from("profiles").select("id, full_name"),
         supabase.from("user_roles").select("user_id, role"),
         supabase.from("content_posts").select("id, status, scheduled_date, clinic_id"),
         supabase.from("department_tickets").select("id, department, status, priority, clinic_id"),
         supabase.from("content_requests").select("id, status, clinic_id"),
+        (supabase as any).rpc("get_client_login_summary"),
       ]);
 
       setClinics((clinicsRes.data || []) as Clinic[]);
       setProfiles(profilesRes.data || []);
-      setTeamCount((rolesRes.data || []).length);
+      // Count only staff accounts (admins + concierges) — exclude clients/sub_clients
+      const staffRoles = new Set(["admin", "concierge"]);
+      const staff = (rolesRes.data || []).filter((r: any) => staffRoles.has(r.role));
+      setTeamCount(staff.length);
       setTickets((ticketsRes.data || []) as TicketRow[]);
       setPosts((postsRes.data || []) as PostRow[]);
       setContentRequests((contentReqRes.data || []) as RequestRow[]);
+
+      // Count clients active in the last 30 days based on portal logins
+      const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      const loginRows = ((loginRes as any)?.data || []) as Array<{ role: string; last_seen_at: string | null }>;
+      const clientRows = loginRows.filter(r => r.role === "client");
+      setTotalClientCount(clientRows.length);
+      setActiveClientCount(
+        clientRows.filter(r => r.last_seen_at && new Date(r.last_seen_at).getTime() >= thirtyDaysAgo).length
+      );
+
       setLoading(false);
     };
     fetchAll();
