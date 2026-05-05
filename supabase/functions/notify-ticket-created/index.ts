@@ -74,15 +74,30 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Clinic info (optional)
+    // Clinic info + service-lock enforcement: refuse to notify a department
+    // that has been locked for this clinic, even if a ticket somehow landed
+    // there (e.g. UI bypass or stale row).
     let clinicName = "";
     if (ticket.clinic_id) {
       const { data: c } = await supabase
         .from("clinics")
-        .select("clinic_name")
+        .select("clinic_name, website_enabled, seo_enabled, google_ads_enabled, social_media_enabled")
         .eq("id", ticket.clinic_id)
         .maybeSingle();
-      clinicName = c?.clinic_name ?? "";
+      clinicName = (c as any)?.clinic_name ?? "";
+
+      const enabledMap: Record<string, boolean> = {
+        website: (c as any)?.website_enabled ?? true,
+        seo: (c as any)?.seo_enabled ?? true,
+        google_ads: (c as any)?.google_ads_enabled ?? true,
+        social_media: (c as any)?.social_media_enabled ?? true,
+      };
+      if (c && enabledMap[dept] === false) {
+        return new Response(
+          JSON.stringify({ ok: true, skipped: "department_locked_for_clinic", department: dept }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
     }
 
     // Find recipients: clinic team members in this clinic with matching team_role

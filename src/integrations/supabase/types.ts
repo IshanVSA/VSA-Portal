@@ -2775,6 +2775,13 @@ export type Database = {
         Args: { _clinic_id: string; _user_id: string }
         Returns: boolean
       }
+      is_department_enabled_for_clinic: {
+        Args: {
+          _clinic_id: string
+          _department: Database["public"]["Enums"]["department_type"]
+        }
+        Returns: boolean
+      }
       is_department_member: {
         Args: {
           _department: Database["public"]["Enums"]["department_type"]
