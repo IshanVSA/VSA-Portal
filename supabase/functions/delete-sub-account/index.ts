@@ -31,13 +31,34 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (!row) return json({ error: "Not found" }, 404);
 
+    // Safety: never let this endpoint touch a parent/top-level client.
+    if (row.sub_user_id === row.parent_user_id) {
+      return json({ error: "Refusing to delete: target is a parent client, not a sub-account" }, 400);
+    }
+
+    // Safety: confirm the target user is actually a sub_client.
+    const { data: targetRole } = await admin
+      .from("user_roles").select("role").eq("user_id", row.sub_user_id).maybeSingle();
+    if (targetRole && targetRole.role !== "sub_client") {
+      return json({ error: `Refusing to delete: target user is a ${targetRole.role}, not a sub_client` }, 400);
+    }
+
     const { data: roleData } = await admin.from("user_roles").select("role").eq("user_id", callerId).maybeSingle();
-    if (row.parent_user_id !== callerId && roleData?.role !== "admin") {
+    const isAdmin = roleData?.role === "admin";
+    if (row.parent_user_id !== callerId && !isAdmin) {
       return json({ error: "Forbidden" }, 403);
     }
 
+    // Clean up dependents first so nothing is left orphaned if auth deletion fails.
+    await admin.from("sub_account_clinics").delete().eq("sub_account_id", sub_account_id);
     await admin.from("client_sub_accounts").delete().eq("id", sub_account_id);
-    await admin.auth.admin.deleteUser(row.sub_user_id);
+    await admin.from("user_roles").delete().eq("user_id", row.sub_user_id);
+
+    const { error: authDelErr } = await admin.auth.admin.deleteUser(row.sub_user_id);
+    if (authDelErr) {
+      console.error("delete-sub-account: auth user delete failed", authDelErr);
+      return json({ error: `Sub-account record removed, but auth user deletion failed: ${authDelErr.message}` }, 500);
+    }
 
     return json({ success: true });
   } catch (e) {
