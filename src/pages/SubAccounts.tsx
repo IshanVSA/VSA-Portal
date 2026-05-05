@@ -388,8 +388,23 @@ export default function SubAccounts() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete sub-account?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {deleteTarget?.full_name || deleteTarget?.email} will lose access immediately. This cannot be undone.
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>
+                  <span className="font-medium text-foreground">{deleteTarget?.full_name || deleteTarget?.email}</span>{" "}
+                  will lose access immediately. This cannot be undone.
+                </p>
+                {isAdmin && deleteTarget && (
+                  <div className="rounded-md border border-border/60 bg-muted/40 p-2 text-xs">
+                    <div><span className="text-muted-foreground">Parent client:</span> <span className="font-medium text-foreground">{clientName(deleteTarget.parent_user_id)}</span></div>
+                    <div><span className="text-muted-foreground">Email:</span> {deleteTarget.email || "—"}</div>
+                    <div><span className="text-muted-foreground">Assigned clinics:</span> {deleteTarget.clinic_ids.length}</div>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  The parent client account is not affected — only this sub-account login is removed.
+                </p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
