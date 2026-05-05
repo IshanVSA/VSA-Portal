@@ -1,46 +1,58 @@
-## Problem
+## Goal
 
-For 48th Avenue Animal Hospital the stored address is just `Ladner, BC, Canada`, while the website footer clearly shows `5020 48 Ave, Delta, BC V4K 3V3, Canada`. Because the address has no postal code and no province‑adjacent ZIP, the `detectComplianceBody()` heuristic in `src/lib/compliance-body.ts` cannot lock onto British Columbia reliably, so the wrong veterinary regulatory body shows up in the Promotion module and Pop-up Offers ticket form.
+Give admins a single view answering: of all clients (and their sub-accounts), how many have actually logged into the portal, and when each one was last active. Hidden from concierge, clients, and sub-accounts.
 
-The AI extractor (`supabase/functions/extract-clinic-website`) is the upstream cause — it returns whatever it considers "an address," even when only a city/province is present.
+## What admins will see
 
-## Fix
+A new card on the Clients page (admin-only):
 
-### 1. Tighten AI address extraction (`extract-clinic-website`)
+- Three KPIs at the top:
+  - Total clients
+  - Logged in at least once
+  - Active in the last 30 days
+- An extra column on the existing clients table: **Last seen** (e.g. "2 hours ago", "3 days ago", "Never").
+- Sortable by Last seen, with a small filter chip: All / Active 30d / Never logged in.
 
-- Update the `extract_clinic_details` tool schema so `address` is required to be a **complete postal address** with explicit sub-fields the model must fill, then we compose them:
-  - `street` (e.g., `5020 48 Ave`)
-  - `city` (e.g., `Delta`)
-  - `region` (province / state, full or abbreviated)
-  - `postal_code` (ZIP / Canadian postal code)
-  - `country`
-  - Keep `address` as the composed single-line string for back-compat.
-- Strengthen the system prompt:
-  - "Always return the full street address including street number, street name, city, province/state, postal/ZIP code, and country, exactly as printed on the site (typically in the footer, Contact page, or schema.org JSON-LD)."
-  - "Never return a city-only or region-only address. If a street address cannot be confidently located, set `address` to null and lower confidence."
-- Add a server-side post-processing guard that:
-  - Parses the JSON-LD `PostalAddress` / `LocalBusiness` blocks from the fetched HTML directly and uses them as a deterministic fallback / cross-check.
-  - Verifies the returned address contains a digit (street number) AND a postal/ZIP-shaped token; if not, retry the model with an explicit "must include street number + postal code" instruction once before giving up.
-- Boost the contact/footer signal sent to the model:
-  - Always include the homepage `<footer>` HTML (sanitized) as a dedicated section.
-  - Always include any JSON-LD blocks verbatim (they almost always contain `streetAddress`, `addressLocality`, `addressRegion`, `postalCode`).
+Sub-accounts (`sub_client`) are tracked too and rolled up under their parent client, with a tooltip listing each sub-account's own last-seen timestamp.
 
-### 2. Backfill the affected clinic
+## How it works (technical)
 
-- Re-run extraction for `48th Avenue Animal Hospital` (id `417749c9-688a-4757-85aa-83fcef8f9e72`) via the existing admin "Re-extract" action so the address becomes `5020 48 Ave, Delta, BC V4K 3V3, Canada`.
-- After update, `detectComplianceBody()` returns `CVBC (College of Veterinarians of British Columbia)` automatically — no client changes required.
+We can't read `auth.users.last_sign_in_at` directly from the client SDK and we don't want to ship the service-role key. Two parts:
 
-### 3. Light defensive improvement in `compliance-body.ts` (optional, low-risk)
+**1. Database** (`supabase--migration`)
+- New table `public.user_login_activity`:
+  - `user_id uuid PK references profiles(id) on delete cascade`
+  - `first_login_at timestamptz`
+  - `last_seen_at timestamptz`
+  - `login_count int default 0`
+- RLS:
+  - SELECT: `has_role(auth.uid(),'admin')` only.
+  - INSERT/UPDATE: only via the security-definer RPC below (no direct writes from clients).
+- RPC `public.touch_login_activity()` `SECURITY DEFINER`:
+  - Upserts row for `auth.uid()`: sets `first_login_at` if null, bumps `last_seen_at = now()`, increments `login_count`.
+  - Throttled in the function itself: only updates if `last_seen_at < now() - interval '5 minutes'` to avoid write storms.
+- RPC `public.get_client_login_summary()` `SECURITY DEFINER` returning `(user_id, full_name, email, role, parent_user_id, last_seen_at, first_login_at, login_count)`:
+  - Admin-only check at top, raises if not admin.
+  - Returns rows for every user with role `client` or `sub_client`, left-joined to activity. Includes parent linkage from `client_sub_accounts` so the UI can group sub-accounts under their parent.
 
-- Already handles `City, ST` and full province names. No change needed once the address is complete. Leaving this file untouched.
+**2. Client heartbeat**
+- In `useAuth` (or `App.tsx` once the session is known), call `supabase.rpc('touch_login_activity')` once per session load and on `SIGNED_IN` auth event. The 5-minute throttle is enforced server-side, so we don't need extra client logic.
 
-## Files to change
-
-- `supabase/functions/extract-clinic-website/index.ts` — schema + prompt + JSON-LD/footer injection + validation retry.
-- (Data) Re-run extraction for 48th Avenue Animal Hospital from the Clinics admin page after the function ships, or trigger via a one-off admin call.
+**3. UI** (`src/pages/Clients.tsx`)
+- Admin-only block (gated by `role === 'admin'`):
+  - Fetch via `supabase.rpc('get_client_login_summary')`.
+  - Render the three KPI cards and add the **Last seen** column to the existing client table using `formatDistanceToNow` from `date-fns` (already in the project). "Never" badge for null.
+  - Filter chip switches the visible row set client-side.
+  - Sub-accounts surfaced in a tooltip on the parent's row (Tooltip already imported in this file).
 
 ## Out of scope
 
-- No UI changes.
-- No changes to `compliance-body.ts` mapping logic.
-- No edits to other extractors (DNA, locality) — they read `clinics.address` which will now be correct.
+- No per-page or per-route activity tracking; just session-level "last seen".
+- No history graph; only current `last_seen_at` plus login count. Easy to extend later if needed.
+- Concierge users are not shown in this report (they're staff, not clients).
+
+## Files touched
+
+- New migration: `user_login_activity` table + 2 RPCs + RLS.
+- `src/hooks/useAuth.ts` — fire-and-forget `touch_login_activity` RPC on sign-in.
+- `src/pages/Clients.tsx` — admin-only summary card, KPIs, Last seen column, filter chip.
