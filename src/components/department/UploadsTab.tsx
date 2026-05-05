@@ -300,7 +300,8 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
       fetchFiles();
     } else {
       toast.success("File deleted");
-      fetchFiles();
+      // Optimistically remove from local state — no full reload / loading flash
+      setFiles((prev) => prev.filter((f) => !(f.name === file.name && f.monthKey === file.monthKey)));
     }
   };
 
