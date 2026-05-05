@@ -145,6 +145,11 @@ export function FilePreviewDialog({ open, onOpenChange, url: urlProp, getUrl, fi
               className="w-full h-full border-0 bg-background"
             />
           )}
+          {ready && kind === "zip" && (
+            <div className="w-full h-full">
+              <ZipBrowser url={resolvedUrl} />
+            </div>
+          )}
           {ready && kind === "other" && (
             <div className="flex flex-col items-center gap-3 text-center p-8">
               <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center">
