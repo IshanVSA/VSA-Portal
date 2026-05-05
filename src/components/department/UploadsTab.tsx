@@ -338,7 +338,8 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
       fetchBrandAssets();
     } else {
       toast.success("Brand asset deleted");
-      fetchBrandAssets();
+      // Optimistically remove from local state
+      setBrandAssets((prev) => prev.filter((b) => b.name !== name));
     }
   };
 
