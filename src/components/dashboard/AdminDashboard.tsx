@@ -506,13 +506,12 @@ export default function AdminDashboard() {
             index={3}
           />
           <HeroStat
-            label="Content Requests"
-            value={pendingRequests}
-            caption={pendingRequests > 0 ? "click to filter" : "all clear"}
-            icon={AlertTriangle}
-            tone={pendingRequests > 0 ? "warning" : "neutral"}
-            onClick={() => toggleStatus("concierge_preferred", "Concierge Preferred")}
-            active={filter.status === "concierge_preferred"}
+            label="Active Clients"
+            value={activeClientCount}
+            caption={totalClientCount > 0 ? `${totalClientCount} total · last 30 days` : "no clients yet"}
+            icon={Activity}
+            tone={activeClientCount > 0 ? "success" : "neutral"}
+            href="/clients"
             index={4}
           />
         </div>
