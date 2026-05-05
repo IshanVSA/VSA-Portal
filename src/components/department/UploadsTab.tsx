@@ -300,7 +300,8 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
       fetchFiles();
     } else {
       toast.success("File deleted");
-      fetchFiles();
+      // Optimistically remove from local state — no full reload / loading flash
+      setFiles((prev) => prev.filter((f) => !(f.name === file.name && f.monthKey === file.monthKey)));
     }
   };
 
@@ -337,7 +338,8 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
       fetchBrandAssets();
     } else {
       toast.success("Brand asset deleted");
-      fetchBrandAssets();
+      // Optimistically remove from local state
+      setBrandAssets((prev) => prev.filter((b) => b.name !== name));
     }
   };
 
