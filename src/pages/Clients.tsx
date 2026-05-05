@@ -373,13 +373,24 @@ export default function ClientsPage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Clinics</TableHead>
+                  <TableHead>Last seen</TableHead>
                   <TableHead>Welcome Email</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {profiles.map((p) => {
+                {profiles
+                  .filter((p) => {
+                    const a = activityByUser.get(p.id);
+                    if (activityFilter === "all") return true;
+                    if (activityFilter === "never") return !a?.last_seen_at;
+                    // active 30d
+                    return !!a?.last_seen_at && new Date(a.last_seen_at).getTime() >= thirtyDaysAgo;
+                  })
+                  .map((p) => {
                   const assignedClinics = getAssignedClinics(p.id);
+                  const a = activityByUser.get(p.id);
+                  const subs = subAccountsByParent.get(p.id) || [];
                   return (
                     <TableRow key={p.id}>
                       <TableCell className="font-medium">{p.full_name || "—"}</TableCell>
