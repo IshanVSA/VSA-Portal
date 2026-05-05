@@ -329,9 +329,13 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
 
   const handleBrandDelete = async (name: string) => {
     if (!brandPath) return;
-    const { error } = await supabase.storage.from(BUCKET).remove([`${brandPath}/${name}`]);
-    if (error) toast.error("Failed to delete brand asset");
-    else {
+    const { data, error } = await supabase.storage.from(BUCKET).remove([`${brandPath}/${name}`]);
+    if (error) {
+      toast.error(`Failed to delete brand asset: ${error.message}`);
+    } else if (!data || data.length === 0) {
+      toast.error("Couldn't delete brand asset — you may not have permission, or it was already removed.");
+      fetchBrandAssets();
+    } else {
       toast.success("Brand asset deleted");
       fetchBrandAssets();
     }
