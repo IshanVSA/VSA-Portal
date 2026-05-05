@@ -367,171 +367,272 @@ export default function ClientsPage() {
             <p>No clients found.</p>
           </CardContent></Card>
         ) : (
-          <Card className="overflow-hidden border-border/60">
-            <Table className="data-table">
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Clinics</TableHead>
-                  <TableHead>Last seen</TableHead>
-                  <TableHead>Welcome Email</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {profiles
-                  .filter((p) => {
-                    const a = activityByUser.get(p.id);
-                    if (activityFilter === "all") return true;
-                    if (activityFilter === "never") return !a?.last_seen_at;
-                    // active 30d
-                    return !!a?.last_seen_at && new Date(a.last_seen_at).getTime() >= thirtyDaysAgo;
-                  })
-                  .map((p) => {
+          <>
+            {/* Mobile (<sm): card list */}
+            <div className="grid gap-3 sm:hidden">
+              {profiles
+                .filter((p) => {
+                  const a = activityByUser.get(p.id);
+                  if (activityFilter === "all") return true;
+                  if (activityFilter === "never") return !a?.last_seen_at;
+                  return !!a?.last_seen_at && new Date(a.last_seen_at).getTime() >= thirtyDaysAgo;
+                })
+                .map((p) => {
                   const assignedClinics = getAssignedClinics(p.id);
                   const a = activityByUser.get(p.id);
                   const subs = subAccountsByParent.get(p.id) || [];
+                  const lastSeen = a?.last_seen_at;
+                  const seenLabel = formatLastSeen(lastSeen ?? null);
+                  const sentAt = p.welcome_email_sent_at;
+                  const attemptAt = p.welcome_email_last_attempt_at;
+                  const lastErr = p.welcome_email_last_error;
+                  const failedLatest = !!lastErr && (!sentAt || (attemptAt && new Date(attemptAt) > new Date(sentAt)));
                   return (
-                    <TableRow key={p.id}>
-                      <TableCell className="font-medium">{p.full_name || "—"}</TableCell>
-                      <TableCell className="text-muted-foreground">{p.email || "—"}</TableCell>
-                      <TableCell>
-                        {assignedClinics.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {assignedClinics.map((name, i) => (<Badge key={i} variant="secondary" className="text-[11px] rounded-full">{name}</Badge>))}
+                    <Card key={p.id} className="border-border/60">
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-sm truncate">{p.full_name || "—"}</p>
+                            <p className="text-xs text-muted-foreground truncate">{p.email || "—"}</p>
                           </div>
-                        ) : (<span className="text-muted-foreground text-xs italic">None</span>)}
-                      </TableCell>
-                      <TableCell>
-                        {(() => {
-                          const lastSeen = a?.last_seen_at;
-                          const seenLabel = formatLastSeen(lastSeen ?? null);
-                          const badge = lastSeen
-                            ? (
-                              <Badge variant="secondary" className="text-[11px] rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20">
-                                {seenLabel}
-                              </Badge>
-                            )
-                            : (
-                              <Badge variant="outline" className="text-[11px] rounded-full text-muted-foreground">Never</Badge>
-                            );
-                          const tooltipBody = (
-                            <div className="space-y-1 text-xs">
-                              <div>
-                                {lastSeen ? `Last seen ${new Date(lastSeen).toLocaleString()}` : "Has not logged into the portal yet"}
-                              </div>
-                              {a?.first_login_at && (
-                                <div className="text-muted-foreground">First login {new Date(a.first_login_at).toLocaleDateString()}</div>
-                              )}
-                              {typeof a?.login_count === "number" && a.login_count > 0 && (
-                                <div className="text-muted-foreground">Total sessions: {a.login_count}</div>
-                              )}
-                              {subs.length > 0 && (
-                                <div className="pt-1 mt-1 border-t border-border/40">
-                                  <div className="font-medium text-foreground">Sub-accounts ({subs.length})</div>
-                                  {subs.map(s => (
-                                    <div key={s.user_id} className="flex justify-between gap-3">
-                                      <span className="truncate">{s.full_name || s.email || "—"}</span>
-                                      <span className="text-muted-foreground">{s.last_seen_at ? formatLastSeen(s.last_seen_at) : "Never"}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          );
-                          return (
-                            <TooltipProvider delayDuration={200}>
-                              <Tooltip>
-                                <TooltipTrigger asChild><span>{badge}</span></TooltipTrigger>
-                                <TooltipContent side="right" className="max-w-xs">{tooltipBody}</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          );
-                        })()}
-                      </TableCell>
-                      <TableCell>
-                        {(() => {
-                          const sentAt = p.welcome_email_sent_at;
-                          const attemptAt = p.welcome_email_last_attempt_at;
-                          const lastErr = p.welcome_email_last_error;
-                          const failedLatest = !!lastErr && (!sentAt || (attemptAt && new Date(attemptAt) > new Date(sentAt)));
-                          if (failedLatest) {
-                            return (
-                              <TooltipProvider delayDuration={200}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Badge variant="secondary" className="text-[11px] rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20">
-                                      Failed{attemptAt ? ` · ${formatSentAt(attemptAt)}` : ""}
-                                    </Badge>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="right">
-                                    {lastErr}
-                                    {attemptAt ? ` (${new Date(attemptAt).toLocaleString()})` : ""}
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            );
-                          }
-                          if (sentAt) {
-                            return (
-                              <TooltipProvider delayDuration={200}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Badge variant="secondary" className="text-[11px] rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20">
-                                      Sent · {formatSentAt(sentAt)}
-                                    </Badge>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="right">{new Date(sentAt).toLocaleString()}</TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            );
-                          }
-                          return <Badge variant="outline" className="text-[11px] rounded-full text-muted-foreground">Never sent</Badge>;
-                        })()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <TooltipProvider delayDuration={200}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button asChild variant="ghost" size="sm" className="h-8">
-                                <Link to={`/sub-accounts?parent=${p.id}`}>
-                                  <Users className="h-3.5 w-3.5" />
-                                  {subs.length > 0 && (
-                                    <span className="ml-1 text-[11px] text-muted-foreground">{subs.length}</span>
-                                  )}
-                                </Link>
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="left">Manage sub-accounts</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <TooltipProvider delayDuration={200}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8"
-                                disabled={resendingId === p.id}
-                                onClick={() => handleResendWelcome(p.id, p.full_name || "client")}
-                              >
-                                {resendingId === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="right">Resend welcome email</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => setDeleteTarget({ id: p.id, name: p.full_name || "User" })}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
+                          {lastSeen ? (
+                            <Badge variant="secondary" className="text-[10px] rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 shrink-0">
+                              {seenLabel}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] rounded-full text-muted-foreground shrink-0">Never</Badge>
+                          )}
+                        </div>
+
+                        {assignedClinics.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {assignedClinics.map((name, i) => (
+                              <Badge key={i} variant="secondary" className="text-[10px] rounded-full">{name}</Badge>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40">
+                          <div className="text-[10px] text-muted-foreground">
+                            {failedLatest ? (
+                              <span className="text-destructive">Welcome: failed</span>
+                            ) : sentAt ? (
+                              <span>Welcome: sent {formatSentAt(sentAt)}</span>
+                            ) : (
+                              <span>Welcome: never sent</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button asChild variant="ghost" size="sm" className="h-8 px-2">
+                              <Link to={`/sub-accounts?parent=${p.id}`} aria-label="Manage sub-accounts">
+                                <Users className="h-3.5 w-3.5" />
+                                {subs.length > 0 && <span className="ml-1 text-[11px]">{subs.length}</span>}
+                              </Link>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 px-2"
+                              disabled={resendingId === p.id}
+                              onClick={() => handleResendWelcome(p.id, p.full_name || "client")}
+                              aria-label="Resend welcome email"
+                            >
+                              {resendingId === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 px-2 text-destructive hover:text-destructive"
+                              onClick={() => setDeleteTarget({ id: p.id, name: p.full_name || "User" })}
+                              aria-label="Delete client"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   );
                 })}
-              </TableBody>
-            </Table>
-          </Card>
+            </div>
+
+            {/* Tablet/Desktop (>=sm): table with horizontal scroll if needed */}
+            <Card className="hidden sm:block overflow-hidden border-border/60">
+              <div className="w-full overflow-x-auto">
+                <Table className="data-table min-w-[760px]">
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead>Name</TableHead>
+                      <TableHead className="hidden md:table-cell">Email</TableHead>
+                      <TableHead>Clinics</TableHead>
+                      <TableHead className="hidden lg:table-cell">Last seen</TableHead>
+                      <TableHead className="hidden lg:table-cell">Welcome</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {profiles
+                      .filter((p) => {
+                        const a = activityByUser.get(p.id);
+                        if (activityFilter === "all") return true;
+                        if (activityFilter === "never") return !a?.last_seen_at;
+                        return !!a?.last_seen_at && new Date(a.last_seen_at).getTime() >= thirtyDaysAgo;
+                      })
+                      .map((p) => {
+                      const assignedClinics = getAssignedClinics(p.id);
+                      const a = activityByUser.get(p.id);
+                      const subs = subAccountsByParent.get(p.id) || [];
+                      return (
+                        <TableRow key={p.id}>
+                          <TableCell className="font-medium align-top">
+                            <div className="space-y-0.5">
+                              <div className="truncate max-w-[180px]">{p.full_name || "—"}</div>
+                              <div className="md:hidden text-[11px] text-muted-foreground truncate max-w-[180px]">{p.email || "—"}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell text-muted-foreground align-top">
+                            <span className="truncate max-w-[220px] inline-block align-bottom">{p.email || "—"}</span>
+                          </TableCell>
+                          <TableCell className="align-top">
+                            {assignedClinics.length > 0 ? (
+                              <div className="flex flex-wrap gap-1 max-w-[220px]">
+                                {assignedClinics.map((name, i) => (<Badge key={i} variant="secondary" className="text-[11px] rounded-full">{name}</Badge>))}
+                              </div>
+                            ) : (<span className="text-muted-foreground text-xs italic">None</span>)}
+                          </TableCell>
+                          <TableCell className="hidden lg:table-cell align-top">
+                            {(() => {
+                              const lastSeen = a?.last_seen_at;
+                              const seenLabel = formatLastSeen(lastSeen ?? null);
+                              const badge = lastSeen
+                                ? (
+                                  <Badge variant="secondary" className="text-[11px] rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20">
+                                    {seenLabel}
+                                  </Badge>
+                                )
+                                : (
+                                  <Badge variant="outline" className="text-[11px] rounded-full text-muted-foreground">Never</Badge>
+                                );
+                              const tooltipBody = (
+                                <div className="space-y-1 text-xs">
+                                  <div>
+                                    {lastSeen ? `Last seen ${new Date(lastSeen).toLocaleString()}` : "Has not logged into the portal yet"}
+                                  </div>
+                                  {a?.first_login_at && (
+                                    <div className="text-muted-foreground">First login {new Date(a.first_login_at).toLocaleDateString()}</div>
+                                  )}
+                                  {typeof a?.login_count === "number" && a.login_count > 0 && (
+                                    <div className="text-muted-foreground">Total sessions: {a.login_count}</div>
+                                  )}
+                                  {subs.length > 0 && (
+                                    <div className="pt-1 mt-1 border-t border-border/40">
+                                      <div className="font-medium text-foreground">Sub-accounts ({subs.length})</div>
+                                      {subs.map(s => (
+                                        <div key={s.user_id} className="flex justify-between gap-3">
+                                          <span className="truncate">{s.full_name || s.email || "—"}</span>
+                                          <span className="text-muted-foreground">{s.last_seen_at ? formatLastSeen(s.last_seen_at) : "Never"}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                              return (
+                                <TooltipProvider delayDuration={200}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild><span>{badge}</span></TooltipTrigger>
+                                    <TooltipContent side="right" className="max-w-xs">{tooltipBody}</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              );
+                            })()}
+                          </TableCell>
+                          <TableCell className="hidden lg:table-cell align-top">
+                            {(() => {
+                              const sentAt = p.welcome_email_sent_at;
+                              const attemptAt = p.welcome_email_last_attempt_at;
+                              const lastErr = p.welcome_email_last_error;
+                              const failedLatest = !!lastErr && (!sentAt || (attemptAt && new Date(attemptAt) > new Date(sentAt)));
+                              if (failedLatest) {
+                                return (
+                                  <TooltipProvider delayDuration={200}>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Badge variant="secondary" className="text-[11px] rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20">
+                                          Failed{attemptAt ? ` · ${formatSentAt(attemptAt)}` : ""}
+                                        </Badge>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="right">
+                                        {lastErr}
+                                        {attemptAt ? ` (${new Date(attemptAt).toLocaleString()})` : ""}
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                );
+                              }
+                              if (sentAt) {
+                                return (
+                                  <TooltipProvider delayDuration={200}>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Badge variant="secondary" className="text-[11px] rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20">
+                                          Sent · {formatSentAt(sentAt)}
+                                        </Badge>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="right">{new Date(sentAt).toLocaleString()}</TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                );
+                              }
+                              return <Badge variant="outline" className="text-[11px] rounded-full text-muted-foreground">Never sent</Badge>;
+                            })()}
+                          </TableCell>
+                          <TableCell className="text-right align-top whitespace-nowrap">
+                            <div className="inline-flex items-center gap-0.5">
+                              <TooltipProvider delayDuration={200}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button asChild variant="ghost" size="sm" className="h-8 px-2">
+                                      <Link to={`/sub-accounts?parent=${p.id}`}>
+                                        <Users className="h-3.5 w-3.5" />
+                                        {subs.length > 0 && (
+                                          <span className="ml-1 text-[11px] text-muted-foreground">{subs.length}</span>
+                                        )}
+                                      </Link>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="left">Manage sub-accounts</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              <TooltipProvider delayDuration={200}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 px-2"
+                                      disabled={resendingId === p.id}
+                                      onClick={() => handleResendWelcome(p.id, p.full_name || "client")}
+                                    >
+                                      {resendingId === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="left">Resend welcome email</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              <Button variant="ghost" size="sm" className="h-8 px-2 text-destructive hover:text-destructive" onClick={() => setDeleteTarget({ id: p.id, name: p.full_name || "User" })}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
+          </>
         )}
       </div>
 
