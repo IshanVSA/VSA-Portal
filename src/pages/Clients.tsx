@@ -494,6 +494,21 @@ export default function ClientsPage() {
                         <TooltipProvider delayDuration={200}>
                           <Tooltip>
                             <TooltipTrigger asChild>
+                              <Button asChild variant="ghost" size="sm" className="h-8">
+                                <Link to={`/sub-accounts?parent=${p.id}`}>
+                                  <Users className="h-3.5 w-3.5" />
+                                  {subs.length > 0 && (
+                                    <span className="ml-1 text-[11px] text-muted-foreground">{subs.length}</span>
+                                  )}
+                                </Link>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="left">Manage sub-accounts</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider delayDuration={200}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
                               <Button
                                 variant="ghost"
                                 size="sm"
