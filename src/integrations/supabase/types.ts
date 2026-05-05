@@ -2647,6 +2647,38 @@ export type Database = {
           },
         ]
       }
+      user_login_activity: {
+        Row: {
+          first_login_at: string | null
+          last_seen_at: string | null
+          login_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          first_login_at?: string | null
+          last_seen_at?: string | null
+          login_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          first_login_at?: string | null
+          last_seen_at?: string | null
+          login_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_login_activity_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -2725,6 +2757,19 @@ export type Database = {
       get_accessible_clinic_ids: {
         Args: { _user_id: string }
         Returns: string[]
+      }
+      get_client_login_summary: {
+        Args: never
+        Returns: {
+          email: string
+          first_login_at: string
+          full_name: string
+          last_seen_at: string
+          login_count: number
+          parent_user_id: string
+          role: string
+          user_id: string
+        }[]
       }
       get_concierge_clinic_ids: {
         Args: { _user_id: string }
@@ -2811,6 +2856,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: boolean
       }
+      touch_login_activity: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "concierge" | "client" | "sub_client"

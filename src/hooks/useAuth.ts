@@ -19,12 +19,19 @@ export function useAuth() {
   useEffect(() => {
     let mounted = true;
 
+    // Fire-and-forget heartbeat so admins can see who's actively using the
+    // portal. Server-side throttled to once per 5 minutes per user.
+    const touch = () => {
+      try { (supabase as any).rpc("touch_login_activity"); } catch {}
+    };
+
     // 1. Restore session from storage first
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return;
       if (session) {
         setSession(session);
         setUser(session.user);
+        touch();
       }
       setLoading(false);
     });
@@ -47,6 +54,9 @@ export function useAuth() {
         if (session) {
           setSession(session);
           setUser(session.user);
+          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            touch();
+          }
         }
         setLoading(false);
       }

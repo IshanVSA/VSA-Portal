@@ -13,7 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
-import { Plus, Trash2, UserCheck, Mail, Loader2, Check, ChevronDown, Building2 } from "lucide-react";
+import { Plus, Trash2, UserCheck, Mail, Loader2, Check, ChevronDown, Building2, Activity, UserCircle2, Clock4 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -25,6 +26,17 @@ interface Profile { id: string; full_name: string | null; email: string | null; 
 interface UserRole { user_id: string; role: string; }
 interface ClinicAssignment { user_id: string; clinic_names: string[]; }
 interface ClinicOption { id: string; clinic_name: string; owner_user_id: string | null; }
+interface ActivityRow {
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+  role: string;
+  parent_user_id: string | null;
+  first_login_at: string | null;
+  last_seen_at: string | null;
+  login_count: number;
+}
+type ActivityFilter = "all" | "active" | "never";
 
 const clientSchema = z.object({
   full_name: z.string().trim().min(1, "Full name is required").max(100, "Full name must be less than 100 characters"),
@@ -45,12 +57,14 @@ export default function ClientsPage() {
   const [selectedClinicIds, setSelectedClinicIds] = useState<string[]>([]);
   const [clinicPickerOpen, setClinicPickerOpen] = useState(false);
   const [creating, setCreating] = useState(false);
-
+  const [activity, setActivity] = useState<ActivityRow[]>([]);
+  const [activityFilter, setActivityFilter] = useState<ActivityFilter>("all");
   const fetchData = async () => {
-    const [profilesRes, rolesRes, clinicsRes] = await Promise.all([
+    const [profilesRes, rolesRes, clinicsRes, activityRes] = await Promise.all([
       supabase.from("profiles").select("id, full_name, email, welcome_email_sent_at, welcome_email_last_attempt_at, welcome_email_last_error"),
       supabase.from("user_roles").select("user_id, role"),
       supabase.from("clinics").select("id, clinic_name, owner_user_id").order("clinic_name"),
+      (supabase as any).rpc("get_client_login_summary"),
     ]);
     const allRoles = rolesRes.data || [];
     const clientUserIds = allRoles.filter(r => r.role === "client").map(r => r.user_id);
@@ -68,6 +82,7 @@ export default function ClientsPage() {
       }
     });
     setAssignments(Array.from(assignMap.entries()).map(([user_id, clinic_names]) => ({ user_id, clinic_names })));
+    setActivity((activityRes.data as ActivityRow[] | null) || []);
     setLoading(false);
   };
 
@@ -77,6 +92,27 @@ export default function ClientsPage() {
   }, [role]);
 
   const getAssignedClinics = (userId: string) => assignments.find(a => a.user_id === userId)?.clinic_names || [];
+
+  // Activity helpers (admin-only metrics on the Clients page)
+  const activityByUser = new Map(activity.map(a => [a.user_id, a]));
+  const subAccountsByParent = new Map<string, ActivityRow[]>();
+  for (const a of activity) {
+    if (a.role === "sub_client" && a.parent_user_id) {
+      const arr = subAccountsByParent.get(a.parent_user_id) || [];
+      arr.push(a);
+      subAccountsByParent.set(a.parent_user_id, arr);
+    }
+  }
+  const clientRows = activity.filter(a => a.role === "client");
+  const totalClients = clientRows.length;
+  const everLoggedIn = clientRows.filter(a => !!a.last_seen_at).length;
+  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const activeLast30 = clientRows.filter(a => a.last_seen_at && new Date(a.last_seen_at).getTime() >= thirtyDaysAgo).length;
+
+  const formatLastSeen = (iso: string | null) => {
+    if (!iso) return null;
+    try { return formatDistanceToNow(new Date(iso), { addSuffix: true }); } catch { return null; }
+  };
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
@@ -265,6 +301,56 @@ export default function ClientsPage() {
           </div>
         </div>
 
+
+        {!loading && (
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Card className="border-border/60">
+              <CardContent className="flex items-center gap-3 py-4">
+                <div className="rounded-lg bg-primary/10 p-2"><UserCircle2 className="h-4 w-4 text-primary" /></div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Total clients</p>
+                  <p className="text-xl font-semibold text-foreground">{totalClients}</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-border/60">
+              <CardContent className="flex items-center gap-3 py-4">
+                <div className="rounded-lg bg-emerald-500/10 p-2"><Activity className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /></div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Logged in ever</p>
+                  <p className="text-xl font-semibold text-foreground">{everLoggedIn}<span className="text-sm font-normal text-muted-foreground"> / {totalClients}</span></p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-border/60">
+              <CardContent className="flex items-center gap-3 py-4">
+                <div className="rounded-lg bg-amber-500/10 p-2"><Clock4 className="h-4 w-4 text-amber-600 dark:text-amber-400" /></div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Active last 30 days</p>
+                  <p className="text-xl font-semibold text-foreground">{activeLast30}<span className="text-sm font-normal text-muted-foreground"> / {totalClients}</span></p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {!loading && profiles.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Filter</span>
+            {(["all", "active", "never"] as ActivityFilter[]).map((f) => (
+              <Button
+                key={f}
+                variant={activityFilter === f ? "default" : "outline"}
+                size="sm"
+                className="h-7 rounded-full px-3 text-xs"
+                onClick={() => setActivityFilter(f)}
+              >
+                {f === "all" ? "All" : f === "active" ? "Active 30d" : "Never logged in"}
+              </Button>
+            ))}
+          </div>
+        )}
+
         {loading ? (
           <Card><CardContent className="py-12 text-center text-muted-foreground">
             <div className="inline-flex items-center gap-2">
@@ -287,13 +373,24 @@ export default function ClientsPage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Clinics</TableHead>
+                  <TableHead>Last seen</TableHead>
                   <TableHead>Welcome Email</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {profiles.map((p) => {
+                {profiles
+                  .filter((p) => {
+                    const a = activityByUser.get(p.id);
+                    if (activityFilter === "all") return true;
+                    if (activityFilter === "never") return !a?.last_seen_at;
+                    // active 30d
+                    return !!a?.last_seen_at && new Date(a.last_seen_at).getTime() >= thirtyDaysAgo;
+                  })
+                  .map((p) => {
                   const assignedClinics = getAssignedClinics(p.id);
+                  const a = activityByUser.get(p.id);
+                  const subs = subAccountsByParent.get(p.id) || [];
                   return (
                     <TableRow key={p.id}>
                       <TableCell className="font-medium">{p.full_name || "—"}</TableCell>
@@ -304,6 +401,53 @@ export default function ClientsPage() {
                             {assignedClinics.map((name, i) => (<Badge key={i} variant="secondary" className="text-[11px] rounded-full">{name}</Badge>))}
                           </div>
                         ) : (<span className="text-muted-foreground text-xs italic">None</span>)}
+                      </TableCell>
+                      <TableCell>
+                        {(() => {
+                          const lastSeen = a?.last_seen_at;
+                          const seenLabel = formatLastSeen(lastSeen ?? null);
+                          const badge = lastSeen
+                            ? (
+                              <Badge variant="secondary" className="text-[11px] rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20">
+                                {seenLabel}
+                              </Badge>
+                            )
+                            : (
+                              <Badge variant="outline" className="text-[11px] rounded-full text-muted-foreground">Never</Badge>
+                            );
+                          const tooltipBody = (
+                            <div className="space-y-1 text-xs">
+                              <div>
+                                {lastSeen ? `Last seen ${new Date(lastSeen).toLocaleString()}` : "Has not logged into the portal yet"}
+                              </div>
+                              {a?.first_login_at && (
+                                <div className="text-muted-foreground">First login {new Date(a.first_login_at).toLocaleDateString()}</div>
+                              )}
+                              {typeof a?.login_count === "number" && a.login_count > 0 && (
+                                <div className="text-muted-foreground">Total sessions: {a.login_count}</div>
+                              )}
+                              {subs.length > 0 && (
+                                <div className="pt-1 mt-1 border-t border-border/40">
+                                  <div className="font-medium text-foreground">Sub-accounts ({subs.length})</div>
+                                  {subs.map(s => (
+                                    <div key={s.user_id} className="flex justify-between gap-3">
+                                      <span className="truncate">{s.full_name || s.email || "—"}</span>
+                                      <span className="text-muted-foreground">{s.last_seen_at ? formatLastSeen(s.last_seen_at) : "Never"}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                          return (
+                            <TooltipProvider delayDuration={200}>
+                              <Tooltip>
+                                <TooltipTrigger asChild><span>{badge}</span></TooltipTrigger>
+                                <TooltipContent side="right" className="max-w-xs">{tooltipBody}</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell>
                         {(() => {
