@@ -60,10 +60,11 @@ export default function ClientsPage() {
   const [activity, setActivity] = useState<ActivityRow[]>([]);
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>("all");
   const fetchData = async () => {
-    const [profilesRes, rolesRes, clinicsRes] = await Promise.all([
+    const [profilesRes, rolesRes, clinicsRes, activityRes] = await Promise.all([
       supabase.from("profiles").select("id, full_name, email, welcome_email_sent_at, welcome_email_last_attempt_at, welcome_email_last_error"),
       supabase.from("user_roles").select("user_id, role"),
       supabase.from("clinics").select("id, clinic_name, owner_user_id").order("clinic_name"),
+      (supabase as any).rpc("get_client_login_summary"),
     ]);
     const allRoles = rolesRes.data || [];
     const clientUserIds = allRoles.filter(r => r.role === "client").map(r => r.user_id);
@@ -81,6 +82,7 @@ export default function ClientsPage() {
       }
     });
     setAssignments(Array.from(assignMap.entries()).map(([user_id, clinic_names]) => ({ user_id, clinic_names })));
+    setActivity((activityRes.data as ActivityRow[] | null) || []);
     setLoading(false);
   };
 
