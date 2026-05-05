@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
     // Insert sub-account row
     const { data: subRow, error: subErr } = await admin
       .from("client_sub_accounts")
-      .insert({ parent_user_id: callerId, sub_user_id: subUserId, hide_financials })
+      .insert({ parent_user_id: parentUserId, sub_user_id: subUserId, hide_financials })
       .select("id")
       .single();
     if (subErr || !subRow) {
