@@ -28,7 +28,7 @@ import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { motion } from "framer-motion";
 import UpcomingPosts from "./UpcomingPosts";
 import RecentActivity from "./RecentActivity";
-import MyTickets from "./MyTickets";
+
 import { cn } from "@/lib/utils";
 
 interface Clinic {
@@ -244,6 +244,8 @@ export default function AdminDashboard() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [userName, setUserName] = useState<string | null>(null);
   const [teamCount, setTeamCount] = useState(0);
+  const [activeClientCount, setActiveClientCount] = useState(0);
+  const [totalClientCount, setTotalClientCount] = useState(0);
 
   // raw datasets so we can recompute under filters
   const [tickets, setTickets] = useState<TicketRow[]>([]);
@@ -262,21 +264,35 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const fetchAll = async () => {
-      const [clinicsRes, profilesRes, rolesRes, postsRes, ticketsRes, contentReqRes] = await Promise.all([
+      const [clinicsRes, profilesRes, rolesRes, postsRes, ticketsRes, contentReqRes, loginRes] = await Promise.all([
         supabase.from("clinics").select("id, clinic_name, status, assigned_concierge_id, website_enabled, seo_enabled, google_ads_enabled, social_media_enabled"),
         supabase.from("profiles").select("id, full_name"),
         supabase.from("user_roles").select("user_id, role"),
         supabase.from("content_posts").select("id, status, scheduled_date, clinic_id"),
         supabase.from("department_tickets").select("id, department, status, priority, clinic_id"),
         supabase.from("content_requests").select("id, status, clinic_id"),
+        (supabase as any).rpc("get_client_login_summary"),
       ]);
 
       setClinics((clinicsRes.data || []) as Clinic[]);
       setProfiles(profilesRes.data || []);
-      setTeamCount((rolesRes.data || []).length);
+      // Count only staff accounts (admins + concierges) — exclude clients/sub_clients
+      const staffRoles = new Set(["admin", "concierge"]);
+      const staff = (rolesRes.data || []).filter((r: any) => staffRoles.has(r.role));
+      setTeamCount(staff.length);
       setTickets((ticketsRes.data || []) as TicketRow[]);
       setPosts((postsRes.data || []) as PostRow[]);
       setContentRequests((contentReqRes.data || []) as RequestRow[]);
+
+      // Count clients active in the last 30 days based on portal logins
+      const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      const loginRows = ((loginRes as any)?.data || []) as Array<{ role: string; last_seen_at: string | null }>;
+      const clientRows = loginRows.filter(r => r.role === "client");
+      setTotalClientCount(clientRows.length);
+      setActiveClientCount(
+        clientRows.filter(r => r.last_seen_at && new Date(r.last_seen_at).getTime() >= thirtyDaysAgo).length
+      );
+
       setLoading(false);
     };
     fetchAll();
@@ -328,15 +344,12 @@ export default function AdminDashboard() {
     filteredRequests.forEach(r => { sc[r.status] = (sc[r.status] || 0) + 1; });
     return [
       { label: "Generated", status: "generated", count: sc["generated"] || 0, tone: "muted" },
-      { label: "Concierge Preferred", status: "concierge_preferred", count: sc["concierge_preferred"] || 0, tone: "warning" },
-      { label: "Admin Approved", status: "admin_approved", count: sc["admin_approved"] || 0, tone: "primary" },
       { label: "Client Selected", status: "client_selected", count: sc["client_selected"] || 0, tone: "success" },
       { label: "Finalized", status: "final_approved", count: sc["final_approved"] || 0, tone: "success" },
     ];
   }, [filteredRequests]);
 
   const pendingRequests =
-    (filteredRequests.filter(r => r.status === "concierge_preferred").length) +
     (filteredRequests.filter(r => r.status === "client_selected").length);
 
   const trendData: TrendPoint[] = useMemo(() => {
@@ -493,13 +506,12 @@ export default function AdminDashboard() {
             index={3}
           />
           <HeroStat
-            label="Content Requests"
-            value={pendingRequests}
-            caption={pendingRequests > 0 ? "click to filter" : "all clear"}
-            icon={AlertTriangle}
-            tone={pendingRequests > 0 ? "warning" : "neutral"}
-            onClick={() => toggleStatus("concierge_preferred", "Concierge Preferred")}
-            active={filter.status === "concierge_preferred"}
+            label="Active Clients"
+            value={activeClientCount}
+            caption={totalClientCount > 0 ? `${totalClientCount} total · last 30 days` : "no clients yet"}
+            icon={Activity}
+            tone={activeClientCount > 0 ? "success" : "neutral"}
+            href="/clients"
             index={4}
           />
         </div>
@@ -785,9 +797,8 @@ export default function AdminDashboard() {
         </section>
       </div>
 
-      {/* ROW: Tickets / Posts / Activity */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <MyTickets filter={filter} />
+      {/* ROW: Posts / Activity */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <UpcomingPosts filter={filter} />
         <RecentActivity filter={filter} />
       </div>
