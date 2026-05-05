@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Download, ExternalLink, FileText, Loader2, AlertTriangle } from "lucide-react";
+import { ZipBrowser } from "@/components/ZipBrowser";
 
 interface FilePreviewDialogProps {
   open: boolean;
@@ -13,7 +14,7 @@ interface FilePreviewDialogProps {
   filename: string;
 }
 
-function getKind(name: string): "image" | "video" | "audio" | "pdf" | "text" | "office" | "other" {
+function getKind(name: string): "image" | "video" | "audio" | "pdf" | "text" | "office" | "zip" | "other" {
   const ext = name.split(".").pop()?.toLowerCase() || "";
   if (["jpg", "jpeg", "png", "gif", "webp", "svg", "avif", "bmp"].includes(ext)) return "image";
   if (["mp4", "webm", "mov", "m4v"].includes(ext)) return "video";
@@ -21,6 +22,7 @@ function getKind(name: string): "image" | "video" | "audio" | "pdf" | "text" | "
   if (ext === "pdf") return "pdf";
   if (["txt", "md", "csv", "log", "json", "xml", "html", "htm"].includes(ext)) return "text";
   if (["doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods", "odp"].includes(ext)) return "office";
+  if (ext === "zip") return "zip";
   return "other";
 }
 
@@ -142,6 +144,11 @@ export function FilePreviewDialog({ open, onOpenChange, url: urlProp, getUrl, fi
               title={filename}
               className="w-full h-full border-0 bg-background"
             />
+          )}
+          {ready && kind === "zip" && (
+            <div className="w-full h-full">
+              <ZipBrowser url={resolvedUrl} />
+            </div>
           )}
           {ready && kind === "other" && (
             <div className="flex flex-col items-center gap-3 text-center p-8">
