@@ -45,14 +45,17 @@ export function useGoogleAdsKPIs(clinicId: string): GoogleAdsKPIs {
       }
 
       const m = data.metrics_json as any;
-      const clicks = m.clicks || 0;
-      const impressions = m.impressions || 0;
-      const cost = m.cost || 0;
+
+      // Aggregate last 30 days from daily_trends (sync stores up to 90 days)
+      const trends = (m.daily_trends || []) as { date: string; clicks: number; impressions: number; cost: number }[];
+      const last30Trend = trends.slice(-30);
+      const clicks = last30Trend.reduce((s, d) => s + (d.clicks || 0), 0);
+      const impressions = last30Trend.reduce((s, d) => s + (d.impressions || 0), 0);
+      const cost = Math.round(last30Trend.reduce((s, d) => s + (d.cost || 0), 0) * 100) / 100;
       const cpc = clicks > 0 ? Math.round((cost / clicks) * 100) / 100 : 0;
       const ctr = impressions > 0 ? Math.round((clicks / impressions) * 10000) / 100 : 0;
 
-      const trends = (m.daily_trends || []) as { date: string; clicks: number }[];
-      const last30 = trends.slice(-30).map(d => ({
+      const last30 = last30Trend.map(d => ({
         label: new Date(d.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
         value: d.clicks,
       }));
