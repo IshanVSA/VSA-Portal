@@ -140,10 +140,13 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
         .list(folderPath, { sortBy: { column: "created_at", order: "desc" } });
       if (error) continue;
       for (const f of (monthFiles || []).filter((x) => x.name !== ".emptyFolderPlaceholder")) {
+        const fullPath = `${folderPath}/${f.name}`;
         const { data: signed } = await supabase.storage
           .from(BUCKET)
-          .createSignedUrl(`${folderPath}/${f.name}`, 3600);
+          .createSignedUrl(fullPath, 3600);
         collected.push({
+          id: (f as any).id,
+          path: fullPath,
           name: f.name,
           created_at: f.created_at || new Date().toISOString(),
           size: f.metadata?.size || 0,
