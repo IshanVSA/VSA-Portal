@@ -264,18 +264,14 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
               </span>
               {schedule[day].open && (
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <Input
-                    type="time"
+                  <TimeSelect
                     value={schedule[day].openTime}
-                    onChange={e => update(day, "openTime", e.target.value)}
-                    className="w-24 h-8 text-xs min-w-0"
+                    onChange={v => update(day, "openTime", v)}
                   />
                   <span className="text-muted-foreground text-xs shrink-0">to</span>
-                  <Input
-                    type="time"
+                  <TimeSelect
                     value={schedule[day].closeTime}
-                    onChange={e => update(day, "closeTime", e.target.value)}
-                    className="w-24 h-8 text-xs min-w-0"
+                    onChange={v => update(day, "closeTime", v)}
                   />
                 </div>
               )}
