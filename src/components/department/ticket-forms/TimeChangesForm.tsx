@@ -309,7 +309,10 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
       {/* Stat Holiday Hours */}
       <div className="space-y-1.5">
         <Label className="text-sm font-medium">Statutory Holiday Hours</Label>
-        <div className="flex flex-wrap items-center gap-2 p-2 rounded-md bg-muted/30 min-w-0">
+        <div className={cn(
+          "flex flex-wrap items-center gap-2 p-2 rounded-md bg-muted/30 min-w-0",
+          statHolidayError && "ring-1 ring-destructive/60"
+        )}>
           <div className="w-20 shrink-0 text-sm font-medium text-foreground">Stat Holidays</div>
           <Switch
             checked={statHolidayOpen}
@@ -324,15 +327,20 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
               <TimeSelect
                 value={statHolidayOpenTime}
                 onChange={setStatHolidayOpenTime}
+                invalid={statHolidayError}
               />
               <span className="text-muted-foreground text-xs shrink-0">to</span>
               <TimeSelect
                 value={statHolidayCloseTime}
                 onChange={setStatHolidayCloseTime}
+                invalid={statHolidayError}
               />
             </div>
           )}
         </div>
+        {statHolidayError && (
+          <p className="text-xs text-destructive pl-2">Close time must be after open time.</p>
+        )}
       </div>
     </div>
   );
