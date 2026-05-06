@@ -16,6 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useClinicServiceAccess } from "@/hooks/useClinicServiceAccess";
 import { DepartmentAccessLocked } from "@/components/department/DepartmentAccessLocked";
+import { AdminServiceLockNotice } from "@/components/department/AdminServiceLockNotice";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useFinancialsVisible } from "@/hooks/useFinancialsVisible";
 import { DepartmentChat } from "@/components/department/DepartmentChat";
