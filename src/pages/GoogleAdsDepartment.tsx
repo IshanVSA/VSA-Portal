@@ -49,10 +49,10 @@ export default function GoogleAdsDepartment() {
   const selectedClinicName = selectedClinic?.clinic_name;
 
   const kpis = [
-    ...(showMoney ? [{ label: "Ad Spend", value: adsData.loading ? "—" : `$${adsData.cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, change: "Last 30 days", changeType: "neutral" as const, icon: DollarSign, gradient: "blue" as const }] : []),
-    { label: "Clicks", value: adsData.loading ? "—" : adsData.clicks.toLocaleString(), change: adsData.hasData ? `CTR: ${adsData.ctr}%` : "", changeType: "neutral" as const, icon: MousePointerClick, gradient: "green" as const },
-    { label: "Impressions", value: adsData.loading ? "—" : adsData.impressions.toLocaleString(), change: "Last 30 days", changeType: "neutral" as const, icon: Eye, gradient: "amber" as const },
-    ...(showMoney ? [{ label: "Avg. CPC", value: adsData.loading ? "—" : `$${adsData.cpc.toFixed(2)}`, change: adsData.hasData ? `Spend: $${adsData.cost.toFixed(0)}` : "", changeType: "neutral" as const, icon: Percent, gradient: "purple" as const }] : []),
+    ...(showMoney ? [{ label: "Ad Spend", value: adsData.loading ? "—" : `$${adsData.cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, change: "Last 30 Days", changeType: "neutral" as const, icon: DollarSign, gradient: "blue" as const }] : []),
+    { label: "Clicks", value: adsData.loading ? "—" : adsData.clicks.toLocaleString(), change: "Last 30 Days", changeType: "neutral" as const, icon: MousePointerClick, gradient: "green" as const },
+    { label: "Impressions", value: adsData.loading ? "—" : adsData.impressions.toLocaleString(), change: "Last 30 Days", changeType: "neutral" as const, icon: Eye, gradient: "amber" as const },
+    ...(showMoney ? [{ label: "Avg. CPC", value: adsData.loading ? "—" : `$${adsData.cpc.toFixed(2)}`, change: "Last 30 Days", changeType: "neutral" as const, icon: Percent, gradient: "purple" as const }] : []),
   ];
 
   const trafficData = adsData.dailyTrend.length > 0 ? adsData.dailyTrend : [{ label: "—", value: 0 }];
