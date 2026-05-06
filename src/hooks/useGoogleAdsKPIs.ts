@@ -76,7 +76,7 @@ export function useGoogleAdsKPIs(clinicId: string): GoogleAdsKPIs {
       setState({
         loading: false, hasData: true,
         clicks, impressions, cost, cpc, ctr,
-        dailyTrend: last7.length > 0 ? last7 : [{ label: "—", value: 0 }],
+        dailyTrend: last30.length > 0 ? last30 : [{ label: "—", value: 0 }],
         campaigns,
       });
     };
