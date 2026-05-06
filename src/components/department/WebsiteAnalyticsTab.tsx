@@ -66,29 +66,14 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
     const fetchData = async () => {
       setLoading(true);
       const bufferedRange = getBufferedRange(dateRange.from, dateRange.to);
-      const PAGE_SIZE = 1000;
-      const fetchAllViews = async () => {
-        const all: any[] = [];
-        let from = 0;
-        for (let i = 0; i < 50; i++) {
-          const { data, error } = await supabase
-            .from("website_pageviews")
-            .select("session_id, path, referrer, created_at, country_code, region")
-            .eq("clinic_id", clinicId)
-            .gte("created_at", bufferedRange.from.toISOString())
-            .lte("created_at", bufferedRange.to.toISOString())
-            .order("created_at", { ascending: true })
-            .range(from, from + PAGE_SIZE - 1);
-          if (error || !data || data.length === 0) break;
-          all.push(...data);
-          if (data.length < PAGE_SIZE) break;
-          from += PAGE_SIZE;
-        }
-        return all;
-      };
       const [{ data: clinic }, data] = await Promise.all([
         supabase.from("clinics").select("timezone").eq("id", clinicId).maybeSingle(),
-        fetchAllViews(),
+        fetchAllPageviews<any>(supabase, {
+          clinicId,
+          from: bufferedRange.from,
+          to: bufferedRange.to,
+          columns: "session_id, path, referrer, created_at, country_code, region",
+        }),
       ]);
       const resolvedTimeZone = getSafeTimeZone(clinic?.timezone);
       setTimeZone(resolvedTimeZone);
