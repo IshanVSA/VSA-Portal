@@ -184,8 +184,12 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
   const uploadFiles = async (ticketId: string): Promise<string[]> => {
     const paths: string[] = [];
     for (const { file } of files) {
-      const ext = file.name.split(".").pop() || "bin";
-      const path = `tickets/${ticketId}/${crypto.randomUUID()}.${ext}`;
+      // Preserve the (already member-prefixed) filename so admins can identify
+      // which photo belongs to which team member at a glance. Sanitize for storage.
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 120) || "file";
+      const ext = safeName.includes(".") ? safeName.split(".").pop() : "bin";
+      const base = safeName.replace(/\.[^.]+$/, "") || "file";
+      const path = `tickets/${ticketId}/${base}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
       const { error } = await supabase.storage.from("department-files").upload(path, file);
       if (error) {
         console.error("Upload error:", error);
