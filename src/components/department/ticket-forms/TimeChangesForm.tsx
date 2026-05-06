@@ -7,8 +7,31 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { VoiceDictation } from "./VoiceDictation";
+
+// Generate 30-min interval options: 00:00, 00:30, 01:00, ... 23:30
+const TIME_OPTIONS: string[] = Array.from({ length: 48 }, (_, i) => {
+  const h = Math.floor(i / 2);
+  const m = i % 2 === 0 ? "00" : "30";
+  return `${String(h).padStart(2, "0")}:${m}`;
+});
+
+function TimeSelect({ value, onChange, className }: { value: string; onChange: (v: string) => void; className?: string }) {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className={cn("w-24 h-8 text-xs", className)}>
+        <SelectValue placeholder="00:00" />
+      </SelectTrigger>
+      <SelectContent className="max-h-60 bg-popover z-50">
+        {TIME_OPTIONS.map((t) => (
+          <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
 
 interface DaySchedule {
   open: boolean;
@@ -21,7 +44,7 @@ type WeekSchedule = Record<string, DaySchedule>;
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 const defaultSchedule: WeekSchedule = Object.fromEntries(
-  DAYS.map(day => [day, { open: day !== "Sunday", openTime: "09:00", closeTime: "17:00" }])
+  DAYS.map(day => [day, { open: day !== "Sunday", openTime: "00:00", closeTime: "00:00" }])
 );
 
 interface TimeChangesFormProps {
@@ -37,8 +60,8 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
   const [tempStartDate, setTempStartDate] = useState<Date | undefined>(undefined);
   const [tempEndDate, setTempEndDate] = useState<Date | undefined>(undefined);
   const [statHolidayOpen, setStatHolidayOpen] = useState(false);
-  const [statHolidayOpenTime, setStatHolidayOpenTime] = useState("09:00");
-  const [statHolidayCloseTime, setStatHolidayCloseTime] = useState("17:00");
+  const [statHolidayOpenTime, setStatHolidayOpenTime] = useState("00:00");
+  const [statHolidayCloseTime, setStatHolidayCloseTime] = useState("00:00");
 
   useEffect(() => {
     const lines = DAYS.map(day => {
@@ -241,18 +264,14 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
               </span>
               {schedule[day].open && (
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <Input
-                    type="time"
+                  <TimeSelect
                     value={schedule[day].openTime}
-                    onChange={e => update(day, "openTime", e.target.value)}
-                    className="w-24 h-8 text-xs min-w-0"
+                    onChange={v => update(day, "openTime", v)}
                   />
                   <span className="text-muted-foreground text-xs shrink-0">to</span>
-                  <Input
-                    type="time"
+                  <TimeSelect
                     value={schedule[day].closeTime}
-                    onChange={e => update(day, "closeTime", e.target.value)}
-                    className="w-24 h-8 text-xs min-w-0"
+                    onChange={v => update(day, "closeTime", v)}
                   />
                 </div>
               )}
@@ -276,18 +295,14 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
           </span>
           {statHolidayOpen && (
             <div className="flex items-center gap-1.5 min-w-0">
-              <Input
-                type="time"
+              <TimeSelect
                 value={statHolidayOpenTime}
-                onChange={e => setStatHolidayOpenTime(e.target.value)}
-                className="w-24 h-8 text-xs min-w-0"
+                onChange={setStatHolidayOpenTime}
               />
               <span className="text-muted-foreground text-xs shrink-0">to</span>
-              <Input
-                type="time"
+              <TimeSelect
                 value={statHolidayCloseTime}
-                onChange={e => setStatHolidayCloseTime(e.target.value)}
-                className="w-24 h-8 text-xs min-w-0"
+                onChange={setStatHolidayCloseTime}
               />
             </div>
           )}
