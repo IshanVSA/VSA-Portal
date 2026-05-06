@@ -410,7 +410,54 @@ export default function Clinics() {
     setEditTeamMembers(
       teamAssignments.filter((a) => a.clinic_id === clinic.id).map((a) => a.user_id)
     );
+    setEditComplianceOverride(clinic.compliance_body_override ?? null);
+    setRefetchingWebsite(false);
     setEditDialogOpen(true);
+  };
+
+  const refetchClinicFromWebsite = async () => {
+    if (!editClinic) return;
+    const websiteUrl = (editClinic.website || "").trim();
+    if (!websiteUrl) {
+      toast.error("This clinic has no website on file. Add one first.");
+      return;
+    }
+    setRefetchingWebsite(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token ?? session?.access_token;
+
+      const { data, error } = await supabase.functions.invoke("extract-clinic-website", {
+        body: { website: websiteUrl },
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+      });
+
+      if (error) {
+        toast.error(await extractEdgeFunctionError(error, data, "Failed to refetch clinic details"));
+        return;
+      }
+
+      const extracted = (data?.fields ?? null) as ExtractedClinicDetails | null;
+      if (!extracted) {
+        toast.error("No clinic details could be extracted from the website");
+        return;
+      }
+
+      const updates: string[] = [];
+      if (extracted.clinic_name) { setEditName(extracted.clinic_name); updates.push("name"); }
+      if (extracted.phone) { setEditPhone(extracted.phone); updates.push("phone"); }
+      if (extracted.address) { setEditAddress(extracted.address); updates.push("address"); }
+
+      if (updates.length === 0) {
+        toast("No fields could be refreshed from the website");
+      } else {
+        toast.success(`Refreshed: ${updates.join(", ")}. Click Save Changes to persist.`);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to refetch clinic details");
+    } finally {
+      setRefetchingWebsite(false);
+    }
   };
 
   const persistTeamAssignments = async (clinicId: string, nextMembers: string[]) => {
