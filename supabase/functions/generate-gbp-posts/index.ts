@@ -49,6 +49,22 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Apply clinic-level compliance body override (admin set in Edit Clinic) — takes precedence over auto-detection
+    let effectiveJurisdiction = jurisdiction;
+    let effectiveGoverningBody = governing_body;
+    try {
+      const { data: clinicRow } = await supabase
+        .from("clinics")
+        .select("compliance_body_override")
+        .eq("id", clinic_id)
+        .maybeSingle();
+      const override = (clinicRow?.compliance_body_override || "").trim();
+      if (override) {
+        effectiveJurisdiction = override;
+        effectiveGoverningBody = override;
+      }
+    } catch (_) { /* non-fatal */ }
+
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) {
       return new Response(JSON.stringify({ error: "Anthropic API key not configured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
