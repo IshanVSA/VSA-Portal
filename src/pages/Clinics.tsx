@@ -16,11 +16,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { COMMON_TIMEZONES, getSafeTimeZone } from "@/lib/website-analytics";
 import { isHttpsClinicWebsiteUrl, normalizeClinicWebsiteUrl } from "@/lib/clinic-website";
-import { Plus, Search, Eye, Trash2, Pencil, Building2, Users, X, Loader2, Sparkles, Lock, ShieldCheck } from "lucide-react";
+import { Plus, Search, Eye, Trash2, Pencil, Building2, Users, X, Loader2, Sparkles, Lock, ShieldCheck, RefreshCw, RotateCcw } from "lucide-react";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 import { ClinicLogoUploader } from "@/components/clinic-detail/ClinicLogoUploader";
 import { DepartmentTeamPicker } from "@/components/clinic-detail/DepartmentTeamPicker";
+import { detectComplianceBody, getEffectiveComplianceBody, COMPLIANCE_BODY_OPTIONS } from "@/lib/compliance-body";
 
 interface Clinic {
   id: string;
