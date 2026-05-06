@@ -63,6 +63,22 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
   const [statHolidayOpenTime, setStatHolidayOpenTime] = useState("00:00");
   const [statHolidayCloseTime, setStatHolidayCloseTime] = useState("00:00");
 
+  const toMinutes = (t: string) => {
+    const [h, m] = t.split(":").map(Number);
+    return (h || 0) * 60 + (m || 0);
+  };
+  const isInvalidRange = (open: string, close: string) =>
+    toMinutes(close) <= toMinutes(open);
+
+  const dayErrors: Record<string, boolean> = Object.fromEntries(
+    DAYS.map(day => [
+      day,
+      schedule[day].open && isInvalidRange(schedule[day].openTime, schedule[day].closeTime),
+    ])
+  );
+  const statHolidayError =
+    statHolidayOpen && isInvalidRange(statHolidayOpenTime, statHolidayCloseTime);
+
   useEffect(() => {
     const lines = DAYS.map(day => {
       const s = schedule[day];
