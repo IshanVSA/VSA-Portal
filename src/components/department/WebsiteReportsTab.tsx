@@ -124,12 +124,22 @@ export function WebsiteReportsTab({ clinicId }: Props) {
       setLoading(true);
       const currentBufferedRange = getBufferedRange(range.from, range.to);
       const previousBufferedRange = getBufferedRange(prevRange.from, prevRange.to);
-      const [{ data: pvData }, { data: prevData }] = await Promise.all([
-        supabase.from("website_pageviews").select("session_id, path, referrer, created_at").eq("clinic_id", clinicId).gte("created_at", currentBufferedRange.from.toISOString()).lte("created_at", currentBufferedRange.to.toISOString()).order("created_at", { ascending: true }),
-        supabase.from("website_pageviews").select("session_id, path, referrer, created_at").eq("clinic_id", clinicId).gte("created_at", previousBufferedRange.from.toISOString()).lte("created_at", previousBufferedRange.to.toISOString()),
+      const [pvData, prevData] = await Promise.all([
+        fetchAllPageviews<any>(supabase, {
+          clinicId,
+          from: currentBufferedRange.from,
+          to: currentBufferedRange.to,
+          columns: "session_id, path, referrer, created_at",
+        }),
+        fetchAllPageviews<any>(supabase, {
+          clinicId,
+          from: previousBufferedRange.from,
+          to: previousBufferedRange.to,
+          columns: "session_id, path, referrer, created_at",
+        }),
       ]);
-      setPageviews((pvData as any[] | null) || []);
-      setPrevPageviews((prevData as any[] | null) || []);
+      setPageviews(pvData);
+      setPrevPageviews(prevData);
       setLoading(false);
     };
 
