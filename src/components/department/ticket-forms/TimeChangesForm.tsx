@@ -101,6 +101,17 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
     setSchedule(prev => ({ ...prev, [day]: { ...prev[day], [field]: value } }));
   };
 
+  const applyMondayToAll = () => {
+    setSchedule(prev => {
+      const monday = prev["Monday"];
+      const next = { ...prev };
+      DAYS.forEach(day => {
+        if (day !== "Monday") next[day] = { ...monday };
+      });
+      return next;
+    });
+  };
+
   const handleAutofill = useCallback((fields: Record<string, any>) => {
     if (fields.startDate) {
       try { setStartDate(parse(fields.startDate, "yyyy-MM-dd", new Date())); } catch {}
