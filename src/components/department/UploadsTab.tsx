@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { getVisibleTicketTypes } from "@/lib/ticket-department-map";
 
 interface UploadedFile {
+  id?: string;
+  path: string; // full storage path — stable identifier
   name: string;
   created_at: string;
   size: number;
@@ -30,6 +32,8 @@ interface TicketAttachment {
 }
 
 interface BrandAsset {
+  id?: string;
+  path: string;
   name: string;
   created_at: string;
   size: number;
@@ -111,10 +115,13 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
       (d) => d.name !== ".emptyFolderPlaceholder" && d.metadata && d.metadata.size != null
     );
     for (const f of legacyFiles) {
+      const legacyPath = `${baseDeptPath}/${f.name}`;
       const { data: signed } = await supabase.storage
         .from(BUCKET)
-        .createSignedUrl(`${baseDeptPath}/${f.name}`, 3600);
+        .createSignedUrl(legacyPath, 3600);
       collected.push({
+        id: (f as any).id,
+        path: legacyPath,
         name: f.name,
         created_at: f.created_at || new Date().toISOString(),
         size: f.metadata?.size || 0,
@@ -135,10 +142,13 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
         .list(folderPath, { sortBy: { column: "created_at", order: "desc" } });
       if (error) continue;
       for (const f of (monthFiles || []).filter((x) => x.name !== ".emptyFolderPlaceholder")) {
+        const fullPath = `${folderPath}/${f.name}`;
         const { data: signed } = await supabase.storage
           .from(BUCKET)
-          .createSignedUrl(`${folderPath}/${f.name}`, 3600);
+          .createSignedUrl(fullPath, 3600);
         collected.push({
+          id: (f as any).id,
+          path: fullPath,
           name: f.name,
           created_at: f.created_at || new Date().toISOString(),
           size: f.metadata?.size || 0,
@@ -214,6 +224,8 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
     const filtered = (data || []).filter((f) => f.name !== ".emptyFolderPlaceholder" && f.metadata?.size != null);
     setBrandAssets(
       filtered.map((f) => ({
+        id: (f as any).id,
+        path: `${brandPath}/${f.name}`,
         name: f.name,
         created_at: f.created_at || new Date().toISOString(),
         size: f.metadata?.size || 0,
@@ -300,8 +312,8 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
       fetchFiles();
     } else {
       toast.success("File deleted");
-      // Optimistically remove from local state — no full reload / loading flash
-      setFiles((prev) => prev.filter((f) => !(f.name === file.name && f.monthKey === file.monthKey)));
+      // Optimistically remove by stable identifier (id or full path) to avoid name collisions
+      setFiles((prev) => prev.filter((f) => (file.id ? f.id !== file.id : f.path !== file.path)));
     }
   };
 
@@ -328,9 +340,9 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
     fetchBrandAssets();
   };
 
-  const handleBrandDelete = async (name: string) => {
+  const handleBrandDelete = async (asset: BrandAsset) => {
     if (!brandPath) return;
-    const { data, error } = await supabase.storage.from(BUCKET).remove([`${brandPath}/${name}`]);
+    const { data, error } = await supabase.storage.from(BUCKET).remove([asset.path]);
     if (error) {
       toast.error(`Failed to delete brand asset: ${error.message}`);
     } else if (!data || data.length === 0) {
@@ -338,8 +350,8 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
       fetchBrandAssets();
     } else {
       toast.success("Brand asset deleted");
-      // Optimistically remove from local state
-      setBrandAssets((prev) => prev.filter((b) => b.name !== name));
+      // Optimistically remove by stable identifier (id or full path)
+      setBrandAssets((prev) => prev.filter((b) => (asset.id ? b.id !== asset.id : b.path !== asset.path)));
     }
   };
 
@@ -642,7 +654,7 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
                         variant="ghost"
                         size="sm"
                         className="h-8 text-xs text-destructive hover:text-destructive"
-                        onClick={() => handleBrandDelete(asset.name)}
+                        onClick={() => handleBrandDelete(asset)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
