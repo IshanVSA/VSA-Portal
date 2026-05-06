@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import type { SeoKeyword } from "@/hooks/useSeoAnalytics";
 import { useClinicServiceAccess } from "@/hooks/useClinicServiceAccess";
 import { DepartmentAccessLocked } from "@/components/department/DepartmentAccessLocked";
+import { AdminServiceLockNotice } from "@/components/department/AdminServiceLockNotice";
 import { DepartmentChat } from "@/components/department/DepartmentChat";
 import { useDepartmentChatUnread } from "@/hooks/useDepartmentChatUnread";
 import { BlogTab } from "@/components/seo/blog/BlogTab";
@@ -120,7 +121,7 @@ export default function SeoDepartment() {
   const { latest, trafficData, topKeywords, isLoading, upsertSeoAnalytics, isUpserting } = useSeoAnalytics(selectedClinicId);
   const canEditSeo = useCanEditSeo();
   const { role } = useUserRole();
-  const { isLocked, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "seo", clinicsLoading);
+  const { isLocked, isAdminBypass, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "seo", clinicsLoading);
   const isClient = role === "client";
   const isStaff = !isClient;
   const { unreadCount, markAsRead } = useDepartmentChatUnread("seo", selectedClinicId);
@@ -175,7 +176,8 @@ export default function SeoDepartment() {
               <DepartmentAccessLocked clinicName={selectedClinicName} departmentName="SEO" />
             </motion.div>
           ) : (
-            <motion.div key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+            <motion.div key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="space-y-3">
+              {isAdminBypass && <AdminServiceLockNotice clinicName={selectedClinicName} departmentName="SEO" />}
               <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
                 <div className="sticky top-14 z-20 -mx-3 sm:-mx-4 lg:-mx-8 px-3 sm:px-4 lg:px-8 py-2 bg-background/85 backdrop-blur-md border-b border-border/40">
                 <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto flex-nowrap tabs-scroll">
