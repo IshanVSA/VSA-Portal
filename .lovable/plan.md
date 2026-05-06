@@ -1,58 +1,57 @@
 ## Goal
 
-Give admins a single view answering: of all clients (and their sub-accounts), how many have actually logged into the portal, and when each one was last active. Hidden from concierge, clients, and sub-accounts.
+Enhance the **Edit Clinic** dialog (Admin → Clinics → Edit) with:
 
-## What admins will see
+1. A **"Refetch from website"** button that re-runs the AI extractor against the clinic's stored website to refresh fields (most importantly Address) when the AI got it wrong.
+2. A **Compliance Body** display showing which regulatory body the system has detected for this clinic based on its address.
+3. An **override dropdown** so an admin can pick the correct body (Canadian provinces + US states + national bodies) when the auto-detected one is wrong, persisted on the clinic record.
 
-A new card on the Clients page (admin-only):
+## UX
 
-- Three KPIs at the top:
-  - Total clients
-  - Logged in at least once
-  - Active in the last 30 days
-- An extra column on the existing clients table: **Last seen** (e.g. "2 hours ago", "3 days ago", "Never").
-- Sortable by Last seen, with a small filter chip: All / Active 30d / Never logged in.
+In the Edit Clinic dialog, directly under the **Address** field, add:
 
-Sub-accounts (`sub_client`) are tracked too and rolled up under their parent client, with a tooltip listing each sub-account's own last-seen timestamp.
+```text
+Address
+[ 14675 108 Avenue, Surrey, BC, V3R 1V9            ] [↻ Refetch]
+                                                     small button on the right
 
-## How it works (technical)
+Compliance Body                                       (Auto-detected)
+[ CVBC (College of Veterinarians of British Columbia) ▼ ]
+The body the AI uses for ad/promotion compliance. Override only if incorrect.
+```
 
-We can't read `auth.users.last_sign_in_at` directly from the client SDK and we don't want to ship the service-role key. Two parts:
+- **Refetch button**: secondary/outline, with refresh icon. Disabled if the clinic has no website on file. Shows a spinner while running. On success, updates the local edit form fields (name/phone/address/etc.) — the user still has to click **Save Changes** to persist. Toast confirms what came back.
+- **Compliance Body select**: shows the **auto-detected** value as the default (computed live from the current `editAddress`). If an admin picks a different one, that override is saved to the clinic. A small "Reset to auto" link appears when an override is active. A badge next to the label reads "Auto-detected" or "Manual override".
 
-**1. Database** (`supabase--migration`)
-- New table `public.user_login_activity`:
-  - `user_id uuid PK references profiles(id) on delete cascade`
-  - `first_login_at timestamptz`
-  - `last_seen_at timestamptz`
-  - `login_count int default 0`
-- RLS:
-  - SELECT: `has_role(auth.uid(),'admin')` only.
-  - INSERT/UPDATE: only via the security-definer RPC below (no direct writes from clients).
-- RPC `public.touch_login_activity()` `SECURITY DEFINER`:
-  - Upserts row for `auth.uid()`: sets `first_login_at` if null, bumps `last_seen_at = now()`, increments `login_count`.
-  - Throttled in the function itself: only updates if `last_seen_at < now() - interval '5 minutes'` to avoid write storms.
-- RPC `public.get_client_login_summary()` `SECURITY DEFINER` returning `(user_id, full_name, email, role, parent_user_id, last_seen_at, first_login_at, login_count)`:
-  - Admin-only check at top, raises if not admin.
-  - Returns rows for every user with role `client` or `sub_client`, left-joined to activity. Includes parent linkage from `client_sub_accounts` so the UI can group sub-accounts under their parent.
+## Data model
 
-**2. Client heartbeat**
-- In `useAuth` (or `App.tsx` once the session is known), call `supabase.rpc('touch_login_activity')` once per session load and on `SIGNED_IN` auth event. The 5-minute throttle is enforced server-side, so we don't need extra client logic.
+Add one nullable column to `public.clinics`:
 
-**3. UI** (`src/pages/Clients.tsx`)
-- Admin-only block (gated by `role === 'admin'`):
-  - Fetch via `supabase.rpc('get_client_login_summary')`.
-  - Render the three KPI cards and add the **Last seen** column to the existing client table using `formatDistanceToNow` from `date-fns` (already in the project). "Never" badge for null.
-  - Filter chip switches the visible row set client-side.
-  - Sub-accounts surfaced in a tooltip on the parent's row (Tooltip already imported in this file).
+- `compliance_body_override TEXT NULL` — when set, this string is the authoritative compliance body for the clinic; when null, the system falls back to `detectComplianceBody(address)`.
 
-## Out of scope
+No RLS changes needed — existing clinic update policies (admin only) already cover it.
 
-- No per-page or per-route activity tracking; just session-level "last seen".
-- No history graph; only current `last_seen_at` plus login count. Easy to extend later if needed.
-- Concierge users are not shown in this report (they're staff, not clients).
+## Files to change
 
-## Files touched
+1. **`supabase/migrations/<new>.sql`** — add `compliance_body_override` column.
+2. **`src/lib/compliance-body.ts`** — export the full list of selectable bodies (CA provinces, US states, CA national, US national, generic) so the dropdown can render them. Add a helper `getEffectiveComplianceBody(address, override)` that returns the override when set, otherwise the detected value.
+3. **`src/pages/Clinics.tsx`**
+   - Extend `Clinic` interface with `website` and `compliance_body_override`.
+   - Add `editWebsite` and `editComplianceOverride` state; populate them in `openEditDialog`.
+   - Add `refetchFromWebsite()` handler — same call as `extractClinicFromWebsite` but writes into the **edit** state vars, using `editClinic.website` as the URL. If no website on the clinic, show a toast and bail.
+   - Render the Refetch button next to the Address input (or below it on mobile).
+   - Render the Compliance Body select + "Auto-detected / Manual override" badge + Reset link, computed from `editAddress` and `editComplianceOverride`.
+   - Update `saveEdit` to also persist `compliance_body_override` (null when matching the auto value or "Reset to auto" was clicked).
+4. **`src/integrations/supabase/types.ts`** — auto-regenerated after migration.
 
-- New migration: `user_login_activity` table + 2 RPCs + RLS.
-- `src/hooks/useAuth.ts` — fire-and-forget `touch_login_activity` RPC on sign-in.
-- `src/pages/Clients.tsx` — admin-only summary card, KPIs, Last seen column, filter chip.
+## Out of scope (won't touch)
+
+- The Add Clinic dialog (only Edit, per the request).
+- Other surfaces that read compliance body (PromotionModule, PopupOffersForm). They'll automatically pick up the override once they switch to `getEffectiveComplianceBody`, but that wiring can be a follow-up — this plan only guarantees the value is **stored** on the clinic. I'll mention this in the closing note so you can decide whether to extend it now.
+
+## Order of operations
+
+1. Create the SQL migration (await user approval).
+2. After migration runs, add `getEffectiveComplianceBody` + selectable-bodies export to `compliance-body.ts`.
+3. Wire the Edit dialog: state, Refetch button, Compliance Body select, save logic.
+4. Manual QA: open Edit on a clinic, confirm auto-detected body matches address, change override, save, reopen — value persists; Refetch updates fields without saving until Save is clicked.
