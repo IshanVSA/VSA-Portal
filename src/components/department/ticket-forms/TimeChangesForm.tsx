@@ -18,10 +18,10 @@ const TIME_OPTIONS: string[] = Array.from({ length: 48 }, (_, i) => {
   return `${String(h).padStart(2, "0")}:${m}`;
 });
 
-function TimeSelect({ value, onChange, className }: { value: string; onChange: (v: string) => void; className?: string }) {
+function TimeSelect({ value, onChange, className, invalid }: { value: string; onChange: (v: string) => void; className?: string; invalid?: boolean }) {
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className={cn("w-24 h-8 text-xs", className)}>
+      <SelectTrigger className={cn("w-24 h-8 text-xs", invalid && "border-destructive focus:ring-destructive", className)}>
         <SelectValue placeholder="00:00" />
       </SelectTrigger>
       <SelectContent className="max-h-60 bg-popover z-50">
