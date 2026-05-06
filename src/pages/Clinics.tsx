@@ -545,11 +545,6 @@ export default function Clinics() {
     }
   };
 
-  const toggleStatus = async (clinicId: string, currentStatus: string) => {
-    const newStatus = currentStatus === "active" ? "inactive" : "active";
-    const { error } = await supabase.from("clinics").update({ status: newStatus }).eq("id", clinicId);
-    if (!error) setClinics(prev => prev.map(c => c.id === clinicId ? { ...c, status: newStatus } : c));
-  };
 
   const filtered = clinics.filter(c => c.clinic_name.toLowerCase().includes(search.toLowerCase()));
   const getClientName = (id: string | null) => !id ? null : clients.find(c => c.user_id === id)?.full_name || "Unknown";
@@ -686,7 +681,7 @@ export default function Clinics() {
                   {role === "admin" && <TableHead className="hidden xl:table-cell">Service Access</TableHead>}
                   {role === "admin" && <TableHead>Team Members</TableHead>}
                   {role === "admin" && <TableHead className="hidden lg:table-cell">Client Owner</TableHead>}
-                  <TableHead>Status</TableHead>
+                  
                   <TableHead className="hidden sm:table-cell">Phone</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -759,15 +754,6 @@ export default function Clinics() {
                           </span>
                         </TableCell>
                       )}
-                      <TableCell>
-                        <Badge
-                          variant={clinic.status === "active" ? "default" : "secondary"}
-                          className={`rounded-full text-[11px] ${role === "admin" ? "cursor-pointer" : ""}`}
-                          onClick={() => role === "admin" && toggleStatus(clinic.id, clinic.status)}
-                        >
-                          {clinic.status}
-                        </Badge>
-                      </TableCell>
                       <TableCell className="text-muted-foreground text-sm hidden sm:table-cell">{clinic.phone || "—"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
