@@ -486,11 +486,16 @@ export default function Clinics() {
 
   const saveEdit = async () => {
     if (!editClinic || !editName.trim()) return;
+    const autoBody = detectComplianceBody(editAddress || null);
+    const overrideValue = editComplianceOverride && editComplianceOverride !== autoBody
+      ? editComplianceOverride
+      : null;
     const { error } = await (supabase.from("clinics" as any).update({
       clinic_name: editName.trim(),
       phone: editPhone || null,
       address: editAddress || null,
       owner_user_id: editOwnerId && editOwnerId !== "none" ? editOwnerId : null,
+      compliance_body_override: overrideValue,
       ...editAccess,
     } as any).eq("id", editClinic.id) as any);
     if (error) { toast.error(error.message); return; }
