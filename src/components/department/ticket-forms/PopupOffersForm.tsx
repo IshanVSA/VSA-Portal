@@ -109,6 +109,7 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
           startDate: dateRange.from ? format(dateRange.from, "yyyy-MM-dd") : "",
           endDate: dateRange.to ? format(dateRange.to, "yyyy-MM-dd") : "",
           complianceBody,
+          clinic_id: clinicId,
         },
       });
       if (error) throw new Error(await extractEdgeFunctionError(error, data, "Verification failed"));
