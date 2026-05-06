@@ -682,7 +682,7 @@ export default function Clinics() {
                   {role === "admin" && <TableHead>Team Members</TableHead>}
                   {role === "admin" && <TableHead className="hidden lg:table-cell">Client Owner</TableHead>}
                   
-                  <TableHead className="hidden sm:table-cell">Phone</TableHead>
+                  
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -754,7 +754,7 @@ export default function Clinics() {
                           </span>
                         </TableCell>
                       )}
-                      <TableCell className="text-muted-foreground text-sm hidden sm:table-cell">{clinic.phone || "—"}</TableCell>
+                      
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           {role === "admin" && (
