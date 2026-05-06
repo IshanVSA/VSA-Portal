@@ -101,6 +101,17 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
     setSchedule(prev => ({ ...prev, [day]: { ...prev[day], [field]: value } }));
   };
 
+  const applyMondayToAll = () => {
+    setSchedule(prev => {
+      const monday = prev["Monday"];
+      const next = { ...prev };
+      DAYS.forEach(day => {
+        if (day !== "Monday") next[day] = { ...monday };
+      });
+      return next;
+    });
+  };
+
   const handleAutofill = useCallback((fields: Record<string, any>) => {
     if (fields.startDate) {
       try { setStartDate(parse(fields.startDate, "yyyy-MM-dd", new Date())); } catch {}
@@ -268,7 +279,18 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
 
       {/* Schedule grid */}
       <div className="space-y-1.5">
-        <Label className="text-sm font-medium">Business Hours</Label>
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-sm font-medium">Business Hours</Label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={applyMondayToAll}
+          >
+            Apply Monday to all days
+          </Button>
+        </div>
         <div className="space-y-2">
           {DAYS.map(day => (
             <div key={day} className="space-y-1">
