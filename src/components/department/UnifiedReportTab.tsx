@@ -152,14 +152,18 @@ export function UnifiedReportTab({ clinicId }: Props) {
       setLoading(true);
       const bufferedRange = getBufferedRange(range.from, range.to);
       const prevBufferedRange = getBufferedRange(prevRange.from, prevRange.to);
-      const [{ data: pvData }, { data: prevPvData }, { data: adsRow }, { data: socialRows }] = await Promise.all([
-        supabase.from("website_pageviews").select("session_id, path, created_at").eq("clinic_id", clinicId).gte("created_at", bufferedRange.from.toISOString()).lte("created_at", bufferedRange.to.toISOString()),
-        supabase.from("website_pageviews").select("session_id, path, created_at").eq("clinic_id", clinicId).gte("created_at", prevBufferedRange.from.toISOString()).lte("created_at", prevBufferedRange.to.toISOString()),
+      const [pvData, prevPvData, { data: adsRow }, { data: socialRows }] = await Promise.all([
+        fetchAllPageviews<{ session_id: string; path: string; created_at: string }>(supabase, {
+          clinicId, from: bufferedRange.from, to: bufferedRange.to,
+        }),
+        fetchAllPageviews<{ session_id: string; path: string; created_at: string }>(supabase, {
+          clinicId, from: prevBufferedRange.from, to: prevBufferedRange.to,
+        }),
         supabase.from("analytics").select("metrics_json").eq("clinic_id", clinicId).eq("platform", "google_ads").eq("metric_type", "monthly_summary").order("recorded_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("analytics").select("platform, metric_type, value, date").eq("clinic_id", clinicId).in("platform", ["facebook", "instagram"]).order("recorded_at", { ascending: false }).limit(20),
       ]);
       const currentMetrics = computeWebsiteMetrics(
-        ((pvData || []) as { session_id: string; path: string; created_at: string }[]),
+        pvData,
         buildDateKeys(range.from, range.to),
         timeZone,
       );
