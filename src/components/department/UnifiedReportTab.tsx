@@ -20,6 +20,7 @@ import {
   buildDateKeys,
   computeWebsiteMetrics,
   DEFAULT_CLINIC_TIMEZONE,
+  fetchAllPageviews,
   getBufferedRange,
   getMonthDateRangeForTimeZone,
   getSafeTimeZone,
