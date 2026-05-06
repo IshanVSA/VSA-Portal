@@ -121,7 +121,7 @@ export default function SeoDepartment() {
   const { latest, trafficData, topKeywords, isLoading, upsertSeoAnalytics, isUpserting } = useSeoAnalytics(selectedClinicId);
   const canEditSeo = useCanEditSeo();
   const { role } = useUserRole();
-  const { isLocked, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "seo", clinicsLoading);
+  const { isLocked, isAdminBypass, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "seo", clinicsLoading);
   const isClient = role === "client";
   const isStaff = !isClient;
   const { unreadCount, markAsRead } = useDepartmentChatUnread("seo", selectedClinicId);
