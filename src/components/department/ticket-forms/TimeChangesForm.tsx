@@ -268,28 +268,38 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
         <Label className="text-sm font-medium">Business Hours</Label>
         <div className="space-y-2">
           {DAYS.map(day => (
-            <div key={day} className="flex flex-wrap items-center gap-2 p-2 rounded-md bg-muted/30 min-w-0">
-              <div className="w-20 shrink-0 text-sm font-medium text-foreground truncate">{day}</div>
-              <Switch
-                checked={schedule[day].open}
-                onCheckedChange={v => update(day, "open", v)}
-                className="shrink-0"
-              />
-              <span className="text-xs text-muted-foreground w-10 shrink-0">
-                {schedule[day].open ? "Open" : "Closed"}
-              </span>
-              {schedule[day].open && (
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <TimeSelect
-                    value={schedule[day].openTime}
-                    onChange={v => update(day, "openTime", v)}
-                  />
-                  <span className="text-muted-foreground text-xs shrink-0">to</span>
-                  <TimeSelect
-                    value={schedule[day].closeTime}
-                    onChange={v => update(day, "closeTime", v)}
-                  />
-                </div>
+            <div key={day} className="space-y-1">
+              <div className={cn(
+                "flex flex-wrap items-center gap-2 p-2 rounded-md bg-muted/30 min-w-0",
+                dayErrors[day] && "ring-1 ring-destructive/60"
+              )}>
+                <div className="w-20 shrink-0 text-sm font-medium text-foreground truncate">{day}</div>
+                <Switch
+                  checked={schedule[day].open}
+                  onCheckedChange={v => update(day, "open", v)}
+                  className="shrink-0"
+                />
+                <span className="text-xs text-muted-foreground w-10 shrink-0">
+                  {schedule[day].open ? "Open" : "Closed"}
+                </span>
+                {schedule[day].open && (
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <TimeSelect
+                      value={schedule[day].openTime}
+                      onChange={v => update(day, "openTime", v)}
+                      invalid={dayErrors[day]}
+                    />
+                    <span className="text-muted-foreground text-xs shrink-0">to</span>
+                    <TimeSelect
+                      value={schedule[day].closeTime}
+                      onChange={v => update(day, "closeTime", v)}
+                      invalid={dayErrors[day]}
+                    />
+                  </div>
+                )}
+              </div>
+              {dayErrors[day] && (
+                <p className="text-xs text-destructive pl-2">Close time must be after open time.</p>
               )}
             </div>
           ))}
