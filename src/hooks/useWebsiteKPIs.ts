@@ -35,38 +35,20 @@ export function useWebsiteKPIs(clinicId?: string): WebsiteKPIs {
       const now = new Date();
       const bufferedRange = getBufferedRange(new Date(now.getTime() - 16 * 86400000), now);
 
-      const PAGE_SIZE = 1000;
-      const fetchAllPageviews = async () => {
-        const all: { session_id: string; path: string; created_at: string }[] = [];
-        let from = 0;
-        // Hard safety cap to avoid runaway loops
-        for (let i = 0; i < 50; i++) {
-          const { data, error } = await (supabase as any)
-            .from("website_pageviews")
-            .select("session_id, path, created_at")
-            .eq("clinic_id", clinicId)
-            .gte("created_at", bufferedRange.from.toISOString())
-            .lte("created_at", bufferedRange.to.toISOString())
-            .order("created_at", { ascending: true })
-            .range(from, from + PAGE_SIZE - 1);
-          if (error || !data || data.length === 0) break;
-          all.push(...data);
-          if (data.length < PAGE_SIZE) break;
-          from += PAGE_SIZE;
-        }
-        return all;
-      };
-
       const [{ data: clinic }, rows] = await Promise.all([
         (supabase as any)
           .from("clinics")
           .select("timezone")
           .eq("id", clinicId)
           .maybeSingle(),
-        fetchAllPageviews(),
+        fetchAllPageviews<{ session_id: string; path: string; created_at: string }>(supabase, {
+          clinicId,
+          from: bufferedRange.from,
+          to: bufferedRange.to,
+        }),
       ]);
 
-      const pageviews = (rows || []) as { session_id: string; path: string; created_at: string }[];
+      const pageviews = rows;
       const timeZone = getSafeTimeZone((clinic as { timezone?: string | null } | null)?.timezone);
       const todayKey = getZonedDateKey(now, timeZone);
       const lastWeekKey = shiftDateKey(todayKey, -7);
