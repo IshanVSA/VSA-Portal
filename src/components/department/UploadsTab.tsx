@@ -224,6 +224,8 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
     const filtered = (data || []).filter((f) => f.name !== ".emptyFolderPlaceholder" && f.metadata?.size != null);
     setBrandAssets(
       filtered.map((f) => ({
+        id: (f as any).id,
+        path: `${brandPath}/${f.name}`,
         name: f.name,
         created_at: f.created_at || new Date().toISOString(),
         size: f.metadata?.size || 0,
