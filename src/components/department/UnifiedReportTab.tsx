@@ -168,7 +168,7 @@ export function UnifiedReportTab({ clinicId }: Props) {
         timeZone,
       );
       const previousMetrics = computeWebsiteMetrics(
-        ((prevPvData || []) as { session_id: string; path: string; created_at: string }[]),
+        prevPvData,
         buildDateKeys(prevRange.from, prevRange.to),
         timeZone,
       );
