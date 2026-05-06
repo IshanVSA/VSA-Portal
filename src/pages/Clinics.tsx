@@ -800,9 +800,73 @@ export default function Clinics() {
           <DialogContent className="max-h-[85vh] overflow-y-auto max-w-[95vw] sm:max-w-2xl">
             <DialogHeader><DialogTitle>Edit Clinic</DialogTitle></DialogHeader>
             <div className="space-y-4 pt-2">
-              <div className="space-y-2"><Label>Clinic Name</Label><Input value={editName} onChange={e => setEditName(e.target.value)} className="input-glow" /></div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label>Clinic Name</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={refetchClinicFromWebsite}
+                    disabled={refetchingWebsite || !editClinic?.website}
+                    className="h-7 text-xs"
+                    title={editClinic?.website ? `Refetch from ${editClinic.website}` : "No website on file"}
+                  >
+                    {refetchingWebsite
+                      ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Refetching…</>
+                      : <><RefreshCw className="h-3 w-3 mr-1" /> Refetch from website</>}
+                  </Button>
+                </div>
+                <Input value={editName} onChange={e => setEditName(e.target.value)} className="input-glow" />
+                {!editClinic?.website && (
+                  <p className="text-[11px] text-muted-foreground">Add a website on this clinic to enable refetch.</p>
+                )}
+              </div>
               <div className="space-y-2"><Label>Phone</Label><Input value={editPhone} onChange={e => setEditPhone(e.target.value)} className="input-glow" /></div>
               <div className="space-y-2"><Label>Address</Label><Input value={editAddress} onChange={e => setEditAddress(e.target.value)} className="input-glow" /></div>
+              {(() => {
+                const autoBody = detectComplianceBody(editAddress || null);
+                const effective = getEffectiveComplianceBody(editAddress || null, editComplianceOverride);
+                const isOverride = !!editComplianceOverride && editComplianceOverride !== autoBody;
+                return (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <Label className="flex items-center gap-2">
+                        Compliance Body
+                        <Badge variant={isOverride ? "default" : "secondary"} className="text-[10px] rounded-full font-normal">
+                          {isOverride ? "Manual override" : "Auto-detected"}
+                        </Badge>
+                      </Label>
+                      {isOverride && (
+                        <button
+                          type="button"
+                          onClick={() => setEditComplianceOverride(null)}
+                          className="text-[11px] text-primary hover:underline inline-flex items-center gap-1"
+                        >
+                          <RotateCcw className="h-3 w-3" /> Reset to auto
+                        </button>
+                      )}
+                    </div>
+                    <Select
+                      value={effective}
+                      onValueChange={(val) => setEditComplianceOverride(val === autoBody ? null : val)}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent className="max-h-[280px]">
+                        {COMPLIANCE_BODY_OPTIONS.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            <span className="text-muted-foreground text-[10px] mr-1">[{opt.group}]</span>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[11px] text-muted-foreground">
+                      Used by AI for ad and promotion compliance checks. Override only if the auto-detected body is wrong for this clinic.
+                    </p>
+                  </div>
+                );
+              })()}
               <div className="space-y-2">
                 <Label>Client Owner</Label>
                 <Select value={editOwnerId} onValueChange={setEditOwnerId}>
