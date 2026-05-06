@@ -67,8 +67,11 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
     const [h, m] = t.split(":").map(Number);
     return (h || 0) * 60 + (m || 0);
   };
-  const isInvalidRange = (open: string, close: string) =>
-    toMinutes(close) <= toMinutes(open);
+  // Skip validation while both fields are still at the default 00:00 (untouched).
+  const isInvalidRange = (open: string, close: string) => {
+    if (open === "00:00" && close === "00:00") return false;
+    return toMinutes(close) <= toMinutes(open);
+  };
 
   const dayErrors: Record<string, boolean> = Object.fromEntries(
     DAYS.map(day => [
