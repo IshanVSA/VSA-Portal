@@ -18,6 +18,7 @@ import { TicketsTab } from "@/components/department/TicketsTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
 import { useClinicServiceAccess } from "@/hooks/useClinicServiceAccess";
 import { DepartmentAccessLocked } from "@/components/department/DepartmentAccessLocked";
+import { AdminServiceLockNotice } from "@/components/department/AdminServiceLockNotice";
 import { DepartmentChat } from "@/components/department/DepartmentChat";
 import { useDepartmentChatUnread } from "@/hooks/useDepartmentChatUnread";
 import { usePendingCounts } from "@/hooks/usePendingCounts";
