@@ -60,8 +60,8 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
   const [tempStartDate, setTempStartDate] = useState<Date | undefined>(undefined);
   const [tempEndDate, setTempEndDate] = useState<Date | undefined>(undefined);
   const [statHolidayOpen, setStatHolidayOpen] = useState(false);
-  const [statHolidayOpenTime, setStatHolidayOpenTime] = useState("09:00");
-  const [statHolidayCloseTime, setStatHolidayCloseTime] = useState("17:00");
+  const [statHolidayOpenTime, setStatHolidayOpenTime] = useState("00:00");
+  const [statHolidayCloseTime, setStatHolidayCloseTime] = useState("00:00");
 
   useEffect(() => {
     const lines = DAYS.map(day => {
