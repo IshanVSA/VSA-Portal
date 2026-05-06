@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { getVisibleTicketTypes } from "@/lib/ticket-department-map";
 
 interface UploadedFile {
+  id?: string;
+  path: string; // full storage path — stable identifier
   name: string;
   created_at: string;
   size: number;
