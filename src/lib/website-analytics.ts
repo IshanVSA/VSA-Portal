@@ -283,3 +283,46 @@ export function getBufferedRange(from: Date, to: Date, bufferDays = 2) {
     to: addDays(to, bufferDays),
   };
 }
+
+/**
+ * Paginated fetch for website_pageviews to bypass Supabase's default 1000-row cap.
+ * High-traffic clinics easily exceed 1000 rows over a 2-week window, which would
+ * otherwise truncate the results to the OLDEST 1000 rows and leave recent days empty.
+ */
+export async function fetchAllPageviews<T = any>(
+  supabase: any,
+  params: {
+    clinicId: string;
+    from: Date;
+    to: Date;
+    columns?: string;
+    pageSize?: number;
+    maxPages?: number;
+  },
+): Promise<T[]> {
+  const {
+    clinicId,
+    from,
+    to,
+    columns = "session_id, path, created_at",
+    pageSize = 1000,
+    maxPages = 50,
+  } = params;
+  const all: T[] = [];
+  let offset = 0;
+  for (let i = 0; i < maxPages; i++) {
+    const { data, error } = await supabase
+      .from("website_pageviews")
+      .select(columns)
+      .eq("clinic_id", clinicId)
+      .gte("created_at", from.toISOString())
+      .lte("created_at", to.toISOString())
+      .order("created_at", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    if (error || !data || data.length === 0) break;
+    all.push(...(data as T[]));
+    if (data.length < pageSize) break;
+    offset += pageSize;
+  }
+  return all;
+}
