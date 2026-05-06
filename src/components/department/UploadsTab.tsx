@@ -32,6 +32,8 @@ interface TicketAttachment {
 }
 
 interface BrandAsset {
+  id?: string;
+  path: string;
   name: string;
   created_at: string;
   size: number;
