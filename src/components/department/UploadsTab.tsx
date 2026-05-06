@@ -113,10 +113,13 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
       (d) => d.name !== ".emptyFolderPlaceholder" && d.metadata && d.metadata.size != null
     );
     for (const f of legacyFiles) {
+      const legacyPath = `${baseDeptPath}/${f.name}`;
       const { data: signed } = await supabase.storage
         .from(BUCKET)
-        .createSignedUrl(`${baseDeptPath}/${f.name}`, 3600);
+        .createSignedUrl(legacyPath, 3600);
       collected.push({
+        id: (f as any).id,
+        path: legacyPath,
         name: f.name,
         created_at: f.created_at || new Date().toISOString(),
         size: f.metadata?.size || 0,
