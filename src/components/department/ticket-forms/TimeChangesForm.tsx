@@ -7,8 +7,31 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { VoiceDictation } from "./VoiceDictation";
+
+// Generate 30-min interval options: 00:00, 00:30, 01:00, ... 23:30
+const TIME_OPTIONS: string[] = Array.from({ length: 48 }, (_, i) => {
+  const h = Math.floor(i / 2);
+  const m = i % 2 === 0 ? "00" : "30";
+  return `${String(h).padStart(2, "0")}:${m}`;
+});
+
+function TimeSelect({ value, onChange, className }: { value: string; onChange: (v: string) => void; className?: string }) {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className={cn("w-24 h-8 text-xs", className)}>
+        <SelectValue placeholder="00:00" />
+      </SelectTrigger>
+      <SelectContent className="max-h-60 bg-popover z-50">
+        {TIME_OPTIONS.map((t) => (
+          <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
 
 interface DaySchedule {
   open: boolean;
