@@ -295,18 +295,14 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
           </span>
           {statHolidayOpen && (
             <div className="flex items-center gap-1.5 min-w-0">
-              <Input
-                type="time"
+              <TimeSelect
                 value={statHolidayOpenTime}
-                onChange={e => setStatHolidayOpenTime(e.target.value)}
-                className="w-24 h-8 text-xs min-w-0"
+                onChange={setStatHolidayOpenTime}
               />
               <span className="text-muted-foreground text-xs shrink-0">to</span>
-              <Input
-                type="time"
+              <TimeSelect
                 value={statHolidayCloseTime}
-                onChange={e => setStatHolidayCloseTime(e.target.value)}
-                className="w-24 h-8 text-xs min-w-0"
+                onChange={setStatHolidayCloseTime}
               />
             </div>
           )}
