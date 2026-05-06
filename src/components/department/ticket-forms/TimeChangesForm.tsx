@@ -279,7 +279,18 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
 
       {/* Schedule grid */}
       <div className="space-y-1.5">
-        <Label className="text-sm font-medium">Business Hours</Label>
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-sm font-medium">Business Hours</Label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={applyMondayToAll}
+          >
+            Apply Monday to all days
+          </Button>
+        </div>
         <div className="space-y-2">
           {DAYS.map(day => (
             <div key={day} className="space-y-1">
