@@ -174,6 +174,8 @@ export default function Clinics() {
   const [editOwnerId, setEditOwnerId] = useState("");
   const [editAccess, setEditAccess] = useState<ClinicAccessSettings>(defaultClinicAccessSettings);
   const [editTeamMembers, setEditTeamMembers] = useState<string[]>([]);
+  const [editComplianceOverride, setEditComplianceOverride] = useState<string | null>(null);
+  const [refetchingWebsite, setRefetchingWebsite] = useState(false);
 
   // Team assignment dialog
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
