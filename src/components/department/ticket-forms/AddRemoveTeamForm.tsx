@@ -344,7 +344,7 @@ export function AddRemoveTeamForm({ onChange, onValidityChange, onFilesChange }:
                       )}
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-medium truncate text-foreground">{m.photo.file.name}</p>
-                        <p className="text-[10px] text-muted-foreground">
+                        <p className="text-[10px] text-muted-foreground break-all">
                           Will upload as <span className="font-mono">{slugifyName(m.name, idx)}__{m.photo.file.name}</span>
                         </p>
                       </div>
