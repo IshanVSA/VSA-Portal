@@ -654,7 +654,7 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
                         variant="ghost"
                         size="sm"
                         className="h-8 text-xs text-destructive hover:text-destructive"
-                        onClick={() => handleBrandDelete(asset.name)}
+                        onClick={() => handleBrandDelete(asset)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
