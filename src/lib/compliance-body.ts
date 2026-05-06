@@ -257,3 +257,36 @@ export function detectComplianceBody(address: string | null | undefined): string
   return GENERIC;
 }
 
+/**
+ * Returns the effective compliance body for a clinic: the manual override if
+ * set, otherwise the auto-detected body from the address.
+ */
+export function getEffectiveComplianceBody(
+  address: string | null | undefined,
+  override: string | null | undefined,
+): string {
+  const trimmed = (override ?? "").trim();
+  if (trimmed) return trimmed;
+  return detectComplianceBody(address);
+}
+
+/**
+ * Full list of selectable compliance bodies for the override dropdown,
+ * grouped by region. Order: CA provinces (A-Z), CA national, US states (A-Z),
+ * US national, generic fallback.
+ */
+export const COMPLIANCE_BODY_OPTIONS: Array<{ group: string; label: string; value: string }> = [
+  ...Object.entries(CA_PROVINCE_MAP)
+    .map(([, label]) => ({ group: "Canada", label, value: label }))
+    // Dedupe (NT/NU/YT all map to CVMA national)
+    .filter((opt, idx, arr) => arr.findIndex((o) => o.value === opt.value) === idx)
+    .sort((a, b) => a.label.localeCompare(b.label)),
+  { group: "Canada", label: CA_NATIONAL, value: CA_NATIONAL },
+  ...Object.entries(US_STATE_MAP)
+    .map(([, label]) => ({ group: "United States", label, value: label }))
+    .filter((opt, idx, arr) => arr.findIndex((o) => o.value === opt.value) === idx)
+    .sort((a, b) => a.label.localeCompare(b.label)),
+  { group: "United States", label: US_NATIONAL, value: US_NATIONAL },
+  { group: "Other", label: GENERIC, value: GENERIC },
+];
+

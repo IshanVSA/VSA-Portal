@@ -16,11 +16,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { COMMON_TIMEZONES, getSafeTimeZone } from "@/lib/website-analytics";
 import { isHttpsClinicWebsiteUrl, normalizeClinicWebsiteUrl } from "@/lib/clinic-website";
-import { Plus, Search, Eye, Trash2, Pencil, Building2, Users, X, Loader2, Sparkles, Lock, ShieldCheck } from "lucide-react";
+import { Plus, Search, Eye, Trash2, Pencil, Building2, Users, X, Loader2, Sparkles, Lock, ShieldCheck, RefreshCw, RotateCcw } from "lucide-react";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 import { ClinicLogoUploader } from "@/components/clinic-detail/ClinicLogoUploader";
 import { DepartmentTeamPicker } from "@/components/clinic-detail/DepartmentTeamPicker";
+import { detectComplianceBody, getEffectiveComplianceBody, COMPLIANCE_BODY_OPTIONS } from "@/lib/compliance-body";
 
 interface Clinic {
   id: string;
@@ -30,7 +31,9 @@ interface Clinic {
   owner_user_id: string | null;
   phone: string | null;
   address: string | null;
+  website?: string | null;
   logo_url: string | null;
+  compliance_body_override?: string | null;
   website_enabled?: boolean;
   seo_enabled?: boolean;
   google_ads_enabled?: boolean;
@@ -171,6 +174,8 @@ export default function Clinics() {
   const [editOwnerId, setEditOwnerId] = useState("");
   const [editAccess, setEditAccess] = useState<ClinicAccessSettings>(defaultClinicAccessSettings);
   const [editTeamMembers, setEditTeamMembers] = useState<string[]>([]);
+  const [editComplianceOverride, setEditComplianceOverride] = useState<string | null>(null);
+  const [refetchingWebsite, setRefetchingWebsite] = useState(false);
 
   // Team assignment dialog
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
@@ -405,7 +410,54 @@ export default function Clinics() {
     setEditTeamMembers(
       teamAssignments.filter((a) => a.clinic_id === clinic.id).map((a) => a.user_id)
     );
+    setEditComplianceOverride(clinic.compliance_body_override ?? null);
+    setRefetchingWebsite(false);
     setEditDialogOpen(true);
+  };
+
+  const refetchClinicFromWebsite = async () => {
+    if (!editClinic) return;
+    const websiteUrl = (editClinic.website || "").trim();
+    if (!websiteUrl) {
+      toast.error("This clinic has no website on file. Add one first.");
+      return;
+    }
+    setRefetchingWebsite(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token ?? session?.access_token;
+
+      const { data, error } = await supabase.functions.invoke("extract-clinic-website", {
+        body: { website: websiteUrl },
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+      });
+
+      if (error) {
+        toast.error(await extractEdgeFunctionError(error, data, "Failed to refetch clinic details"));
+        return;
+      }
+
+      const extracted = (data?.fields ?? null) as ExtractedClinicDetails | null;
+      if (!extracted) {
+        toast.error("No clinic details could be extracted from the website");
+        return;
+      }
+
+      const updates: string[] = [];
+      if (extracted.clinic_name) { setEditName(extracted.clinic_name); updates.push("name"); }
+      if (extracted.phone) { setEditPhone(extracted.phone); updates.push("phone"); }
+      if (extracted.address) { setEditAddress(extracted.address); updates.push("address"); }
+
+      if (updates.length === 0) {
+        toast("No fields could be refreshed from the website");
+      } else {
+        toast.success(`Refreshed: ${updates.join(", ")}. Click Save Changes to persist.`);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to refetch clinic details");
+    } finally {
+      setRefetchingWebsite(false);
+    }
   };
 
   const persistTeamAssignments = async (clinicId: string, nextMembers: string[]) => {
@@ -434,11 +486,16 @@ export default function Clinics() {
 
   const saveEdit = async () => {
     if (!editClinic || !editName.trim()) return;
+    const autoBody = detectComplianceBody(editAddress || null);
+    const overrideValue = editComplianceOverride && editComplianceOverride !== autoBody
+      ? editComplianceOverride
+      : null;
     const { error } = await (supabase.from("clinics" as any).update({
       clinic_name: editName.trim(),
       phone: editPhone || null,
       address: editAddress || null,
       owner_user_id: editOwnerId && editOwnerId !== "none" ? editOwnerId : null,
+      compliance_body_override: overrideValue,
       ...editAccess,
     } as any).eq("id", editClinic.id) as any);
     if (error) { toast.error(error.message); return; }
@@ -743,9 +800,73 @@ export default function Clinics() {
           <DialogContent className="max-h-[85vh] overflow-y-auto max-w-[95vw] sm:max-w-2xl">
             <DialogHeader><DialogTitle>Edit Clinic</DialogTitle></DialogHeader>
             <div className="space-y-4 pt-2">
-              <div className="space-y-2"><Label>Clinic Name</Label><Input value={editName} onChange={e => setEditName(e.target.value)} className="input-glow" /></div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label>Clinic Name</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={refetchClinicFromWebsite}
+                    disabled={refetchingWebsite || !editClinic?.website}
+                    className="h-7 text-xs"
+                    title={editClinic?.website ? `Refetch from ${editClinic.website}` : "No website on file"}
+                  >
+                    {refetchingWebsite
+                      ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Refetching…</>
+                      : <><RefreshCw className="h-3 w-3 mr-1" /> Refetch from website</>}
+                  </Button>
+                </div>
+                <Input value={editName} onChange={e => setEditName(e.target.value)} className="input-glow" />
+                {!editClinic?.website && (
+                  <p className="text-[11px] text-muted-foreground">Add a website on this clinic to enable refetch.</p>
+                )}
+              </div>
               <div className="space-y-2"><Label>Phone</Label><Input value={editPhone} onChange={e => setEditPhone(e.target.value)} className="input-glow" /></div>
               <div className="space-y-2"><Label>Address</Label><Input value={editAddress} onChange={e => setEditAddress(e.target.value)} className="input-glow" /></div>
+              {(() => {
+                const autoBody = detectComplianceBody(editAddress || null);
+                const effective = getEffectiveComplianceBody(editAddress || null, editComplianceOverride);
+                const isOverride = !!editComplianceOverride && editComplianceOverride !== autoBody;
+                return (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <Label className="flex items-center gap-2">
+                        Compliance Body
+                        <Badge variant={isOverride ? "default" : "secondary"} className="text-[10px] rounded-full font-normal">
+                          {isOverride ? "Manual override" : "Auto-detected"}
+                        </Badge>
+                      </Label>
+                      {isOverride && (
+                        <button
+                          type="button"
+                          onClick={() => setEditComplianceOverride(null)}
+                          className="text-[11px] text-primary hover:underline inline-flex items-center gap-1"
+                        >
+                          <RotateCcw className="h-3 w-3" /> Reset to auto
+                        </button>
+                      )}
+                    </div>
+                    <Select
+                      value={effective}
+                      onValueChange={(val) => setEditComplianceOverride(val === autoBody ? null : val)}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent className="max-h-[280px]">
+                        {COMPLIANCE_BODY_OPTIONS.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            <span className="text-muted-foreground text-[10px] mr-1">[{opt.group}]</span>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[11px] text-muted-foreground">
+                      Used by AI for ad and promotion compliance checks. Override only if the auto-detected body is wrong for this clinic.
+                    </p>
+                  </div>
+                );
+              })()}
               <div className="space-y-2">
                 <Label>Client Owner</Label>
                 <Select value={editOwnerId} onValueChange={setEditOwnerId}>
