@@ -60,7 +60,7 @@ export default function WebsiteDepartment() {
   const kpiData = useWebsiteKPIs(selectedClinicId);
   const { role } = useUserRole();
   const canViewHealth = role === "admin" || role === "concierge";
-  const { isLocked, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "website", clinicsLoading);
+  const { isLocked, isAdminBypass, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "website", clinicsLoading);
   const isStaff = role === "admin" || role === "concierge";
   const { unreadCount, markAsRead } = useDepartmentChatUnread("website", selectedClinicId);
   const tabs = [
