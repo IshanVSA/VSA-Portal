@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,8 +13,26 @@ serve(async (req) => {
   }
 
   try {
-    const { offerTitle, offerText, termsAndConditions, startDate, endDate, complianceBody } =
+    const { offerTitle, offerText, termsAndConditions, startDate, endDate, complianceBody: complianceBodyInput, clinic_id } =
       await req.json();
+
+    // Resolve effective compliance body: prefer clinic-level admin override, fall back to client-supplied value
+    let complianceBody = complianceBodyInput;
+    if (clinic_id) {
+      try {
+        const supabase = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+        );
+        const { data: clinicRow } = await supabase
+          .from("clinics")
+          .select("compliance_body_override")
+          .eq("id", clinic_id)
+          .maybeSingle();
+        const override = (clinicRow?.compliance_body_override || "").trim();
+        if (override) complianceBody = override;
+      } catch (_) { /* non-fatal, use input */ }
+    }
 
 
     const systemPrompt = `You are a veterinary advertising compliance expert. You verify promotional offers against the advertising and marketing regulations of veterinary regulatory bodies.
