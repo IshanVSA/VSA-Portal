@@ -942,6 +942,7 @@ export type Database = {
           blog_package_active: boolean
           campaign_start_date: string | null
           clinic_name: string
+          compliance_body_override: string | null
           content_settings: Json
           created_at: string
           email: string | null
@@ -967,6 +968,7 @@ export type Database = {
           blog_package_active?: boolean
           campaign_start_date?: string | null
           clinic_name: string
+          compliance_body_override?: string | null
           content_settings?: Json
           created_at?: string
           email?: string | null
@@ -992,6 +994,7 @@ export type Database = {
           blog_package_active?: boolean
           campaign_start_date?: string | null
           clinic_name?: string
+          compliance_body_override?: string | null
           content_settings?: Json
           created_at?: string
           email?: string | null
