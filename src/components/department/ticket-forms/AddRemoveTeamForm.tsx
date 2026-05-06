@@ -1,17 +1,19 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Plus, Trash2, Users, AlertCircle } from "lucide-react";
+import { Plus, Trash2, Users, AlertCircle, Upload, X, ImageIcon } from "lucide-react";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { VoiceDictation } from "./VoiceDictation";
+import type { AttachedFile } from "./FileUploader";
 
 interface AddRemoveTeamFormProps {
   onChange: (description: string) => void;
   onValidityChange?: (valid: boolean) => void;
+  onFilesChange?: (files: AttachedFile[]) => void;
 }
 
 interface TeamMemberEntry {
@@ -20,6 +22,7 @@ interface TeamMemberEntry {
   name: string;
   role: string;
   bio: string;
+  photo: AttachedFile | null;
 }
 
 const memberSchema = z.object({
@@ -46,12 +49,37 @@ function newEntry(action: "add" | "remove" = "add"): TeamMemberEntry {
     name: "",
     role: "",
     bio: "",
+    photo: null,
   };
 }
 
-export function AddRemoveTeamForm({ onChange, onValidityChange }: AddRemoveTeamFormProps) {
+function slugifyName(name: string, fallbackIndex: number) {
+  const slug = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+  return slug || `member-${fallbackIndex + 1}`;
+}
+
+/**
+ * Wraps a File so the storage filename clearly identifies its team member.
+ * Uses `<slug>__<original>` so admins reading attachments instantly see who's who.
+ */
+function renameForMember(file: File, memberName: string, index: number): File {
+  const slug = slugifyName(memberName, index);
+  const ext = file.name.includes(".") ? `.${file.name.split(".").pop()}` : "";
+  const base = file.name.replace(/\.[^.]+$/, "") || "photo";
+  const newName = `${slug}__${base}${ext.replace(`.${ext.replace(".", "")}`, ext)}`;
+  // Ensure single extension; simpler: `${slug}__${file.name}`
+  return new File([file], `${slug}__${file.name}`, { type: file.type });
+}
+
+export function AddRemoveTeamForm({ onChange, onValidityChange, onFilesChange }: AddRemoveTeamFormProps) {
   const [members, setMembers] = useState<TeamMemberEntry[]>([newEntry("add")]);
   const [touched, setTouched] = useState<Record<string, { name?: boolean; role?: boolean }>>({});
+  const photoInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   // Per-row errors
   const errors = useMemo(() => {
@@ -80,9 +108,8 @@ export function AddRemoveTeamForm({ onChange, onValidityChange }: AddRemoveTeamF
     onValidityChange?.(isFormValid);
   }, [isFormValid, onValidityChange]);
 
+  // Build description
   useEffect(() => {
-    const hasAdd = members.some((m) => m.action === "add");
-
     const lines: string[] = ["Team Member Update:"];
     const first = members[0];
     if (first) {
@@ -91,6 +118,9 @@ export function AddRemoveTeamForm({ onChange, onValidityChange }: AddRemoveTeamF
       lines.push(`Role/Title: ${first.role || "N/A"}`);
       if (first.bio.trim()) {
         lines.push(`Bio: ${first.bio.trim()}`);
+      }
+      if (first.action === "add") {
+        lines.push(`Photo: ${first.photo ? `${slugifyName(first.name, 0)}__${first.photo.file.name}` : "Not provided"}`);
       }
     }
 
@@ -105,16 +135,27 @@ export function AddRemoveTeamForm({ onChange, onValidityChange }: AddRemoveTeamF
         if (m.bio.trim()) {
           lines.push(`  Bio: ${m.bio.trim()}`);
         }
+        if (m.action === "add") {
+          lines.push(`  Photo: ${m.photo ? `${slugifyName(m.name, idx)}__${m.photo.file.name}` : "Not provided"}`);
+        }
       });
-    }
-
-    if (hasAdd) {
-      lines.push("");
-      lines.push("(See attachments for photos of members being added)");
     }
 
     onChange(lines.join("\n"));
   }, [members, onChange]);
+
+  // Emit files (renamed with member slug) to parent
+  useEffect(() => {
+    if (!onFilesChange) return;
+    const emitted: AttachedFile[] = members
+      .map((m, idx) => {
+        if (m.action !== "add" || !m.photo) return null;
+        const renamed = renameForMember(m.photo.file, m.name || `member-${idx + 1}`, idx);
+        return { file: renamed, preview: m.photo.preview };
+      })
+      .filter((x) => x !== null) as AttachedFile[];
+    onFilesChange(emitted);
+  }, [members, onFilesChange]);
 
   const updateMember = (id: string, patch: Partial<TeamMemberEntry>) => {
     setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)));
@@ -127,12 +168,33 @@ export function AddRemoveTeamForm({ onChange, onValidityChange }: AddRemoveTeamF
   const addMember = () => setMembers((prev) => [...prev, newEntry("add")]);
 
   const removeMember = (id: string) => {
-    setMembers((prev) => (prev.length === 1 ? prev : prev.filter((m) => m.id !== id)));
+    setMembers((prev) => {
+      const target = prev.find((m) => m.id === id);
+      if (target?.photo?.preview) URL.revokeObjectURL(target.photo.preview);
+      return prev.length === 1 ? prev : prev.filter((m) => m.id !== id);
+    });
     setTouched((prev) => {
       const next = { ...prev };
       delete next[id];
       return next;
     });
+  };
+
+  const handlePhotoSelect = (memberId: string, file: File | null) => {
+    setMembers((prev) =>
+      prev.map((m) => {
+        if (m.id !== memberId) return m;
+        if (m.photo?.preview) URL.revokeObjectURL(m.photo.preview);
+        if (!file) return { ...m, photo: null };
+        return {
+          ...m,
+          photo: {
+            file,
+            preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined,
+          },
+        };
+      })
+    );
   };
 
   const handleAutofill = useCallback((fields: Record<string, any>) => {
@@ -147,15 +209,13 @@ export function AddRemoveTeamForm({ onChange, onValidityChange }: AddRemoveTeamF
     });
   }, []);
 
-  const hasAnyAdd = members.some((m) => m.action === "add");
-
   return (
     <div className="space-y-4">
       <VoiceDictation formType="Add/Remove Team" onFieldsExtracted={handleAutofill} />
 
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <Users className="h-3.5 w-3.5" />
-        Add multiple members in one ticket — no need to file separately.
+        Add multiple members in one ticket — each member has their own photo slot.
       </div>
 
       <div className="space-y-3">
@@ -164,6 +224,8 @@ export function AddRemoveTeamForm({ onChange, onValidityChange }: AddRemoveTeamF
           const rowTouched = touched[m.id] || {};
           const showNameErr = rowTouched.name && rowErr.name;
           const showRoleErr = rowTouched.role && rowErr.role;
+          const isAdd = m.action === "add";
+          const missingPhoto = isAdd && !m.photo;
           return (
             <div
               key={m.id}
@@ -241,7 +303,7 @@ export function AddRemoveTeamForm({ onChange, onValidityChange }: AddRemoveTeamF
                   </p>
                 )}
               </div>
-              {m.action === "add" && (
+              {isAdd && (
                 <div className="space-y-1.5">
                   <Label>Bio</Label>
                   <Textarea
@@ -251,6 +313,72 @@ export function AddRemoveTeamForm({ onChange, onValidityChange }: AddRemoveTeamF
                     rows={3}
                     maxLength={1000}
                   />
+                </div>
+              )}
+
+              {isAdd && (
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-1.5">
+                    <ImageIcon className="h-3.5 w-3.5" />
+                    Photo for {m.name || `member #${idx + 1}`}
+                  </Label>
+                  <input
+                    ref={(el) => { photoInputRefs.current[m.id] = el; }}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      handlePhotoSelect(m.id, file);
+                      e.target.value = "";
+                    }}
+                  />
+                  {m.photo ? (
+                    <div className="flex items-center gap-2 p-2 rounded-md border border-border/60 bg-background/40">
+                      {m.photo.preview ? (
+                        <img src={m.photo.preview} alt="" className="h-10 w-10 rounded object-cover shrink-0" />
+                      ) : (
+                        <div className="h-10 w-10 rounded bg-muted flex items-center justify-center shrink-0">
+                          <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium truncate text-foreground">{m.photo.file.name}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          Will upload as <span className="font-mono">{slugifyName(m.name, idx)}__{m.photo.file.name}</span>
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => handlePhotoSelect(m.id, null)}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => photoInputRefs.current[m.id]?.click()}
+                      className={cn(
+                        "w-full flex items-center justify-center gap-2 rounded-md border-2 border-dashed py-3 text-xs transition-colors",
+                        missingPhoto
+                          ? "border-amber-500/40 text-amber-500 hover:bg-amber-500/5"
+                          : "border-border text-muted-foreground hover:border-primary/50 hover:bg-muted/30"
+                      )}
+                    >
+                      <Upload className="h-3.5 w-3.5" />
+                      Upload photo
+                    </button>
+                  )}
+                  {missingPhoto && (
+                    <p className="text-[11px] text-amber-500/90 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      No photo yet — the team can still proceed but a photo is recommended.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -268,12 +396,6 @@ export function AddRemoveTeamForm({ onChange, onValidityChange }: AddRemoveTeamF
         <Plus className="h-3.5 w-3.5 mr-1" />
         Add another member
       </Button>
-
-      {hasAnyAdd && (
-        <p className="text-xs text-muted-foreground">
-          For every member being added, upload their photo in the attachments section below. Name each file with the member's name so the team can match them.
-        </p>
-      )}
     </div>
   );
 }
