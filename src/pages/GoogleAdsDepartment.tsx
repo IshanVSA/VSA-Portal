@@ -40,7 +40,7 @@ export default function GoogleAdsDepartment() {
   const { clinics, selectedClinic, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
   const { team } = useDepartmentTeam("google_ads", selectedClinicId);
   const adsData = useGoogleAdsKPIs(selectedClinicId);
-  const { isLocked, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "google_ads", clinicsLoading);
+  const { isLocked, isAdminBypass, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "google_ads", clinicsLoading);
   const { role } = useUserRole();
   const isStaff = role === "admin" || role === "concierge";
   const { visible: showMoney } = useFinancialsVisible();
