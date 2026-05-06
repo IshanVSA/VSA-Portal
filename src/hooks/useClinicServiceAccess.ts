@@ -35,6 +35,10 @@ export function useClinicServiceAccess(clinic: ClinicOption | undefined, service
       enabled,
       canAccess: canBypass || enabled,
       isLocked: !canBypass && !!clinic && !enabled,
+      // True whenever the clinic itself has the service disabled, regardless of role.
+      // Used to surface a "locked for this clinic" indicator to admins without blocking access.
+      isLockedForClinic: !!clinic && !enabled,
+      isAdminBypass: canBypass && !!clinic && !enabled,
       loading,
     };
   }, [clinic, role, service, clinicsLoading]);
