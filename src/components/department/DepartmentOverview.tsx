@@ -123,7 +123,7 @@ export function DepartmentOverview({
       {/* KPI Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {kpis.map((kpi, i) => (
-          <KPICard key={kpi.label} label={kpi.label} value={kpi.value} icon={kpi.icon} index={i} gradient={kpi.gradient || (["blue", "green", "amber", "purple"][i % 4] as any)} />
+          <KPICard key={kpi.label} label={kpi.label} value={kpi.value} change={kpi.change} changeType={kpi.changeType} icon={kpi.icon} index={i} gradient={kpi.gradient || (["blue", "green", "amber", "purple"][i % 4] as any)} />
         ))}
       </div>
 
