@@ -686,7 +686,7 @@ export default function Clinics() {
                   {role === "admin" && <TableHead className="hidden xl:table-cell">Service Access</TableHead>}
                   {role === "admin" && <TableHead>Team Members</TableHead>}
                   {role === "admin" && <TableHead className="hidden lg:table-cell">Client Owner</TableHead>}
-                  <TableHead>Status</TableHead>
+                  
                   <TableHead className="hidden sm:table-cell">Phone</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
