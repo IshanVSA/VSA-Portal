@@ -153,7 +153,7 @@ export function AddRemoveTeamForm({ onChange, onValidityChange, onFilesChange }:
         const renamed = renameForMember(m.photo.file, m.name || `member-${idx + 1}`, idx);
         return { file: renamed, preview: m.photo.preview };
       })
-      .filter((x): x is AttachedFile => x !== null);
+      .filter((x) => x !== null) as AttachedFile[];
     onFilesChange(emitted);
   }, [members, onFilesChange]);
 
