@@ -137,7 +137,7 @@ export default function GoogleAdsDepartment() {
                 </div>
 
                 <TabsContent value="overview" className="mt-4">
-                  <DepartmentOverview kpis={kpis} services={quickActions} trafficData={trafficData} trafficLabel="Weekly Click Trend" team={team} department="google_ads" accentColor="hsl(var(--dept-ads))" extraSection={campaignsCard} clinicId={selectedClinicId} />
+                  <DepartmentOverview kpis={kpis} services={quickActions} trafficData={trafficData} trafficLabel="Click Trend (Last 30 Days)" team={team} department="google_ads" accentColor="hsl(var(--dept-ads))" extraSection={campaignsCard} clinicId={selectedClinicId} />
                 </TabsContent>
                 <TabsContent value="tickets" className="mt-4"><TicketsTab department="google_ads" services={services} clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="analytics" className="mt-4"><GoogleAdsAnalyticsTab clinicId={selectedClinicId} /></TabsContent>

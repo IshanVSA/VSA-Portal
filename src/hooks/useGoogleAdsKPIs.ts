@@ -52,8 +52,8 @@ export function useGoogleAdsKPIs(clinicId: string): GoogleAdsKPIs {
       const ctr = impressions > 0 ? Math.round((clicks / impressions) * 10000) / 100 : 0;
 
       const trends = (m.daily_trends || []) as { date: string; clicks: number }[];
-      const last7 = trends.slice(-7).map(d => ({
-        label: new Date(d.date).toLocaleDateString("en-US", { weekday: "short" }),
+      const last30 = trends.slice(-30).map(d => ({
+        label: new Date(d.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
         value: d.clicks,
       }));
 
@@ -76,7 +76,7 @@ export function useGoogleAdsKPIs(clinicId: string): GoogleAdsKPIs {
       setState({
         loading: false, hasData: true,
         clicks, impressions, cost, cpc, ctr,
-        dailyTrend: last7.length > 0 ? last7 : [{ label: "—", value: 0 }],
+        dailyTrend: last30.length > 0 ? last30 : [{ label: "—", value: 0 }],
         campaigns,
       });
     };
