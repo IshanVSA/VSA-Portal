@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { buildTrailingDateKeys, computeWebsiteMetrics, getBufferedRange, getSafeTimeZone, getZonedDateKey, shiftDateKey } from "@/lib/website-analytics";
+import { buildTrailingDateKeys, computeWebsiteMetrics, fetchAllPageviews, getBufferedRange, getSafeTimeZone, getZonedDateKey, shiftDateKey } from "@/lib/website-analytics";
 
 interface WebsiteKPIs {
   visitorsToday: number;
