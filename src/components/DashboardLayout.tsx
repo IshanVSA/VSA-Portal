@@ -6,7 +6,7 @@ import { usePendingCounts } from "@/hooks/usePendingCounts";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Building2, Users, BarChart3, Settings, LogOut, Menu, X, ChevronRight,
-  ShieldCheck, LayoutDashboard, UserCheck, CalendarCheck, Milestone,
+  ShieldCheck, LayoutDashboard, UserCheck, CalendarCheck,
   Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone, Globe, Sparkles, Plus, FileText, SearchCode, Lock, Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -70,7 +70,6 @@ const adminSections: NavSection[] = [
   { items: [
     { label: "Dashboard", icon: LayoutDashboard, path: "/" },
     { label: "Book a Meeting", icon: CalendarCheck, path: "/book-meeting" },
-    { label: "Client Journey", icon: Milestone, path: "/client-journey" },
   ] },
   { title: "DEPARTMENTS", items: [
     { label: "Website", icon: Globe, path: "/website" },
@@ -94,7 +93,6 @@ const adminSections: NavSection[] = [
 const conciergeSections: NavSection[] = [
   { items: [
     { label: "Dashboard", icon: LayoutDashboard, path: "/" },
-    { label: "Client Journey", icon: Milestone, path: "/client-journey" },
   ] },
   { title: "DEPARTMENTS", items: [
     { label: "Website", icon: Globe, path: "/website" },
@@ -113,7 +111,7 @@ const conciergeSections: NavSection[] = [
 const pageTitles: Record<string, string> = {
   "/": "Dashboard", "/book-meeting": "Book a Meeting", "/website": "Website", "/seo": "SEO", "/ai-seo": "AI SEO", "/google-ads": "Google Ads",
   "/social": "Social Media", "/review": "Admin Review", "/clinics": "Clinics",
-  "/employees": "Team Members", "/clients": "Clients", "/reports": "Reports", "/settings": "Settings", "/client-journey": "Client Journey", "/cron-monitor": "Cron Monitor", "/sub-accounts": "Sub Accounts",
+  "/employees": "Team Members", "/clients": "Clients", "/reports": "Reports", "/settings": "Settings", "/cron-monitor": "Cron Monitor", "/sub-accounts": "Sub Accounts",
 };
 
 export function DashboardLayout({ children }: { children?: React.ReactNode }) {
@@ -274,7 +272,6 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
     { items: [
       { label: "Dashboard", icon: LayoutDashboard, path: "/" },
       { label: "Book a Meeting", icon: CalendarCheck, path: "/book-meeting" },
-      { label: "Client Journey", icon: Milestone, path: "/client-journey" },
     ] },
     { title: "DEPARTMENTS", items: [
       { label: "Website", icon: Globe, path: "/website" },

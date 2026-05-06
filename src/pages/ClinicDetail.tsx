@@ -28,7 +28,6 @@ import { GoogleAccountSelectionDialog } from "@/components/clinic-detail/GoogleA
 import { GBPConnectionCard } from "@/components/clinic-detail/GBPConnectionCard";
 import { GBPLocationSelectionDialog } from "@/components/clinic-detail/GBPLocationSelectionDialog";
 import { TrackingSetupCard } from "@/components/clinic-detail/TrackingSetupCard";
-import { ClientJourney } from "@/components/clinic-detail/ClientJourney";
 import { ClinicLogoUploader } from "@/components/clinic-detail/ClinicLogoUploader";
 import { COMMON_TIMEZONES, DEFAULT_CLINIC_TIMEZONE, getSafeTimeZone } from "@/lib/website-analytics";
 
@@ -451,7 +450,6 @@ export default function ClinicDetail() {
             <TabsTrigger value="google">Google Ads</TabsTrigger>
             <TabsTrigger value="ai">Tony AI Insights</TabsTrigger>
             {(role === "admin" || isDebraj) && <TabsTrigger value="connections">Connections</TabsTrigger>}
-            {(role === "admin" || role === "concierge") && <TabsTrigger value="journey">Client Journey</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="instagram" className="space-y-4 mt-4">
@@ -845,12 +843,6 @@ export default function ClinicDetail() {
                   })}
                 </CardContent>
               </Card>
-            </TabsContent>
-          )}
-
-          {(role === "admin" || role === "concierge") && (
-            <TabsContent value="journey" className="mt-4">
-              <ClientJourney clinicId={id!} />
             </TabsContent>
           )}
         </Tabs>
