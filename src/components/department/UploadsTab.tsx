@@ -340,9 +340,9 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
     fetchBrandAssets();
   };
 
-  const handleBrandDelete = async (name: string) => {
+  const handleBrandDelete = async (asset: BrandAsset) => {
     if (!brandPath) return;
-    const { data, error } = await supabase.storage.from(BUCKET).remove([`${brandPath}/${name}`]);
+    const { data, error } = await supabase.storage.from(BUCKET).remove([asset.path]);
     if (error) {
       toast.error(`Failed to delete brand asset: ${error.message}`);
     } else if (!data || data.length === 0) {
@@ -350,8 +350,8 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
       fetchBrandAssets();
     } else {
       toast.success("Brand asset deleted");
-      // Optimistically remove from local state
-      setBrandAssets((prev) => prev.filter((b) => b.name !== name));
+      // Optimistically remove by stable identifier (id or full path)
+      setBrandAssets((prev) => prev.filter((b) => (asset.id ? b.id !== asset.id : b.path !== asset.path)));
     }
   };
 
