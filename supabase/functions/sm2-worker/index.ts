@@ -232,8 +232,8 @@ PHONE: ${clinic.phone || websiteExtraction.phone || "NOT AVAILABLE"}
 HOSPITAL_TYPE: ${profile.hospital_type || gbpConfig?.hospital_type || "TYPE_3"}
 HOURS: ${JSON.stringify(gbpConfig?.hours || {})}
 SPECIES_TREATED: ${JSON.stringify(gbpConfig?.species_treated || ["Dogs","Cats"])}
-GOVERNING_BODY: ${profile.governing_body || gbpConfig?.governing_body || "AVMA baseline"}
-JURISDICTION: ${profile.jurisdiction || gbpConfig?.jurisdiction || "NOT AVAILABLE"}
+GOVERNING_BODY: ${clinic.compliance_body_override || profile.governing_body || gbpConfig?.governing_body || "AVMA baseline"}
+JURISDICTION: ${clinic.compliance_body_override || profile.jurisdiction || gbpConfig?.jurisdiction || "NOT AVAILABLE"}
 CLINIC_DIFFERENTIATOR: ${profile.clinic_differentiator || callNotes.q1_differentiator || "NOT AVAILABLE"}
 NARRATIVE_ANCHOR: ${profile.narrative_anchor || gbpConfig?.narrative_anchor || "NOT AVAILABLE"}
 VOICE_FINGERPRINT: ${JSON.stringify(profile.voice_fingerprint || gbpConfig?.voice_fingerprint || [])}

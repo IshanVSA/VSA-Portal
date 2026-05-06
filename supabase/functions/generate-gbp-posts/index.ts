@@ -49,6 +49,22 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Apply clinic-level compliance body override (admin set in Edit Clinic) — takes precedence over auto-detection
+    let effectiveJurisdiction = jurisdiction;
+    let effectiveGoverningBody = governing_body;
+    try {
+      const { data: clinicRow } = await supabase
+        .from("clinics")
+        .select("compliance_body_override")
+        .eq("id", clinic_id)
+        .maybeSingle();
+      const override = (clinicRow?.compliance_body_override || "").trim();
+      if (override) {
+        effectiveJurisdiction = override;
+        effectiveGoverningBody = override;
+      }
+    } catch (_) { /* non-fatal */ }
+
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) {
       return new Response(JSON.stringify({ error: "Anthropic API key not configured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -63,7 +79,7 @@ serve(async (req) => {
     const hospitalLabel = hospitalLabels[hospital_type] || "TYPE 3 — Daytime Clinic";
 
     // Determine spelling standard
-    const isCanadian = country === 'CA' || jurisdiction === 'BC' || jurisdiction === 'AB' || jurisdiction === 'ON' || jurisdiction === 'CA-OTHER';
+    const isCanadian = country === 'CA' || effectiveJurisdiction === 'BC' || effectiveJurisdiction === 'AB' || effectiveJurisdiction === 'ON' || effectiveJurisdiction === 'CA-OTHER' || /canada|alberta|british columbia|ontario|quebec|manitoba|saskatchewan|nova scotia|new brunswick/i.test(String(effectiveJurisdiction || ''));
     const spellingStandard = isCanadian ? 'Canadian / UK English' : 'US English';
     const spellingExamples = isCanadian
       ? 'diarrhoea, orthopaedic, behaviour, preventive, counselling, anaesthesia, neighbour, centre, fibre'
@@ -342,7 +358,7 @@ HOSPITAL_NAME: ${clinic_name}
 LIVE_SITE_URL: ${website_url || 'Not provided'}
 CITY: ${city || 'Not provided'}
 NEIGHBOURHOOD: ${neighbourhood || 'Not provided'}
-STATE_OR_PROVINCE: ${state_or_province || jurisdiction || 'Not provided'}
+STATE_OR_PROVINCE: ${state_or_province || effectiveJurisdiction || 'Not provided'}
 COUNTRY: ${country || (isCanadian ? 'CA' : 'US')}
 PHONE: ${phone_number || 'Not provided'}
 BOOKING_URL: ${booking_url || website_url || 'Not provided'}
@@ -350,8 +366,8 @@ HOSPITAL_TYPE: ${hospitalLabel}
 HOURS: ${hours ? JSON.stringify(hours) : 'Not provided'}
 AFTER_HOURS_REFERRAL: ${after_hours_referral || 'Not provided'}
 SPECIES_TREATED: ${species_treated?.join(', ') || 'Dogs, Cats'}
-GOVERNING_BODY: ${governing_body || 'Not specified'}
-JURISDICTION: ${jurisdiction || 'Not specified'}
+GOVERNING_BODY: ${effectiveGoverningBody || 'Not specified'}
+JURISDICTION: ${effectiveJurisdiction || 'Not specified'}
 SPELLING_STANDARD: ${spellingStandard} (${spellingExamples})
 
 CLINIC_DIFFERENTIATOR: ${clinic_differentiator || 'Not provided'}

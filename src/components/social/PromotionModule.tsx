@@ -115,6 +115,7 @@ export default function PromotionModule({ clinicId, jurisdiction }: Props) {
           startDate: form.start_date,
           endDate: form.end_date,
           complianceBody,
+          clinic_id: clinicId,
         },
       });
       if (error) throw new Error(await extractEdgeFunctionError(error, data, "Verification failed"));
