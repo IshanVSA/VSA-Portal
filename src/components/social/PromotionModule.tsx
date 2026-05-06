@@ -20,7 +20,7 @@ import {
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { logComplianceOverride } from "@/lib/compliance-override-log";
-import { detectComplianceBody } from "@/lib/compliance-body";
+import { getEffectiveComplianceBody } from "@/lib/compliance-body";
 
 interface Promotion {
   id: string;
@@ -73,8 +73,8 @@ export default function PromotionModule({ clinicId, jurisdiction }: Props) {
       setComplianceBody(jurisdiction);
       return;
     }
-    supabase.from("clinics").select("address").eq("id", clinicId).single()
-      .then(({ data }) => setComplianceBody(detectComplianceBody(data?.address || "")));
+    supabase.from("clinics").select("address, compliance_body_override").eq("id", clinicId).single()
+      .then(({ data }) => setComplianceBody(getEffectiveComplianceBody(data?.address || "", data?.compliance_body_override)));
   }, [clinicId, jurisdiction]);
 
   // Reset verification when key fields change

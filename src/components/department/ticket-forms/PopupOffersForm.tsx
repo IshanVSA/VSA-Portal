@@ -13,7 +13,7 @@ import { format, parse } from "date-fns";
 import { Shield, ShieldCheck, ShieldAlert, Loader2, AlertTriangle, Lightbulb, CalendarIcon } from "lucide-react";
 import { VoiceDictation } from "./VoiceDictation";
 import { logComplianceOverride } from "@/lib/compliance-override-log";
-import { detectComplianceBody } from "@/lib/compliance-body";
+import { getEffectiveComplianceBody } from "@/lib/compliance-body";
 
 interface PopupOffersFormProps {
   onChange: (description: string) => void;
@@ -48,13 +48,13 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
     if (!clinicId) return;
     supabase
       .from("clinics")
-      .select("address")
+      .select("address, compliance_body_override")
       .eq("id", clinicId)
       .single()
       .then(({ data }) => {
         const addr = data?.address || "";
         setClinicAddress(addr);
-        setComplianceBody(detectComplianceBody(addr));
+        setComplianceBody(getEffectiveComplianceBody(addr, data?.compliance_body_override));
       });
   }, [clinicId]);
 
