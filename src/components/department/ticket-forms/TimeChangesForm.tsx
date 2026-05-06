@@ -18,10 +18,10 @@ const TIME_OPTIONS: string[] = Array.from({ length: 48 }, (_, i) => {
   return `${String(h).padStart(2, "0")}:${m}`;
 });
 
-function TimeSelect({ value, onChange, className }: { value: string; onChange: (v: string) => void; className?: string }) {
+function TimeSelect({ value, onChange, className, invalid }: { value: string; onChange: (v: string) => void; className?: string; invalid?: boolean }) {
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className={cn("w-24 h-8 text-xs", className)}>
+      <SelectTrigger className={cn("w-24 h-8 text-xs", invalid && "border-destructive focus:ring-destructive", className)}>
         <SelectValue placeholder="00:00" />
       </SelectTrigger>
       <SelectContent className="max-h-60 bg-popover z-50">
@@ -62,6 +62,22 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
   const [statHolidayOpen, setStatHolidayOpen] = useState(false);
   const [statHolidayOpenTime, setStatHolidayOpenTime] = useState("00:00");
   const [statHolidayCloseTime, setStatHolidayCloseTime] = useState("00:00");
+
+  const toMinutes = (t: string) => {
+    const [h, m] = t.split(":").map(Number);
+    return (h || 0) * 60 + (m || 0);
+  };
+  const isInvalidRange = (open: string, close: string) =>
+    toMinutes(close) <= toMinutes(open);
+
+  const dayErrors: Record<string, boolean> = Object.fromEntries(
+    DAYS.map(day => [
+      day,
+      schedule[day].open && isInvalidRange(schedule[day].openTime, schedule[day].closeTime),
+    ])
+  );
+  const statHolidayError =
+    statHolidayOpen && isInvalidRange(statHolidayOpenTime, statHolidayCloseTime);
 
   useEffect(() => {
     const lines = DAYS.map(day => {
@@ -252,28 +268,38 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
         <Label className="text-sm font-medium">Business Hours</Label>
         <div className="space-y-2">
           {DAYS.map(day => (
-            <div key={day} className="flex flex-wrap items-center gap-2 p-2 rounded-md bg-muted/30 min-w-0">
-              <div className="w-20 shrink-0 text-sm font-medium text-foreground truncate">{day}</div>
-              <Switch
-                checked={schedule[day].open}
-                onCheckedChange={v => update(day, "open", v)}
-                className="shrink-0"
-              />
-              <span className="text-xs text-muted-foreground w-10 shrink-0">
-                {schedule[day].open ? "Open" : "Closed"}
-              </span>
-              {schedule[day].open && (
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <TimeSelect
-                    value={schedule[day].openTime}
-                    onChange={v => update(day, "openTime", v)}
-                  />
-                  <span className="text-muted-foreground text-xs shrink-0">to</span>
-                  <TimeSelect
-                    value={schedule[day].closeTime}
-                    onChange={v => update(day, "closeTime", v)}
-                  />
-                </div>
+            <div key={day} className="space-y-1">
+              <div className={cn(
+                "flex flex-wrap items-center gap-2 p-2 rounded-md bg-muted/30 min-w-0",
+                dayErrors[day] && "ring-1 ring-destructive/60"
+              )}>
+                <div className="w-20 shrink-0 text-sm font-medium text-foreground truncate">{day}</div>
+                <Switch
+                  checked={schedule[day].open}
+                  onCheckedChange={v => update(day, "open", v)}
+                  className="shrink-0"
+                />
+                <span className="text-xs text-muted-foreground w-10 shrink-0">
+                  {schedule[day].open ? "Open" : "Closed"}
+                </span>
+                {schedule[day].open && (
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <TimeSelect
+                      value={schedule[day].openTime}
+                      onChange={v => update(day, "openTime", v)}
+                      invalid={dayErrors[day]}
+                    />
+                    <span className="text-muted-foreground text-xs shrink-0">to</span>
+                    <TimeSelect
+                      value={schedule[day].closeTime}
+                      onChange={v => update(day, "closeTime", v)}
+                      invalid={dayErrors[day]}
+                    />
+                  </div>
+                )}
+              </div>
+              {dayErrors[day] && (
+                <p className="text-xs text-destructive pl-2">Close time must be after open time.</p>
               )}
             </div>
           ))}
@@ -283,7 +309,10 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
       {/* Stat Holiday Hours */}
       <div className="space-y-1.5">
         <Label className="text-sm font-medium">Statutory Holiday Hours</Label>
-        <div className="flex flex-wrap items-center gap-2 p-2 rounded-md bg-muted/30 min-w-0">
+        <div className={cn(
+          "flex flex-wrap items-center gap-2 p-2 rounded-md bg-muted/30 min-w-0",
+          statHolidayError && "ring-1 ring-destructive/60"
+        )}>
           <div className="w-20 shrink-0 text-sm font-medium text-foreground">Stat Holidays</div>
           <Switch
             checked={statHolidayOpen}
@@ -298,15 +327,20 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
               <TimeSelect
                 value={statHolidayOpenTime}
                 onChange={setStatHolidayOpenTime}
+                invalid={statHolidayError}
               />
               <span className="text-muted-foreground text-xs shrink-0">to</span>
               <TimeSelect
                 value={statHolidayCloseTime}
                 onChange={setStatHolidayCloseTime}
+                invalid={statHolidayError}
               />
             </div>
           )}
         </div>
+        {statHolidayError && (
+          <p className="text-xs text-destructive pl-2">Close time must be after open time.</p>
+        )}
       </div>
     </div>
   );
