@@ -44,7 +44,7 @@ type WeekSchedule = Record<string, DaySchedule>;
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 const defaultSchedule: WeekSchedule = Object.fromEntries(
-  DAYS.map(day => [day, { open: day !== "Sunday", openTime: "09:00", closeTime: "17:00" }])
+  DAYS.map(day => [day, { open: day !== "Sunday", openTime: "00:00", closeTime: "00:00" }])
 );
 
 interface TimeChangesFormProps {
