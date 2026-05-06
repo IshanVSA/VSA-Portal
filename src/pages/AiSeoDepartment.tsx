@@ -4,10 +4,15 @@ import { useAiSeoAccess } from "@/hooks/useAiSeoAccess";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { DepartmentAccessLocked } from "@/components/department/DepartmentAccessLocked";
+import { AdminServiceLockNotice } from "@/components/department/AdminServiceLockNotice";
 
 export default function AiSeoDepartment() {
   const { clinics, selectedClinicId, selectedClinic, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
   const { hasAccess, isLoading } = useAiSeoAccess(selectedClinicId || undefined);
+  // Admins always pass `hasAccess`, but we still want to surface that the clinic
+  // itself has AI SEO disabled so they can see the lock state at a glance.
+  const clinicAiSeoEnabled = selectedClinic?.ai_seo_enabled ?? false;
+  const isAdminBypass = hasAccess && !!selectedClinic && !clinicAiSeoEnabled;
 
   return (
     <>
