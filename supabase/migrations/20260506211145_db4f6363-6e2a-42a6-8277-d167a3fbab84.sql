@@ -1,0 +1,1 @@
+UPDATE public.clinics SET status = 'active' WHERE status <> 'active';
