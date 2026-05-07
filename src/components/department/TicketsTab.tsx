@@ -182,6 +182,17 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
             merged.assigned_to = myDeptRow.assigned_to;
             merged.status = myDeptRow.status;
             merged.dept_assignment_id = myDeptRow.id;
+            merged.completed_at = myDeptRow.completed_at ?? merged.completed_at;
+          }
+          // For clients (parent rollup): if all dept rows are completed, surface the
+          // latest completion timestamp so resolution time can be displayed.
+          if (isClient && rows.length > 0 && rows.every((r: any) => r.status === "completed")) {
+            const ts = rows
+              .map((r: any) => r.completed_at)
+              .filter(Boolean)
+              .sort()
+              .pop();
+            if (ts) merged.completed_at = ts;
           }
           return merged;
         });
