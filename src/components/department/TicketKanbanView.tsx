@@ -34,6 +34,7 @@ interface KanbanTicket {
   department: string;
   clinic_id?: string | null;
   created_at: string;
+  completed_at?: string | null;
   assigned_to?: string | null;
   pool_user_ids?: string[];
   dept_assignment_id?: string;
