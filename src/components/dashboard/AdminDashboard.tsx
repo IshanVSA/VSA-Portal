@@ -28,6 +28,7 @@ import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { motion } from "framer-motion";
 import UpcomingPosts from "./UpcomingPosts";
 import RecentActivity from "./RecentActivity";
+import OpenTicketsList from "./OpenTicketsList";
 
 import { cn } from "@/lib/utils";
 
@@ -796,6 +797,9 @@ export default function AdminDashboard() {
           </div>
         </section>
       </div>
+
+      {/* Open tickets — at-a-glance list across all clinics */}
+      <OpenTicketsList />
 
       {/* ROW: Posts / Activity */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
