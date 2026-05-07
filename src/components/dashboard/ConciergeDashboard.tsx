@@ -74,6 +74,8 @@ export default function ConciergeDashboard() {
         <KPICard label="Pending Review" value={pendingCount} icon={Megaphone} index={2} gradient="amber" />
       </div>
 
+      <OpenTicketsList />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <MyTickets />
         <UpcomingPosts />
