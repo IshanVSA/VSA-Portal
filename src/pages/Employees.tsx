@@ -13,9 +13,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
-import { Plus, Trash2, Users, Search, X, Pencil, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Users, Search, X, Pencil, AlertTriangle, Activity } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import TeamActivityTab from "@/components/team/TeamActivityTab";
 
 const TEAM_ROLES = [
   "Developer",
@@ -248,6 +250,13 @@ export default function Employees() {
           </div>
         </div>
 
+        <Tabs defaultValue="members" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="members"><Users className="h-3.5 w-3.5 mr-1.5" />Members</TabsTrigger>
+            <TabsTrigger value="activity"><Activity className="h-3.5 w-3.5 mr-1.5" />Activity</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="members" className="space-y-4 mt-0">
         {/* Filter Bar */}
         <Card className="border-border/60">
           <CardContent className="py-3 px-3 sm:px-4">
@@ -360,6 +369,12 @@ export default function Employees() {
             </Table>
           </Card>
         )}
+          </TabsContent>
+
+          <TabsContent value="activity" className="mt-0">
+            <TeamActivityTab />
+          </TabsContent>
+        </Tabs>
 
         {/* Edit Member Dialog */}
         <Dialog open={!!editDialogUser} onOpenChange={(open) => { if (!open) setEditDialogUser(null); }}>

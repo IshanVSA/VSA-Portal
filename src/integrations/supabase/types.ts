@@ -2793,6 +2793,40 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string[]
       }
+      get_team_activity_summary: {
+        Args: never
+        Returns: {
+          calendars_created: number
+          chat_messages: number
+          comments_posted: number
+          email: string
+          first_login_at: string
+          full_name: string
+          is_online: boolean
+          last_activity_at: string
+          last_seen_at: string
+          login_count: number
+          posts_acted_on: number
+          role: string
+          team_role: string
+          tickets_assigned: number
+          tickets_completed: number
+          tickets_in_progress: number
+          tickets_voided: number
+          user_id: string
+        }[]
+      }
+      get_team_member_timeline: {
+        Args: { _limit?: number; _user_id: string }
+        Returns: {
+          clinic_id: string
+          description: string
+          event_at: string
+          event_type: string
+          metadata: Json
+          ref_id: string
+        }[]
+      }
       get_ticket_user_directory: {
         Args: { _ticket_id: string }
         Returns: {
