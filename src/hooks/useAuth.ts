@@ -51,6 +51,7 @@ export function useAuth() {
         setSession(session);
         setUser(session.user);
         touch();
+        startHeartbeat();
       }
       setLoading(false);
     });
@@ -60,9 +61,6 @@ export function useAuth() {
       (event, session) => {
         if (!mounted) return;
 
-        // Only force-logout on an explicit SIGNED_OUT or USER_DELETED event.
-        // A null session on TOKEN_REFRESHED can happen transiently (e.g. tab
-        // wake-up, network blip) and should NOT eject the user.
         if (event === 'SIGNED_OUT') {
           setSession(null);
           setUser(null);
@@ -73,8 +71,12 @@ export function useAuth() {
         if (session) {
           setSession(session);
           setUser(session.user);
-          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          if (event === 'SIGNED_IN') {
+            recordLogin();
+            startHeartbeat();
+          } else if (event === 'TOKEN_REFRESHED') {
             touch();
+            startHeartbeat();
           }
         }
         setLoading(false);
@@ -92,6 +94,9 @@ export function useAuth() {
       mounted = false;
       subscription.unsubscribe();
       clearTimeout(timer);
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', onFocus);
     };
   }, []);
 
