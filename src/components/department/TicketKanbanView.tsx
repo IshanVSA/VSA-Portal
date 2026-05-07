@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Clock, AlertTriangle, CheckCircle2, Inbox, UserCircle, GripVertical, Ban, Pencil, Eye } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { businessResolutionLabel } from "@/lib/business-days";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,7 @@ interface KanbanTicket {
   department: string;
   clinic_id?: string | null;
   created_at: string;
+  completed_at?: string | null;
   assigned_to?: string | null;
   pool_user_ids?: string[];
   dept_assignment_id?: string;
@@ -408,6 +410,18 @@ export function TicketKanbanView({ tickets, teamMembers, assignableMembers, curr
                       <span className="text-[10px] text-muted-foreground italic">Unassigned</span>
                     )}
                   </div>
+                  {isCompleted && t.completed_at && (
+                    <div className="mt-1.5 pl-[2.25rem]">
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] px-1.5 py-0 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 gap-1"
+                        title={`Resolved in ${businessResolutionLabel(t.created_at, t.completed_at)} of business time (Mon–Fri)`}
+                      >
+                        <CheckCircle2 className="h-2.5 w-2.5" />
+                        Resolved in {businessResolutionLabel(t.created_at, t.completed_at)}
+                      </Badge>
+                    </div>
+                  )}
                 </Card>
               );
             })
