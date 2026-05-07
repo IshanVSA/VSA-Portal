@@ -37,6 +37,7 @@ interface KanbanTicket {
   pool_user_ids?: string[];
   dept_assignment_id?: string;
   dept_assignments?: { department: string; status: string; assigned_to: string | null }[];
+  void_reason?: string | null;
   __carriedFrom?: string;
 }
 
