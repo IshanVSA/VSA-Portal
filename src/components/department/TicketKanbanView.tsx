@@ -37,6 +37,7 @@ interface KanbanTicket {
   pool_user_ids?: string[];
   dept_assignment_id?: string;
   dept_assignments?: { department: string; status: string; assigned_to: string | null }[];
+  void_reason?: string | null;
   __carriedFrom?: string;
 }
 
@@ -366,6 +367,15 @@ export function TicketKanbanView({ tickets, teamMembers, assignableMembers, curr
 
                   {t.description && (
                     <p className="text-[11px] text-muted-foreground line-clamp-2 mb-2 pl-[2.25rem]">{t.description}</p>
+                  )}
+
+                  {isVoid && t.void_reason && (
+                    <div className="mb-2 pl-[2.25rem]">
+                      <div className="rounded-md border border-destructive/20 bg-destructive/5 px-2 py-1.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-destructive mb-0.5">Void reason</p>
+                        <p className="text-[11px] text-foreground whitespace-pre-wrap leading-relaxed">{t.void_reason}</p>
+                      </div>
+                    </div>
                   )}
 
                   <div className="flex flex-wrap items-center gap-1 mb-2 pl-[2.25rem]">
