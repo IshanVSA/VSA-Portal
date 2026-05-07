@@ -266,6 +266,13 @@ export default function TeamActivityTab() {
                     );
                   })}
                 </ul>
+                <div ref={sentinelRef} className="h-4" />
+                {loadingMore && (
+                  <div className="py-3 text-center text-xs text-muted-foreground">Loading more...</div>
+                )}
+                {!hasMore && timeline.length > 0 && (
+                  <div className="py-3 text-center text-[11px] text-muted-foreground">End of activity ({timeline.length} events)</div>
+                )}
               </div>
             )}
           </div>
