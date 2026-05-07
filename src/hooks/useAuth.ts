@@ -19,11 +19,30 @@ export function useAuth() {
   useEffect(() => {
     let mounted = true;
 
-    // Fire-and-forget heartbeat so admins can see who's actively using the
-    // portal. Server-side throttled to once per 5 minutes per user.
+    // Presence heartbeat so admins can see who's actively using the portal.
+    // The server keeps last_seen_at fresh without inflating login_count.
     const touch = () => {
       try { (supabase as any).rpc("touch_login_activity"); } catch {}
     };
+    const recordLogin = () => {
+      try { (supabase as any).rpc("record_login_activity"); } catch {}
+    };
+
+    // Recurring heartbeat every 60s while the tab is visible, plus on focus /
+    // visibility change so "online" reflects reality within ~1 minute.
+    let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+    const startHeartbeat = () => {
+      if (heartbeatTimer) return;
+      heartbeatTimer = setInterval(() => {
+        if (document.visibilityState === 'visible') touch();
+      }, 60_000);
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') touch();
+    };
+    const onFocus = () => touch();
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', onFocus);
 
     // 1. Restore session from storage first
     supabase.auth.getSession().then(({ data: { session } }) => {
