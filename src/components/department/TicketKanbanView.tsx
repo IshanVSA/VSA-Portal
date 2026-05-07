@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Clock, AlertTriangle, CheckCircle2, Inbox, UserCircle, GripVertical, Ban, Pencil, Eye } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { businessResolutionLabel } from "@/lib/business-days";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
