@@ -28,6 +28,7 @@ import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { motion } from "framer-motion";
 import UpcomingPosts from "./UpcomingPosts";
 import RecentActivity from "./RecentActivity";
+import OpenTicketsList from "./OpenTicketsList";
 
 import { cn } from "@/lib/utils";
 
