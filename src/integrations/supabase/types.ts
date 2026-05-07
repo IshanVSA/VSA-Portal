@@ -2900,6 +2900,7 @@ export type Database = {
         Args: { _error?: string; _job_name: string; _status?: string }
         Returns: undefined
       }
+      record_login_activity: { Args: never; Returns: undefined }
       slugify_city: { Args: { _city: string }; Returns: string }
       sub_account_hides_financials: {
         Args: { _user_id: string }
