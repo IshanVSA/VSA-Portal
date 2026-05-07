@@ -250,6 +250,13 @@ export default function Employees() {
           </div>
         </div>
 
+        <Tabs defaultValue="members" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="members"><Users className="h-3.5 w-3.5 mr-1.5" />Members</TabsTrigger>
+            <TabsTrigger value="activity"><Activity className="h-3.5 w-3.5 mr-1.5" />Activity</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="members" className="space-y-4 mt-0">
         {/* Filter Bar */}
         <Card className="border-border/60">
           <CardContent className="py-3 px-3 sm:px-4">
@@ -362,6 +369,12 @@ export default function Employees() {
             </Table>
           </Card>
         )}
+          </TabsContent>
+
+          <TabsContent value="activity" className="mt-0">
+            <TeamActivityTab />
+          </TabsContent>
+        </Tabs>
 
         {/* Edit Member Dialog */}
         <Dialog open={!!editDialogUser} onOpenChange={(open) => { if (!open) setEditDialogUser(null); }}>
