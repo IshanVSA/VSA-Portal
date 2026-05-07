@@ -66,16 +66,41 @@ export default function TeamActivityTab() {
   const PAGE_SIZE = 50;
 
   useEffect(() => {
-    (async () => {
-      setLoading(true);
+    let cancelled = false;
+    const load = async () => {
       const [{ data }, clinicsRes] = await Promise.all([
         (supabase as any).rpc("get_team_activity_summary"),
         supabase.from("clinics").select("id, clinic_name"),
       ]);
+      if (cancelled) return;
       setRows((data as TeamRow[]) || []);
       setClinicMap(Object.fromEntries((clinicsRes.data || []).map((c: any) => [c.id, c.clinic_name])));
       setLoading(false);
-    })();
+    };
+    setLoading(true);
+    load();
+
+    // Auto-refresh every 30s so the online dot and counters stay live.
+    const interval = setInterval(load, 30_000);
+    const onVis = () => { if (document.visibilityState === 'visible') load(); };
+    document.addEventListener('visibilitychange', onVis);
+
+    // Realtime: refresh immediately when activity-related tables change.
+    const channel = supabase
+      .channel('team-activity-feed')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_login_activity' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ticket_audit_log' }, () => load())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'department_chats' }, () => load())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post_comments' }, () => load())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post_activity_log' }, () => load())
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVis);
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchPage = useCallback(async (userId: string, offset: number) => {
