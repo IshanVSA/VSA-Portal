@@ -59,7 +59,11 @@ export default function TeamActivityTab() {
   const [selected, setSelected] = useState<TeamRow | null>(null);
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
   const [timelineLoading, setTimelineLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [clinicMap, setClinicMap] = useState<Record<string, string>>({});
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const PAGE_SIZE = 50;
 
   useEffect(() => {
     (async () => {
@@ -74,14 +78,45 @@ export default function TeamActivityTab() {
     })();
   }, []);
 
+  const fetchPage = useCallback(async (userId: string, offset: number) => {
+    const { data } = await (supabase as any).rpc("get_team_member_timeline", {
+      _user_id: userId,
+      _limit: PAGE_SIZE,
+      _offset: offset,
+    });
+    return (data as TimelineEvent[]) || [];
+  }, []);
+
   const openMember = async (row: TeamRow) => {
     setSelected(row);
     setTimeline([]);
+    setHasMore(true);
     setTimelineLoading(true);
-    const { data } = await (supabase as any).rpc("get_team_member_timeline", { _user_id: row.user_id, _limit: 200 });
-    setTimeline((data as TimelineEvent[]) || []);
+    const page = await fetchPage(row.user_id, 0);
+    setTimeline(page);
+    setHasMore(page.length === PAGE_SIZE);
     setTimelineLoading(false);
   };
+
+  const loadMore = useCallback(async () => {
+    if (!selected || loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    const page = await fetchPage(selected.user_id, timeline.length);
+    setTimeline(prev => [...prev, ...page]);
+    setHasMore(page.length === PAGE_SIZE);
+    setLoadingMore(false);
+  }, [selected, loadingMore, hasMore, timeline.length, fetchPage]);
+
+  useEffect(() => {
+    if (!sentinelRef.current || !selected || timelineLoading) return;
+    const el = sentinelRef.current;
+    const observer = new IntersectionObserver(
+      (entries) => { if (entries[0].isIntersecting) loadMore(); },
+      { rootMargin: "200px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loadMore, selected, timelineLoading, timeline.length]);
 
   const filtered = rows.filter(r => {
     const q = search.trim().toLowerCase();
