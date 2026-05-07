@@ -2816,17 +2816,29 @@ export type Database = {
           user_id: string
         }[]
       }
-      get_team_member_timeline: {
-        Args: { _limit?: number; _user_id: string }
-        Returns: {
-          clinic_id: string
-          description: string
-          event_at: string
-          event_type: string
-          metadata: Json
-          ref_id: string
-        }[]
-      }
+      get_team_member_timeline:
+        | {
+            Args: { _limit?: number; _offset?: number; _user_id: string }
+            Returns: {
+              clinic_id: string
+              description: string
+              event_at: string
+              event_type: string
+              metadata: Json
+              ref_id: string
+            }[]
+          }
+        | {
+            Args: { _limit?: number; _user_id: string }
+            Returns: {
+              clinic_id: string
+              description: string
+              event_at: string
+              event_type: string
+              metadata: Json
+              ref_id: string
+            }[]
+          }
       get_ticket_user_directory: {
         Args: { _ticket_id: string }
         Returns: {
