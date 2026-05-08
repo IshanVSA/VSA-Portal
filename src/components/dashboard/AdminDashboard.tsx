@@ -554,10 +554,10 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      {/* ROW: Tickets & Clinic Health */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+      {/* ROW: Tickets */}
+      <div className="grid grid-cols-1 gap-4">
         {/* Tickets by Department */}
-        <section className="rounded-2xl border border-border/60 bg-card lg:col-span-2">
+        <section className="rounded-2xl border border-border/60 bg-card">
           <header className="flex items-center justify-between border-b border-border/50 px-5 py-4">
             <div>
               <h3 className="text-sm font-bold tracking-tight text-foreground">Tickets by Department</h3>
@@ -620,90 +620,6 @@ export default function AdminDashboard() {
                         >
                           <ArrowUpRight className="h-3.5 w-3.5" />
                         </Link>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        </section>
-
-        {/* Clinic Health */}
-        <section className="rounded-2xl border border-border/60 bg-card lg:col-span-3">
-          <header className="flex items-center justify-between border-b border-border/50 px-5 py-4">
-            <div>
-              <h3 className="text-sm font-bold tracking-tight text-foreground">Clinic Health</h3>
-              <p className="text-[11px] text-muted-foreground">Click a clinic to filter the dashboard</p>
-            </div>
-            <Link to="/clinics">
-              <Button variant="ghost" size="sm" className="h-7 rounded-full text-xs text-muted-foreground hover:text-foreground">
-                View all <ArrowUpRight className="ml-1 h-3 w-3" />
-              </Button>
-            </Link>
-          </header>
-          <div className="p-2">
-            {clinics.length === 0 ? (
-              <div className="py-10 text-center">
-                <p className="text-sm text-muted-foreground">No clinics yet</p>
-              </div>
-            ) : (
-              <ul className="space-y-0.5">
-                {clinics.slice(0, 8).map((clinic) => {
-                  const isActive = filter.clinicId === clinic.id;
-                  return (
-                    <li key={clinic.id}>
-                      <div
-                        className={cn(
-                          "group flex items-center justify-between gap-3 rounded-xl px-3 py-2 transition-colors",
-                          isActive ? "bg-primary/10 ring-1 ring-primary/30" : "hover:bg-muted/50"
-                        )}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => toggleClinic(clinic.id, clinic.clinic_name)}
-                          className="flex min-w-0 flex-1 items-center gap-3 text-left"
-                        >
-                          <span
-                            className={cn(
-                              "h-2 w-2 shrink-0 rounded-full",
-                              clinic.status === "active" ? "bg-success shadow-[0_0_0_3px_hsl(var(--success)/0.18)]" : "bg-muted-foreground"
-                            )}
-                          />
-                          <span className={cn(
-                            "truncate text-sm font-semibold",
-                            isActive ? "text-primary" : "text-foreground group-hover:text-primary"
-                          )}>
-                            {clinic.clinic_name}
-                          </span>
-                        </button>
-                        <div className="flex shrink-0 items-center gap-1">
-                          {serviceIcons.map((s) => {
-                            const enabled = clinic[s.key];
-                            return (
-                              <span
-                                key={s.key}
-                                title={`${s.label}: ${enabled ? "Enabled" : "Disabled"}`}
-                                className={cn(
-                                  "inline-flex h-5 min-w-[34px] items-center justify-center rounded-md px-1.5 text-[9px] font-bold uppercase tracking-wider transition-colors",
-                                  enabled
-                                    ? "border border-border/70 text-foreground"
-                                    : "border border-dashed border-border/40 text-muted-foreground/40 line-through"
-                                )}
-                                style={enabled ? { color: `hsl(var(${s.varName}))`, borderColor: `hsl(var(${s.varName}) / 0.4)`, backgroundColor: `hsl(var(${s.varName}) / 0.08)` } : undefined}
-                              >
-                                {s.label}
-                              </span>
-                            );
-                          })}
-                          <Link
-                            to={`/clinics/${clinic.id}`}
-                            title="Open clinic"
-                            className="ml-1 rounded-md p-1 text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
-                          >
-                            <ArrowUpRight className="h-3.5 w-3.5" />
-                          </Link>
-                        </div>
                       </div>
                     </li>
                   );
