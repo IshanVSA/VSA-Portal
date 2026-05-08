@@ -794,8 +794,7 @@ export default function AdminDashboard() {
         </section>
       </div>
 
-      {/* Open tickets — at-a-glance list across all clinics */}
-      <OpenTicketsList />
+      <OpenTicketsList open={ticketsOpen} onOpenChange={setTicketsOpen} />
 
       {/* ROW: Posts / Activity */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
