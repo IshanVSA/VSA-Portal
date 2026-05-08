@@ -37,6 +37,21 @@ interface OpenTicket {
   clinic_name?: string;
 }
 
+interface OpenTicketAssignmentRow {
+  id: string;
+  ticket_id: string;
+  department: string;
+  status: string;
+}
+
+interface OpenTicketBaseRow {
+  id: string;
+  title: string;
+  priority: string;
+  clinic_id: string | null;
+  created_at: string;
+}
+
 const deptConfig: Record<string, { icon: React.ElementType; label: string; path: string; color: string }> = {
   website: { icon: Globe, label: "Website", path: "/website", color: "text-[hsl(var(--dept-website))]" },
   seo: { icon: Search, label: "SEO", path: "/seo", color: "text-[hsl(var(--dept-seo))]" },
@@ -77,9 +92,9 @@ export default function OpenTicketsList({ open, onOpenChange }: OpenTicketsListP
       setLoading(true);
       const [aRes, tRes, cRes] = await Promise.all([
         (supabase
-          .from("department_ticket_assignments" as any)
+          .from("department_ticket_assignments" as never)
           .select("id, ticket_id, department, status")
-          .in("status", ["open", "in_progress", "emergency"] as any) as any),
+          .in("status", ["open", "in_progress", "emergency"] as never)),
         supabase
           .from("department_tickets")
           .select("id, title, priority, clinic_id, created_at"),
@@ -87,10 +102,10 @@ export default function OpenTicketsList({ open, onOpenChange }: OpenTicketsListP
       ]);
       if (cancelled) return;
       const cMap = new Map<string, string>();
-      ((cRes.data || []) as any[]).forEach((c) => cMap.set(c.id, c.clinic_name));
-      const ticketMap = new Map<string, any>();
-      ((tRes.data || []) as any[]).forEach((t) => ticketMap.set(t.id, t));
-      const rows = ((aRes.data || []) as any[])
+      ((cRes.data || []) as { id: string; clinic_name: string }[]).forEach((c) => cMap.set(c.id, c.clinic_name));
+      const ticketMap = new Map<string, OpenTicketBaseRow>();
+      ((tRes.data || []) as OpenTicketBaseRow[]).forEach((t) => ticketMap.set(t.id, t));
+      const rows = ((aRes.data || []) as OpenTicketAssignmentRow[])
         .map((a) => {
           const t = ticketMap.get(a.ticket_id);
           if (!t) return null;
