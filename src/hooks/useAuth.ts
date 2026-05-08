@@ -21,11 +21,14 @@ export function useAuth() {
 
     // Presence heartbeat so admins can see who's actively using the portal.
     // The server keeps last_seen_at fresh without inflating login_count.
+    // NOTE: supabase.rpc() returns a lazy PostgrestBuilder — it only fires
+    // the HTTP request when .then() is attached (or it is awaited). A bare
+    // `supabase.rpc(...)` does nothing, which is why heartbeats were silent.
     const touch = () => {
-      try { (supabase as any).rpc("touch_login_activity"); } catch {}
+      try { (supabase as any).rpc("touch_login_activity").then(() => {}, () => {}); } catch {}
     };
     const recordLogin = () => {
-      try { (supabase as any).rpc("record_login_activity"); } catch {}
+      try { (supabase as any).rpc("record_login_activity").then(() => {}, () => {}); } catch {}
     };
 
     // Recurring heartbeat every 60s while the tab is visible, plus on focus /
