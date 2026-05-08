@@ -156,20 +156,27 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
             <ul className="py-2">
               {items.map((item) => {
                 const Icon = item.icon;
+                const isClosed = item.type === "ticket" && (item.status === "completed" || item.status === "void");
+                const href = buildHref(item);
                 return (
-                  <li key={item.id} className="relative flex items-start gap-3 px-4 py-2 hover:bg-muted/30 transition-colors">
-                    <div className={cn("relative z-10 mt-0.5 h-5 w-5 rounded-full bg-card border-2 border-border flex items-center justify-center shrink-0")}>
-                      <Icon className={cn("h-2.5 w-2.5", item.color)} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm text-foreground leading-snug">
-                        <span className="font-medium">{item.label}</span>
-                        <span className="text-muted-foreground"> - {item.description}</span>
-                      </p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
-                        {formatDistanceToNow(parseISO(item.created_at), { addSuffix: true })}
-                      </p>
-                    </div>
+                  <li key={item.id} className="relative">
+                    <Link
+                      to={href}
+                      className="flex items-start gap-3 px-4 py-2 hover:bg-muted/30 transition-colors focus:outline-none focus:bg-muted/40"
+                    >
+                      <div className={cn("relative z-10 mt-0.5 h-5 w-5 rounded-full bg-card border-2 border-border flex items-center justify-center shrink-0")}>
+                        <Icon className={cn("h-2.5 w-2.5", item.color)} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className={cn("text-sm text-foreground leading-snug", isClosed && "line-through text-muted-foreground")}>
+                          <span className="font-medium">{item.label}</span>
+                          <span className="text-muted-foreground"> - {item.description}</span>
+                        </p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {formatDistanceToNow(parseISO(item.created_at), { addSuffix: true })}
+                        </p>
+                      </div>
+                    </Link>
                   </li>
                 );
               })}
