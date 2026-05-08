@@ -36,7 +36,7 @@ interface SubAccount {
 
 export default function SubAccounts() {
   const { user } = useAuth();
-  const { role, isSubAccount } = useUserRole();
+  const { role, isSubAccount, isLoading: roleLoading } = useUserRole();
   const [searchParams] = useSearchParams();
   const isAdmin = role === "admin";
   // Admins can scope the page to a single parent client via ?parent=<uuid>
