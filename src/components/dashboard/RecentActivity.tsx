@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  CheckCircle2, Send, Sparkles, Ticket, FileText,
+  CheckCircle2, Send, Sparkles, Ticket, FileText, Clock,
 } from "lucide-react";
 import type { DashboardFilter } from "./AdminDashboard";
 import { Card, CardContent } from "@/components/ui/card";
@@ -63,7 +63,7 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
       const clinicMap = new Map((clinicsRes.data || []).map(c => [c.id, c.clinic_name]));
 
       const [ticketsRes, contentRequestsRes] = await Promise.all([
-        supabase.from("department_tickets").select("id, title, department, priority, status, created_at, created_by, clinic_id").order("created_at", { ascending: false }).limit(40),
+        supabase.from("department_tickets").select("id, title, department, priority, status, created_at, updated_at, created_by, clinic_id").order("created_at", { ascending: false }).limit(40),
         supabase.from("content_requests").select("id, status, created_at, created_by_concierge_id, clinic_id, intake_data").order("created_at", { ascending: false }).limit(40),
       ]);
 
@@ -97,6 +97,13 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
         });
       });
 
+      const ticketStatusMeta: Record<string, { label: string; icon: React.ElementType; color: string }> = {
+        in_progress: { label: "Ticket in progress", icon: Clock, color: "text-warning" },
+        completed: { label: "Ticket completed", icon: CheckCircle2, color: "text-success" },
+        void: { label: "Ticket voided", icon: Ticket, color: "text-muted-foreground" },
+        emergency: { label: "Ticket marked emergency", icon: Ticket, color: "text-destructive" },
+      };
+
       (ticketsRes.data || []).forEach((t: any) => {
         const creatorName = t.created_by ? profileMap.get(t.created_by) || "Someone" : "Someone";
         const clinicName = t.clinic_id ? clinicMap.get(t.clinic_id) : null;
@@ -106,18 +113,36 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
         if (clinicName) desc += ` for ${clinicName}`;
         desc += ` by ${creatorName}`;
 
+        // Always emit a creation event
         activities.push({
-          id: `ticket-${t.id}`,
+          id: `ticket-${t.id}-created`,
           type: "ticket",
-          label: t.status === "open" ? "Ticket created" : `Ticket ${t.status.replace("_", " ")}`,
+          label: "Ticket created",
           description: desc,
           created_at: t.created_at,
           icon: Ticket,
           color: t.priority === "emergency" ? "text-destructive" : t.priority === "urgent" ? "text-warning" : "text-primary",
           clinic_id: t.clinic_id || null,
           department: t.department || null,
-          status: t.status || null,
+          status: "open",
         });
+
+        // Emit a separate status-change event if the ticket is no longer open
+        if (t.status && t.status !== "open" && t.updated_at && t.updated_at !== t.created_at) {
+          const meta = ticketStatusMeta[t.status] || { label: `Ticket ${t.status.replace("_", " ")}`, icon: Ticket, color: "text-muted-foreground" };
+          activities.push({
+            id: `ticket-${t.id}-${t.status}`,
+            type: "ticket",
+            label: meta.label,
+            description: desc,
+            created_at: t.updated_at,
+            icon: meta.icon,
+            color: meta.color,
+            clinic_id: t.clinic_id || null,
+            department: t.department || null,
+            status: t.status,
+          });
+        }
       });
 
       activities.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
