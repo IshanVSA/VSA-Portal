@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   CheckCircle2, Send, Sparkles, Ticket, FileText,
@@ -7,6 +8,27 @@ import type { DashboardFilter } from "./AdminDashboard";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
+
+const deptRoute: Record<string, string> = {
+  website: "/website",
+  seo: "/seo",
+  google_ads: "/google-ads",
+  social_media: "/social",
+};
+
+function buildHref(item: UnifiedActivity): string {
+  const clinic = item.clinic_id ? `clinic=${item.clinic_id}` : "";
+  if (item.type === "ticket") {
+    const base = deptRoute[item.department || ""] || "/";
+    const params = [clinic, "tab=tickets"].filter(Boolean).join("&");
+    return `${base}?${params}`;
+  }
+  if (item.type === "content_request") {
+    const params = [clinic, "tab=requests"].filter(Boolean).join("&");
+    return `/social?${params}`;
+  }
+  return "/";
+}
 
 interface UnifiedActivity {
   id: string;
