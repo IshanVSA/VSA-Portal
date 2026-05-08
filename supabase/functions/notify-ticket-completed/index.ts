@@ -149,7 +149,7 @@ Deno.serve(async (req) => {
     const failed = results.filter((r) => !r.ok).length;
 
     return new Response(
-      JSON.stringify({ ok: true, recipients: emails.length, sent, failed }),
+      JSON.stringify({ ok: true, recipients: emails.length, sent, failed, testMode: !!testRecipient, results }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err: any) {
