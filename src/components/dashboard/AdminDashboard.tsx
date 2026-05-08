@@ -290,23 +290,23 @@ export default function AdminDashboard() {
         supabase.from("content_posts").select("id, status, scheduled_date, clinic_id"),
         supabase.from("department_tickets").select("id, priority, clinic_id"),
         supabase.from("content_requests").select("id, status, clinic_id"),
-        (supabase as any).rpc("get_client_login_summary"),
+        supabase.rpc("get_client_login_summary" as never),
       ]);
 
       setClinics((clinicsRes.data || []) as Clinic[]);
       setProfiles(profilesRes.data || []);
       // Count only staff accounts (admins + concierges) — exclude clients/sub_clients
       const staffRoles = new Set(["admin", "concierge"]);
-      const staff = (rolesRes.data || []).filter((r: any) => staffRoles.has(r.role));
+      const staff = ((rolesRes.data || []) as RoleRow[]).filter((r) => staffRoles.has(r.role));
       setTeamCount(staff.length);
       const ticketRows = (ticketsRes.data || []) as TicketRow[];
       if (ticketRows.length) {
         const { data: assignmentRows } = await (supabase
-          .from("department_ticket_assignments" as any)
+          .from("department_ticket_assignments" as never)
           .select("id, ticket_id, department, status")
-          .in("status", ["open", "in_progress", "emergency"] as any) as any);
+          .in("status", ["open", "in_progress", "emergency"] as never));
         const ticketMap = new Map(ticketRows.map((t) => [t.id, t]));
-        setTickets(((assignmentRows || []) as any[]).flatMap((a) => {
+        setTickets(((assignmentRows || []) as Omit<TicketAssignmentRow, "priority" | "clinic_id">[]).flatMap((a) => {
           const ticket = ticketMap.get(a.ticket_id);
           if (!ticket) return [];
           return [{
@@ -326,7 +326,7 @@ export default function AdminDashboard() {
 
       // Count clients active in the last 30 days based on portal logins
       const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-      const loginRows = ((loginRes as any)?.data || []) as Array<{ role: string; last_seen_at: string | null }>;
+      const loginRows = (loginRes.data || []) as LoginSummaryRow[];
       const clientRows = loginRows.filter(r => r.role === "client");
       setTotalClientCount(clientRows.length);
       setActiveClientCount(
@@ -679,7 +679,7 @@ export default function AdminDashboard() {
                         </button>
                         <div className="flex shrink-0 items-center gap-1">
                           {serviceIcons.map((s) => {
-                            const enabled = (clinic as any)[s.key];
+                            const enabled = clinic[s.key];
                             return (
                               <span
                                 key={s.key}
