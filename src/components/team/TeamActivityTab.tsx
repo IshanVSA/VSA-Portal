@@ -68,8 +68,16 @@ export default function TeamActivityTab() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [clinicMap, setClinicMap] = useState<Record<string, string>>({});
+  const [, setTick] = useState(0);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const PAGE_SIZE = 50;
+
+  // Tick every 20s so relative timestamps ("5 minutes ago") and the online dot
+  // refresh on screen even between full data reloads.
+  useEffect(() => {
+    const t = setInterval(() => setTick(x => x + 1), 20_000);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
