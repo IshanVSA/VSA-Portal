@@ -74,6 +74,7 @@ export default function OpenTicketsList({ open, onOpenChange }: OpenTicketsListP
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
+      setLoading(true);
       const [aRes, tRes, cRes] = await Promise.all([
         (supabase
           .from("department_ticket_assignments" as any)
