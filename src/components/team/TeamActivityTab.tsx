@@ -70,7 +70,34 @@ export default function TeamActivityTab() {
   const [clinicMap, setClinicMap] = useState<Record<string, string>>({});
   const [, setTick] = useState(0);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const selectedRef = useRef<TeamRow | null>(null);
+  const timelineLimitRef = useRef(50);
   const PAGE_SIZE = 50;
+
+  useEffect(() => {
+    selectedRef.current = selected;
+  }, [selected]);
+
+  useEffect(() => {
+    timelineLimitRef.current = Math.max(PAGE_SIZE, timeline.length || PAGE_SIZE);
+  }, [timeline.length]);
+
+  const fetchPage = useCallback(async (userId: string, offset: number, limit = PAGE_SIZE) => {
+    const { data, error } = await (supabase as any).rpc("get_team_member_timeline", {
+      _user_id: userId,
+      _limit: limit,
+      _offset: offset,
+    });
+    if (error) throw error;
+    return (data as TimelineEvent[]) || [];
+  }, []);
+
+  const refreshSelectedTimeline = useCallback(async (userId: string) => {
+    const limit = timelineLimitRef.current;
+    const page = await fetchPage(userId, 0, limit);
+    setTimeline(page);
+    setHasMore(page.length === limit);
+  }, [fetchPage]);
 
   // Tick every 20s so relative timestamps ("5 minutes ago") and the online dot
   // refresh on screen even between full data reloads.
@@ -87,7 +114,14 @@ export default function TeamActivityTab() {
         supabase.from("clinics").select("id, clinic_name"),
       ]);
       if (cancelled) return;
-      setRows((data as TeamRow[]) || []);
+      const nextRows = (data as TeamRow[]) || [];
+      setRows(nextRows);
+      const currentSelected = selectedRef.current;
+      if (currentSelected) {
+        const updatedSelected = nextRows.find(r => r.user_id === currentSelected.user_id) || currentSelected;
+        setSelected(updatedSelected);
+        refreshSelectedTimeline(currentSelected.user_id);
+      }
       setClinicMap(Object.fromEntries((clinicsRes.data || []).map((c: any) => [c.id, c.clinic_name])));
       setLoading(false);
     };
@@ -123,34 +157,34 @@ export default function TeamActivityTab() {
       document.removeEventListener('visibilitychange', onVis);
       supabase.removeChannel(channel);
     };
-  }, []);
-
-  const fetchPage = useCallback(async (userId: string, offset: number) => {
-    const { data } = await (supabase as any).rpc("get_team_member_timeline", {
-      _user_id: userId,
-      _limit: PAGE_SIZE,
-      _offset: offset,
-    });
-    return (data as TimelineEvent[]) || [];
-  }, []);
+  }, [refreshSelectedTimeline]);
 
   const openMember = async (row: TeamRow) => {
     setSelected(row);
     setTimeline([]);
     setHasMore(true);
     setTimelineLoading(true);
-    const page = await fetchPage(row.user_id, 0);
-    setTimeline(page);
-    setHasMore(page.length === PAGE_SIZE);
+    try {
+      const page = await fetchPage(row.user_id, 0);
+      setTimeline(page);
+      setHasMore(page.length === PAGE_SIZE);
+    } catch {
+      setTimeline([]);
+      setHasMore(false);
+    }
     setTimelineLoading(false);
   };
 
   const loadMore = useCallback(async () => {
     if (!selected || loadingMore || !hasMore) return;
     setLoadingMore(true);
-    const page = await fetchPage(selected.user_id, timeline.length);
-    setTimeline(prev => [...prev, ...page]);
-    setHasMore(page.length === PAGE_SIZE);
+    try {
+      const page = await fetchPage(selected.user_id, timeline.length);
+      setTimeline(prev => [...prev, ...page]);
+      setHasMore(page.length === PAGE_SIZE);
+    } catch {
+      setHasMore(false);
+    }
     setLoadingMore(false);
   }, [selected, loadingMore, hasMore, timeline.length, fetchPage]);
 
