@@ -1,36 +1,22 @@
-## Problem
-
-When using **Add/Remove Team Members** with multiple "Add" members in a single ticket, all photos go into one shared attachments list. The team can't tell which photo belongs to which person because uploaded files are stored under random UUID names and the form's only hint is a vague "name files after the member" instruction users rarely follow.
-
-## Solution
-
-Make each "Add" member row carry **its own photo upload slot** directly inside `AddRemoveTeamForm`. The global attachments section in the ticket dialog is hidden for this ticket type, so there's no ambiguity — a photo physically lives next to the member it belongs to, both in the UI and in the saved description.
+## Goal
+Send the real branded "Ticket Completed" email to `ishan@vsavetmedia.ca` so we can preview exactly what clients receive.
 
 ## Changes
 
-### 1. `AddRemoveTeamForm.tsx` — per-member photo slot
-- Extend each `TeamMemberEntry` with `photo: AttachedFile | null` (only used when `action === "add"`).
-- Render a compact single-file uploader inside each "Add" member card (drag-drop or click; image types only). "Remove" rows keep no uploader.
-- Lift files up via a new `onFilesChange(files: { file, memberName, memberIndex }[])` callback so the parent dialog can upload them.
-- In the generated description, replace the trailing "(See attachments…)" hint with explicit per-member lines like:
-  ```
-  #1 — Add
-    Name: Dr. Jane Smith
-    Photo: jane-smith-1.jpg
-  ```
-- Show an inline warning on any "Add" row missing a photo (non-blocking, but visible).
+1. **Edit `supabase/functions/notify-ticket-completed/index.ts`**
+   - Accept optional `testRecipient` (string) in the request body.
+   - When present: skip the owner + sub-account lookup, render the same branded template using a real completed ticket's data, and send only to `testRecipient`. Response includes `testMode: true`.
+   - When absent: behavior is unchanged (owner + sub-accounts).
 
-### 2. `NewTicketDialog.tsx` — wire the per-member files
-- For ticket type `Add/Remove Team Members`, hide the existing generic attachments section (same pattern already used for `New Forms`).
-- Accept the member-tagged file list from `AddRemoveTeamForm` and pass it through to `uploadFiles`.
-- In `uploadFiles`, when a file has an attached `memberName`, prefix the storage filename with a slugified member name (e.g. `jane-smith__<uuid>.jpg`) so it's self-describing in storage and in the ticket's attachments list.
+2. **Deploy the function** with `deploy_edge_functions`.
 
-### 3. `TicketEditDialog.tsx` — no schema change required
-The existing attachments list already shows filenames; with the slug prefix, each photo will visibly read like `jane-smith__abcd.jpg`, matching the description block.
+3. **Trigger the test send** via `curl_edge_functions`:
+   - `POST /notify-ticket-completed`
+   - body: `{ "ticketId": "1a18fa7d-3179-4382-a321-363839f52a84", "testRecipient": "ishan@vsavetmedia.ca" }`
+   - (Uses the most recently completed Website ticket "Time Changes Request" as the data source.)
 
-## Technical notes
+4. **Verify** by reading the function logs to confirm Zoho returned success.
 
-- No DB migration: `attachments` stays a `text[]` of storage paths.
-- Reuses the existing `department-files` bucket and `AttachedFile` / `FileUploader` types.
-- Slugify helper: lowercase, strip non-alphanumerics, collapse to dashes, max 40 chars; fallback to `member-<index>` if name empty at upload time.
-- Validation stays as-is; photo is encouraged but not strictly required (matches current behaviour where attachments are optional).
+## Notes
+- No DB / schema changes.
+- Override is harmless to leave in for future QA, but I can remove it after if you prefer — let me know.

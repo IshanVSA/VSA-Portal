@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { ticketId } = await req.json();
+    const { ticketId, testRecipient } = await req.json();
     if (!ticketId || typeof ticketId !== "string") {
       return new Response(JSON.stringify({ error: "ticketId required" }), {
         status: 400,
