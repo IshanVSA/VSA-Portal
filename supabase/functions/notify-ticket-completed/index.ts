@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (ticket.status !== "completed") {
+    if (ticket.status !== "completed" && !testRecipient) {
       return new Response(
         JSON.stringify({ ok: true, skipped: "not_completed", status: ticket.status }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
