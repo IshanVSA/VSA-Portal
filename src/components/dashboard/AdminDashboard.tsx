@@ -256,6 +256,7 @@ export default function AdminDashboard() {
 
   // active drill-down filter
   const [filter, setFilter] = useState<DashboardFilter>({});
+  const [ticketsOpen, setTicketsOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -480,9 +481,10 @@ export default function AdminDashboard() {
           <HeroStat
             label="Open Tickets"
             value={openTickets}
-            caption={urgentTickets > 0 ? `${urgentTickets} urgent` : "all clear"}
+            caption={urgentTickets > 0 ? `${urgentTickets} urgent · click to view` : "click to view all"}
             icon={Ticket}
             tone={urgentTickets > 0 ? "destructive" : "neutral"}
+            onClick={() => setTicketsOpen(true)}
             index={1}
           />
           <HeroStat
@@ -794,8 +796,7 @@ export default function AdminDashboard() {
         </section>
       </div>
 
-      {/* Open tickets — at-a-glance list across all clinics */}
-      <OpenTicketsList />
+      <OpenTicketsList open={ticketsOpen} onOpenChange={setTicketsOpen} />
 
       {/* ROW: Posts / Activity */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

@@ -11,7 +11,7 @@ import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import UpcomingPosts from "./UpcomingPosts";
 import RecentActivity from "./RecentActivity";
 import MyTickets from "./MyTickets";
-import OpenTicketsList from "./OpenTicketsList";
+
 import { formatDisplayName } from "@/lib/display-name";
 
 interface Clinic {
@@ -73,8 +73,6 @@ export default function ConciergeDashboard() {
         <KPICard label="Total Posts" value={postCount} icon={FileText} index={1} gradient="purple" />
         <KPICard label="Pending Review" value={pendingCount} icon={Megaphone} index={2} gradient="amber" />
       </div>
-
-      <OpenTicketsList />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <MyTickets />
