@@ -151,7 +151,7 @@ export default function SubAccounts() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user, isAdmin, parentFilter]);
+  useEffect(() => { if (!roleLoading) load(); /* eslint-disable-next-line */ }, [user, isAdmin, parentFilter, roleLoading]);
 
   const togglePick = (id: string) => {
     setPicked(prev => {
