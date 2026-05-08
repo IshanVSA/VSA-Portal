@@ -81,6 +81,16 @@ interface RequestRow {
   clinic_id: string | null;
 }
 
+interface RoleRow {
+  user_id: string;
+  role: string;
+}
+
+interface LoginSummaryRow {
+  role: string;
+  last_seen_at: string | null;
+}
+
 interface TicketSummary {
   department: string;
   open: number;
@@ -134,7 +144,7 @@ const deptConfig: Record<string, { icon: React.ElementType; label: string; path:
   },
 };
 
-const serviceIcons = [
+const serviceIcons: Array<{ key: keyof Pick<Clinic, "website_enabled" | "seo_enabled" | "google_ads_enabled" | "social_media_enabled">; label: string; varName: string }> = [
   { key: "website_enabled", label: "Web", varName: "--dept-website" },
   { key: "seo_enabled", label: "SEO", varName: "--dept-seo" },
   { key: "google_ads_enabled", label: "Ads", varName: "--dept-ads" },
