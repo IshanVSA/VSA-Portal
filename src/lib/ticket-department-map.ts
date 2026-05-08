@@ -1,16 +1,21 @@
 /**
- * Maps each ticket type to the departments where it should be visible.
- * "Add/Remove Team Members" has a conditional rule for social_media
- * (only shown if "Promote on Social Media: Yes" is in the description).
+ * Ticket visibility rules.
+ *
+ * Tickets are routed ONLY to the department where they were created.
+ * The single exception is "Promote on Social Media: Yes" being present in
+ * the description, which also fans the ticket out to social_media.
+ *
+ * This map is kept for any UI that wants to show "where will this be visible".
+ * Each ticket type lists only its originating department.
  */
 export const TICKET_VISIBILITY: Record<string, string[]> = {
-  "Time Changes": ["website", "seo", "google_ads", "social_media"],
-  "Pop-up Offers": ["website", "social_media"],
+  "Time Changes": ["website"],
+  "Pop-up Offers": ["website"],
   "Third Party Integrations": ["website"],
   "Payment Options": ["website"],
-  "Add/Remove Team Members": ["website"], // social_media is conditional
+  "Add/Remove Team Members": ["website"], // social_media is conditional via "Promote on Social Media: Yes"
   "New Forms": ["website"],
-  "Price List Updates": ["website", "seo", "social_media"],
+  "Price List Updates": ["website"],
   "Emergency": ["website"],
   "Dashboard Access": ["google_ads"],
   "Analytics Review": ["google_ads"],
@@ -46,5 +51,5 @@ export function getVisibleTicketTypes(department: string): string[] {
  */
 export function getVisibleDepartmentLabels(ticketType: string): string[] {
   const depts = TICKET_VISIBILITY[ticketType] || [];
-  return depts.map(d => DEPARTMENT_LABELS[d] || d);
+  return depts.map((d) => DEPARTMENT_LABELS[d] || d);
 }
