@@ -55,6 +55,13 @@ interface TrendPoint {
 
 interface TicketRow {
   id: string;
+  priority: string;
+  clinic_id: string | null;
+}
+
+interface TicketAssignmentRow {
+  id: string;
+  ticket_id: string;
   department: string;
   status: string;
   priority: string;
@@ -72,6 +79,16 @@ interface RequestRow {
   id: string;
   status: string;
   clinic_id: string | null;
+}
+
+interface RoleRow {
+  user_id: string;
+  role: string;
+}
+
+interface LoginSummaryRow {
+  role: string;
+  last_seen_at: string | null;
 }
 
 interface TicketSummary {
@@ -127,7 +144,7 @@ const deptConfig: Record<string, { icon: React.ElementType; label: string; path:
   },
 };
 
-const serviceIcons = [
+const serviceIcons: Array<{ key: keyof Pick<Clinic, "website_enabled" | "seo_enabled" | "google_ads_enabled" | "social_media_enabled">; label: string; varName: string }> = [
   { key: "website_enabled", label: "Web", varName: "--dept-website" },
   { key: "seo_enabled", label: "SEO", varName: "--dept-seo" },
   { key: "google_ads_enabled", label: "Ads", varName: "--dept-ads" },
@@ -249,7 +266,7 @@ export default function AdminDashboard() {
   const [totalClientCount, setTotalClientCount] = useState(0);
 
   // raw datasets so we can recompute under filters
-  const [tickets, setTickets] = useState<TicketRow[]>([]);
+  const [tickets, setTickets] = useState<TicketAssignmentRow[]>([]);
   const [posts, setPosts] = useState<PostRow[]>([]);
   const [contentRequests, setContentRequests] = useState<RequestRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -271,24 +288,45 @@ export default function AdminDashboard() {
         supabase.from("profiles").select("id, full_name"),
         supabase.from("user_roles").select("user_id, role"),
         supabase.from("content_posts").select("id, status, scheduled_date, clinic_id"),
-        supabase.from("department_tickets").select("id, department, status, priority, clinic_id"),
+        supabase.from("department_tickets").select("id, priority, clinic_id"),
         supabase.from("content_requests").select("id, status, clinic_id"),
-        (supabase as any).rpc("get_client_login_summary"),
+        supabase.rpc("get_client_login_summary" as never),
       ]);
 
       setClinics((clinicsRes.data || []) as Clinic[]);
       setProfiles(profilesRes.data || []);
       // Count only staff accounts (admins + concierges) — exclude clients/sub_clients
       const staffRoles = new Set(["admin", "concierge"]);
-      const staff = (rolesRes.data || []).filter((r: any) => staffRoles.has(r.role));
+      const staff = ((rolesRes.data || []) as RoleRow[]).filter((r) => staffRoles.has(r.role));
       setTeamCount(staff.length);
-      setTickets((ticketsRes.data || []) as TicketRow[]);
+      const ticketRows = (ticketsRes.data || []) as TicketRow[];
+      if (ticketRows.length) {
+        const { data: assignmentRows } = await (supabase
+          .from("department_ticket_assignments" as never)
+          .select("id, ticket_id, department, status")
+          .in("status", ["open", "in_progress", "emergency"] as never));
+        const ticketMap = new Map(ticketRows.map((t) => [t.id, t]));
+        setTickets(((assignmentRows || []) as Omit<TicketAssignmentRow, "priority" | "clinic_id">[]).flatMap((a) => {
+          const ticket = ticketMap.get(a.ticket_id);
+          if (!ticket) return [];
+          return [{
+            id: a.id,
+            ticket_id: a.ticket_id,
+            department: a.department,
+            status: a.status,
+            priority: ticket.priority,
+            clinic_id: ticket.clinic_id,
+          }];
+        }));
+      } else {
+        setTickets([]);
+      }
       setPosts((postsRes.data || []) as PostRow[]);
       setContentRequests((contentReqRes.data || []) as RequestRow[]);
 
       // Count clients active in the last 30 days based on portal logins
       const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-      const loginRows = ((loginRes as any)?.data || []) as Array<{ role: string; last_seen_at: string | null }>;
+      const loginRows = (loginRes.data || []) as LoginSummaryRow[];
       const clientRows = loginRows.filter(r => r.role === "client");
       setTotalClientCount(clientRows.length);
       setActiveClientCount(
@@ -326,7 +364,7 @@ export default function AdminDashboard() {
 
   // ----- Derived metrics under current filter -----
   const activeClinics = clinics.filter(c => c.status === "active").length;
-  const openTickets = filteredTickets.filter(t => t.status === "open" || t.status === "in_progress").length;
+  const openTickets = filteredTickets.filter(t => t.status === "open" || t.status === "in_progress" || t.status === "emergency").length;
   const urgentTickets = filteredTickets.filter(t => t.priority === "urgent" || t.priority === "emergency").length;
   const pendingPosts = filteredPosts.filter(p => p.status === "pending").length;
 
@@ -641,7 +679,7 @@ export default function AdminDashboard() {
                         </button>
                         <div className="flex shrink-0 items-center gap-1">
                           {serviceIcons.map((s) => {
-                            const enabled = (clinic as any)[s.key];
+                            const enabled = clinic[s.key];
                             return (
                               <span
                                 key={s.key}

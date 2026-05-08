@@ -26,6 +26,7 @@ interface OpenTicketsListProps {
 }
 
 interface OpenTicket {
+  assignment_id: string;
   id: string;
   title: string;
   department: string;
@@ -34,6 +35,21 @@ interface OpenTicket {
   clinic_id: string | null;
   created_at: string;
   clinic_name?: string;
+}
+
+interface OpenTicketAssignmentRow {
+  id: string;
+  ticket_id: string;
+  department: string;
+  status: string;
+}
+
+interface OpenTicketBaseRow {
+  id: string;
+  title: string;
+  priority: string;
+  clinic_id: string | null;
+  created_at: string;
 }
 
 const deptConfig: Record<string, { icon: React.ElementType; label: string; path: string; color: string }> = {
@@ -73,21 +89,39 @@ export default function OpenTicketsList({ open, onOpenChange }: OpenTicketsListP
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const [tRes, cRes] = await Promise.all([
+      setLoading(true);
+      const [aRes, tRes, cRes] = await Promise.all([
+        (supabase
+          .from("department_ticket_assignments" as never)
+          .select("id, ticket_id, department, status")
+          .in("status", ["open", "in_progress", "emergency"] as never)),
         supabase
           .from("department_tickets")
-          .select("id, title, department, status, priority, clinic_id, created_at")
-          .in("status", ["open", "in_progress", "emergency"] as any)
-          .order("created_at", { ascending: false }),
+          .select("id, title, priority, clinic_id, created_at"),
         supabase.from("clinics").select("id, clinic_name"),
       ]);
       if (cancelled) return;
       const cMap = new Map<string, string>();
-      ((cRes.data || []) as any[]).forEach((c) => cMap.set(c.id, c.clinic_name));
-      const rows = ((tRes.data || []) as any[]).map((t) => ({
-        ...t,
-        clinic_name: t.clinic_id ? cMap.get(t.clinic_id) || "Unassigned" : "Unassigned",
-      })) as OpenTicket[];
+      ((cRes.data || []) as { id: string; clinic_name: string }[]).forEach((c) => cMap.set(c.id, c.clinic_name));
+      const ticketMap = new Map<string, OpenTicketBaseRow>();
+      ((tRes.data || []) as OpenTicketBaseRow[]).forEach((t) => ticketMap.set(t.id, t));
+      const rows = ((aRes.data || []) as OpenTicketAssignmentRow[])
+        .map((a) => {
+          const t = ticketMap.get(a.ticket_id);
+          if (!t) return null;
+          return {
+            assignment_id: a.id,
+            id: t.id,
+            title: t.title,
+            department: a.department,
+            status: a.status,
+            priority: t.priority,
+            clinic_id: t.clinic_id,
+            created_at: t.created_at,
+            clinic_name: t.clinic_id ? cMap.get(t.clinic_id) || "Unassigned" : "Unassigned",
+          };
+        })
+        .filter(Boolean) as OpenTicket[];
       setTickets(rows);
       setLoading(false);
     };
@@ -212,7 +246,7 @@ export default function OpenTicketsList({ open, onOpenChange }: OpenTicketsListP
                 const sc = statusConfig[t.status] || statusConfig.open;
                 const pc = priorityConfig[t.priority] || priorityConfig.regular;
                 return (
-                  <li key={t.id}>
+                  <li key={t.assignment_id}>
                     <Link
                       to={ticketLink(t)}
                       onClick={() => onOpenChange(false)}
