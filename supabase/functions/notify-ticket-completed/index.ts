@@ -81,39 +81,44 @@ Deno.serve(async (req) => {
 
     const clinicName = clinic?.clinic_name ?? "";
 
-    // Recipient user IDs: owner + sub-accounts that have access to this clinic
-    const recipientIds = new Set<string>();
-    if (clinic?.owner_user_id) recipientIds.add(clinic.owner_user_id);
+    let emails: string[];
+    if (testRecipient && typeof testRecipient === "string") {
+      emails = [testRecipient];
+    } else {
+      // Recipient user IDs: owner + sub-accounts that have access to this clinic
+      const recipientIds = new Set<string>();
+      if (clinic?.owner_user_id) recipientIds.add(clinic.owner_user_id);
 
-    const { data: subs } = await supabase
-      .from("sub_account_clinics")
-      .select("client_sub_accounts(sub_user_id)")
-      .eq("clinic_id", ticket.clinic_id);
-    for (const row of subs ?? []) {
-      const uid = (row as any)?.client_sub_accounts?.sub_user_id;
-      if (uid) recipientIds.add(uid);
-    }
+      const { data: subs } = await supabase
+        .from("sub_account_clinics")
+        .select("client_sub_accounts(sub_user_id)")
+        .eq("clinic_id", ticket.clinic_id);
+      for (const row of subs ?? []) {
+        const uid = (row as any)?.client_sub_accounts?.sub_user_id;
+        if (uid) recipientIds.add(uid);
+      }
 
-    const ids = Array.from(recipientIds);
-    if (ids.length === 0) {
-      return new Response(JSON.stringify({ ok: true, recipients: 0 }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+      const ids = Array.from(recipientIds);
+      if (ids.length === 0) {
+        return new Response(JSON.stringify({ ok: true, recipients: 0 }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("email, full_name")
-      .in("id", ids);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("email, full_name")
+        .in("id", ids);
 
-    const emails = (profiles ?? [])
-      .map((p: any) => p.email)
-      .filter((e: string | null) => !!e) as string[];
+      emails = (profiles ?? [])
+        .map((p: any) => p.email)
+        .filter((e: string | null) => !!e) as string[];
 
-    if (emails.length === 0) {
-      return new Response(JSON.stringify({ ok: true, recipients: 0 }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      if (emails.length === 0) {
+        return new Response(JSON.stringify({ ok: true, recipients: 0 }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const dept = String(ticket.department);
