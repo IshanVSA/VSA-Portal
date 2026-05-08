@@ -480,21 +480,17 @@ export default function AdminDashboard() {
           <HeroStat
             label="Open Tickets"
             value={openTickets}
-            caption={urgentTickets > 0 ? `${urgentTickets} urgent · click to filter` : "click to filter"}
+            caption={urgentTickets > 0 ? `${urgentTickets} urgent` : "all clear"}
             icon={Ticket}
             tone={urgentTickets > 0 ? "destructive" : "neutral"}
-            onClick={() => toggleStatus("open", "Open")}
-            active={filter.status === "open"}
             index={1}
           />
           <HeroStat
             label="Pending Review"
             value={pendingPosts}
-            caption={pendingPosts > 0 ? "click to filter" : "all caught up"}
+            caption={pendingPosts > 0 ? "awaiting action" : "all caught up"}
             icon={FileText}
             tone={pendingPosts > 0 ? "warning" : "success"}
-            onClick={() => toggleStatus("pending", "Pending")}
-            active={filter.status === "pending"}
             index={2}
           />
           <HeroStat
