@@ -26,6 +26,7 @@ interface OpenTicketsListProps {
 }
 
 interface OpenTicket {
+  assignment_id: string;
   id: string;
   title: string;
   department: string;
@@ -73,21 +74,38 @@ export default function OpenTicketsList({ open, onOpenChange }: OpenTicketsListP
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const [tRes, cRes] = await Promise.all([
+      const [aRes, tRes, cRes] = await Promise.all([
+        (supabase
+          .from("department_ticket_assignments" as any)
+          .select("id, ticket_id, department, status")
+          .in("status", ["open", "in_progress", "emergency"] as any) as any),
         supabase
           .from("department_tickets")
-          .select("id, title, department, status, priority, clinic_id, created_at")
-          .in("status", ["open", "in_progress", "emergency"] as any)
-          .order("created_at", { ascending: false }),
+          .select("id, title, priority, clinic_id, created_at"),
         supabase.from("clinics").select("id, clinic_name"),
       ]);
       if (cancelled) return;
       const cMap = new Map<string, string>();
       ((cRes.data || []) as any[]).forEach((c) => cMap.set(c.id, c.clinic_name));
-      const rows = ((tRes.data || []) as any[]).map((t) => ({
-        ...t,
-        clinic_name: t.clinic_id ? cMap.get(t.clinic_id) || "Unassigned" : "Unassigned",
-      })) as OpenTicket[];
+      const ticketMap = new Map<string, any>();
+      ((tRes.data || []) as any[]).forEach((t) => ticketMap.set(t.id, t));
+      const rows = ((aRes.data || []) as any[])
+        .map((a) => {
+          const t = ticketMap.get(a.ticket_id);
+          if (!t) return null;
+          return {
+            assignment_id: a.id,
+            id: t.id,
+            title: t.title,
+            department: a.department,
+            status: a.status,
+            priority: t.priority,
+            clinic_id: t.clinic_id,
+            created_at: t.created_at,
+            clinic_name: t.clinic_id ? cMap.get(t.clinic_id) || "Unassigned" : "Unassigned",
+          };
+        })
+        .filter(Boolean) as OpenTicket[];
       setTickets(rows);
       setLoading(false);
     };
@@ -212,7 +230,7 @@ export default function OpenTicketsList({ open, onOpenChange }: OpenTicketsListP
                 const sc = statusConfig[t.status] || statusConfig.open;
                 const pc = priorityConfig[t.priority] || priorityConfig.regular;
                 return (
-                  <li key={t.id}>
+                  <li key={t.assignment_id}>
                     <Link
                       to={ticketLink(t)}
                       onClick={() => onOpenChange(false)}
