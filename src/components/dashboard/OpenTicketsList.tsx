@@ -131,128 +131,133 @@ export default function OpenTicketsList({ open, onOpenChange }: OpenTicketsListP
   }, [tickets]);
 
   return (
-    <section className="rounded-2xl border border-border/60 bg-card">
-      <header className="flex flex-col gap-3 border-b border-border/50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-primary">
-            <Ticket className="h-3.5 w-3.5" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold tracking-tight text-foreground">Open Tickets</h3>
-            <p className="text-[11px] text-muted-foreground">
-              {tickets.length} active across all clinics · click to open
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search title or clinic"
-              className="h-8 w-48 rounded-full pl-8 text-xs"
-            />
-          </div>
-        </div>
-      </header>
-
-      {/* Department filter chips */}
-      <div className="flex flex-wrap items-center gap-1.5 border-b border-border/40 px-5 py-2.5">
-        <button
-          type="button"
-          onClick={() => setDeptFilter(null)}
-          className={cn(
-            "rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
-            !deptFilter ? "bg-foreground text-background" : "bg-muted text-muted-foreground hover:bg-muted/80"
-          )}
-        >
-          All ({tickets.length})
-        </button>
-        {Object.entries(deptConfig).map(([key, cfg]) => {
-          const count = deptCounts[key] || 0;
-          const active = deptFilter === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setDeptFilter(active ? null : key)}
-              className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
-                active ? "bg-foreground text-background" : "bg-muted text-muted-foreground hover:bg-muted/80"
-              )}
-            >
-              <cfg.icon className={cn("h-3 w-3", !active && cfg.color)} />
-              {cfg.label} ({count})
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="max-h-[460px] overflow-y-auto">
-        {loading ? (
-          <div className="py-10 text-center text-sm text-muted-foreground">Loading tickets…</div>
-        ) : sorted.length === 0 ? (
-          <div className="py-10 text-center">
-            <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-success/10">
-              <Inbox className="h-4 w-4 text-success" />
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl p-0 gap-0 overflow-hidden">
+        <DialogHeader className="border-b border-border/50 px-5 py-4 space-y-0">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                <Ticket className="h-3.5 w-3.5" />
+              </div>
+              <div className="text-left">
+                <DialogTitle className="text-sm font-bold tracking-tight text-foreground">Open Tickets</DialogTitle>
+                <DialogDescription className="text-[11px] text-muted-foreground mt-0">
+                  {tickets.length} active across all clinics · click to open
+                </DialogDescription>
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground">
-              {tickets.length === 0 ? "All clear — no open tickets" : "No tickets match your filters"}
-            </p>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search title or clinic"
+                  className="h-8 w-48 rounded-full pl-8 text-xs"
+                />
+              </div>
+            </div>
           </div>
-        ) : (
-          <ul className="divide-y divide-border/40">
-            {sorted.map((t) => {
-              const cfg = deptConfig[t.department] || { icon: Ticket, label: t.department, path: "/", color: "text-muted-foreground" };
-              const Icon = cfg.icon;
-              const sc = statusConfig[t.status] || statusConfig.open;
-              const pc = priorityConfig[t.priority] || priorityConfig.regular;
-              return (
-                <li key={t.id}>
-                  <Link
-                    to={ticketLink(t)}
-                    className="group flex items-center gap-3 px-5 py-3 transition-colors hover:bg-muted/40"
-                  >
-                    <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted/60", cfg.color)}>
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="truncate text-sm font-semibold text-foreground group-hover:text-primary">
-                          {t.title || "Untitled ticket"}
-                        </p>
-                        {t.priority === "emergency" && (
-                          <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-destructive" />
-                        )}
+        </DialogHeader>
+
+        {/* Department filter chips */}
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-border/40 px-5 py-2.5">
+          <button
+            type="button"
+            onClick={() => setDeptFilter(null)}
+            className={cn(
+              "rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
+              !deptFilter ? "bg-foreground text-background" : "bg-muted text-muted-foreground hover:bg-muted/80"
+            )}
+          >
+            All ({tickets.length})
+          </button>
+          {Object.entries(deptConfig).map(([key, cfg]) => {
+            const count = deptCounts[key] || 0;
+            const active = deptFilter === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setDeptFilter(active ? null : key)}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
+                  active ? "bg-foreground text-background" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                )}
+              >
+                <cfg.icon className={cn("h-3 w-3", !active && cfg.color)} />
+                {cfg.label} ({count})
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="max-h-[60vh] overflow-y-auto">
+          {loading ? (
+            <div className="py-10 text-center text-sm text-muted-foreground">Loading tickets…</div>
+          ) : sorted.length === 0 ? (
+            <div className="py-10 text-center">
+              <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-success/10">
+                <Inbox className="h-4 w-4 text-success" />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {tickets.length === 0 ? "All clear — no open tickets" : "No tickets match your filters"}
+              </p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-border/40">
+              {sorted.map((t) => {
+                const cfg = deptConfig[t.department] || { icon: Ticket, label: t.department, path: "/", color: "text-muted-foreground" };
+                const Icon = cfg.icon;
+                const sc = statusConfig[t.status] || statusConfig.open;
+                const pc = priorityConfig[t.priority] || priorityConfig.regular;
+                return (
+                  <li key={t.id}>
+                    <Link
+                      to={ticketLink(t)}
+                      onClick={() => onOpenChange(false)}
+                      className="group flex items-center gap-3 px-5 py-3 transition-colors hover:bg-muted/40"
+                    >
+                      <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted/60", cfg.color)}>
+                        <Icon className="h-4 w-4" />
                       </div>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
-                        <span className="inline-flex items-center gap-1">
-                          <Building2 className="h-3 w-3" />
-                          <span className="truncate max-w-[180px]">{t.clinic_name}</span>
-                        </span>
-                        <span>·</span>
-                        <span>{cfg.label}</span>
-                        <span>·</span>
-                        <span>{formatDistanceToNow(new Date(t.created_at), { addSuffix: true })}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="truncate text-sm font-semibold text-foreground group-hover:text-primary">
+                            {t.title || "Untitled ticket"}
+                          </p>
+                          {t.priority === "emergency" && (
+                            <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-destructive" />
+                          )}
+                        </div>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                          <span className="inline-flex items-center gap-1">
+                            <Building2 className="h-3 w-3" />
+                            <span className="truncate max-w-[180px]">{t.clinic_name}</span>
+                          </span>
+                          <span>·</span>
+                          <span>{cfg.label}</span>
+                          <span>·</span>
+                          <span>{formatDistanceToNow(new Date(t.created_at), { addSuffix: true })}</span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5", pc)}>
-                        {t.priority}
-                      </Badge>
-                      <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5", sc.className)}>
-                        {sc.label}
-                      </Badge>
-                      <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground" />
-                    </div>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-    </section>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5", pc)}>
+                          {t.priority}
+                        </Badge>
+                        <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5", sc.className)}>
+                          {sc.label}
+                        </Badge>
+                        <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground" />
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
