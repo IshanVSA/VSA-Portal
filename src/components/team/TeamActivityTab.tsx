@@ -42,12 +42,18 @@ interface TimelineEvent {
 
 const eventIcon = (type: string) => {
   if (type.startsWith("ticket_voided")) return { Icon: AlertTriangle, color: "text-destructive" };
+  if (type === "ticket_assignment_completed") return { Icon: CheckCircle2, color: "text-success" };
+  if (type === "ticket_assignment_void") return { Icon: AlertTriangle, color: "text-destructive" };
+  if (type.startsWith("ticket_assignment_")) return { Icon: Ticket, color: "text-muted-foreground" };
   if (type.startsWith("ticket_created")) return { Icon: Ticket, color: "text-primary" };
   if (type.startsWith("ticket_status")) return { Icon: CheckCircle2, color: "text-success" };
   if (type.startsWith("ticket_")) return { Icon: Ticket, color: "text-muted-foreground" };
   if (type === "chat_message") return { Icon: MessageSquare, color: "text-[hsl(var(--dept-social))]" };
   if (type === "comment_posted") return { Icon: MessageSquare, color: "text-primary" };
-  if (type === "calendar_created") return { Icon: Calendar, color: "text-[hsl(var(--dept-seo))]" };
+  if (type === "calendar_created" || type === "sm2_generation_created") return { Icon: Calendar, color: "text-[hsl(var(--dept-seo))]" };
+  if (type === "promotion_created") return { Icon: Send, color: "text-[hsl(var(--dept-social))]" };
+  if (type === "blog_published") return { Icon: FileText, color: "text-[hsl(var(--dept-seo))]" };
+  if (type.startsWith("gbp_post_")) return { Icon: FileText, color: "text-[hsl(var(--dept-seo))]" };
   if (type.startsWith("post_")) return { Icon: FileText, color: "text-[hsl(var(--dept-social))]" };
   return { Icon: Activity, color: "text-muted-foreground" };
 };
