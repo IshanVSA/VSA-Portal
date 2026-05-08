@@ -64,7 +64,7 @@ function ticketLink(t: OpenTicket): string {
   return `${base}?${params.toString()}`;
 }
 
-export default function OpenTicketsList() {
+export default function OpenTicketsList({ open, onOpenChange }: OpenTicketsListProps) {
   const [tickets, setTickets] = useState<OpenTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
