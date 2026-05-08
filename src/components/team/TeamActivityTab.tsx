@@ -235,7 +235,6 @@ export default function TeamActivityTab() {
                   <TableHead>Role</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Last seen</TableHead>
-                  <TableHead className="text-center">Logins</TableHead>
                   <TableHead className="text-center">Tickets done</TableHead>
                   <TableHead className="text-center">In progress</TableHead>
                   <TableHead className="text-center">Comments</TableHead>
@@ -272,7 +271,6 @@ export default function TeamActivityTab() {
                     <TableCell className="text-xs text-muted-foreground">
                       {r.last_seen_at ? formatDistanceToNow(parseISO(r.last_seen_at), { addSuffix: true }) : "Never"}
                     </TableCell>
-                    <TableCell className="text-center text-sm">{r.login_count}</TableCell>
                     <TableCell className="text-center text-sm font-medium text-success">{r.tickets_completed}</TableCell>
                     <TableCell className="text-center text-sm">{r.tickets_in_progress}</TableCell>
                     <TableCell className="text-center text-sm">{r.comments_posted}</TableCell>
@@ -307,7 +305,6 @@ export default function TeamActivityTab() {
 
           {selected && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-5">
-              <Stat label="Logins" value={selected.login_count} />
               <Stat label="Completed" value={selected.tickets_completed} accent="text-success" />
               <Stat label="In progress" value={selected.tickets_in_progress} />
               <Stat label="Voided" value={selected.tickets_voided} accent="text-destructive" />
