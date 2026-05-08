@@ -281,12 +281,14 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
     fetchAll();
   }, []);
 
-  const items = allItems.filter(i => {
-    if (filter?.clinicId && i.clinic_id !== filter.clinicId) return false;
-    if (filter?.department && i.department !== filter.department) return false;
-    if (filter?.status && i.status !== filter.status) return false;
-    return true;
-  });
+  const items = allItems
+    .filter(i => {
+      if (filter?.clinicId && i.clinic_id !== filter.clinicId) return false;
+      if (filter?.department && i.department !== filter.department) return false;
+      if (filter?.status && i.status !== filter.status) return false;
+      return true;
+    })
+    .slice(0, 25);
 
   if (loading) return null;
 
