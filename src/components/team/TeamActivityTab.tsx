@@ -90,9 +90,17 @@ export default function TeamActivityTab() {
       .channel('team-activity-feed')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'user_login_activity' }, () => load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ticket_audit_log' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'department_tickets' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'department_ticket_assignments' }, () => load())
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'department_chats' }, () => load())
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post_comments' }, () => load())
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post_activity_log' }, () => load())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'content_posts' }, () => load())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'content_requests' }, () => load())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'clinic_promotions' }, () => load())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sm2_generations' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'gbp_post_history' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'blog_posts' }, () => load())
       .subscribe();
 
     return () => {
