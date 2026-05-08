@@ -83,11 +83,12 @@ export default function TeamActivityTab() {
   }, [timeline.length]);
 
   const fetchPage = useCallback(async (userId: string, offset: number, limit = PAGE_SIZE) => {
-    const { data } = await (supabase as any).rpc("get_team_member_timeline", {
+    const { data, error } = await (supabase as any).rpc("get_team_member_timeline", {
       _user_id: userId,
       _limit: limit,
       _offset: offset,
     });
+    if (error) throw error;
     return (data as TimelineEvent[]) || [];
   }, []);
 
@@ -163,18 +164,27 @@ export default function TeamActivityTab() {
     setTimeline([]);
     setHasMore(true);
     setTimelineLoading(true);
-    const page = await fetchPage(row.user_id, 0);
-    setTimeline(page);
-    setHasMore(page.length === PAGE_SIZE);
+    try {
+      const page = await fetchPage(row.user_id, 0);
+      setTimeline(page);
+      setHasMore(page.length === PAGE_SIZE);
+    } catch {
+      setTimeline([]);
+      setHasMore(false);
+    }
     setTimelineLoading(false);
   };
 
   const loadMore = useCallback(async () => {
     if (!selected || loadingMore || !hasMore) return;
     setLoadingMore(true);
-    const page = await fetchPage(selected.user_id, timeline.length);
-    setTimeline(prev => [...prev, ...page]);
-    setHasMore(page.length === PAGE_SIZE);
+    try {
+      const page = await fetchPage(selected.user_id, timeline.length);
+      setTimeline(prev => [...prev, ...page]);
+      setHasMore(page.length === PAGE_SIZE);
+    } catch {
+      setHasMore(false);
+    }
     setLoadingMore(false);
   }, [selected, loadingMore, hasMore, timeline.length, fetchPage]);
 
