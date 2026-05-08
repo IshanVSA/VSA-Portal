@@ -55,8 +55,6 @@ interface TrendPoint {
 
 interface TicketRow {
   id: string;
-  department: string;
-  status: string;
   priority: string;
   clinic_id: string | null;
 }
@@ -356,7 +354,7 @@ export default function AdminDashboard() {
 
   // ----- Derived metrics under current filter -----
   const activeClinics = clinics.filter(c => c.status === "active").length;
-  const openTickets = filteredTickets.filter(t => t.status === "open" || t.status === "in_progress").length;
+  const openTickets = filteredTickets.filter(t => t.status === "open" || t.status === "in_progress" || t.status === "emergency").length;
   const urgentTickets = filteredTickets.filter(t => t.priority === "urgent" || t.priority === "emergency").length;
   const pendingPosts = filteredPosts.filter(p => p.status === "pending").length;
 
