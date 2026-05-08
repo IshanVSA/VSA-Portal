@@ -63,7 +63,7 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
       const clinicMap = new Map((clinicsRes.data || []).map(c => [c.id, c.clinic_name]));
 
       const [ticketsRes, contentRequestsRes] = await Promise.all([
-        supabase.from("department_tickets").select("id, title, department, priority, status, created_at, created_by, clinic_id").order("created_at", { ascending: false }).limit(40),
+        supabase.from("department_tickets").select("id, title, department, priority, status, created_at, updated_at, created_by, clinic_id").order("created_at", { ascending: false }).limit(40),
         supabase.from("content_requests").select("id, status, created_at, created_by_concierge_id, clinic_id, intake_data").order("created_at", { ascending: false }).limit(40),
       ]);
 
