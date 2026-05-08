@@ -1,0 +1,1 @@
+UPDATE public.department_tickets SET clinic_id = 'e1b5d5e5-3fbe-4ccc-b4b5-4961f55838e2' WHERE id = '29a56197-87f9-4db6-ac6b-6461e52decb1';
