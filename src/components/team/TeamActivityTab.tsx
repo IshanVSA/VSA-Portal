@@ -42,12 +42,18 @@ interface TimelineEvent {
 
 const eventIcon = (type: string) => {
   if (type.startsWith("ticket_voided")) return { Icon: AlertTriangle, color: "text-destructive" };
+  if (type === "ticket_assignment_completed") return { Icon: CheckCircle2, color: "text-success" };
+  if (type === "ticket_assignment_void") return { Icon: AlertTriangle, color: "text-destructive" };
+  if (type.startsWith("ticket_assignment_")) return { Icon: Ticket, color: "text-muted-foreground" };
   if (type.startsWith("ticket_created")) return { Icon: Ticket, color: "text-primary" };
   if (type.startsWith("ticket_status")) return { Icon: CheckCircle2, color: "text-success" };
   if (type.startsWith("ticket_")) return { Icon: Ticket, color: "text-muted-foreground" };
   if (type === "chat_message") return { Icon: MessageSquare, color: "text-[hsl(var(--dept-social))]" };
   if (type === "comment_posted") return { Icon: MessageSquare, color: "text-primary" };
-  if (type === "calendar_created") return { Icon: Calendar, color: "text-[hsl(var(--dept-seo))]" };
+  if (type === "calendar_created" || type === "sm2_generation_created") return { Icon: Calendar, color: "text-[hsl(var(--dept-seo))]" };
+  if (type === "promotion_created") return { Icon: Send, color: "text-[hsl(var(--dept-social))]" };
+  if (type === "blog_published") return { Icon: FileText, color: "text-[hsl(var(--dept-seo))]" };
+  if (type.startsWith("gbp_post_")) return { Icon: FileText, color: "text-[hsl(var(--dept-seo))]" };
   if (type.startsWith("post_")) return { Icon: FileText, color: "text-[hsl(var(--dept-social))]" };
   return { Icon: Activity, color: "text-muted-foreground" };
 };
@@ -90,9 +96,17 @@ export default function TeamActivityTab() {
       .channel('team-activity-feed')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'user_login_activity' }, () => load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ticket_audit_log' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'department_tickets' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'department_ticket_assignments' }, () => load())
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'department_chats' }, () => load())
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post_comments' }, () => load())
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post_activity_log' }, () => load())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'content_posts' }, () => load())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'content_requests' }, () => load())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'clinic_promotions' }, () => load())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sm2_generations' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'gbp_post_history' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'blog_posts' }, () => load())
       .subscribe();
 
     return () => {
