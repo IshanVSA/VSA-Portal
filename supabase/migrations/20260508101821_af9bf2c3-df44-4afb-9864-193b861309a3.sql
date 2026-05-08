@@ -1,0 +1,2 @@
+DELETE FROM public.department_ticket_assignments WHERE ticket_id IN (SELECT id FROM public.department_tickets WHERE title = 'New Clinic/Project Profile Setup - Core Information' AND clinic_id IS NULL);
+DELETE FROM public.department_tickets WHERE title = 'New Clinic/Project Profile Setup - Core Information' AND clinic_id IS NULL;
