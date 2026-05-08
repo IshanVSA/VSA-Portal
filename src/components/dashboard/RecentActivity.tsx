@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  CheckCircle2, Send, Sparkles, Ticket, FileText,
+  CheckCircle2, Send, Sparkles, Ticket, FileText, Clock,
 } from "lucide-react";
 import type { DashboardFilter } from "./AdminDashboard";
 import { Card, CardContent } from "@/components/ui/card";
