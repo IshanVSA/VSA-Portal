@@ -61,6 +61,15 @@ interface TicketRow {
   clinic_id: string | null;
 }
 
+interface TicketAssignmentRow {
+  id: string;
+  ticket_id: string;
+  department: string;
+  status: string;
+  priority: string;
+  clinic_id: string | null;
+}
+
 interface PostRow {
   id: string;
   status: string;
@@ -249,7 +258,7 @@ export default function AdminDashboard() {
   const [totalClientCount, setTotalClientCount] = useState(0);
 
   // raw datasets so we can recompute under filters
-  const [tickets, setTickets] = useState<TicketRow[]>([]);
+  const [tickets, setTickets] = useState<TicketAssignmentRow[]>([]);
   const [posts, setPosts] = useState<PostRow[]>([]);
   const [contentRequests, setContentRequests] = useState<RequestRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -271,7 +280,7 @@ export default function AdminDashboard() {
         supabase.from("profiles").select("id, full_name"),
         supabase.from("user_roles").select("user_id, role"),
         supabase.from("content_posts").select("id, status, scheduled_date, clinic_id"),
-        supabase.from("department_tickets").select("id, department, status, priority, clinic_id"),
+        supabase.from("department_tickets").select("id, priority, clinic_id"),
         supabase.from("content_requests").select("id, status, clinic_id"),
         (supabase as any).rpc("get_client_login_summary"),
       ]);
@@ -282,7 +291,28 @@ export default function AdminDashboard() {
       const staffRoles = new Set(["admin", "concierge"]);
       const staff = (rolesRes.data || []).filter((r: any) => staffRoles.has(r.role));
       setTeamCount(staff.length);
-      setTickets((ticketsRes.data || []) as TicketRow[]);
+      const ticketRows = (ticketsRes.data || []) as TicketRow[];
+      if (ticketRows.length) {
+        const { data: assignmentRows } = await (supabase
+          .from("department_ticket_assignments" as any)
+          .select("id, ticket_id, department, status")
+          .in("status", ["open", "in_progress", "emergency"] as any) as any);
+        const ticketMap = new Map(ticketRows.map((t) => [t.id, t]));
+        setTickets(((assignmentRows || []) as any[]).flatMap((a) => {
+          const ticket = ticketMap.get(a.ticket_id);
+          if (!ticket) return [];
+          return [{
+            id: a.id,
+            ticket_id: a.ticket_id,
+            department: a.department,
+            status: a.status,
+            priority: ticket.priority,
+            clinic_id: ticket.clinic_id,
+          }];
+        }));
+      } else {
+        setTickets([]);
+      }
       setPosts((postsRes.data || []) as PostRow[]);
       setContentRequests((contentReqRes.data || []) as RequestRow[]);
 
