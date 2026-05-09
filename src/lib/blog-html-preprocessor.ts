@@ -117,7 +117,13 @@ export function preprocessBlogHtml(
     htmlParts.push(`<p>${processInlineFormatting(line, slugMap, unresolvedKeywords)}</p>`);
   }
 
-  return { html: htmlParts.join("\n"), unresolvedKeywords: [...new Set(unresolvedKeywords)] };
+  const rawHtml = htmlParts.join("\n");
+  const safeHtml = DOMPurify.sanitize(rawHtml, {
+    ALLOWED_TAGS: ["h1", "h2", "h3", "p", "strong", "em", "a", "br", "ul", "ol", "li"],
+    ALLOWED_ATTR: ["href"],
+    ALLOW_DATA_ATTR: false,
+  });
+  return { html: safeHtml, unresolvedKeywords: [...new Set(unresolvedKeywords)] };
 }
 
 function processInlineFormatting(
@@ -125,13 +131,16 @@ function processInlineFormatting(
   slugMap: SlugMapEntry[],
   unresolvedKeywords: string[]
 ): string {
-  // Convert **bold keywords** to linked/strong tags
-  return text.replace(/\*\*([^*]+)\*\*/g, (_, keyword: string) => {
+  // Escape raw text first so any stray HTML in the AI response is rendered as
+  // plain text, then convert **bold keywords** to linked/strong tags.
+  const escaped = escapeHtml(text);
+  return escaped.replace(/\*\*([^*]+)\*\*/g, (_, keyword: string) => {
     const match = slugMap.find(
       (s) => s.keyword.toLowerCase() === keyword.toLowerCase()
     );
     if (match) {
-      return `<a href="${match.slug}"><strong>${keyword}</strong></a>`;
+      const safeSlug = escapeHtml(match.slug);
+      return `<a href="${safeSlug}"><strong>${keyword}</strong></a>`;
     }
     unresolvedKeywords.push(keyword);
     return `<strong>${keyword}</strong>`;
