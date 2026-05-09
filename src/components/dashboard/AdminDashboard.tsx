@@ -747,6 +747,9 @@ export default function AdminDashboard() {
 
       <OpenTicketsList open={ticketsOpen} onOpenChange={setTicketsOpen} />
 
+      {/* ROW: Team Activity */}
+      <TeamActivityCard />
+
       {/* ROW: Posts / Activity */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <UpcomingPosts filter={filter} />
