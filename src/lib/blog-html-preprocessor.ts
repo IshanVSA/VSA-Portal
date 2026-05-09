@@ -3,7 +3,20 @@
  * Converts AI-generated blog output markers into clean, pasteable WordPress HTML.
  * Per Module 11 spec: strips H1:/H2:/Q:/A: labels, wraps in semantic tags,
  * converts **bold keywords** to <strong> (or <a><strong> with slug map).
+ *
+ * Security: raw AI text is HTML-escaped before being wrapped in tags, and the
+ * final string is sanitized with DOMPurify before being rendered.
  */
+import DOMPurify from "dompurify";
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 export interface SlugMapEntry {
   keyword: string;
@@ -104,7 +117,13 @@ export function preprocessBlogHtml(
     htmlParts.push(`<p>${processInlineFormatting(line, slugMap, unresolvedKeywords)}</p>`);
   }
 
-  return { html: htmlParts.join("\n"), unresolvedKeywords: [...new Set(unresolvedKeywords)] };
+  const rawHtml = htmlParts.join("\n");
+  const safeHtml = DOMPurify.sanitize(rawHtml, {
+    ALLOWED_TAGS: ["h1", "h2", "h3", "p", "strong", "em", "a", "br", "ul", "ol", "li"],
+    ALLOWED_ATTR: ["href"],
+    ALLOW_DATA_ATTR: false,
+  });
+  return { html: safeHtml, unresolvedKeywords: [...new Set(unresolvedKeywords)] };
 }
 
 function processInlineFormatting(
@@ -112,13 +131,16 @@ function processInlineFormatting(
   slugMap: SlugMapEntry[],
   unresolvedKeywords: string[]
 ): string {
-  // Convert **bold keywords** to linked/strong tags
-  return text.replace(/\*\*([^*]+)\*\*/g, (_, keyword: string) => {
+  // Escape raw text first so any stray HTML in the AI response is rendered as
+  // plain text, then convert **bold keywords** to linked/strong tags.
+  const escaped = escapeHtml(text);
+  return escaped.replace(/\*\*([^*]+)\*\*/g, (_, keyword: string) => {
     const match = slugMap.find(
       (s) => s.keyword.toLowerCase() === keyword.toLowerCase()
     );
     if (match) {
-      return `<a href="${match.slug}"><strong>${keyword}</strong></a>`;
+      const safeSlug = escapeHtml(match.slug);
+      return `<a href="${safeSlug}"><strong>${keyword}</strong></a>`;
     }
     unresolvedKeywords.push(keyword);
     return `<strong>${keyword}</strong>`;
