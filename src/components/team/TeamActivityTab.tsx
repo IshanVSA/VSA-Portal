@@ -128,32 +128,30 @@ export default function TeamActivityTab() {
     setLoading(true);
     load();
 
-    // Auto-refresh every 30s so the online dot and counters stay live.
-    const interval = setInterval(load, 30_000);
+    // Auto-refresh every 60s so the online dot and counters stay live.
+    const interval = setInterval(load, 60_000);
     const onVis = () => { if (document.visibilityState === 'visible') load(); };
     document.addEventListener('visibilitychange', onVis);
 
-    // Realtime: refresh immediately when activity-related tables change.
+    // Debounce realtime bursts so we don't refire load() N times in a row.
+    let debounceId: ReturnType<typeof setTimeout> | null = null;
+    const scheduleLoad = () => {
+      if (debounceId) clearTimeout(debounceId);
+      debounceId = setTimeout(() => { debounceId = null; load(); }, 1500);
+    };
+
+    // Single channel, high-signal tables only. The 60s poll catches the rest.
     const channel = supabase
       .channel('team-activity-feed')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_login_activity' }, () => load())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ticket_audit_log' }, () => load())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'department_tickets' }, () => load())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'department_ticket_assignments' }, () => load())
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'department_chats' }, () => load())
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post_comments' }, () => load())
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post_activity_log' }, () => load())
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'content_posts' }, () => load())
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'content_requests' }, () => load())
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'clinic_promotions' }, () => load())
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sm2_generations' }, () => load())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'gbp_post_history' }, () => load())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'blog_posts' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_login_activity' }, scheduleLoad)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ticket_audit_log' }, scheduleLoad)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'department_ticket_assignments' }, scheduleLoad)
       .subscribe();
 
     return () => {
       cancelled = true;
       clearInterval(interval);
+      if (debounceId) clearTimeout(debounceId);
       document.removeEventListener('visibilitychange', onVis);
       supabase.removeChannel(channel);
     };

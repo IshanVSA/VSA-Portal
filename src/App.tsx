@@ -5,31 +5,35 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import Login from "./pages/Login";
-import ResetPassword from "./pages/ResetPassword";
-import Dashboard from "./pages/Dashboard";
-import Clinics from "./pages/Clinics";
-import ClinicDetail from "./pages/ClinicDetail";
-import SocialMedia from "./pages/SocialMedia";
-import WebsiteDepartment from "./pages/WebsiteDepartment";
-import SeoDepartment from "./pages/SeoDepartment";
-import AiSeoDepartment from "./pages/AiSeoDepartment";
-import GoogleAdsDepartment from "./pages/GoogleAdsDepartment";
-import AdminReview from "./pages/AdminReview";
-import Employees from "./pages/Employees";
-import ClientsPage from "./pages/Clients";
-import Settings from "./pages/Settings";
-import SubAccounts from "./pages/SubAccounts";
-import Reports from "./pages/Reports";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import DataDeletion from "./pages/DataDeletion";
-import TermsOfService from "./pages/TermsOfService";
-import NotFound from "./pages/NotFound";
-import BookMeeting from "./pages/BookMeeting";
-import CronMonitor from "./pages/CronMonitor";
 import SplashScreen from "./components/SplashScreen";
 import ErrorBoundary from "./components/ErrorBoundary";
-import { ReactNode } from "react";
+import { lazy, ReactNode, Suspense } from "react";
+
+// Eager: critical/auth flows
+import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
+import NotFound from "./pages/NotFound";
+
+// Lazy: everything else (heavy deps like Recharts, jsPDF, html editors only load on demand)
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const Clinics = lazy(() => import("./pages/Clinics"));
+const ClinicDetail = lazy(() => import("./pages/ClinicDetail"));
+const SocialMedia = lazy(() => import("./pages/SocialMedia"));
+const WebsiteDepartment = lazy(() => import("./pages/WebsiteDepartment"));
+const SeoDepartment = lazy(() => import("./pages/SeoDepartment"));
+const AiSeoDepartment = lazy(() => import("./pages/AiSeoDepartment"));
+const GoogleAdsDepartment = lazy(() => import("./pages/GoogleAdsDepartment"));
+const AdminReview = lazy(() => import("./pages/AdminReview"));
+const Employees = lazy(() => import("./pages/Employees"));
+const ClientsPage = lazy(() => import("./pages/Clients"));
+const Settings = lazy(() => import("./pages/Settings"));
+const SubAccounts = lazy(() => import("./pages/SubAccounts"));
+const Reports = lazy(() => import("./pages/Reports"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const DataDeletion = lazy(() => import("./pages/DataDeletion"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const BookMeeting = lazy(() => import("./pages/BookMeeting"));
+const CronMonitor = lazy(() => import("./pages/CronMonitor"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,9 +50,17 @@ if (typeof window !== "undefined") {
   (window as unknown as { __queryClient?: typeof queryClient }).__queryClient = queryClient;
 }
 
+const RouteFallback = () => (
+  <div className="flex items-center justify-center min-h-[40vh]">
+    <div className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+  </div>
+);
+
 // Wrap each route element so an error in one page never blanks the whole app.
 const guard = (node: ReactNode, scope: string) => (
-  <ErrorBoundary scope={scope}>{node}</ErrorBoundary>
+  <ErrorBoundary scope={scope}>
+    <Suspense fallback={<RouteFallback />}>{node}</Suspense>
+  </ErrorBoundary>
 );
 
 const App = () => (
