@@ -13,6 +13,32 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Auth gate — staff only (admin or concierge)
+    const authorization = req.headers.get("Authorization") || "";
+    if (!authorization.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const token = authorization.replace(/^Bearer\s+/i, "");
+    const authClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: authData, error: authError } = await authClient.auth.getUser(token);
+    if (authError || !authData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: roleRow } = await supabase.from("user_roles").select("role").eq("user_id", authData.user.id).maybeSingle();
+    if (!roleRow || (roleRow.role !== "admin" && roleRow.role !== "concierge")) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const { blog_post_id, blog_number, remark_type, remark_detail } = await req.json();
 
     if (!blog_post_id || !blog_number || !remark_type || !remark_detail) {

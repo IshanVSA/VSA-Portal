@@ -285,11 +285,14 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  // Verify cron secret
+  // Verify cron secret — reject unauthorized callers
   const authHeader = req.headers.get("authorization") || "";
   const token = authHeader.replace("Bearer ", "");
-  if (CRON_SECRET && token !== CRON_SECRET && token !== Deno.env.get("SUPABASE_ANON_KEY")) {
-    // Allow anon key for manual triggers too
+  if (!CRON_SECRET || token !== CRON_SECRET) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {
