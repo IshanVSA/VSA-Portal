@@ -248,7 +248,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
       queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
     };
     const channel = supabase
-      .channel(`dept-chat-${department}-${clinicId}-${user.id}`)
+      .channel(`clinic:${clinicId}:dept-chat:${department}:${user.id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "department_chats", filter: `clinic_id=eq.${clinicId}` },

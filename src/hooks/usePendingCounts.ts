@@ -72,7 +72,7 @@ export function usePendingCounts(clinicId?: string | null) {
     const interval = setInterval(fetchCounts, 30000);
 
     const channel = supabase
-      .channel(`pending-counts-${clinicId || "all"}`)
+      .channel(clinicId ? `clinic:${clinicId}:pending-counts` : `staff:pending-counts`)
       .on("postgres_changes", { event: "*", schema: "public", table: "content_requests" }, fetchCounts)
       .on("postgres_changes", { event: "*", schema: "public", table: "sm2_generations" }, fetchCounts)
       .subscribe();

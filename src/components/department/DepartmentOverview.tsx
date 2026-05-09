@@ -71,7 +71,7 @@ function useTicketCounts(department: string, clinicId?: string): TicketSummary {
     };
     fetchCounts();
     const channel = supabase
-      .channel(`ticket-counts-${department}-${clinicId || "all"}`)
+      .channel(clinicId ? `clinic:${clinicId}:ticket-counts:${department}` : `staff:ticket-counts:${department}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "department_tickets", filter: `department=eq.${department}` }, fetchCounts)
       .subscribe();
     return () => { supabase.removeChannel(channel); };

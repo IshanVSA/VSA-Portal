@@ -95,7 +95,7 @@ export default function AdminReview() {
     fetchData();
 
     const channel = supabase
-      .channel("admin-review-changes")
+      .channel("admin:review")
       .on("postgres_changes", { event: "*", schema: "public", table: "content_requests" }, fetchData)
       .subscribe();
 

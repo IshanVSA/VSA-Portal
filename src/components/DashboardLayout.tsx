@@ -241,7 +241,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
     if (!activeClinicId) return;
 
     const channel = supabase
-      .channel(`clinic-access-${activeClinicId}`)
+      .channel(`clinic:${activeClinicId}:access`)
       .on(
         "postgres_changes",
         {

@@ -73,7 +73,7 @@ export function useSM2Posts(generationId: string | undefined) {
   useEffect(() => {
     if (!generationId) return;
     const channel = supabase
-      .channel(`sm2-posts-${generationId}`)
+      .channel(`gen:${generationId}:posts`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "sm2_posts", filter: `generation_id=eq.${generationId}` },

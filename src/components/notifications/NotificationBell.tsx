@@ -326,7 +326,7 @@ export function NotificationBell() {
     };
 
     const channel = supabase
-      .channel("notifications")
+      .channel(`user:${user.id}:notifications`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "post_activity_log" }, async (payload) => {
         const log = payload.new as any;
         const meta = typeof log.metadata === "object" ? log.metadata : {};
