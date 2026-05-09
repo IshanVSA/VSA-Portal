@@ -2895,6 +2895,7 @@ export type Database = {
         Args: { _clinic_id: string; _month: number; _province: string }
         Returns: undefined
       }
+      realtime_topic_authorized: { Args: { _topic: string }; Returns: boolean }
       rebuild_geo_clusters: { Args: never; Returns: undefined }
       record_cron_heartbeat: {
         Args: { _error?: string; _job_name: string; _status?: string }
