@@ -128,7 +128,7 @@ export default function OpenTicketsList({ open, onOpenChange }: OpenTicketsListP
     load();
 
     const channel = supabase
-      .channel("dashboard-open-tickets")
+      .channel("staff:dashboard-open-tickets")
       .on("postgres_changes", { event: "*", schema: "public", table: "department_tickets" }, () => load())
       .subscribe();
 
