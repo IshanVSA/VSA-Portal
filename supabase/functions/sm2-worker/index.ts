@@ -604,6 +604,33 @@ async function runOneStage(supabase: any, job: any): Promise<{ done: boolean; st
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // Auth gate — only CRON_SECRET or an admin JWT may advance the SM2 pipeline.
+  const CRON_SECRET = Deno.env.get("CRON_SECRET");
+  const authHeader = req.headers.get("authorization") || "";
+  const token = authHeader.replace(/^Bearer\s+/i, "");
+  let authorized = false;
+  if (CRON_SECRET && token === CRON_SECRET) {
+    authorized = true;
+  } else if (token) {
+    const authClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: authData } = await authClient.auth.getUser(token);
+    if (authData?.user) {
+      const svc = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const { data: roleRow } = await svc.from("user_roles").select("role").eq("user_id", authData.user.id).maybeSingle();
+      if (roleRow?.role === "admin") authorized = true;
+    }
+  }
+  if (!authorized) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
   });

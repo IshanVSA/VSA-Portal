@@ -83,15 +83,29 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    // Auth gate — staff only (admin or concierge)
+    const authorization = req.headers.get("Authorization") || "";
+    if (!authorization.startsWith("Bearer ")) return jsonRes({ error: "Unauthorized" }, 401);
+    const token = authorization.replace(/^Bearer\s+/i, "");
+    const authClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data: authData, error: authError } = await authClient.auth.getUser(token);
+    if (authError || !authData?.user) return jsonRes({ error: "Unauthorized" }, 401);
+    const sb = createClient(supabaseUrl, serviceKey);
+    const { data: roleRow } = await sb.from("user_roles").select("role").eq("user_id", authData.user.id).maybeSingle();
+    if (!roleRow || (roleRow.role !== "admin" && roleRow.role !== "concierge")) {
+      return jsonRes({ error: "Forbidden" }, 403);
+    }
+
     const parsed = requestSchema.safeParse(await req.json());
     if (!parsed.success) return jsonRes({ error: "Invalid request" }, 400);
     const { clinic_id } = parsed.data;
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const googleKey = Deno.env.get("GOOGLE_PAGESPEED_API_KEY") || Deno.env.get("GOOGLE_PLACES_API_KEY");
     const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY")!;
-    const sb = createClient(supabaseUrl, serviceKey);
 
     if (!googleKey) return jsonRes({ error: "Google API key not configured" }, 500);
 
