@@ -53,7 +53,7 @@ export function useDepartmentChatUnread(
   useEffect(() => {
     if (!clinicId || !user) return;
     const channel = supabase
-      .channel(`unread-${department}-${clinicId}-${user.id}`)
+      .channel(`clinic:${clinicId}:unread:${department}:${user.id}`)
       .on(
         "postgres_changes",
         {
