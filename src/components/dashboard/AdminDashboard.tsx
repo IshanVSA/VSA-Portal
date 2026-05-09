@@ -29,6 +29,7 @@ import { motion } from "framer-motion";
 import UpcomingPosts from "./UpcomingPosts";
 import RecentActivity from "./RecentActivity";
 import OpenTicketsList from "./OpenTicketsList";
+import TeamActivityCard from "./TeamActivityCard";
 
 import { cn } from "@/lib/utils";
 
