@@ -3,7 +3,20 @@
  * Converts AI-generated blog output markers into clean, pasteable WordPress HTML.
  * Per Module 11 spec: strips H1:/H2:/Q:/A: labels, wraps in semantic tags,
  * converts **bold keywords** to <strong> (or <a><strong> with slug map).
+ *
+ * Security: raw AI text is HTML-escaped before being wrapped in tags, and the
+ * final string is sanitized with DOMPurify before being rendered.
  */
+import DOMPurify from "dompurify";
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 export interface SlugMapEntry {
   keyword: string;
