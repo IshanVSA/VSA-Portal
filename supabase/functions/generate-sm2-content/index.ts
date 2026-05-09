@@ -869,12 +869,14 @@ Deno.serve(async (req) => {
 
     console.log(`[SM2 STARTER] Enqueued generation ${newGen.id} for clinic ${clinic_id} month ${month_year}`);
 
-    // Kick the worker immediately so it doesn't wait for the cron tick
+    // Kick the worker immediately so it doesn't wait for the cron tick.
+    // Worker requires CRON_SECRET; fall back to service role key if not set.
+    const workerToken = Deno.env.get("CRON_SECRET") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     fetch(`${supabaseUrl}/functions/v1/sm2-worker`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${anonKey}`,
+        "Authorization": `Bearer ${workerToken}`,
       },
       body: "{}",
     }).catch((e) => console.warn("[SM2 STARTER] Worker kick failed (cron will retry):", e?.message));
