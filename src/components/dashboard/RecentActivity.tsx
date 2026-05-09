@@ -144,15 +144,26 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
         if (clinicName) desc += ` for ${clinicName}`;
         desc += ` by ${creatorName}`;
 
+        const isClosedTicket = t.status === "completed" || t.status === "void";
+
         activities.push({
           id: `ticket-${t.id}-created`, type: "ticket",
           label: "Ticket created", description: desc,
           created_at: t.created_at, icon: Ticket,
           color: t.priority === "emergency" ? "text-destructive" : t.priority === "urgent" ? "text-warning" : "text-primary",
-          clinic_id: t.clinic_id || null, department: t.department || null, status: "open",
+          clinic_id: t.clinic_id || null, department: t.department || null,
+          status: isClosedTicket ? t.status : "open",
         });
 
-        if (t.status && t.status !== "open" && t.updated_at && t.updated_at !== t.created_at) {
+        // Show interim status changes (in_progress, emergency) but suppress completed/void
+        // — for closed tickets we strike through the original "Ticket created" entry instead.
+        if (
+          t.status &&
+          t.status !== "open" &&
+          !isClosedTicket &&
+          t.updated_at &&
+          t.updated_at !== t.created_at
+        ) {
           const meta = ticketStatusMeta[t.status] || { label: `Ticket ${String(t.status).replace("_", " ")}`, icon: Ticket, color: "text-muted-foreground" };
           activities.push({
             id: `ticket-${t.id}-${t.status}`, type: "ticket",
