@@ -38,8 +38,12 @@ const CronMonitor = lazy(() => import("./pages/CronMonitor"));
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30 * 1000,
+      // Most queries are fine being slightly stale — drastically reduces
+      // refetches when navigating between pages or remounting components.
+      staleTime: 2 * 60 * 1000,       // 2 min: treat data as fresh
+      gcTime: 10 * 60 * 1000,         // 10 min: keep cache for back-nav
       refetchOnWindowFocus: false,
+      refetchOnMount: false,           // honor staleTime on remount
       retry: 1,
     },
   },
