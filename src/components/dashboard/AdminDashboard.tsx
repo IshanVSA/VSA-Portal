@@ -561,7 +561,7 @@ export default function AdminDashboard() {
           <header className="flex items-center justify-between border-b border-border/50 px-5 py-4">
             <div>
               <h3 className="text-sm font-bold tracking-tight text-foreground">Tickets by Department</h3>
-              <p className="text-[11px] text-muted-foreground">Click a row to filter the dashboard</p>
+              <p className="text-[11px] text-muted-foreground">Click a row to view open tickets</p>
             </div>
             <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
               {openTickets} active
