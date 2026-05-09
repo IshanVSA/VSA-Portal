@@ -121,6 +121,13 @@ serve(async (req) => {
       }
     }
 
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const anthropicHeaders = {
       "x-api-key": ANTHROPIC_API_KEY,
       "anthropic-version": "2023-06-01",
