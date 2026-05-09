@@ -604,12 +604,14 @@ async function runOneStage(supabase: any, job: any): Promise<{ done: boolean; st
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  // Auth gate — only CRON_SECRET or an admin JWT may advance the SM2 pipeline.
+  // Auth gate — only CRON_SECRET, service role key, or an admin JWT may advance the SM2 pipeline.
   const CRON_SECRET = Deno.env.get("CRON_SECRET");
   const authHeader = req.headers.get("authorization") || "";
   const token = authHeader.replace(/^Bearer\s+/i, "");
   let authorized = false;
   if (CRON_SECRET && token === CRON_SECRET) {
+    authorized = true;
+  } else if (token && token === SUPABASE_SERVICE_ROLE_KEY) {
     authorized = true;
   } else if (token) {
     const authClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
