@@ -561,7 +561,7 @@ export default function AdminDashboard() {
           <header className="flex items-center justify-between border-b border-border/50 px-5 py-4">
             <div>
               <h3 className="text-sm font-bold tracking-tight text-foreground">Tickets by Department</h3>
-              <p className="text-[11px] text-muted-foreground">Click a row to filter the dashboard</p>
+              <p className="text-[11px] text-muted-foreground">Click a row to view open tickets</p>
             </div>
             <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
               {openTickets} active
@@ -586,18 +586,12 @@ export default function AdminDashboard() {
                     text: "text-muted-foreground",
                   };
                   const Icon = cfg.icon;
-                  const isActive = filter.department === dept.department;
                   return (
                     <li key={dept.department}>
-                      <div
-                        className={cn(
-                          "group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors",
-                          isActive ? "bg-primary/10 ring-1 ring-primary/30" : "hover:bg-muted/50"
-                        )}
-                      >
+                      <div className="group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-muted/50">
                         <button
                           type="button"
-                          onClick={() => toggleDepartment(dept.department)}
+                          onClick={() => setTicketsOpen(true)}
                           className="flex min-w-0 flex-1 items-center gap-3 text-left"
                         >
                           <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl", cfg.ring)}>
