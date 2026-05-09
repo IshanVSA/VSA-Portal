@@ -29,6 +29,7 @@ import { motion } from "framer-motion";
 import UpcomingPosts from "./UpcomingPosts";
 import RecentActivity from "./RecentActivity";
 import OpenTicketsList from "./OpenTicketsList";
+import TeamActivityCard from "./TeamActivityCard";
 
 import { cn } from "@/lib/utils";
 
@@ -745,6 +746,9 @@ export default function AdminDashboard() {
       </div>
 
       <OpenTicketsList open={ticketsOpen} onOpenChange={setTicketsOpen} />
+
+      {/* ROW: Team Activity */}
+      <TeamActivityCard />
 
       {/* ROW: Posts / Activity */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
