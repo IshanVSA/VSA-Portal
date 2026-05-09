@@ -142,7 +142,7 @@ export default function TeamActivityTab() {
 
     // Single channel, high-signal tables only. The 60s poll catches the rest.
     const channel = supabase
-      .channel('team-activity-feed')
+      .channel('admin:team-activity')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'user_login_activity' }, scheduleLoad)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ticket_audit_log' }, scheduleLoad)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'department_ticket_assignments' }, scheduleLoad)
