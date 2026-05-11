@@ -1476,6 +1476,35 @@ export type Database = {
           },
         ]
       }
+      department_ticket_candidates: {
+        Row: {
+          created_at: string
+          department: Database["public"]["Enums"]["department_type"]
+          ticket_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          department: Database["public"]["Enums"]["department_type"]
+          ticket_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          department?: Database["public"]["Enums"]["department_type"]
+          ticket_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_ticket_candidates_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "department_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       department_tickets: {
         Row: {
           assigned_to: string | null
@@ -2872,6 +2901,13 @@ export type Database = {
         Returns: boolean
       }
       is_sub_account: { Args: { _user_id: string }; Returns: boolean }
+      list_assignees_for_dept: {
+        Args: {
+          _clinic_id: string
+          _department: Database["public"]["Enums"]["department_type"]
+        }
+        Returns: string[]
+      }
       pick_assignee_for_dept: {
         Args: {
           _clinic_id: string

@@ -38,14 +38,40 @@ export default function MyTickets({ filter }: { filter?: DashboardFilter } = {})
     queryKey: ["my-assigned-tickets", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      // Read per-department assignments where I'm assigned (new model)
-      const { data: dta, error } = await (supabase
+      // 1) Per-department assignments where I'm explicitly assigned
+      const { data: assignedDta, error } = await (supabase
         .from("department_ticket_assignments" as any)
         .select("id, ticket_id, department, status")
         .eq("assigned_to", user!.id)
         .in("status", ["open", "in_progress", "emergency"]) as any);
       if (error) throw error;
-      const rows = (dta || []) as { id: string; ticket_id: string; department: string; status: string }[];
+
+      // 2) Broadcast pool — tickets I'm a candidate for (still unassigned)
+      const { data: candRows } = await (supabase
+        .from("department_ticket_candidates" as any)
+        .select("ticket_id, department")
+        .eq("user_id", user!.id) as any);
+      const candKeys = ((candRows || []) as { ticket_id: string; department: string }[]);
+      let pooledDta: any[] = [];
+      if (candKeys.length > 0) {
+        const ticketIds = Array.from(new Set(candKeys.map(c => c.ticket_id)));
+        const { data: pdta } = await (supabase
+          .from("department_ticket_assignments" as any)
+          .select("id, ticket_id, department, status, assigned_to")
+          .in("ticket_id", ticketIds)
+          .is("assigned_to", null)
+          .in("status", ["open", "in_progress", "emergency"]) as any);
+        const candSet = new Set(candKeys.map(c => `${c.ticket_id}:${c.department}`));
+        pooledDta = ((pdta || []) as any[]).filter(r => candSet.has(`${r.ticket_id}:${r.department}`));
+      }
+
+      const merged = [...((assignedDta || []) as any[]), ...pooledDta];
+      const seen = new Set<string>();
+      const rows = merged.filter(r => {
+        if (seen.has(r.id)) return false;
+        seen.add(r.id);
+        return true;
+      }) as { id: string; ticket_id: string; department: string; status: string }[];
       if (rows.length === 0) return [];
 
       const ticketIds = Array.from(new Set(rows.map(r => r.ticket_id)));
