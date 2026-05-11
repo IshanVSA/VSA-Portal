@@ -3,11 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TermsBlockedScreen } from "./TermsBlockedScreen";
 import { getClientIp } from "@/lib/get-client-ip";
+import { detectClientCountry } from "@/lib/compliance-body";
 
 interface Props {
   currentVersion: string;
@@ -22,6 +23,41 @@ export function TermsAcceptanceModal({ currentVersion }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [declined, setDeclined] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const { data: country } = useQuery({
+    queryKey: ["client-country", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      // Owner path
+      const { data: owned } = await supabase
+        .from("clinics")
+        .select("address")
+        .eq("owner_user_id", user.id)
+        .limit(1)
+        .maybeSingle();
+      let address: string | null = (owned as any)?.address ?? null;
+      if (!address) {
+        // Sub-account path
+        const { data: link } = await (supabase.from("sub_account_clinics" as any) as any)
+          .select("clinic_id")
+          .eq("user_id", user.id)
+          .limit(1)
+          .maybeSingle();
+        const clinicId = (link as any)?.clinic_id;
+        if (clinicId) {
+          const { data: c } = await supabase
+            .from("clinics")
+            .select("address")
+            .eq("id", clinicId)
+            .maybeSingle();
+          address = (c as any)?.address ?? null;
+        }
+      }
+      return detectClientCountry(address);
+    },
+    enabled: !!user,
+    staleTime: 10 * 60 * 1000,
+  });
 
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
@@ -126,7 +162,13 @@ export function TermsAcceptanceModal({ currentVersion }: Props) {
                 disabled={!scrolledToBottom}
               />
               <span className="text-sm leading-relaxed">
-                <strong>Canadian Clients:</strong> I consent to receiving commercial electronic messages from VSA in connection with my service agreement.
+                {country === "US" ? (
+                  <><strong>US Clients:</strong> I consent to receiving commercial electronic messages (including email and SMS) from VSA in connection with my service agreement.</>
+                ) : country === "CA" ? (
+                  <><strong>Canadian Clients:</strong> I consent to receiving commercial electronic messages from VSA in connection with my service agreement.</>
+                ) : (
+                  <><strong>Clients:</strong> I consent to receiving commercial electronic messages from VSA in connection with my service agreement.</>
+                )}
               </span>
             </label>
           </div>
