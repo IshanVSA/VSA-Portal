@@ -29,6 +29,7 @@ export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationPr
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
+      setActiveStream(stream);
       chunksRef.current = [];
 
       const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
@@ -42,6 +43,7 @@ export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationPr
         // Stop all tracks
         stream.getTracks().forEach((t) => t.stop());
         streamRef.current = null;
+        setActiveStream(null);
 
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
         if (blob.size === 0) {
