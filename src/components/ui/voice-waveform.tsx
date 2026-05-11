@@ -34,6 +34,8 @@ export function VoiceWaveform({
 
     const dpr = window.devicePixelRatio || 1;
     let history: number[] = [];
+    let displayed: number[] = [];
+    let envelope = 0;
     let maxBars = 0;
 
     const primaryHsl =
@@ -50,9 +52,12 @@ export function VoiceWaveform({
       const slot = (barWidth + barGap) * dpr;
       maxBars = Math.max(8, Math.floor(canvas.width / slot));
       if (history.length < maxBars) {
-        history = new Array(maxBars - history.length).fill(0).concat(history);
+        const pad = new Array(maxBars - history.length).fill(0);
+        history = pad.concat(history);
+        displayed = pad.slice().concat(displayed);
       } else if (history.length > maxBars) {
         history = history.slice(history.length - maxBars);
+        displayed = displayed.slice(displayed.length - maxBars);
       }
     };
     resize();
