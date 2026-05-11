@@ -140,6 +140,11 @@ function stripNoise(input: string): string {
     .trim();
 }
 
+export function detectClientCountry(address: string | null | undefined): "US" | "CA" | null {
+  if (!address) return null;
+  return detectCountry(stripNoise(String(address).toUpperCase()));
+}
+
 function detectCountry(upper: string): "US" | "CA" | null {
   if (/\bCANADA\b/.test(upper)) return "CA";
   if (/\b(UNITED STATES OF AMERICA|UNITED STATES|U\.S\.A?\.?|USA)\b/.test(upper)) return "US";

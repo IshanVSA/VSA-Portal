@@ -1,47 +1,28 @@
-# Live Voice Waveform Visualizer
+## Goal
+Make the second checkbox label in the Terms Acceptance modal dynamic based on the client's clinic country (Canada vs United States), instead of always saying "Canadian Clients".
 
-Add an interactive frequency/waveform line that pulses with the user's voice pitch and volume while recording, making the dictation feel responsive and alive.
+## Behavior
+- **Canada** → "**Canadian Clients:** I consent to receiving commercial electronic messages from VSA in connection with my service agreement." (current copy — required for CASL)
+- **United States** → "**US Clients:** I consent to receiving commercial electronic messages (including email and SMS) from VSA in connection with my service agreement." (CAN-SPAM / TCPA framing)
+- **Unknown / no clinic match** → fall back to a neutral label: "**Clients:** I consent to receiving commercial electronic messages from VSA in connection with my service agreement." so the gate never breaks.
 
-## Scope
+The checkbox itself stays required (same submit-gating as today). Only the label text changes; `casl_consent_given` continues to store the boolean as-is.
 
-The dictation feature is used in two places, both will get the visualizer:
-- `src/components/ui/voice-textarea.tsx` — inline mic on textareas (used across the app)
-- `src/components/department/ticket-forms/VoiceDictation.tsx` — ticket form "Dictate" button
+## Implementation (frontend only)
 
-## Approach
+1. **Detect the client's country** in `src/components/terms/TermsAcceptanceModal.tsx`:
+   - Add a small `useQuery` that, for the logged-in `user.id`, looks up their clinic address. A client owns a clinic via `clinics.owner_user_id = user.id`; sub-account clients are linked via the existing sub-account → clinic relationship. Query the first matching clinic and read its `address` (and `country` column if present — check `clinics` schema while wiring).
+   - Pass that address through the existing `detectComplianceBody` helper's country detector. To avoid coupling to the compliance body string, extract a tiny `detectCountry(address)` helper from `src/lib/compliance-body.ts` (it already has the logic internally) and export it as `detectClientCountry(address): "CA" | "US" | null`. No behavior change to existing callers.
 
-Create a single reusable component `src/components/ui/voice-waveform.tsx` that:
-- Accepts the live `MediaStream` from `getUserMedia` as a prop
-- Uses Web Audio API (`AudioContext` + `AnalyserNode`) to read frequency data in real time
-- Renders bars/line on a `<canvas>` via `requestAnimationFrame`
-- Auto cleans up the analyser, source, and animation frame when stream ends or component unmounts
+2. **Render the label dynamically** based on the resolved country (`CA` / `US` / `null` → fallback). Keep the `<strong>` prefix styling identical.
 
-Visual style:
-- Thin horizontal strip of vertical bars (or a smooth mirrored line) using `hsl(var(--primary))` with subtle glow
-- Bars react to frequency bins; height scales with amplitude so loud/high-pitch speech makes taller spikes
-- Smooth easing between frames (lerp) so it feels organic, not jittery
-- Compact height (~28–36px) to slot into existing layouts without disrupting them
+3. **Loading state**: while the country query is pending, show the neutral fallback label so the modal still renders immediately and the Accept button isn't blocked by an extra await.
 
-## Integration points
+## Out of scope
+- No DB migrations, no edge function changes, no changes to acceptance logging schema.
+- Staff acknowledgment modal is unaffected (no CASL checkbox there).
+- Standalone `/terms-of-service` page copy is not changed in this pass — only the in-app acceptance gate, since that's what the screenshot shows.
 
-**voice-textarea.tsx**
-- Lift the `MediaStream` to component state (currently only the recorder is stored)
-- When `recording === true`, replace the existing "Recording…" indicator at the bottom-right with the waveform spanning the bottom of the textarea (or just above it), keeping the red dot label
-
-**VoiceDictation.tsx**
-- Lift the `MediaStream` to state (already kept in `streamRef`, mirror to state to trigger re-render)
-- When recording, render the waveform inline next to the Stop button, replacing the "Recording… speak now" text
-
-## Technical notes
-
-- `AnalyserNode.fftSize = 256` → 128 frequency bins, plenty for a smooth bar visual
-- Use `getByteFrequencyData` each frame
-- Guard against SSR / missing `AudioContext` (fallback: render nothing)
-- Stop and close the `AudioContext` on unmount to free the mic indicator
-- No new dependencies required
-
-## Files changed
-
-- new: `src/components/ui/voice-waveform.tsx`
-- edit: `src/components/ui/voice-textarea.tsx`
-- edit: `src/components/department/ticket-forms/VoiceDictation.tsx`
+## Files touched
+- `src/lib/compliance-body.ts` — export a `detectClientCountry` helper (reuse existing internal logic).
+- `src/components/terms/TermsAcceptanceModal.tsx` — fetch clinic country, render the label dynamically.
