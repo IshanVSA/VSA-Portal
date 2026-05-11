@@ -20,6 +20,7 @@ export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationPr
   const [showDialog, setShowDialog] = useState(false);
   const [editableTranscript, setEditableTranscript] = useState("");
   const [extracting, setExtracting] = useState(false);
+  const [activeStream, setActiveStream] = useState<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
