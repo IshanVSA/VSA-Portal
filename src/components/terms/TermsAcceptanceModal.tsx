@@ -24,6 +24,41 @@ export function TermsAcceptanceModal({ currentVersion }: Props) {
   const [declined, setDeclined] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const { data: country } = useQuery({
+    queryKey: ["client-country", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      // Owner path
+      const { data: owned } = await supabase
+        .from("clinics")
+        .select("address")
+        .eq("owner_user_id", user.id)
+        .limit(1)
+        .maybeSingle();
+      let address: string | null = (owned as any)?.address ?? null;
+      if (!address) {
+        // Sub-account path
+        const { data: link } = await (supabase.from("sub_account_clinics" as any) as any)
+          .select("clinic_id")
+          .eq("user_id", user.id)
+          .limit(1)
+          .maybeSingle();
+        const clinicId = (link as any)?.clinic_id;
+        if (clinicId) {
+          const { data: c } = await supabase
+            .from("clinics")
+            .select("address")
+            .eq("id", clinicId)
+            .maybeSingle();
+          address = (c as any)?.address ?? null;
+        }
+      }
+      return detectClientCountry(address);
+    },
+    enabled: !!user,
+    staleTime: 10 * 60 * 1000,
+  });
+
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
     const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
