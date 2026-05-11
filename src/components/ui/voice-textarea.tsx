@@ -15,6 +15,7 @@ interface VoiceTextareaProps extends TextareaProps {
 export function VoiceTextarea({ className, value, onValueChange, onChange, ...props }: VoiceTextareaProps) {
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
