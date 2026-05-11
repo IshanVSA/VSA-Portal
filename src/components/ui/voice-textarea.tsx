@@ -21,9 +21,10 @@ export function VoiceTextarea({ className, value, onValueChange, onChange, ...pr
 
   const startRecording = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setStream(mediaStream);
       chunksRef.current = [];
-      const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      const recorder = new MediaRecorder(mediaStream, { mimeType: "audio/webm" });
       mediaRecorderRef.current = recorder;
 
       recorder.ondataavailable = (e) => {
