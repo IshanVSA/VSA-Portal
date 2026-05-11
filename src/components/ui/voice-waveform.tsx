@@ -115,10 +115,24 @@ export function VoiceWaveform({
       let sum = 0;
       for (let i = start; i < end; i++) sum += freqData[i];
       const avg = sum / (end - start) / 255;
-      const sample = Math.pow(avg, 0.6);
+      const target = Math.pow(avg, 0.6);
 
-      history.push(sample);
+      // Asymmetric envelope follower: fast attack, slow release
+      const attack = 0.45;
+      const release = 0.12;
+      const coeff = target > envelope ? attack : release;
+      envelope += (target - envelope) * coeff;
+
+      history.push(envelope);
       if (history.length > maxBars) history.shift();
+      displayed.push(envelope);
+      if (displayed.length > maxBars) displayed.shift();
+
+      // Ease all displayed bars toward their history targets for fluid motion
+      const ease = 0.25;
+      for (let i = 0; i < displayed.length; i++) {
+        displayed[i] += (history[i] - displayed[i]) * ease;
+      }
 
       const w = canvas.width;
       const h = canvas.height;
@@ -130,8 +144,8 @@ export function VoiceWaveform({
       const centerY = h / 2;
       const maxH = h * 0.95;
 
-      for (let i = 0; i < history.length; i++) {
-        const v = history[i];
+      for (let i = 0; i < displayed.length; i++) {
+        const v = displayed[i];
         const barH = Math.max(minH, v * maxH);
         const x = i * slot;
         const y = centerY - barH / 2;
