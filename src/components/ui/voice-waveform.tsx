@@ -34,6 +34,8 @@ export function VoiceWaveform({
 
     const dpr = window.devicePixelRatio || 1;
     let history: number[] = [];
+    let displayed: number[] = [];
+    let envelope = 0;
     let maxBars = 0;
 
     const primaryHsl =
@@ -50,9 +52,12 @@ export function VoiceWaveform({
       const slot = (barWidth + barGap) * dpr;
       maxBars = Math.max(8, Math.floor(canvas.width / slot));
       if (history.length < maxBars) {
-        history = new Array(maxBars - history.length).fill(0).concat(history);
+        const pad = new Array(maxBars - history.length).fill(0);
+        history = pad.concat(history);
+        displayed = pad.slice().concat(displayed);
       } else if (history.length > maxBars) {
         history = history.slice(history.length - maxBars);
+        displayed = displayed.slice(displayed.length - maxBars);
       }
     };
     resize();
@@ -110,10 +115,24 @@ export function VoiceWaveform({
       let sum = 0;
       for (let i = start; i < end; i++) sum += freqData[i];
       const avg = sum / (end - start) / 255;
-      const sample = Math.pow(avg, 0.6);
+      const target = Math.pow(avg, 0.6);
 
-      history.push(sample);
+      // Asymmetric envelope follower: fast attack, slow release
+      const attack = 0.45;
+      const release = 0.12;
+      const coeff = target > envelope ? attack : release;
+      envelope += (target - envelope) * coeff;
+
+      history.push(envelope);
       if (history.length > maxBars) history.shift();
+      displayed.push(envelope);
+      if (displayed.length > maxBars) displayed.shift();
+
+      // Ease all displayed bars toward their history targets for fluid motion
+      const ease = 0.25;
+      for (let i = 0; i < displayed.length; i++) {
+        displayed[i] += (history[i] - displayed[i]) * ease;
+      }
 
       const w = canvas.width;
       const h = canvas.height;
@@ -125,8 +144,8 @@ export function VoiceWaveform({
       const centerY = h / 2;
       const maxH = h * 0.95;
 
-      for (let i = 0; i < history.length; i++) {
-        const v = history[i];
+      for (let i = 0; i < displayed.length; i++) {
+        const v = displayed[i];
         const barH = Math.max(minH, v * maxH);
         const x = i * slot;
         const y = centerY - barH / 2;
