@@ -128,12 +128,12 @@ export function VoiceTextarea({ className, value, onValueChange, onChange, ...pr
         </Tooltip>
       </div>
       {recording && (
-        <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
-          <span className="relative flex h-2 w-2">
+        <div className="absolute bottom-2 left-2 right-12 flex items-center gap-2 pointer-events-none animate-fade-in">
+          <span className="relative flex h-2 w-2 shrink-0">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive" />
           </span>
-          <span className="text-xs text-destructive font-medium">Recording…</span>
+          <VoiceWaveform stream={stream} height={24} className="flex-1" />
         </div>
       )}
     </div>
