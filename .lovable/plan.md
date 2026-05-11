@@ -1,22 +1,47 @@
-## Goal
-Send the real branded "Ticket Completed" email to `ishan@vsavetmedia.ca` so we can preview exactly what clients receive.
+# Live Voice Waveform Visualizer
 
-## Changes
+Add an interactive frequency/waveform line that pulses with the user's voice pitch and volume while recording, making the dictation feel responsive and alive.
 
-1. **Edit `supabase/functions/notify-ticket-completed/index.ts`**
-   - Accept optional `testRecipient` (string) in the request body.
-   - When present: skip the owner + sub-account lookup, render the same branded template using a real completed ticket's data, and send only to `testRecipient`. Response includes `testMode: true`.
-   - When absent: behavior is unchanged (owner + sub-accounts).
+## Scope
 
-2. **Deploy the function** with `deploy_edge_functions`.
+The dictation feature is used in two places, both will get the visualizer:
+- `src/components/ui/voice-textarea.tsx` — inline mic on textareas (used across the app)
+- `src/components/department/ticket-forms/VoiceDictation.tsx` — ticket form "Dictate" button
 
-3. **Trigger the test send** via `curl_edge_functions`:
-   - `POST /notify-ticket-completed`
-   - body: `{ "ticketId": "1a18fa7d-3179-4382-a321-363839f52a84", "testRecipient": "ishan@vsavetmedia.ca" }`
-   - (Uses the most recently completed Website ticket "Time Changes Request" as the data source.)
+## Approach
 
-4. **Verify** by reading the function logs to confirm Zoho returned success.
+Create a single reusable component `src/components/ui/voice-waveform.tsx` that:
+- Accepts the live `MediaStream` from `getUserMedia` as a prop
+- Uses Web Audio API (`AudioContext` + `AnalyserNode`) to read frequency data in real time
+- Renders bars/line on a `<canvas>` via `requestAnimationFrame`
+- Auto cleans up the analyser, source, and animation frame when stream ends or component unmounts
 
-## Notes
-- No DB / schema changes.
-- Override is harmless to leave in for future QA, but I can remove it after if you prefer — let me know.
+Visual style:
+- Thin horizontal strip of vertical bars (or a smooth mirrored line) using `hsl(var(--primary))` with subtle glow
+- Bars react to frequency bins; height scales with amplitude so loud/high-pitch speech makes taller spikes
+- Smooth easing between frames (lerp) so it feels organic, not jittery
+- Compact height (~28–36px) to slot into existing layouts without disrupting them
+
+## Integration points
+
+**voice-textarea.tsx**
+- Lift the `MediaStream` to component state (currently only the recorder is stored)
+- When `recording === true`, replace the existing "Recording…" indicator at the bottom-right with the waveform spanning the bottom of the textarea (or just above it), keeping the red dot label
+
+**VoiceDictation.tsx**
+- Lift the `MediaStream` to state (already kept in `streamRef`, mirror to state to trigger re-render)
+- When recording, render the waveform inline next to the Stop button, replacing the "Recording… speak now" text
+
+## Technical notes
+
+- `AnalyserNode.fftSize = 256` → 128 frequency bins, plenty for a smooth bar visual
+- Use `getByteFrequencyData` each frame
+- Guard against SSR / missing `AudioContext` (fallback: render nothing)
+- Stop and close the `AudioContext` on unmount to free the mic indicator
+- No new dependencies required
+
+## Files changed
+
+- new: `src/components/ui/voice-waveform.tsx`
+- edit: `src/components/ui/voice-textarea.tsx`
+- edit: `src/components/department/ticket-forms/VoiceDictation.tsx`
