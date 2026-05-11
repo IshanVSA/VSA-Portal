@@ -3,11 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TermsBlockedScreen } from "./TermsBlockedScreen";
 import { getClientIp } from "@/lib/get-client-ip";
+import { detectClientCountry } from "@/lib/compliance-body";
 
 interface Props {
   currentVersion: string;
