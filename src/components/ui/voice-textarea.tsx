@@ -32,7 +32,8 @@ export function VoiceTextarea({ className, value, onValueChange, onChange, ...pr
       };
 
       recorder.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
+        mediaStream.getTracks().forEach((t) => t.stop());
+        setStream(null);
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
         if (blob.size === 0) {
           toast.error("No audio recorded.");
