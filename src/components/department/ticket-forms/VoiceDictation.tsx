@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { VoiceWaveform } from "@/components/ui/voice-waveform";
 import { supabase } from "@/integrations/supabase/client";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
@@ -19,6 +20,7 @@ export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationPr
   const [showDialog, setShowDialog] = useState(false);
   const [editableTranscript, setEditableTranscript] = useState("");
   const [extracting, setExtracting] = useState(false);
+  const [activeStream, setActiveStream] = useState<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
@@ -27,6 +29,7 @@ export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationPr
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
+      setActiveStream(stream);
       chunksRef.current = [];
 
       const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
@@ -40,6 +43,7 @@ export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationPr
         // Stop all tracks
         stream.getTracks().forEach((t) => t.stop());
         streamRef.current = null;
+        setActiveStream(null);
 
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
         if (blob.size === 0) {
@@ -176,7 +180,10 @@ export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationPr
         </Tooltip>
 
         {recording && (
-          <span className="text-xs text-muted-foreground italic">Recording… speak now</span>
+          <div className="flex items-center gap-2 flex-1 min-w-0 max-w-[260px] animate-fade-in">
+            <VoiceWaveform stream={activeStream} height={28} className="flex-1" />
+            <span className="text-xs text-muted-foreground italic shrink-0">speak now</span>
+          </div>
         )}
       </div>
 

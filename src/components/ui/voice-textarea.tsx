@@ -3,6 +3,7 @@ import { Mic, MicOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea, type TextareaProps } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { VoiceWaveform } from "@/components/ui/voice-waveform";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -14,14 +15,16 @@ interface VoiceTextareaProps extends TextareaProps {
 export function VoiceTextarea({ className, value, onValueChange, onChange, ...props }: VoiceTextareaProps) {
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
   const startRecording = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setStream(mediaStream);
       chunksRef.current = [];
-      const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      const recorder = new MediaRecorder(mediaStream, { mimeType: "audio/webm" });
       mediaRecorderRef.current = recorder;
 
       recorder.ondataavailable = (e) => {
@@ -29,7 +32,8 @@ export function VoiceTextarea({ className, value, onValueChange, onChange, ...pr
       };
 
       recorder.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
+        mediaStream.getTracks().forEach((t) => t.stop());
+        setStream(null);
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
         if (blob.size === 0) {
           toast.error("No audio recorded.");
@@ -124,12 +128,12 @@ export function VoiceTextarea({ className, value, onValueChange, onChange, ...pr
         </Tooltip>
       </div>
       {recording && (
-        <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
-          <span className="relative flex h-2 w-2">
+        <div className="absolute bottom-2 left-2 right-12 flex items-center gap-2 pointer-events-none animate-fade-in">
+          <span className="relative flex h-2 w-2 shrink-0">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive" />
           </span>
-          <span className="text-xs text-destructive font-medium">Recording…</span>
+          <VoiceWaveform stream={stream} height={24} className="flex-1" />
         </div>
       )}
     </div>
