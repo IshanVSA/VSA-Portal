@@ -162,7 +162,13 @@ export function TermsAcceptanceModal({ currentVersion }: Props) {
                 disabled={!scrolledToBottom}
               />
               <span className="text-sm leading-relaxed">
-                <strong>Canadian Clients:</strong> I consent to receiving commercial electronic messages from VSA in connection with my service agreement.
+                {country === "US" ? (
+                  <><strong>US Clients:</strong> I consent to receiving commercial electronic messages (including email and SMS) from VSA in connection with my service agreement.</>
+                ) : country === "CA" ? (
+                  <><strong>Canadian Clients:</strong> I consent to receiving commercial electronic messages from VSA in connection with my service agreement.</>
+                ) : (
+                  <><strong>Clients:</strong> I consent to receiving commercial electronic messages from VSA in connection with my service agreement.</>
+                )}
               </span>
             </label>
           </div>
