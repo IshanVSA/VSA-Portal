@@ -52,6 +52,8 @@ serve(async (req) => {
     const whisperForm = new FormData();
     whisperForm.append("file", audioFile, audioFile.name || "audio.webm");
     whisperForm.append("model", "whisper-1");
+    whisperForm.append("language", "en");
+    whisperForm.append("prompt", "English transcription only.");
 
     const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
       method: "POST",
