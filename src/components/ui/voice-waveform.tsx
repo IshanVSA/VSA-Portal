@@ -4,23 +4,27 @@ import { cn } from "@/lib/utils";
 interface VoiceWaveformProps {
   stream: MediaStream | null;
   className?: string;
-  barCount?: number;
   height?: number;
+  /** Approximate width per bar in CSS pixels. Bars auto-fit container width. */
+  barWidth?: number;
+  /** Gap between bars in CSS pixels. */
+  barGap?: number;
 }
 
 /**
- * Live audio frequency visualizer.
- * Renders animated bars on a canvas that react to the pitch and volume
- * of the provided MediaStream in real time.
+ * Live, scrolling audio waveform visualizer.
+ * New amplitude samples enter from the right and scroll to the left,
+ * creating an oscilloscope-style flow that reacts to voice volume/pitch.
+ * Auto-resizes to container width.
  */
 export function VoiceWaveform({
   stream,
   className,
-  barCount = 32,
   height = 32,
+  barWidth = 3,
+  barGap = 2,
 }: VoiceWaveformProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const smoothedRef = useRef<number[]>(new Array(barCount).fill(0));
 
   useEffect(() => {
     if (!stream) return;
@@ -38,24 +42,33 @@ export function VoiceWaveform({
     const audioCtx = new AudioCtx();
     const source = audioCtx.createMediaStreamSource(stream);
     const analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 256;
-    analyser.smoothingTimeConstant = 0.7;
+    analyser.fftSize = 1024;
+    analyser.smoothingTimeConstant = 0.6;
     source.connect(analyser);
 
     const freqData = new Uint8Array(analyser.frequencyBinCount);
+
     let rafId = 0;
-
-    // Read --primary CSS variable for theming
-    const primaryHsl = getComputedStyle(document.documentElement)
-      .getPropertyValue("--primary")
-      .trim() || "221 83% 53%";
-
     const dpr = window.devicePixelRatio || 1;
+    let history: number[] = [];
+    let maxBars = 0;
+
+    const primaryHsl =
+      getComputedStyle(document.documentElement).getPropertyValue("--primary").trim() ||
+      "221 83% 53%";
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
+      canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+      canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+      const slot = (barWidth + barGap) * dpr;
+      maxBars = Math.max(8, Math.floor(canvas.width / slot));
+      // Pad / truncate history to new size
+      if (history.length < maxBars) {
+        history = new Array(maxBars - history.length).fill(0).concat(history);
+      } else if (history.length > maxBars) {
+        history = history.slice(history.length - maxBars);
+      }
     };
     resize();
     const ro = new ResizeObserver(resize);
@@ -64,43 +77,46 @@ export function VoiceWaveform({
     const draw = () => {
       analyser.getByteFrequencyData(freqData);
 
+      // Compute weighted amplitude across speech-relevant bins (skip very low / very high).
+      const start = Math.floor(freqData.length * 0.02);
+      const end = Math.floor(freqData.length * 0.6);
+      let sum = 0;
+      let weightSum = 0;
+      for (let i = start; i < end; i++) {
+        const w = 1; // equal weight; emphasises overall energy
+        sum += freqData[i] * w;
+        weightSum += w;
+      }
+      const avg = weightSum > 0 ? sum / weightSum / 255 : 0;
+      const sample = Math.pow(avg, 0.65); // perceptual boost
+
+      // Push new sample on the right, scroll left
+      history.push(sample);
+      if (history.length > maxBars) history.shift();
+
       const w = canvas.width;
       const h = canvas.height;
       ctx.clearRect(0, 0, w, h);
 
-      const usableBins = Math.floor(freqData.length * 0.7); // ignore very high frequencies
-      const binsPerBar = Math.max(1, Math.floor(usableBins / barCount));
-      const gap = 2 * dpr;
-      const barWidth = (w - gap * (barCount - 1)) / barCount;
+      const slot = (barWidth + barGap) * dpr;
+      const bw = barWidth * dpr;
+      const minH = 2 * dpr;
+      const centerY = h / 2;
 
-      for (let i = 0; i < barCount; i++) {
-        let sum = 0;
-        for (let j = 0; j < binsPerBar; j++) {
-          sum += freqData[i * binsPerBar + j];
-        }
-        const avg = sum / binsPerBar / 255; // 0..1
-
-        // Smooth between frames (lerp)
-        const prev = smoothedRef.current[i] ?? 0;
-        const target = Math.pow(avg, 0.7); // perceptual boost
-        const next = prev + (target - prev) * 0.35;
-        smoothedRef.current[i] = next;
-
-        const minH = 2 * dpr;
-        const barH = Math.max(minH, next * h);
-        const x = i * (barWidth + gap);
-        const y = (h - barH) / 2;
-
-        const alpha = 0.55 + next * 0.45;
+      for (let i = 0; i < history.length; i++) {
+        const v = history[i];
+        const barH = Math.max(minH, v * h);
+        const x = i * slot;
+        const y = centerY - barH / 2;
+        const alpha = 0.4 + v * 0.6;
         ctx.fillStyle = `hsla(${primaryHsl} / ${alpha})`;
-        const r = Math.min(barWidth / 2, 2 * dpr);
-        // Rounded rect
+        const r = Math.min(bw / 2, 2 * dpr);
         ctx.beginPath();
         ctx.moveTo(x + r, y);
-        ctx.lineTo(x + barWidth - r, y);
-        ctx.quadraticCurveTo(x + barWidth, y, x + barWidth, y + r);
-        ctx.lineTo(x + barWidth, y + barH - r);
-        ctx.quadraticCurveTo(x + barWidth, y + barH, x + barWidth - r, y + barH);
+        ctx.lineTo(x + bw - r, y);
+        ctx.quadraticCurveTo(x + bw, y, x + bw, y + r);
+        ctx.lineTo(x + bw, y + barH - r);
+        ctx.quadraticCurveTo(x + bw, y + barH, x + bw - r, y + barH);
         ctx.lineTo(x + r, y + barH);
         ctx.quadraticCurveTo(x, y + barH, x, y + barH - r);
         ctx.lineTo(x, y + r);
@@ -118,14 +134,13 @@ export function VoiceWaveform({
       ro.disconnect();
       try { source.disconnect(); } catch { /* noop */ }
       audioCtx.close().catch(() => { /* noop */ });
-      smoothedRef.current = new Array(barCount).fill(0);
     };
-  }, [stream, barCount]);
+  }, [stream, barWidth, barGap]);
 
   return (
     <canvas
       ref={canvasRef}
-      className={cn("w-full", className)}
+      className={cn("block w-full", className)}
       style={{ height }}
       aria-hidden="true"
     />
