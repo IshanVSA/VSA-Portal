@@ -93,7 +93,7 @@ export function ConciergeSocialOverview({ clinicId }: ConciergeSocialOverviewPro
           const r = await supabase.from("content_posts").select("scheduled_date").eq("clinic_id", clinicId).gte("scheduled_date", days[0]).lte("scheduled_date", days[6]);
           return { days, data: r.data || [] };
         })(),
-        supabase.from("clinic_brand_dna").select("completeness_score, status").eq("clinic_id", clinicId).maybeSingle(),
+        supabase.from("clinic_brand_dna").select("completeness_score, status, call_notes").eq("clinic_id", clinicId).maybeSingle(),
       ]);
 
       setPendingReview(reviewRes.count || 0);
