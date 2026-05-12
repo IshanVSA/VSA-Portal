@@ -40,6 +40,7 @@ interface EditableTicket {
   created_at: string;
   assigned_to?: string | null;
   dept_assignment_id?: string;
+  pool_user_ids?: string[];
 }
 
 interface TicketEditDialogProps {
