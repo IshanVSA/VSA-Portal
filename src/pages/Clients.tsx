@@ -470,10 +470,15 @@ export default function ClientsPage() {
                           )}
                         </div>
 
-                        {assignedClinics.length > 0 && (
+                        {(assignedClinics.length > 0 || partnerClinics.length > 0) && (
                           <div className="flex flex-wrap gap-1">
                             {assignedClinics.map((name, i) => (
-                              <Badge key={i} variant="secondary" className="text-[10px] rounded-full">{name}</Badge>
+                              <Badge key={`o-${i}`} variant="secondary" className="text-[10px] rounded-full">{name}</Badge>
+                            ))}
+                            {partnerClinics.map((name, i) => (
+                              <Badge key={`p-${i}`} variant="outline" className="text-[10px] rounded-full border-primary/40 text-primary">
+                                <Handshake className="h-2.5 w-2.5 mr-1" />{name}
+                              </Badge>
                             ))}
                           </div>
                         )}
