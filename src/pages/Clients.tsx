@@ -572,6 +572,7 @@ export default function ClientsPage() {
                       })
                       .map((p) => {
                       const assignedClinics = getAssignedClinics(p.id);
+                      const partnerClinics = getPartnerClinics(p.id);
                       const a = activityByUser.get(p.id);
                       const subs = subAccountsByParent.get(p.id) || [];
                       return (
@@ -586,11 +587,20 @@ export default function ClientsPage() {
                             <span className="truncate max-w-[220px] inline-block align-bottom">{p.email || "—"}</span>
                           </TableCell>
                           <TableCell className="align-top">
-                            {assignedClinics.length > 0 ? (
-                              <div className="flex flex-wrap gap-1 max-w-[220px]">
-                                {assignedClinics.map((name, i) => (<Badge key={i} variant="secondary" className="text-[11px] rounded-full">{name}</Badge>))}
+                            {assignedClinics.length === 0 && partnerClinics.length === 0 ? (
+                              <span className="text-muted-foreground text-xs italic">None</span>
+                            ) : (
+                              <div className="flex flex-wrap gap-1 max-w-[260px]">
+                                {assignedClinics.map((name, i) => (
+                                  <Badge key={`o-${i}`} variant="secondary" className="text-[11px] rounded-full">{name}</Badge>
+                                ))}
+                                {partnerClinics.map((name, i) => (
+                                  <Badge key={`p-${i}`} variant="outline" className="text-[11px] rounded-full border-primary/40 text-primary">
+                                    <Handshake className="h-2.5 w-2.5 mr-1" />{name}
+                                  </Badge>
+                                ))}
                               </div>
-                            ) : (<span className="text-muted-foreground text-xs italic">None</span>)}
+                            )}
                           </TableCell>
                           <TableCell className="hidden lg:table-cell align-top">
                             {(() => {
