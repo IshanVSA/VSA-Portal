@@ -112,7 +112,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
   };
 
 
-  const dnaScore = dna?.completeness_score || 0;
+  const dnaScore = computeBrandDNAScore(dna as any);
   const canGenerate = dnaScore >= 50;
 
   // Fetch top performers and content settings
