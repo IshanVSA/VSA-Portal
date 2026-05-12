@@ -46,10 +46,10 @@ export default function ClientJourneyPage() {
           if (data && data.length > 0) setSelectedClinicId(data[0].id);
         }
       } else if (role === "client" && user) {
+        // RLS includes owned + partner clinics for the client.
         const { data } = await supabase
           .from("clinics")
           .select("id, clinic_name")
-          .eq("owner_user_id", user.id)
           .order("clinic_name");
         setClinics(data ?? []);
         if (data && data.length > 0) setSelectedClinicId(data[0].id);
