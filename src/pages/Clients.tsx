@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
-import { Plus, Trash2, UserCheck, Mail, Loader2, Check, ChevronDown, Building2, Activity, UserCircle2, Clock4, Users } from "lucide-react";
+import { Plus, Trash2, UserCheck, Mail, Loader2, Check, ChevronDown, Building2, Activity, UserCircle2, Clock4, Users, Search } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
