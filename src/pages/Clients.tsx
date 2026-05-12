@@ -504,6 +504,16 @@ export default function ClientsPage() {
                               variant="ghost"
                               size="sm"
                               className="h-8 px-2"
+                              onClick={() => setPartnerTarget({ id: p.id, name: p.full_name || "client" })}
+                              aria-label="Manage partnerships"
+                            >
+                              <Handshake className="h-3.5 w-3.5" />
+                              {partnerClinics.length > 0 && <span className="ml-1 text-[11px]">{partnerClinics.length}</span>}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 px-2"
                               onClick={() => openEdit(p)}
                               aria-label="Edit client"
                             >
