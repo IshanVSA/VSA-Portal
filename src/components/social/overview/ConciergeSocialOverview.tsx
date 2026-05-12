@@ -152,7 +152,7 @@ export function ConciergeSocialOverview({ clinicId }: ConciergeSocialOverviewPro
       weekRes.data.forEach((p: any) => { if (p.scheduled_date) countMap[p.scheduled_date] = (countMap[p.scheduled_date] || 0) + 1; });
       setWeeklyData(weekRes.days.map((d) => ({ day: format(new Date(d), "EEE"), posts: countMap[d] || 0 })));
 
-      setDnaScore(dnaRes.data?.completeness_score || 0);
+      setDnaScore(computeBrandDNAScore(dnaRes.data as any));
       setDnaActivated(dnaRes.data?.status === "activated" || dnaRes.data?.status === "active");
 
       setLoading(false);
