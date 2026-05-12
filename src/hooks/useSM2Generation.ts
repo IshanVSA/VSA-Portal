@@ -300,6 +300,29 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
     },
   });
 
+  // Manual stop — admin/concierge can cancel an in-flight generation.
+  const cancelGeneration = useMutation({
+    mutationFn: async (generationId: string) => {
+      const { error } = await supabase
+        .from("sm2_generations")
+        .update({
+          approval_status: "generation_failed",
+          failure_reason: "Manually stopped by user",
+          stage_completed_at: new Date().toISOString(),
+        })
+        .eq("id", generationId)
+        .in("approval_status", ["queued", "processing", "retrying"]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sm2-generations", clinicId] });
+      toast.success("Generation stopped");
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to stop generation", { description: error.message });
+    },
+  });
+
   const getHtmlUrl = (filePath: string) => {
     const { data } = supabase.storage.from("department-files").getPublicUrl(filePath);
     return data.publicUrl;
@@ -320,5 +343,6 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
     getHtmlUrl,
     currentMonth,
     pollForCompletion,
+    cancelGeneration,
   };
 }

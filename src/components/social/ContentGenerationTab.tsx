@@ -11,7 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sparkles, RefreshCw, FileText, Eye, AlertTriangle, CheckCircle, Clock, Send, TrendingUp, Heart, Share2, MessageCircle, CalendarDays, Pencil, ShieldAlert, ShieldCheck, ChevronLeft, ChevronRight } from "lucide-react";
+import { Sparkles, RefreshCw, FileText, Eye, AlertTriangle, CheckCircle, Clock, Send, TrendingUp, Heart, Share2, MessageCircle, CalendarDays, Pencil, ShieldAlert, ShieldCheck, ChevronLeft, ChevronRight, StopCircle } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import HtmlEditorDialog from "./HtmlEditorDialog";
 import SM2CalendarView from "./SM2CalendarView";
 import ClientContentCalendar from "./ClientContentCalendar";
@@ -65,7 +66,8 @@ const ACTIVE_GEN_STATUSES = ["queued", "processing", "retrying"];
 
 export default function ContentGenerationTab({ clinicId }: Props) {
   const { dna } = useBrandDNA(clinicId);
-  const { generations, currentGeneration, generate, sendCopyForReview, sendFinalForReview, isLoading, pollForCompletion } = useSM2Generation(clinicId);
+  const { generations, currentGeneration, generate, sendCopyForReview, sendFinalForReview, isLoading, pollForCompletion, cancelGeneration } = useSM2Generation(clinicId);
+  const [stopTargetId, setStopTargetId] = useState<string | null>(null);
 
   const monthOptions = useMemo(() => buildMonthOptions(), []);
   const [targetMonth, setTargetMonth] = useState<string>(monthOptions[1]?.value || monthOptions[0].value);
@@ -485,6 +487,18 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                           </Button>
                         </>
                       )}
+                      {ACTIVE_GEN_STATUSES.includes(gen.approval_status) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setStopTargetId(gen.id)}
+                          disabled={cancelGeneration.isPending}
+                          className="gap-1.5 text-xs text-destructive hover:text-destructive"
+                        >
+                          <StopCircle className="h-3.5 w-3.5" />
+                          Stop
+                        </Button>
+                      )}
                       {(gen.approval_status === "copy_changes_requested" || gen.approval_status === "final_changes_requested") && (
                         <Button variant="outline" size="sm" onClick={() => { setPreflightOpen(true); }} className="gap-1.5 text-xs">
                           <RefreshCw className="h-3.5 w-3.5" />
@@ -547,6 +561,29 @@ export default function ContentGenerationTab({ clinicId }: Props) {
         <HtmlEditorDialog filePath={editingHtml} onClose={() => setEditingHtml(null)} />
       )}
       </TabsContent>
+
+      <AlertDialog open={!!stopTargetId} onOpenChange={(o) => !o && setStopTargetId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Stop content generation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This cancels the in-progress pipeline immediately. The run will be marked as failed and you can start a new generation when ready.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep running</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (stopTargetId) cancelGeneration.mutate(stopTargetId);
+                setStopTargetId(null);
+              }}
+            >
+              Stop generation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Tabs>
   );
 }
