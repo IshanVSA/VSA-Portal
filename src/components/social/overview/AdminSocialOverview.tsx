@@ -88,7 +88,7 @@ export function AdminSocialOverview({ clinicId }: AdminSocialOverviewProps) {
         gbpHistoryRes,
         recentPostsRes,
       ] = await Promise.all([
-        supabase.from("clinic_brand_dna").select("completeness_score, status").eq("clinic_id", clinicId).maybeSingle(),
+        supabase.from("clinic_brand_dna").select("completeness_score, status, call_notes").eq("clinic_id", clinicId).maybeSingle(),
         supabase.from("content_posts").select("*", { count: "exact", head: true }).eq("clinic_id", clinicId).gte("created_at", monthStart),
         supabase.from("clinic_promotions").select("*", { count: "exact", head: true }).eq("clinic_id", clinicId).eq("status", "active").lte("start_date", today).gte("end_date", today),
         supabase.from("clinic_gbp_config").select("jurisdiction").eq("clinic_id", clinicId).maybeSingle(),
