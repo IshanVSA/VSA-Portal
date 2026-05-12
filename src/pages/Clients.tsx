@@ -809,6 +809,14 @@ export default function ClientsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <PartnershipsDialog
+        open={!!partnerTarget}
+        onOpenChange={(open) => { if (!open) setPartnerTarget(null); }}
+        clientUserId={partnerTarget?.id ?? null}
+        clientName={partnerTarget?.name ?? ""}
+        allClinics={allClinics}
+        onSaved={fetchData}
+      />
     </>
   );
 }
