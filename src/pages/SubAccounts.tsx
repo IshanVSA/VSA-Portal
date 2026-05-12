@@ -75,37 +75,48 @@ export default function SubAccounts() {
 
     if (isAdmin) {
       // Admin: load all clinics, all clients, all sub-accounts (optionally scoped to a parent)
-      const [{ data: clinicRows }, { data: clientRoles }, { data: profRows }, subRowsRes] = await Promise.all([
+      const [{ data: clinicRows }, { data: clientRoles }, { data: profRows }, allSubRowsRes] = await Promise.all([
         supabase.from("clinics").select("id, clinic_name, owner_user_id").order("clinic_name"),
         supabase.from("user_roles").select("user_id").eq("role", "client"),
         supabase.from("profiles").select("id, full_name, email"),
-        (() => {
-          let q = (supabase.from("client_sub_accounts" as any)
-            .select("id, sub_user_id, parent_user_id, hide_financials, created_at")
-            .order("created_at", { ascending: false }) as any);
-          if (parentFilter) q = q.eq("parent_user_id", parentFilter);
-          return q;
-        })(),
+        (supabase.from("client_sub_accounts" as any)
+          .select("id, sub_user_id, parent_user_id, hide_financials, created_at")
+          .order("created_at", { ascending: false }) as any),
       ]);
       if (mySeq !== loadSeq.current) return;
-      setAllClinics(clinicRows ?? []);
+      const clinicsAll = clinicRows ?? [];
+      setAllClinics(clinicsAll);
 
       const clientIds = new Set((clientRoles ?? []).map((r: any) => r.user_id));
       const profsAll = (profRows ?? []) as Array<{ id: string; full_name: string | null; email: string | null }>;
       const profMapAll = new Map(profsAll.map(p => [p.id, p]));
       setClients(profsAll.filter(p => clientIds.has(p.id)));
 
-      const subBase = ((subRowsRes as any).data ?? []) as Array<{ id: string; sub_user_id: string; parent_user_id: string; hide_financials: boolean; created_at: string }>;
-      if (subBase.length === 0) { setSubs([]); setLoading(false); return; }
-      const subIds = subBase.map(s => s.id);
-      const { data: assigns } = await (supabase.from("sub_account_clinics" as any)
-        .select("sub_account_id, clinic_id").in("sub_account_id", subIds) as any);
+      const allSubBase = ((allSubRowsRes as any).data ?? []) as Array<{ id: string; sub_user_id: string; parent_user_id: string; hide_financials: boolean; created_at: string }>;
+      if (allSubBase.length === 0) { setSubs([]); setLoading(false); return; }
+
+      // Fetch ALL clinic assignments so we can match by clinic ownership too
+      const allSubIds = allSubBase.map(s => s.id);
+      const { data: allAssigns } = await (supabase.from("sub_account_clinics" as any)
+        .select("sub_account_id, clinic_id").in("sub_account_id", allSubIds) as any);
       if (mySeq !== loadSeq.current) return;
       const assignMap = new Map<string, string[]>();
-      (assigns ?? []).forEach((a: any) => {
+      (allAssigns ?? []).forEach((a: any) => {
         const arr = assignMap.get(a.sub_account_id) || [];
         arr.push(a.clinic_id); assignMap.set(a.sub_account_id, arr);
       });
+
+      // Filter sub-accounts: include if parent_user_id matches OR any assigned clinic is owned by parentFilter
+      let subBase = allSubBase;
+      if (parentFilter) {
+        const ownedClinicIds = new Set(clinicsAll.filter(c => c.owner_user_id === parentFilter).map(c => c.id));
+        subBase = allSubBase.filter(s => {
+          if (s.parent_user_id === parentFilter) return true;
+          const cids = assignMap.get(s.id) ?? [];
+          return cids.some(id => ownedClinicIds.has(id));
+        });
+      }
+
       setSubs(subBase.map(s => ({
         ...s,
         full_name: profMapAll.get(s.sub_user_id)?.full_name ?? null,
