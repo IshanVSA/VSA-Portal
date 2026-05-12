@@ -15,6 +15,7 @@ import { SOCIAL_QUICK_ACTIONS as QUICK_ACTIONS } from "@/lib/quick-actions";
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { BulkUploadsDialog } from "@/components/department/BulkUploadsDialog";
 import { DNAScoreRing } from "./shared/DNAScoreRing";
+import { computeBrandDNAScore } from "@/lib/brand-dna-score";
 import { RecentPostsPreview } from "./shared/RecentPostsPreview";
 import { resolveDisplayName } from "@/lib/display-name";
 
