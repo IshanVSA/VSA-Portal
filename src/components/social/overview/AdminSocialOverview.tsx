@@ -14,6 +14,7 @@ import { format, subDays, startOfDay, formatDistanceToNow } from "date-fns";
 import { PipelineFunnel, type PipelineStage } from "./shared/PipelineFunnel";
 import { HardGatesStatus, type GateStat } from "./shared/HardGatesStatus";
 import { DNAScoreRing } from "./shared/DNAScoreRing";
+import { computeBrandDNAScore } from "@/lib/brand-dna-score";
 
 interface AdminSocialOverviewProps {
   clinicId?: string;
