@@ -486,9 +486,11 @@ export default function ClientsPage() {
                     {profiles
                       .filter((p) => {
                         const a = activityByUser.get(p.id);
-                        if (activityFilter === "all") return true;
-                        if (activityFilter === "never") return !a?.last_seen_at;
-                        return !!a?.last_seen_at && new Date(a.last_seen_at).getTime() >= thirtyDaysAgo;
+                        if (activityFilter === "never" && a?.last_seen_at) return false;
+                        if (activityFilter === "active" && !(a?.last_seen_at && new Date(a.last_seen_at).getTime() >= thirtyDaysAgo)) return false;
+                        const q = searchQuery.trim().toLowerCase();
+                        if (!q) return true;
+                        return (p.full_name || "").toLowerCase().includes(q) || (p.email || "").toLowerCase().includes(q);
                       })
                       .map((p) => {
                       const assignedClinics = getAssignedClinics(p.id);
