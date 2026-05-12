@@ -719,6 +719,42 @@ export default function ClientsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <Dialog open={!!editTarget} onOpenChange={(open) => { if (!open) setEditTarget(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Client</DialogTitle>
+            <DialogDescription>Update the client's display name and email shown in the portal.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Full Name</Label>
+              <Input
+                value={editForm.full_name}
+                onChange={(e) => { setEditForm((f) => ({ ...f, full_name: e.target.value })); if (editErrors.full_name) setEditErrors((p) => ({ ...p, full_name: undefined })); }}
+                aria-invalid={!!editErrors.full_name}
+              />
+              {editErrors.full_name && <p className="text-xs text-destructive">{editErrors.full_name}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={editForm.email}
+                onChange={(e) => { setEditForm((f) => ({ ...f, email: e.target.value })); if (editErrors.email) setEditErrors((p) => ({ ...p, email: undefined })); }}
+                aria-invalid={!!editErrors.email}
+              />
+              {editErrors.email && <p className="text-xs text-destructive">{editErrors.email}</p>}
+              <p className="text-[11px] text-muted-foreground">Note: this updates the displayed email. The login email is unchanged.</p>
+            </div>
+          </div>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => setEditTarget(null)} disabled={savingEdit}>Cancel</Button>
+            <Button className="w-full sm:w-auto" onClick={saveEdit} disabled={savingEdit}>
+              {savingEdit ? "Saving…" : "Save changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
