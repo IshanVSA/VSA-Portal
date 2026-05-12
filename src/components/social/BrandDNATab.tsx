@@ -137,7 +137,7 @@ export default function BrandDNATab({ clinicId }: Props) {
               <div className="flex items-center gap-2 mt-0.5">
                 <StatusIcon status={dna.status} />
                 <span className="text-xs text-muted-foreground capitalize">{dna.status}</span>
-                <ScoreBadge score={dna.completeness_score || Math.round((answeredCount / 10) * 100)} />
+                <ScoreBadge score={computeBrandDNAScore(dna as any)} />
               </div>
             )}
           </div>
