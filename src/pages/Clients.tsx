@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
-import { Plus, Trash2, UserCheck, Mail, Loader2, Check, ChevronDown, Building2, Activity, UserCircle2, Clock4, Users } from "lucide-react";
+import { Plus, Trash2, UserCheck, Mail, Loader2, Check, ChevronDown, Building2, Activity, UserCircle2, Clock4, Users, Search } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -60,6 +60,7 @@ export default function ClientsPage() {
   const [creating, setCreating] = useState(false);
   const [activity, setActivity] = useState<ActivityRow[]>([]);
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const fetchData = async () => {
     const [profilesRes, rolesRes, clinicsRes, activityRes] = await Promise.all([
       supabase.from("profiles").select("id, full_name, email, welcome_email_sent_at, welcome_email_last_attempt_at, welcome_email_last_error"),
@@ -349,6 +350,15 @@ export default function ClientsPage() {
                 {f === "all" ? "All" : f === "active" ? "Active 30d" : "Never logged in"}
               </Button>
             ))}
+            <div className="relative ml-auto w-full sm:w-64">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by name or email..."
+                className="h-8 pl-8 text-xs"
+              />
+            </div>
           </div>
         )}
 
@@ -373,9 +383,11 @@ export default function ClientsPage() {
               {profiles
                 .filter((p) => {
                   const a = activityByUser.get(p.id);
-                  if (activityFilter === "all") return true;
-                  if (activityFilter === "never") return !a?.last_seen_at;
-                  return !!a?.last_seen_at && new Date(a.last_seen_at).getTime() >= thirtyDaysAgo;
+                  if (activityFilter === "never" && a?.last_seen_at) return false;
+                  if (activityFilter === "active" && !(a?.last_seen_at && new Date(a.last_seen_at).getTime() >= thirtyDaysAgo)) return false;
+                  const q = searchQuery.trim().toLowerCase();
+                  if (!q) return true;
+                  return (p.full_name || "").toLowerCase().includes(q) || (p.email || "").toLowerCase().includes(q);
                 })
                 .map((p) => {
                   const assignedClinics = getAssignedClinics(p.id);
@@ -474,9 +486,11 @@ export default function ClientsPage() {
                     {profiles
                       .filter((p) => {
                         const a = activityByUser.get(p.id);
-                        if (activityFilter === "all") return true;
-                        if (activityFilter === "never") return !a?.last_seen_at;
-                        return !!a?.last_seen_at && new Date(a.last_seen_at).getTime() >= thirtyDaysAgo;
+                        if (activityFilter === "never" && a?.last_seen_at) return false;
+                        if (activityFilter === "active" && !(a?.last_seen_at && new Date(a.last_seen_at).getTime() >= thirtyDaysAgo)) return false;
+                        const q = searchQuery.trim().toLowerCase();
+                        if (!q) return true;
+                        return (p.full_name || "").toLowerCase().includes(q) || (p.email || "").toLowerCase().includes(q);
                       })
                       .map((p) => {
                       const assignedClinics = getAssignedClinics(p.id);
