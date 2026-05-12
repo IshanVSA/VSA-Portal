@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useBrandDNA } from "@/hooks/useBrandDNA";
+import { computeBrandDNAScore } from "@/lib/brand-dna-score";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
