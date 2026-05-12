@@ -72,9 +72,15 @@ export default function SM2CalendarView({
   onRequestFinalChanges,
   sendPending,
 }: Props) {
-  const { posts, total, withImages, imagesComplete, getImageUrl, isLoading } = useSM2Posts(generationId);
+  const { posts, total, withImages, imagesComplete, getImageUrl, isLoading, updatePost } = useSM2Posts(generationId);
   const [openDate, setOpenDate] = useState<string | null>(null);
   const [confirmSendOpen, setConfirmSendOpen] = useState(false);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverDate, setDragOverDate] = useState<string | null>(null);
+
+  // Concierge/admin can rearrange dates while the calendar is still being prepared.
+  // Lock once the client has given final approval.
+  const canDrag = !isClient && !["approved_client", "approved_auto"].includes(approvalStatus);
 
   // Are we in the copy round or final round?
   const isCopyRound =
