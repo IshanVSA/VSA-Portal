@@ -483,6 +483,15 @@ export default function ClientsPage() {
                               variant="ghost"
                               size="sm"
                               className="h-8 px-2"
+                              onClick={() => openEdit(p)}
+                              aria-label="Edit client"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 px-2"
                               disabled={resendingId === p.id}
                               onClick={() => handleResendWelcome(p.id, p.full_name || "client")}
                               aria-label="Resend welcome email"
