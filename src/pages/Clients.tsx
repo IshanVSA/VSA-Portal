@@ -118,6 +118,44 @@ export default function ClientsPage() {
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
+  const [editTarget, setEditTarget] = useState<Profile | null>(null);
+  const [editForm, setEditForm] = useState({ full_name: "", email: "" });
+  const [editErrors, setEditErrors] = useState<{ full_name?: string; email?: string }>({});
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const openEdit = (p: Profile) => {
+    setEditTarget(p);
+    setEditForm({ full_name: p.full_name || "", email: p.email || "" });
+    setEditErrors({});
+  };
+
+  const saveEdit = async () => {
+    if (!editTarget) return;
+    const schema = z.object({
+      full_name: z.string().trim().min(1, "Full name is required").max(100),
+      email: z.string().trim().email("Invalid email address").max(255),
+    });
+    const parsed = schema.safeParse(editForm);
+    if (!parsed.success) {
+      const errs: { full_name?: string; email?: string } = {};
+      for (const i of parsed.error.issues) {
+        const k = i.path[0] as "full_name" | "email";
+        if (k && !errs[k]) errs[k] = i.message;
+      }
+      setEditErrors(errs);
+      return;
+    }
+    setSavingEdit(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ full_name: parsed.data.full_name, email: parsed.data.email })
+      .eq("id", editTarget.id);
+    setSavingEdit(false);
+    if (error) { toast.error(error.message || "Failed to update client"); return; }
+    toast.success("Client updated");
+    setProfiles((prev) => prev.map((x) => x.id === editTarget.id ? { ...x, full_name: parsed.data.full_name, email: parsed.data.email } : x));
+    setEditTarget(null);
+  };
 
   const handleResendWelcome = async (userId: string, name: string) => {
     setResendingId(userId);
