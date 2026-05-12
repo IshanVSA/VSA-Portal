@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { computeBrandDNAScore } from "@/lib/brand-dna-score";
 
 interface Props {
   clinicId: string | undefined;
