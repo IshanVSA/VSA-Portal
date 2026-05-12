@@ -19,6 +19,7 @@ import ClientContentCalendar from "./ClientContentCalendar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { computeBrandDNAScore } from "@/lib/brand-dna-score";
 
 interface Props {
   clinicId: string | undefined;
