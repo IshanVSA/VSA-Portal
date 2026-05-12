@@ -561,6 +561,29 @@ export default function ContentGenerationTab({ clinicId }: Props) {
         <HtmlEditorDialog filePath={editingHtml} onClose={() => setEditingHtml(null)} />
       )}
       </TabsContent>
+
+      <AlertDialog open={!!stopTargetId} onOpenChange={(o) => !o && setStopTargetId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Stop content generation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This cancels the in-progress pipeline immediately. The run will be marked as failed and you can start a new generation when ready.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep running</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (stopTargetId) cancelGeneration.mutate(stopTargetId);
+                setStopTargetId(null);
+              }}
+            >
+              Stop generation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Tabs>
   );
 }
