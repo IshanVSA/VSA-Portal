@@ -1,28 +1,55 @@
 ## Goal
-Make the second checkbox label in the Terms Acceptance modal dynamic based on the client's clinic country (Canada vs United States), instead of always saying "Canadian Clients".
 
-## Behavior
-- **Canada** → "**Canadian Clients:** I consent to receiving commercial electronic messages from VSA in connection with my service agreement." (current copy — required for CASL)
-- **United States** → "**US Clients:** I consent to receiving commercial electronic messages (including email and SMS) from VSA in connection with my service agreement." (CAN-SPAM / TCPA framing)
-- **Unknown / no clinic match** → fall back to a neutral label: "**Clients:** I consent to receiving commercial electronic messages from VSA in connection with my service agreement." so the gate never breaks.
+Replace the current "pool + auto-pick lightest workload" behavior with a **multi-assignee model**: every new ticket is initially assigned to **all** matching team members in that clinic's department. As soon as one person changes the status (in_progress / completed / void), the ticket collapses to that single person and disappears from everyone else's view.
 
-The checkbox itself stays required (same submit-gating as today). Only the label text changes; `casl_consent_given` continues to store the boolean as-is.
+## Behavior summary
 
-## Implementation (frontend only)
+| State | Who sees it as "their" ticket | Assignee field shows |
+|---|---|---|
+| `open` (just created) | Every dept team member assigned to that clinic | All their names (e.g. "Devraj, Ayushi") |
+| Anyone moves to `in_progress` / `completed` / `void` | Only the actor | That single person's name |
+| Admin manually assigns | Only chosen person | That single person's name |
 
-1. **Detect the client's country** in `src/components/terms/TermsAcceptanceModal.tsx`:
-   - Add a small `useQuery` that, for the logged-in `user.id`, looks up their clinic address. A client owns a clinic via `clinics.owner_user_id = user.id`; sub-account clients are linked via the existing sub-account → clinic relationship. Query the first matching clinic and read its `address` (and `country` column if present — check `clinics` schema while wiring).
-   - Pass that address through the existing `detectComplianceBody` helper's country detector. To avoid coupling to the compliance body string, extract a tiny `detectCountry(address)` helper from `src/lib/compliance-body.ts` (it already has the logic internally) and export it as `detectClientCountry(address): "CA" | "US" | null`. No behavior change to existing callers.
+No more "Pool: 2 members" chip and no more "Unassigned" label when candidates exist.
 
-2. **Render the label dynamically** based on the resolved country (`CA` / `US` / `null` → fallback). Keep the `<strong>` prefix styling identical.
+## Changes
 
-3. **Loading state**: while the country query is pending, show the neutral fallback label so the modal still renders immediately and the Accept button isn't blocked by an extra await.
+### 1. Database (migration)
+
+- **Rewrite `auto_assign_ticket_pool` trigger** so on INSERT it:
+  - Inserts a row per matching team member into `ticket_assignees` (clinic team members with the right `team_role`, fallback to all role-matched profiles if the clinic has none).
+  - **Does NOT** set `department_tickets.assigned_to` anymore (leave NULL while multiple candidates exist).
+- **New trigger `claim_on_status_change`** on `department_tickets` BEFORE UPDATE:
+  - When `status` transitions from `open` → any other status (`in_progress`, `completed`, `void`, `emergency`) AND `assigned_to IS NULL`, set `assigned_to = auth.uid()` if the actor is in `ticket_assignees` for that ticket (or admin).
+  - The existing `prune_pool_on_claim` trigger then deletes the other pool members automatically.
+- **Same logic for `department_ticket_assignments`** (the per-department row that drives kanban/table status): when its `status` moves off `open`, set `assigned_to = auth.uid()`.
+- **Backfill**: for currently-open tickets with NULL `assigned_to`, repopulate `ticket_assignees` from the clinic's dept team members so they show up as multi-assignee (instead of the single workload-picked person).
+
+### 2. Frontend display (no business logic change beyond rendering)
+
+Files: `src/components/department/TicketCard.tsx`, `src/components/department/TicketTableView.tsx`, `src/components/dashboard/OpenTicketsList.tsx`, `src/components/department/TicketsTab.tsx` (already loads `pool_user_ids`).
+
+- When `assigned_to` is set → show that single name (current behavior).
+- When `assigned_to` is NULL and `pool_user_ids.length > 0` → show **comma-separated names** of all pool members instead of "Pool: N members".
+  - Truncate gracefully ("Devraj, Ayushi +2" if more than ~3) with full list in tooltip.
+- Remove the "Unassigned" italic label whenever pool has members.
+- Assignee `<Select>` dropdown stays as-is for manual override (admin/concierge can still hand-pick one person).
+
+### 3. Filtering "my tickets"
+
+- `src/components/dashboard/MyTickets.tsx` and any "assigned to me" query: include tickets where the current user is in `ticket_assignees` (pool) **OR** is the sole `assigned_to`. So Devraj and Ayushi both see the open ticket in their list; once Ayushi marks it in_progress, it drops off Devraj's list.
+
+### 4. Notifications
+
+- `notify-ticket-created` edge function: notify every pool member (not just `assigned_to`).
 
 ## Out of scope
-- No DB migrations, no edge function changes, no changes to acceptance logging schema.
-- Staff acknowledgment modal is unaffected (no CASL checkbox there).
-- Standalone `/terms-of-service` page copy is not changed in this pass — only the in-app acceptance gate, since that's what the screenshot shows.
 
-## Files touched
-- `src/lib/compliance-body.ts` — export a `detectClientCountry` helper (reuse existing internal logic).
-- `src/components/terms/TermsAcceptanceModal.tsx` — fetch clinic country, render the label dynamically.
+- No changes to ticket creation form, departments, RLS structure, or visibility fanout to other departments.
+- The 48-hour emergency escalation cron stays as-is.
+
+## Technical notes
+
+- Status transitions handled in DB ensure consistency even if the UI bypasses the Select (drag-and-drop on kanban, bulk actions).
+- `prune_pool_on_claim` already handles cleanup when `assigned_to` is set, so once we set it on first status change, the pool is wiped automatically.
+- We keep `ticket_assignees` as the source of truth for "candidate assignees" — no schema change needed, just trigger logic + UI rendering.
