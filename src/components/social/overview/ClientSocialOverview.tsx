@@ -90,7 +90,7 @@ export function ClientSocialOverview({ clinicId }: ClientSocialOverviewProps) {
         supabase.from("clinic_promotions").select("offer_name, end_date").eq("clinic_id", clinicId).eq("status", "active").lte("start_date", today).gte("end_date", today).order("end_date", { ascending: true }).limit(1).maybeSingle(),
       ]);
 
-      setDnaScore(dnaRes.data?.completeness_score || 0);
+      setDnaScore(computeBrandDNAScore(dnaRes.data as any));
       const REQUIRED_Q_KEYS = ["q1_differentiator","q2_myth","q3_target_client","q4_founding_story","q5_owner_presence","q6_growth_priority","q7_content_exclusions","q8_community_connections","q9_patient_consent","q10_stat_holidays"];
       const cn = (dnaRes.data?.call_notes ?? {}) as Record<string, any>;
       const answered = REQUIRED_Q_KEYS.filter((k) => cn[k] !== undefined && String(cn[k]).trim() !== "").length;
