@@ -350,6 +350,15 @@ export default function ClientsPage() {
                 {f === "all" ? "All" : f === "active" ? "Active 30d" : "Never logged in"}
               </Button>
             ))}
+            <div className="relative ml-auto w-full sm:w-64">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by name or email..."
+                className="h-8 pl-8 text-xs"
+              />
+            </div>
           </div>
         )}
 
