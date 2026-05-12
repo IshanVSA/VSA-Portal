@@ -108,6 +108,7 @@ export default function ClientsPage() {
   }, [role]);
 
   const getAssignedClinics = (userId: string) => assignments.find(a => a.user_id === userId)?.clinic_names || [];
+  const getPartnerClinics = (userId: string) => partnersByUser.get(userId) || [];
 
   // Activity helpers (admin-only metrics on the Clients page)
   const activityByUser = new Map(activity.map(a => [a.user_id, a]));
