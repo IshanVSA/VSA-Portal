@@ -28,11 +28,10 @@ export function TermsAcceptanceModal({ currentVersion }: Props) {
     queryKey: ["client-country", user?.id],
     queryFn: async () => {
       if (!user) return null;
-      // Owner path
+      // RLS scopes clinics to owned + partner + sub_account clinics — pick any one for jurisdiction inference.
       const { data: owned } = await supabase
         .from("clinics")
         .select("address")
-        .eq("owner_user_id", user.id)
         .limit(1)
         .maybeSingle();
       let address: string | null = (owned as any)?.address ?? null;
