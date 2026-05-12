@@ -128,11 +128,66 @@ Deno.serve(async (req) => {
 
     const interpretation = interpret(results);
 
+    // Optional: probe accountId + send API. Pass ?send=you@example.com
+    const sendTo = url.searchParams.get("send");
+    let sendProbe: Record<string, unknown> | null = null;
+    const successResult = results.find((r) => r.has_access_token);
+    if (sendTo && successResult) {
+      const accessToken = ((successResult.body as any)?.access_token) as string;
+      const apiDomain = ((successResult.body as any)?.api_domain) as string || "https://www.zohoapis.ca";
+      const mailHost = apiDomain.replace("zohoapis", "mail");
+
+      // 1) Verify accountId by listing accounts
+      let acctStatus = 0; let acctBody: unknown = null;
+      try {
+        const r = await fetch(`${mailHost}/api/accounts`, {
+          headers: { Authorization: `Zoho-oauthtoken ${accessToken}` },
+        });
+        acctStatus = r.status;
+        const t = await r.text();
+        try { acctBody = JSON.parse(t); } catch { acctBody = t.slice(0, 500); }
+      } catch (e) { acctBody = String(e); }
+
+      // 2) Try a real send
+      let sendStatus = 0; let sendBody: unknown = null;
+      if (accountId) {
+        try {
+          const r = await fetch(`${mailHost}/api/accounts/${accountId}/messages`, {
+            method: "POST",
+            headers: {
+              Authorization: `Zoho-oauthtoken ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              fromAddress: "support@vsavetmedia.ca",
+              toAddress: sendTo,
+              subject: "VSA Vet Media — Zoho diagnostic test",
+              content: "<p>If you received this, Zoho send is fully working.</p>",
+              mailFormat: "html",
+            }),
+          });
+          sendStatus = r.status;
+          const t = await r.text();
+          try { sendBody = JSON.parse(t); } catch { sendBody = t.slice(0, 1000); }
+        } catch (e) { sendBody = String(e); }
+      }
+
+      sendProbe = {
+        api_domain: apiDomain,
+        mail_host: mailHost,
+        account_id_used: accountId,
+        accounts_list: { http_status: acctStatus, body: acctBody },
+        send_attempt: { to: sendTo, http_status: sendStatus, body: sendBody },
+      };
+    }
+
     return new Response(JSON.stringify({
       ok: true,
       presence,
       results,
       interpretation,
+      send_probe: sendProbe,
+      hint: sendTo ? undefined : "Append ?send=you@example.com to test the actual send API and verify ZOHO_ACCOUNT_ID.",
     }, null, 2), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
