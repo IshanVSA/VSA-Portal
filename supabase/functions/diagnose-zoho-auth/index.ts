@@ -135,7 +135,16 @@ Deno.serve(async (req) => {
     if (sendTo && successResult) {
       const accessToken = ((successResult.body as any)?.access_token) as string;
       const apiDomain = ((successResult.body as any)?.api_domain) as string || "https://www.zohoapis.ca";
-      const mailHost = apiDomain.replace("zohoapis", "mail");
+      // Map api_domain -> mail host. CA uses mail.zohocloud.ca (matches _shared/zoho-mail.ts)
+      const dcMap: Record<string, string> = {
+        "https://www.zohoapis.ca": "https://mail.zohocloud.ca",
+        "https://www.zohoapis.com": "https://mail.zoho.com",
+        "https://www.zohoapis.eu": "https://mail.zoho.eu",
+        "https://www.zohoapis.in": "https://mail.zoho.in",
+        "https://www.zohoapis.com.au": "https://mail.zoho.com.au",
+        "https://www.zohoapis.jp": "https://mail.zoho.jp",
+      };
+      const mailHost = dcMap[apiDomain] ?? "https://mail.zohocloud.ca";
 
       // 1) Verify accountId by listing accounts
       let acctStatus = 0; let acctBody: unknown = null;
