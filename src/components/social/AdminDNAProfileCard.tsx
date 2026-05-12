@@ -51,7 +51,7 @@ export default function AdminDNAProfileCard({ clinicId }: Props) {
   const isAdmin = role === "admin";
   const isConcierge = role === "concierge";
   const synthesized = (dna?.synthesized_profile || {}) as Record<string, any>;
-  const score = synthesized.completeness_score || dna?.completeness_score || 0;
+  const score = synthesized.completeness_score || computeBrandDNAScore(dna as any);
   const isActive = dna?.status === "active";
 
   // Auto-activate the profile once completeness score reaches the threshold (>=50).
