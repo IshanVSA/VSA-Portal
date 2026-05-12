@@ -17,6 +17,7 @@ import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { BulkUploadsDialog } from "@/components/department/BulkUploadsDialog";
 import { HardGatesStatus, type GateStat } from "./shared/HardGatesStatus";
 import { DNAScoreRing } from "./shared/DNAScoreRing";
+import { computeBrandDNAScore } from "@/lib/brand-dna-score";
 import { PipelineFunnel, type PipelineStage } from "./shared/PipelineFunnel";
 
 const STAGE_ORDER: { key: string; label: string; color: string }[] = [
@@ -93,7 +94,7 @@ export function ConciergeSocialOverview({ clinicId }: ConciergeSocialOverviewPro
           const r = await supabase.from("content_posts").select("scheduled_date").eq("clinic_id", clinicId).gte("scheduled_date", days[0]).lte("scheduled_date", days[6]);
           return { days, data: r.data || [] };
         })(),
-        supabase.from("clinic_brand_dna").select("completeness_score, status").eq("clinic_id", clinicId).maybeSingle(),
+        supabase.from("clinic_brand_dna").select("completeness_score, status, call_notes").eq("clinic_id", clinicId).maybeSingle(),
       ]);
 
       setPendingReview(reviewRes.count || 0);
@@ -152,7 +153,7 @@ export function ConciergeSocialOverview({ clinicId }: ConciergeSocialOverviewPro
       weekRes.data.forEach((p: any) => { if (p.scheduled_date) countMap[p.scheduled_date] = (countMap[p.scheduled_date] || 0) + 1; });
       setWeeklyData(weekRes.days.map((d) => ({ day: format(new Date(d), "EEE"), posts: countMap[d] || 0 })));
 
-      setDnaScore(dnaRes.data?.completeness_score || 0);
+      setDnaScore(computeBrandDNAScore(dnaRes.data as any));
       setDnaActivated(dnaRes.data?.status === "activated" || dnaRes.data?.status === "active");
 
       setLoading(false);

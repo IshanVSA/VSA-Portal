@@ -14,6 +14,7 @@ import { format, subDays, startOfDay, formatDistanceToNow } from "date-fns";
 import { PipelineFunnel, type PipelineStage } from "./shared/PipelineFunnel";
 import { HardGatesStatus, type GateStat } from "./shared/HardGatesStatus";
 import { DNAScoreRing } from "./shared/DNAScoreRing";
+import { computeBrandDNAScore } from "@/lib/brand-dna-score";
 
 interface AdminSocialOverviewProps {
   clinicId?: string;
@@ -88,7 +89,7 @@ export function AdminSocialOverview({ clinicId }: AdminSocialOverviewProps) {
         gbpHistoryRes,
         recentPostsRes,
       ] = await Promise.all([
-        supabase.from("clinic_brand_dna").select("completeness_score, status").eq("clinic_id", clinicId).maybeSingle(),
+        supabase.from("clinic_brand_dna").select("completeness_score, status, call_notes").eq("clinic_id", clinicId).maybeSingle(),
         supabase.from("content_posts").select("*", { count: "exact", head: true }).eq("clinic_id", clinicId).gte("created_at", monthStart),
         supabase.from("clinic_promotions").select("*", { count: "exact", head: true }).eq("clinic_id", clinicId).eq("status", "active").lte("start_date", today).gte("end_date", today),
         supabase.from("clinic_gbp_config").select("jurisdiction").eq("clinic_id", clinicId).maybeSingle(),
@@ -105,7 +106,7 @@ export function AdminSocialOverview({ clinicId }: AdminSocialOverviewProps) {
         supabase.from("content_posts").select("id, title, created_at").eq("clinic_id", clinicId).order("created_at", { ascending: false }).limit(5),
       ]);
 
-      setDnaScore(dnaRes.data?.completeness_score || 0);
+      setDnaScore(computeBrandDNAScore(dnaRes.data as any));
       setPostsThisMonth(postsMonthRes.count || 0);
       setActivePromotions(promosRes.count || 0);
       setJurisdiction(gbpConfigRes.data?.jurisdiction || null);
