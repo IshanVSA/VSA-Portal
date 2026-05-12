@@ -40,6 +40,7 @@ interface EditableTicket {
   created_at: string;
   assigned_to?: string | null;
   dept_assignment_id?: string;
+  pool_user_ids?: string[];
 }
 
 interface TicketEditDialogProps {
@@ -257,16 +258,35 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label>Assignee</Label>
-            <Select value={assignedTo} onValueChange={setAssignedTo} disabled={isClient}>
-              <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={UNASSIGNED}>Unassigned</SelectItem>
-                {assignList.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+          {(() => {
+            const poolNames = (ticket?.pool_user_ids || [])
+              .map(uid => assignList.find(m => m.id === uid)?.name)
+              .filter(Boolean) as string[];
+            const placeholder = assignedTo === UNASSIGNED && poolNames.length > 0
+              ? poolNames.slice(0, 3).join(", ") + (poolNames.length > 3 ? ` +${poolNames.length - 3}` : "")
+              : "Unassigned";
+            return (
+              <div className="space-y-1.5">
+                <Label>Assignee</Label>
+                <Select value={assignedTo} onValueChange={setAssignedTo} disabled={isClient}>
+                  <SelectTrigger>
+                    {assignedTo === UNASSIGNED && poolNames.length > 0 ? (
+                      <span className="text-sm text-primary truncate" title={poolNames.join(", ")}>{placeholder}</span>
+                    ) : (
+                      <SelectValue placeholder="Unassigned" />
+                    )}
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={UNASSIGNED}>{poolNames.length > 0 ? `Pool (${poolNames.length}) — anyone can claim` : "Unassigned"}</SelectItem>
+                    {assignList.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                {assignedTo === UNASSIGNED && poolNames.length > 0 && (
+                  <p className="text-[11px] text-muted-foreground">Visible to: {poolNames.join(", ")}. The first to change status claims the ticket.</p>
+                )}
+              </div>
+            );
+          })()}
 
           {attachments.length > 0 && (
             <div className="space-y-1.5">
