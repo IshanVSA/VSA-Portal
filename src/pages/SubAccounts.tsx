@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Navigate, useSearchParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Plus, Trash2, Pencil, Eye, EyeOff, DollarSign, Mail, Building2, ArrowLeft, UserCircle2 } from "lucide-react";
@@ -67,8 +67,10 @@ export default function SubAccounts() {
     setParentUserId(parentFilter ?? "");
   };
 
+  const loadSeq = useRef(0);
   const load = async () => {
     if (!user) return;
+    const mySeq = ++loadSeq.current;
     setLoading(true);
 
     if (isAdmin) {
@@ -85,6 +87,7 @@ export default function SubAccounts() {
           return q;
         })(),
       ]);
+      if (mySeq !== loadSeq.current) return;
       setAllClinics(clinicRows ?? []);
 
       const clientIds = new Set((clientRoles ?? []).map((r: any) => r.user_id));
@@ -97,6 +100,7 @@ export default function SubAccounts() {
       const subIds = subBase.map(s => s.id);
       const { data: assigns } = await (supabase.from("sub_account_clinics" as any)
         .select("sub_account_id, clinic_id").in("sub_account_id", subIds) as any);
+      if (mySeq !== loadSeq.current) return;
       const assignMap = new Map<string, string[]>();
       (assigns ?? []).forEach((a: any) => {
         const arr = assignMap.get(a.sub_account_id) || [];
@@ -120,6 +124,7 @@ export default function SubAccounts() {
         .eq("parent_user_id", user.id)
         .order("created_at", { ascending: false }) as any),
     ]);
+    if (mySeq !== loadSeq.current) return;
     setAllClinics(clinicRows ?? []);
 
     const subBase = (subRows ?? []) as Array<{ id: string; sub_user_id: string; parent_user_id: string; hide_financials: boolean; created_at: string }>;
@@ -133,6 +138,7 @@ export default function SubAccounts() {
         .select("sub_account_id, clinic_id")
         .in("sub_account_id", subIds) as any),
     ]);
+    if (mySeq !== loadSeq.current) return;
 
     const profMap = new Map((profs ?? []).map((p: any) => [p.id, p]));
     const assignMap = new Map<string, string[]>();
@@ -151,7 +157,7 @@ export default function SubAccounts() {
     setLoading(false);
   };
 
-  useEffect(() => { if (!roleLoading) load(); /* eslint-disable-next-line */ }, [user, isAdmin, parentFilter, roleLoading]);
+  useEffect(() => { if (!roleLoading) load(); /* eslint-disable-next-line */ }, [user?.id, isAdmin, parentFilter, roleLoading]);
 
   const togglePick = (id: string) => {
     setPicked(prev => {
