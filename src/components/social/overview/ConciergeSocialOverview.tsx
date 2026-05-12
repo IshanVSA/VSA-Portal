@@ -17,6 +17,7 @@ import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { BulkUploadsDialog } from "@/components/department/BulkUploadsDialog";
 import { HardGatesStatus, type GateStat } from "./shared/HardGatesStatus";
 import { DNAScoreRing } from "./shared/DNAScoreRing";
+import { computeBrandDNAScore } from "@/lib/brand-dna-score";
 import { PipelineFunnel, type PipelineStage } from "./shared/PipelineFunnel";
 
 const STAGE_ORDER: { key: string; label: string; color: string }[] = [
