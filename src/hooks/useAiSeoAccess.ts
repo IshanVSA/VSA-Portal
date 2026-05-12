@@ -18,10 +18,11 @@ export function useAiSeoAccess(clinicId?: string) {
       // For everyone else, check the clinic-level AI SEO flag
       let targetClinicId = clinicId;
       if (!targetClinicId) {
+        // RLS scopes to owned + partner clinics for clients.
         const { data: clinic } = await supabase
           .from("clinics")
           .select("id, ai_seo_enabled")
-          .eq("owner_user_id", user.id)
+          .limit(1)
           .maybeSingle();
         return clinic?.ai_seo_enabled ?? false;
       }
