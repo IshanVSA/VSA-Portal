@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
-import { Plus, Trash2, UserCheck, Mail, Loader2, Check, ChevronDown, Building2, Activity, UserCircle2, Clock4, Users, Search } from "lucide-react";
+import { Plus, Trash2, UserCheck, Mail, Loader2, Check, ChevronDown, Building2, Activity, UserCircle2, Clock4, Users, Search, Pencil } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -118,6 +118,44 @@ export default function ClientsPage() {
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
+  const [editTarget, setEditTarget] = useState<Profile | null>(null);
+  const [editForm, setEditForm] = useState({ full_name: "", email: "" });
+  const [editErrors, setEditErrors] = useState<{ full_name?: string; email?: string }>({});
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const openEdit = (p: Profile) => {
+    setEditTarget(p);
+    setEditForm({ full_name: p.full_name || "", email: p.email || "" });
+    setEditErrors({});
+  };
+
+  const saveEdit = async () => {
+    if (!editTarget) return;
+    const schema = z.object({
+      full_name: z.string().trim().min(1, "Full name is required").max(100),
+      email: z.string().trim().email("Invalid email address").max(255),
+    });
+    const parsed = schema.safeParse(editForm);
+    if (!parsed.success) {
+      const errs: { full_name?: string; email?: string } = {};
+      for (const i of parsed.error.issues) {
+        const k = i.path[0] as "full_name" | "email";
+        if (k && !errs[k]) errs[k] = i.message;
+      }
+      setEditErrors(errs);
+      return;
+    }
+    setSavingEdit(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ full_name: parsed.data.full_name, email: parsed.data.email })
+      .eq("id", editTarget.id);
+    setSavingEdit(false);
+    if (error) { toast.error(error.message || "Failed to update client"); return; }
+    toast.success("Client updated");
+    setProfiles((prev) => prev.map((x) => x.id === editTarget.id ? { ...x, full_name: parsed.data.full_name, email: parsed.data.email } : x));
+    setEditTarget(null);
+  };
 
   const handleResendWelcome = async (userId: string, name: string) => {
     setResendingId(userId);
@@ -445,6 +483,15 @@ export default function ClientsPage() {
                               variant="ghost"
                               size="sm"
                               className="h-8 px-2"
+                              onClick={() => openEdit(p)}
+                              aria-label="Edit client"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 px-2"
                               disabled={resendingId === p.id}
                               onClick={() => handleResendWelcome(p.id, p.full_name || "client")}
                               aria-label="Resend welcome email"
@@ -621,6 +668,16 @@ export default function ClientsPage() {
                               <TooltipProvider delayDuration={200}>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => openEdit(p)}>
+                                      <Pencil className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="left">Edit client</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              <TooltipProvider delayDuration={200}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
                                     <Button
                                       variant="ghost"
                                       size="sm"
@@ -662,6 +719,42 @@ export default function ClientsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <Dialog open={!!editTarget} onOpenChange={(open) => { if (!open) setEditTarget(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Client</DialogTitle>
+            <DialogDescription>Update the client's display name and email shown in the portal.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Full Name</Label>
+              <Input
+                value={editForm.full_name}
+                onChange={(e) => { setEditForm((f) => ({ ...f, full_name: e.target.value })); if (editErrors.full_name) setEditErrors((p) => ({ ...p, full_name: undefined })); }}
+                aria-invalid={!!editErrors.full_name}
+              />
+              {editErrors.full_name && <p className="text-xs text-destructive">{editErrors.full_name}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={editForm.email}
+                onChange={(e) => { setEditForm((f) => ({ ...f, email: e.target.value })); if (editErrors.email) setEditErrors((p) => ({ ...p, email: undefined })); }}
+                aria-invalid={!!editErrors.email}
+              />
+              {editErrors.email && <p className="text-xs text-destructive">{editErrors.email}</p>}
+              <p className="text-[11px] text-muted-foreground">Note: this updates the displayed email. The login email is unchanged.</p>
+            </div>
+          </div>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => setEditTarget(null)} disabled={savingEdit}>Cancel</Button>
+            <Button className="w-full sm:w-auto" onClick={saveEdit} disabled={savingEdit}>
+              {savingEdit ? "Saving…" : "Save changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
