@@ -487,6 +487,18 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                           </Button>
                         </>
                       )}
+                      {ACTIVE_GEN_STATUSES.includes(gen.approval_status) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setStopTargetId(gen.id)}
+                          disabled={cancelGeneration.isPending}
+                          className="gap-1.5 text-xs text-destructive hover:text-destructive"
+                        >
+                          <StopCircle className="h-3.5 w-3.5" />
+                          Stop
+                        </Button>
+                      )}
                       {(gen.approval_status === "copy_changes_requested" || gen.approval_status === "final_changes_requested") && (
                         <Button variant="outline" size="sm" onClick={() => { setPreflightOpen(true); }} className="gap-1.5 text-xs">
                           <RefreshCw className="h-3.5 w-3.5" />
