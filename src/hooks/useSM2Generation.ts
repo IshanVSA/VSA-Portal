@@ -343,5 +343,6 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
     getHtmlUrl,
     currentMonth,
     pollForCompletion,
+    cancelGeneration,
   };
 }
