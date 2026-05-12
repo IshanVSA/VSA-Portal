@@ -403,8 +403,9 @@ export function TicketKanbanView({ tickets, teamMembers, assignableMembers, curr
                         <UserCircle className="h-2.5 w-2.5 mr-0.5" />{assignee}
                       </Badge>
                     ) : poolCount > 0 ? (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-primary/5 text-primary border-primary/20" title={poolNames.join(", ")}>
-                        <UserCircle className="h-2.5 w-2.5 mr-0.5" />Pool: {poolCount}
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-primary/5 text-primary border-primary/20 max-w-[180px] truncate" title={poolNames.join(", ")}>
+                        <UserCircle className="h-2.5 w-2.5 mr-0.5 shrink-0" />
+                        <span className="truncate">{poolNames.slice(0, 2).join(", ")}{poolNames.length > 2 ? ` +${poolNames.length - 2}` : ""}</span>
                       </Badge>
                     ) : (
                       <span className="text-[10px] text-muted-foreground italic">Unassigned</span>
