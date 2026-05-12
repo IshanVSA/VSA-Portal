@@ -444,6 +444,7 @@ export default function ClientsPage() {
                 })
                 .map((p) => {
                   const assignedClinics = getAssignedClinics(p.id);
+                  const partnerClinics = getPartnerClinics(p.id);
                   const a = activityByUser.get(p.id);
                   const subs = subAccountsByParent.get(p.id) || [];
                   const lastSeen = a?.last_seen_at;
