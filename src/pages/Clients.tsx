@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
-import { Plus, Trash2, UserCheck, Mail, Loader2, Check, ChevronDown, Building2, Activity, UserCircle2, Clock4, Users, Search, Pencil } from "lucide-react";
+import { Plus, Trash2, UserCheck, Mail, Loader2, Check, ChevronDown, Building2, Activity, UserCircle2, Clock4, Users, Search, Pencil, Handshake } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -22,6 +22,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { PartnershipsDialog } from "@/components/clients/PartnershipsDialog";
 
 interface Profile { id: string; full_name: string | null; email: string | null; welcome_email_sent_at: string | null; welcome_email_last_attempt_at: string | null; welcome_email_last_error: string | null; }
 interface UserRole { user_id: string; role: string; }
@@ -61,12 +62,15 @@ export default function ClientsPage() {
   const [activity, setActivity] = useState<ActivityRow[]>([]);
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [partnersByUser, setPartnersByUser] = useState<Map<string, string[]>>(new Map());
+  const [partnerTarget, setPartnerTarget] = useState<{ id: string; name: string } | null>(null);
   const fetchData = async () => {
-    const [profilesRes, rolesRes, clinicsRes, activityRes] = await Promise.all([
+    const [profilesRes, rolesRes, clinicsRes, activityRes, partnersRes] = await Promise.all([
       supabase.from("profiles").select("id, full_name, email, welcome_email_sent_at, welcome_email_last_attempt_at, welcome_email_last_error"),
       supabase.from("user_roles").select("user_id, role"),
       supabase.from("clinics").select("id, clinic_name, owner_user_id").order("clinic_name"),
       (supabase as any).rpc("get_client_login_summary"),
+      (supabase as any).from("clinic_partners").select("clinic_id, user_id"),
     ]);
     const allRoles = rolesRes.data || [];
     const clientUserIds = allRoles.filter(r => r.role === "client").map(r => r.user_id);
@@ -84,6 +88,16 @@ export default function ClientsPage() {
       }
     });
     setAssignments(Array.from(assignMap.entries()).map(([user_id, clinic_names]) => ({ user_id, clinic_names })));
+    const clinicNameById = new Map(clinics.map(c => [c.id, c.clinic_name]));
+    const partnersMap = new Map<string, string[]>();
+    ((partnersRes.data as any[]) || []).forEach((p: any) => {
+      const name = clinicNameById.get(p.clinic_id);
+      if (!name) return;
+      const arr = partnersMap.get(p.user_id) || [];
+      arr.push(name);
+      partnersMap.set(p.user_id, arr);
+    });
+    setPartnersByUser(partnersMap);
     setActivity((activityRes.data as ActivityRow[] | null) || []);
     setLoading(false);
   };
@@ -94,6 +108,7 @@ export default function ClientsPage() {
   }, [role]);
 
   const getAssignedClinics = (userId: string) => assignments.find(a => a.user_id === userId)?.clinic_names || [];
+  const getPartnerClinics = (userId: string) => partnersByUser.get(userId) || [];
 
   // Activity helpers (admin-only metrics on the Clients page)
   const activityByUser = new Map(activity.map(a => [a.user_id, a]));
@@ -429,6 +444,7 @@ export default function ClientsPage() {
                 })
                 .map((p) => {
                   const assignedClinics = getAssignedClinics(p.id);
+                  const partnerClinics = getPartnerClinics(p.id);
                   const a = activityByUser.get(p.id);
                   const subs = subAccountsByParent.get(p.id) || [];
                   const lastSeen = a?.last_seen_at;
@@ -454,10 +470,15 @@ export default function ClientsPage() {
                           )}
                         </div>
 
-                        {assignedClinics.length > 0 && (
+                        {(assignedClinics.length > 0 || partnerClinics.length > 0) && (
                           <div className="flex flex-wrap gap-1">
                             {assignedClinics.map((name, i) => (
-                              <Badge key={i} variant="secondary" className="text-[10px] rounded-full">{name}</Badge>
+                              <Badge key={`o-${i}`} variant="secondary" className="text-[10px] rounded-full">{name}</Badge>
+                            ))}
+                            {partnerClinics.map((name, i) => (
+                              <Badge key={`p-${i}`} variant="outline" className="text-[10px] rounded-full border-primary/40 text-primary">
+                                <Handshake className="h-2.5 w-2.5 mr-1" />{name}
+                              </Badge>
                             ))}
                           </div>
                         )}
@@ -478,6 +499,16 @@ export default function ClientsPage() {
                                 <Users className="h-3.5 w-3.5" />
                                 {subs.length > 0 && <span className="ml-1 text-[11px]">{subs.length}</span>}
                               </Link>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 px-2"
+                              onClick={() => setPartnerTarget({ id: p.id, name: p.full_name || "client" })}
+                              aria-label="Manage partnerships"
+                            >
+                              <Handshake className="h-3.5 w-3.5" />
+                              {partnerClinics.length > 0 && <span className="ml-1 text-[11px]">{partnerClinics.length}</span>}
                             </Button>
                             <Button
                               variant="ghost"
@@ -541,6 +572,7 @@ export default function ClientsPage() {
                       })
                       .map((p) => {
                       const assignedClinics = getAssignedClinics(p.id);
+                      const partnerClinics = getPartnerClinics(p.id);
                       const a = activityByUser.get(p.id);
                       const subs = subAccountsByParent.get(p.id) || [];
                       return (
@@ -555,11 +587,20 @@ export default function ClientsPage() {
                             <span className="truncate max-w-[220px] inline-block align-bottom">{p.email || "—"}</span>
                           </TableCell>
                           <TableCell className="align-top">
-                            {assignedClinics.length > 0 ? (
-                              <div className="flex flex-wrap gap-1 max-w-[220px]">
-                                {assignedClinics.map((name, i) => (<Badge key={i} variant="secondary" className="text-[11px] rounded-full">{name}</Badge>))}
+                            {assignedClinics.length === 0 && partnerClinics.length === 0 ? (
+                              <span className="text-muted-foreground text-xs italic">None</span>
+                            ) : (
+                              <div className="flex flex-wrap gap-1 max-w-[260px]">
+                                {assignedClinics.map((name, i) => (
+                                  <Badge key={`o-${i}`} variant="secondary" className="text-[11px] rounded-full">{name}</Badge>
+                                ))}
+                                {partnerClinics.map((name, i) => (
+                                  <Badge key={`p-${i}`} variant="outline" className="text-[11px] rounded-full border-primary/40 text-primary">
+                                    <Handshake className="h-2.5 w-2.5 mr-1" />{name}
+                                  </Badge>
+                                ))}
                               </div>
-                            ) : (<span className="text-muted-foreground text-xs italic">None</span>)}
+                            )}
                           </TableCell>
                           <TableCell className="hidden lg:table-cell align-top">
                             {(() => {
@@ -668,6 +709,19 @@ export default function ClientsPage() {
                               <TooltipProvider delayDuration={200}>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => setPartnerTarget({ id: p.id, name: p.full_name || "client" })}>
+                                      <Handshake className="h-3.5 w-3.5" />
+                                      {partnerClinics.length > 0 && (
+                                        <span className="ml-1 text-[11px] text-muted-foreground">{partnerClinics.length}</span>
+                                      )}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="left">Manage partnerships</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              <TooltipProvider delayDuration={200}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
                                     <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => openEdit(p)}>
                                       <Pencil className="h-3.5 w-3.5" />
                                     </Button>
@@ -755,6 +809,14 @@ export default function ClientsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <PartnershipsDialog
+        open={!!partnerTarget}
+        onOpenChange={(open) => { if (!open) setPartnerTarget(null); }}
+        clientUserId={partnerTarget?.id ?? null}
+        clientName={partnerTarget?.name ?? ""}
+        allClinics={allClinics}
+        onSaved={fetchData}
+      />
     </>
   );
 }

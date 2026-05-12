@@ -29,8 +29,8 @@ export default function ClientDashboard() {
     if (!user) return;
     const fetchData = async () => {
       const { data: clinicData } = await supabase
-        .from("clinics").select("id, clinic_name, logo_url")
-        .eq("owner_user_id", user.id);
+        .from("clinics").select("id, clinic_name, logo_url");
+      // RLS includes owned + partner clinics for the client.
       const owned = clinicData || [];
       setClinics(owned);
       if (owned.length > 0) {

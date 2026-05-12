@@ -192,12 +192,11 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
 
   useEffect(() => {
     if (role === "client" && user) {
-      // For sub_accounts, RLS limits results to assigned clinics; for parent clients, filter by owner_user_id.
-      let q = supabase
+      // RLS scopes results: owners see owned clinics, partners see partnered clinics, sub_accounts see assigned clinics.
+      const q = supabase
         .from("clinics")
         .select("id, clinic_name, website_enabled, seo_enabled, google_ads_enabled, ai_seo_enabled, social_media_enabled")
         .order("clinic_name");
-      if (!isSubAccount) q = q.eq("owner_user_id", user.id);
       q.then(({ data }) => {
           if (data && data.length > 0) {
             setClientClinics(data);

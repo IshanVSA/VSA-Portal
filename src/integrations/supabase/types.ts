@@ -852,6 +852,35 @@ export type Database = {
           },
         ]
       }
+      clinic_partners: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          created_by: string | null
+          user_id: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          created_by?: string | null
+          user_id: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          created_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_partners_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_promotions: {
         Row: {
           clinic_id: string
@@ -2818,6 +2847,7 @@ export type Database = {
           runs_24h: number
         }[]
       }
+      get_partner_clinic_ids: { Args: { _user_id: string }; Returns: string[] }
       get_sub_account_clinic_ids: {
         Args: { _user_id: string }
         Returns: string[]
