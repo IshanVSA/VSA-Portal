@@ -153,10 +153,10 @@ export function AdminSocialOverview({ clinicId }: AdminSocialOverviewProps) {
         const ids = myCluster.clinics as string[];
         const [cd, dd, gd] = await Promise.all([
           supabase.from("clinics").select("id, clinic_name").in("id", ids),
-          supabase.from("clinic_brand_dna").select("clinic_id, completeness_score").in("clinic_id", ids),
+          supabase.from("clinic_brand_dna").select("clinic_id, completeness_score, call_notes").in("clinic_id", ids),
           supabase.from("sm2_generations").select("clinic_id, created_at").in("clinic_id", ids).order("created_at", { ascending: false }),
         ]);
-        const dnaMap = new Map((dd.data || []).map((d: any) => [d.clinic_id, d.completeness_score]));
+        const dnaMap = new Map((dd.data || []).map((d: any) => [d.clinic_id, computeBrandDNAScore(d)]));
         const genMap = new Map<string, string>();
         (gd.data || []).forEach((g: any) => { if (!genMap.has(g.clinic_id)) genMap.set(g.clinic_id, g.created_at); });
         setClusterClinics((cd.data || []).map((c: any) => ({
