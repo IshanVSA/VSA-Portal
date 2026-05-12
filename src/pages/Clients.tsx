@@ -88,6 +88,16 @@ export default function ClientsPage() {
       }
     });
     setAssignments(Array.from(assignMap.entries()).map(([user_id, clinic_names]) => ({ user_id, clinic_names })));
+    const clinicNameById = new Map(clinics.map(c => [c.id, c.clinic_name]));
+    const partnersMap = new Map<string, string[]>();
+    ((partnersRes.data as any[]) || []).forEach((p: any) => {
+      const name = clinicNameById.get(p.clinic_id);
+      if (!name) return;
+      const arr = partnersMap.get(p.user_id) || [];
+      arr.push(name);
+      partnersMap.set(p.user_id, arr);
+    });
+    setPartnersByUser(partnersMap);
     setActivity((activityRes.data as ActivityRow[] | null) || []);
     setLoading(false);
   };
