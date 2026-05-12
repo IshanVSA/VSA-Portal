@@ -273,8 +273,9 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
                 </Badge>
               )}
               {!assigneeName && poolNames.length > 0 && (
-                <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-primary/5 text-primary border-primary/20 gap-1" title={poolNames.join(", ")}>
-                  <UserCircle className="h-2.5 w-2.5" />Pool: {poolNames.length} member{poolNames.length === 1 ? "" : "s"}
+                <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-primary/8 text-primary border-primary/20 gap-1" title={poolNames.join(", ")}>
+                  <UserCircle className="h-2.5 w-2.5" />
+                  {poolNames.slice(0, 3).join(", ")}{poolNames.length > 3 ? ` +${poolNames.length - 3}` : ""}
                 </Badge>
               )}
               {!assigneeName && poolNames.length === 0 && (
