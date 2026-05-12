@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useBrandDNA } from "@/hooks/useBrandDNA";
+import { computeBrandDNAScore } from "@/lib/brand-dna-score";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
@@ -137,7 +138,7 @@ export default function BrandDNATab({ clinicId }: Props) {
               <div className="flex items-center gap-2 mt-0.5">
                 <StatusIcon status={dna.status} />
                 <span className="text-xs text-muted-foreground capitalize">{dna.status}</span>
-                <ScoreBadge score={dna.completeness_score || Math.round((answeredCount / 10) * 100)} />
+                <ScoreBadge score={computeBrandDNAScore(dna as any)} />
               </div>
             )}
           </div>
