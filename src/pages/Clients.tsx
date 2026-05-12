@@ -709,6 +709,19 @@ export default function ClientsPage() {
                               <TooltipProvider delayDuration={200}>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => setPartnerTarget({ id: p.id, name: p.full_name || "client" })}>
+                                      <Handshake className="h-3.5 w-3.5" />
+                                      {partnerClinics.length > 0 && (
+                                        <span className="ml-1 text-[11px] text-muted-foreground">{partnerClinics.length}</span>
+                                      )}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="left">Manage partnerships</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              <TooltipProvider delayDuration={200}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
                                     <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => openEdit(p)}>
                                       <Pencil className="h-3.5 w-3.5" />
                                     </Button>
