@@ -607,15 +607,8 @@ export default function AdminDashboard() {
                           <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-bold tabular-nums text-foreground">
                             {dept.total}
                           </span>
-                        </button>
-                        <Link
-                          to={cfg.path}
-                          title="Open department"
-                          className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
-                        >
-                          <ArrowUpRight className="h-3.5 w-3.5" />
-                        </Link>
-                      </div>
+                         </button>
+                       </div>
                     </li>
                   );
                 })}
