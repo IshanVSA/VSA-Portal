@@ -105,7 +105,7 @@ export function AdminSocialOverview({ clinicId }: AdminSocialOverviewProps) {
         supabase.from("content_posts").select("id, title, created_at").eq("clinic_id", clinicId).order("created_at", { ascending: false }).limit(5),
       ]);
 
-      setDnaScore(dnaRes.data?.completeness_score || 0);
+      setDnaScore(computeBrandDNAScore(dnaRes.data));
       setPostsThisMonth(postsMonthRes.count || 0);
       setActivePromotions(promosRes.count || 0);
       setJurisdiction(gbpConfigRes.data?.jurisdiction || null);
