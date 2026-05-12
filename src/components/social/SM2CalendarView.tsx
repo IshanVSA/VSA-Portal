@@ -72,9 +72,15 @@ export default function SM2CalendarView({
   onRequestFinalChanges,
   sendPending,
 }: Props) {
-  const { posts, total, withImages, imagesComplete, getImageUrl, isLoading } = useSM2Posts(generationId);
+  const { posts, total, withImages, imagesComplete, getImageUrl, isLoading, updatePost } = useSM2Posts(generationId);
   const [openDate, setOpenDate] = useState<string | null>(null);
   const [confirmSendOpen, setConfirmSendOpen] = useState(false);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverDate, setDragOverDate] = useState<string | null>(null);
+
+  // Concierge/admin can rearrange dates while the calendar is still being prepared.
+  // Lock once the client has given final approval.
+  const canDrag = !isClient && !["approved_client", "approved_auto"].includes(approvalStatus);
 
   // Are we in the copy round or final round?
   const isCopyRound =
@@ -263,20 +269,42 @@ export default function SM2CalendarView({
                   ).length
                 : 0;
 
+              const isDropTarget = dragOverDate === dateStr && canDrag && inMonth;
+
               return (
-                <button
+                <div
                   key={i}
-                  type="button"
-                  onClick={() => dayPosts.length > 0 && setOpenDate(dateStr)}
-                  disabled={dayPosts.length === 0}
+                  onDragOver={(e) => {
+                    if (!canDrag || !inMonth || !draggingId) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                    if (dragOverDate !== dateStr) setDragOverDate(dateStr);
+                  }}
+                  onDragLeave={() => {
+                    if (dragOverDate === dateStr) setDragOverDate(null);
+                  }}
+                  onDrop={(e) => {
+                    if (!canDrag || !inMonth) return;
+                    e.preventDefault();
+                    const postId = e.dataTransfer.getData("text/sm2-post-id") || draggingId;
+                    setDragOverDate(null);
+                    setDraggingId(null);
+                    if (!postId) return;
+                    const moving = posts.find((p) => p.id === postId);
+                    if (!moving || moving.scheduled_date === dateStr) return;
+                    updatePost.mutate({ postId, updates: { scheduled_date: dateStr } });
+                  }}
                   className={cn(
                     "min-h-[120px] border-b border-r border-border/60 p-2 text-left transition-colors relative",
                     !inMonth && "bg-muted/20",
                     inMonth && "bg-card",
                     today && "bg-accent/30",
                     dayPosts.length > 0 && "hover:bg-accent/30 cursor-pointer",
-                    dayPosts.length === 0 && "cursor-default"
+                    dayPosts.length === 0 && "cursor-default",
+                    isDropTarget && "bg-primary/10 ring-2 ring-inset ring-primary/40",
                   )}
+                  onClick={() => dayPosts.length > 0 && setOpenDate(dateStr)}
+                  role="button"
                 >
                   {unseenNotes > 0 && (
                     <span
@@ -299,16 +327,33 @@ export default function SM2CalendarView({
                     {dayPosts.slice(0, 3).map((p) => {
                       const color = themeColors[p.theme || ""] || "hsl(var(--primary))";
                       const url = p.image_path ? getImageUrl(p.image_path) : null;
+                      const isDragging = draggingId === p.id;
                       return (
                         <div
                           key={p.id}
-                          className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[10px] font-medium border"
+                          draggable={canDrag}
+                          onDragStart={(e) => {
+                            if (!canDrag) return;
+                            e.stopPropagation();
+                            e.dataTransfer.setData("text/sm2-post-id", p.id);
+                            e.dataTransfer.effectAllowed = "move";
+                            setDraggingId(p.id);
+                          }}
+                          onDragEnd={() => {
+                            setDraggingId(null);
+                            setDragOverDate(null);
+                          }}
+                          className={cn(
+                            "flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[10px] font-medium border select-none",
+                            canDrag && "cursor-grab active:cursor-grabbing",
+                            isDragging && "opacity-40",
+                          )}
                           style={{
                             background: `${color.replace("hsl", "hsla").replace(")", " / 0.10)")}`,
                             borderColor: `${color.replace("hsl", "hsla").replace(")", " / 0.25)")}`,
                             color,
                           }}
-                          title={p.topic || p.theme || p.platform}
+                          title={canDrag ? `Drag to move · ${p.topic || p.theme || p.platform}` : (p.topic || p.theme || p.platform)}
                         >
                           {url ? (
                             <img src={url} alt="" className="w-4 h-4 object-cover rounded-sm" />
@@ -324,7 +369,7 @@ export default function SM2CalendarView({
                       <p className="text-[10px] text-muted-foreground pl-1">+{dayPosts.length - 3} more</p>
                     )}
                   </div>
-                </button>
+                </div>
               );
             })}
               </div>
