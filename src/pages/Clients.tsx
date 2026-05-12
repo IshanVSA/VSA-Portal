@@ -60,6 +60,7 @@ export default function ClientsPage() {
   const [creating, setCreating] = useState(false);
   const [activity, setActivity] = useState<ActivityRow[]>([]);
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const fetchData = async () => {
     const [profilesRes, rolesRes, clinicsRes, activityRes] = await Promise.all([
       supabase.from("profiles").select("id, full_name, email, welcome_email_sent_at, welcome_email_last_attempt_at, welcome_email_last_error"),
