@@ -100,6 +100,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
 
   const isCustomForm = CUSTOM_FORM_TYPES.includes(ticketType);
   const isAddTeamMember = ticketType === "Add/Remove Team Members" && customDescription.includes("Action: Add");
+  const isPopupOffer = ticketType === "Pop-up Offers";
 
   useEffect(() => {
     if (open && defaultType) {
@@ -236,7 +237,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     if (!user) return;
 
     let finalDescription = isCustomForm ? customDescription : (genericDescription.trim() || null);
-    if (ticketType === "Add/Remove Team Members" && promoteSocial && finalDescription) {
+    if ((ticketType === "Add/Remove Team Members" || ticketType === "Pop-up Offers") && promoteSocial && finalDescription) {
       finalDescription = `${finalDescription}\nPromote on Social Media: Yes`;
     }
 
@@ -355,8 +356,8 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
               </div>
               {(() => {
                 const depts = getVisibleDepartmentLabels(ticketType);
-                // For Add/Remove Team Members with social promotion, add Social Media
-                let finalDepts = ticketType === "Add/Remove Team Members" && promoteSocial
+                // For Add/Remove Team Members (add action) or Pop-up Offers with social promotion, add Social Media
+                let finalDepts = (isAddTeamMember || isPopupOffer) && promoteSocial
                   ? [...depts, "Social Media"]
                   : depts;
                 // Filter out departments that are locked for this clinic so the
@@ -443,7 +444,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
                 <FileUploader files={files} onFilesChange={setFiles} label={ticketType === "Price List Updates" ? "Upload your price list doc" : "Attachments"} />
               )}
 
-              {isAddTeamMember && (
+              {(isAddTeamMember || isPopupOffer) && (
                 <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 p-3">
                   <Checkbox
                     id="promote-social"
@@ -451,7 +452,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
                     onCheckedChange={(checked) => setPromoteSocial(checked === true)}
                   />
                   <Label htmlFor="promote-social" className="cursor-pointer text-sm font-normal">
-                    Promote new team member on social media
+                    {ticketType === "Pop-up Offers" ? "Promote this offer on social media" : "Promote new team member on social media"}
                   </Label>
                 </div>
               )}
