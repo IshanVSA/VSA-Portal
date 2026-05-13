@@ -168,6 +168,10 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
         })
         .eq("id", generationId);
       if (error) throw error;
+      // Fire-and-forget: client notification email
+      supabase.functions
+        .invoke("notify-content-approval", { body: { generationId, stage: "copy" } })
+        .catch((e) => console.warn("notify-content-approval (copy) failed", e));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sm2-generations", clinicId] });
@@ -244,6 +248,10 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
         })
         .eq("id", generationId);
       if (error) throw error;
+      // Fire-and-forget: client notification email
+      supabase.functions
+        .invoke("notify-content-approval", { body: { generationId, stage: "final" } })
+        .catch((e) => console.warn("notify-content-approval (final) failed", e));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sm2-generations", clinicId] });
