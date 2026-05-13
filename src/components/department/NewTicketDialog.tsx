@@ -100,6 +100,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
 
   const isCustomForm = CUSTOM_FORM_TYPES.includes(ticketType);
   const isAddTeamMember = ticketType === "Add/Remove Team Members" && customDescription.includes("Action: Add");
+  const isPopupOffer = ticketType === "Pop-up Offers";
 
   useEffect(() => {
     if (open && defaultType) {
