@@ -189,6 +189,7 @@ export default function ClientContentReview({ clinicId }: Props) {
               monthYear={viewingGen.month_year}
               approvalStatus={viewingGen.approval_status}
               isClient={true}
+              sentToClientAt={viewingGen.sent_to_client_at}
               onApproveCopy={() => {
                 setApproveConfirm(viewingGen);
                 setViewingGen(null);

@@ -391,6 +391,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
               onSendCopyForReview={() => sendCopyForReview.mutate(selectedGen.id)}
               onSendFinalForReview={() => sendFinalForReview.mutate(selectedGen.id)}
               sendPending={sendCopyForReview.isPending || sendFinalForReview.isPending}
+              sentToClientAt={selectedGen.sent_to_client_at}
             />
           )}
         </CardContent>

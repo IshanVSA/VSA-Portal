@@ -37,6 +37,7 @@ interface Props {
   onApproveFinal?: () => void;
   onRequestFinalChanges?: () => void;
   sendPending?: boolean;
+  sentToClientAt?: string | null;
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -71,6 +72,7 @@ export default function SM2CalendarView({
   onApproveFinal,
   onRequestFinalChanges,
   sendPending,
+  sentToClientAt,
 }: Props) {
   const { posts, total, withImages, imagesComplete, getImageUrl, isLoading, updatePost } = useSM2Posts(generationId);
   const [openDate, setOpenDate] = useState<string | null>(null);
@@ -170,9 +172,17 @@ export default function SM2CalendarView({
       <div className="space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <h3 className="text-lg font-semibold">{monthLabel}</h3>
             {statusPill}
+            {sentToClientAt &&
+              (approvalStatus === "sent_for_copy_review" ||
+                approvalStatus === "sent_for_final_review") && (
+                <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                  <Send className="h-3 w-3" />
+                  Sent to client {format(new Date(sentToClientAt), "MMM d, yyyy 'at' h:mm a")}
+                </span>
+              )}
           </div>
           <div className="flex items-center gap-2">
             {!isClient && isCopyRound && (
