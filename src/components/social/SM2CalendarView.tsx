@@ -72,6 +72,7 @@ export default function SM2CalendarView({
   onApproveFinal,
   onRequestFinalChanges,
   sendPending,
+  sentToClientAt,
 }: Props) {
   const { posts, total, withImages, imagesComplete, getImageUrl, isLoading, updatePost } = useSM2Posts(generationId);
   const [openDate, setOpenDate] = useState<string | null>(null);
