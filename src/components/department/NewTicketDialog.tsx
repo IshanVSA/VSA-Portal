@@ -356,8 +356,8 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
               </div>
               {(() => {
                 const depts = getVisibleDepartmentLabels(ticketType);
-                // For Add/Remove Team Members with social promotion, add Social Media
-                let finalDepts = ticketType === "Add/Remove Team Members" && promoteSocial
+                // For Add/Remove Team Members (add action) or Pop-up Offers with social promotion, add Social Media
+                let finalDepts = (isAddTeamMember || isPopupOffer) && promoteSocial
                   ? [...depts, "Social Media"]
                   : depts;
                 // Filter out departments that are locked for this clinic so the
