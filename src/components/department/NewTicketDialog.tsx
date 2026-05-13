@@ -237,7 +237,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     if (!user) return;
 
     let finalDescription = isCustomForm ? customDescription : (genericDescription.trim() || null);
-    if (ticketType === "Add/Remove Team Members" && promoteSocial && finalDescription) {
+    if ((ticketType === "Add/Remove Team Members" || ticketType === "Pop-up Offers") && promoteSocial && finalDescription) {
       finalDescription = `${finalDescription}\nPromote on Social Media: Yes`;
     }
 
