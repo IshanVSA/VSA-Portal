@@ -37,6 +37,7 @@ interface Props {
   onApproveFinal?: () => void;
   onRequestFinalChanges?: () => void;
   sendPending?: boolean;
+  sentToClientAt?: string | null;
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
