@@ -444,7 +444,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
                 <FileUploader files={files} onFilesChange={setFiles} label={ticketType === "Price List Updates" ? "Upload your price list doc" : "Attachments"} />
               )}
 
-              {isAddTeamMember && (
+              {(isAddTeamMember || isPopupOffer) && (
                 <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 p-3">
                   <Checkbox
                     id="promote-social"
@@ -452,7 +452,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
                     onCheckedChange={(checked) => setPromoteSocial(checked === true)}
                   />
                   <Label htmlFor="promote-social" className="cursor-pointer text-sm font-normal">
-                    Promote new team member on social media
+                    {ticketType === "Pop-up Offers" ? "Promote this offer on social media" : "Promote new team member on social media"}
                   </Label>
                 </div>
               )}
