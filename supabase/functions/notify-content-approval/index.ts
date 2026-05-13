@@ -13,7 +13,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const PORTAL_BASE = "https://vet-dash-suite.lovable.app";
+const PORTAL_BASE = "https://portal.vsavetmedia.com";
 
 function escapeHtml(s: string): string {
   return String(s ?? "")
