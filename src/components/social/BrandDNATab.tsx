@@ -572,10 +572,10 @@ function SynthesizedProfileCard({ profile, clinicId, canEdit }: { profile: Recor
             <Sparkles className="h-4 w-4 text-violet-500 shrink-0" />
             <span className="truncate">Synthesized DNA Profile</span>
           </CardTitle>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="text-right">
-              <span className={`text-lg font-bold ${scoreColor}`}>{Math.round(score)}%</span>
-              <p className="text-xs text-muted-foreground">{scoreLabel}</p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <div className="flex items-baseline gap-1.5">
+              <span className={`text-lg font-bold leading-none ${scoreColor}`}>{Math.round(score)}%</span>
+              <span className="text-xs text-muted-foreground">{scoreLabel}</span>
             </div>
             {profile.synthesized_at && (
               <span className="text-xs text-muted-foreground whitespace-nowrap">
