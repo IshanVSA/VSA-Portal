@@ -124,6 +124,153 @@ export default function BrandDNATab({ clinicId }: Props) {
     }
   };
 
+  // Active layer state (left-rail navigator)
+  type LayerKey = "synthesis" | "website" | "reviews" | "owner_call" | "locality" | "tasks";
+  const [activeLayer, setActiveLayer] = useState<LayerKey>("synthesis");
+
+  const improvableTasks =
+    (synthesizedProfile.field_scores || []).filter(
+      (f: any) => f.status !== "captured" && f.weight > 0
+    ).length;
+
+  const layers: Array<{ key: LayerKey; label: string; meta: React.ReactNode; metaTone?: "ok" | "warn" | "muted" | "critical" }> = [
+    {
+      key: "synthesis",
+      label: "Synthesis",
+      meta: hasSynthesis ? "synthesized" : "pending",
+      metaTone: hasSynthesis ? "ok" : "muted",
+    },
+    {
+      key: "website",
+      label: "Website",
+      meta: websiteExtraction ? "verified" : "pending",
+      metaTone: websiteExtraction ? "ok" : "muted",
+    },
+    {
+      key: "reviews",
+      label: "Reviews",
+      meta: reviewMining
+        ? `${reviewMining.review_count ?? 0} / ${reviewMining.total_reviews_on_google ?? reviewMining.review_count ?? 0}`
+        : "pending",
+      metaTone: reviewMining ? "ok" : "muted",
+    },
+    {
+      key: "owner_call",
+      label: "Owner call",
+      meta: `${answeredCount} / 10`,
+      metaTone: answeredCount >= 10 ? "ok" : answeredCount > 0 ? "warn" : "muted",
+    },
+    {
+      key: "locality",
+      label: "Locality",
+      meta: localityData ? "verified" : "pending",
+      metaTone: localityData ? "ok" : "muted",
+    },
+    {
+      key: "tasks",
+      label: "Tasks",
+      meta: improvableTasks > 0 ? `${improvableTasks} open` : "clear",
+      metaTone: improvableTasks > 0 ? "critical" : "ok",
+    },
+  ];
+
+  const toneClass = (tone?: "ok" | "warn" | "muted" | "critical") =>
+    tone === "ok"
+      ? "text-emerald-500"
+      : tone === "warn"
+        ? "text-amber-500"
+        : tone === "critical"
+          ? "text-destructive"
+          : "text-muted-foreground";
+
+  // Per-layer header action
+  const layerAction = () => {
+    if (isClient) return null;
+    if (activeLayer === "synthesis") {
+      return (
+        <Button size="sm" onClick={() => synthesizeDNA.mutate()} disabled={synthesizeDNA.isPending || !dna} className="gap-2">
+          {synthesizeDNA.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {synthesizeDNA.isPending ? "Synthesizing..." : hasSynthesis ? "Re-synthesize" : "Synthesize DNA"}
+        </Button>
+      );
+    }
+    if (activeLayer === "website") {
+      return (
+        <Button variant="outline" size="sm" onClick={() => extractWebsite.mutate()} disabled={extractWebsite.isPending} className="gap-2">
+          {extractWebsite.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
+          {extractWebsite.isPending ? "Extracting..." : websiteExtraction ? "Re-extract" : "Extract Website"}
+        </Button>
+      );
+    }
+    if (activeLayer === "reviews") {
+      return (
+        <Button variant="outline" size="sm" onClick={() => mineReviews.mutate()} disabled={mineReviews.isPending} className="gap-2">
+          {mineReviews.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Star className="h-4 w-4" />}
+          {mineReviews.isPending ? "Mining..." : reviewMining ? "Re-mine" : "Mine Reviews"}
+        </Button>
+      );
+    }
+    if (activeLayer === "locality") {
+      return (
+        <Button variant="outline" size="sm" onClick={() => localityFetch.mutate()} disabled={localityFetch.isPending} className="gap-2">
+          {localityFetch.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />}
+          {localityFetch.isPending ? "Fetching..." : localityData ? "Re-fetch" : "Fetch Locality"}
+        </Button>
+      );
+    }
+    if (activeLayer === "owner_call" && dna) {
+      return !editingAnswers ? (
+        <Button variant="outline" size="sm" onClick={() => setEditingAnswers(true)} className="gap-1.5">
+          <Edit2 className="h-3.5 w-3.5" /> Edit Answers
+        </Button>
+      ) : (
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setDraftCallNotes((dna.call_notes as Record<string, string>) || {});
+              const af = (dna.additional_fields as Record<string, any>) || {};
+              const stringFields: Record<string, string> = {};
+              Object.keys(ADDITIONAL_LABELS).forEach((k) => {
+                stringFields[k] = typeof af[k] === "string" ? af[k] : "";
+              });
+              setDraftAdditional(stringFields);
+              setEditingAnswers(false);
+            }}
+            className="gap-1.5"
+          >
+            <X className="h-3.5 w-3.5" /> Cancel
+          </Button>
+          <Button size="sm" onClick={handleSaveAnswers} disabled={upsertDNA.isPending} className="gap-1.5">
+            {upsertDNA.isPending ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            Save
+          </Button>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const layerTitle: Record<LayerKey, string> = {
+    synthesis: "Synthesis · The Brand DNA",
+    website: "Layer 1 · Website Extraction",
+    reviews: "Layer 2 · Review Mining",
+    owner_call: "Layer 3 · Collection Call Answers",
+    locality: "Locality Intelligence",
+    tasks: "Tasks · Improve Score",
+  };
+
+  const emptyState = (icon: React.ReactNode, title: string, hint: string) => (
+    <Card>
+      <CardContent className="py-12 text-center">
+        <div className="mx-auto mb-3 text-muted-foreground">{icon}</div>
+        <p className="text-muted-foreground">{title}</p>
+        <p className="text-xs text-muted-foreground mt-1">{hint}</p>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -143,185 +290,164 @@ export default function BrandDNATab({ clinicId }: Props) {
             )}
           </div>
         </div>
-        {!isClient && (
-          <div className="flex items-center gap-2">
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => synthesizeDNA.mutate()}
-              disabled={synthesizeDNA.isPending || !dna}
-              className="gap-2"
-            >
-              {synthesizeDNA.isPending ? (
-                <RefreshCw className="h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4" />
-              )}
-              {synthesizeDNA.isPending ? "Synthesizing..." : hasSynthesis ? "Re-synthesize" : "Synthesize DNA"}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => mineReviews.mutate()}
-              disabled={mineReviews.isPending}
-              className="gap-2"
-            >
-              {mineReviews.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Star className="h-4 w-4" />}
-              {mineReviews.isPending ? "Mining..." : reviewMining ? "Re-mine" : "Mine Reviews"}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => localityFetch.mutate()}
-              disabled={localityFetch.isPending}
-              className="gap-2"
-            >
-              {localityFetch.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />}
-              {localityFetch.isPending ? "Fetching..." : localityData ? "Re-fetch" : "Fetch Locality"}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => extractWebsite.mutate()}
-              disabled={extractWebsite.isPending}
-              className="gap-2"
-            >
-              {extractWebsite.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
-              {extractWebsite.isPending ? "Extracting..." : websiteExtraction ? "Re-extract" : "Extract Website"}
-            </Button>
-          </div>
-        )}
       </div>
 
-      {/* Synthesized Profile */}
-      {hasSynthesis && <SynthesizedProfileCard profile={synthesizedProfile} clinicId={clinicId} canEdit={true} />}
-
-      {/* Admin DNA Profile Card */}
-      {hasSynthesis && (
-        <Suspense fallback={<Skeleton className="h-48 w-full" />}>
-          <AdminDNAProfileCard clinicId={clinicId} />
-        </Suspense>
-      )}
-
-      {/* Layer 1: Website Extraction */}
-      <WebsiteExtractionCard data={websiteExtraction} clinicId={clinicId} canEdit={true} />
-
-      {/* Layer 2: Review Mining */}
-      <ReviewMiningCard data={reviewMining} clinicId={clinicId} canEdit={true} />
-
-      {/* Locality Data */}
-      <LocalityCard data={localityData} clinicId={clinicId} canEdit={true} />
-
-      {/* No DNA */}
-      {!dna && !websiteExtraction && !reviewMining && (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Dna className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-            <p className="text-muted-foreground">No Brand DNA has been submitted for this clinic yet.</p>
-            <p className="text-xs text-muted-foreground mt-1">Click "Extract Website" or "Mine Reviews" to auto-fill Layers 1 & 2, or wait for the client to complete the questionnaire.</p>
+      {/* Two-pane navigator */}
+      <div className="grid gap-6 md:grid-cols-[220px_1fr]">
+        {/* Left rail */}
+        <Card className="h-fit md:sticky md:top-4">
+          <CardContent className="p-2">
+            <p className="text-[10px] font-semibold tracking-widest text-muted-foreground px-3 pt-2 pb-1">LAYERS</p>
+            <nav className="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible">
+              {layers.map((l) => {
+                const active = activeLayer === l.key;
+                return (
+                  <button
+                    key={l.key}
+                    onClick={() => setActiveLayer(l.key)}
+                    className={`group flex items-center justify-between gap-2 rounded-md px-3 py-2 text-sm transition-colors text-left whitespace-nowrap ${
+                      active
+                        ? "bg-primary/10 text-foreground"
+                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${
+                          active ? "bg-primary" : "bg-muted-foreground/40"
+                        }`}
+                      />
+                      {l.label}
+                    </span>
+                    <span className={`text-[10px] uppercase tracking-wide ${toneClass(l.metaTone)}`}>
+                      {l.meta}
+                    </span>
+                  </button>
+                );
+              })}
+            </nav>
           </CardContent>
         </Card>
-      )}
 
-      {/* Layer 3: Q&A Cards */}
-      {dna && (
-        <>
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-              <Dna className="h-4 w-4" />
-              Layer 3 - Collection Call Answers
+        {/* Right detail */}
+        <div className="space-y-4 min-w-0">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
+              {layerTitle[activeLayer]}
             </h3>
-            {!editingAnswers ? (
-              <Button variant="outline" size="sm" onClick={() => setEditingAnswers(true)} className="gap-1.5">
-                <Edit2 className="h-3.5 w-3.5" /> Edit Answers
-              </Button>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setDraftCallNotes((dna.call_notes as Record<string, string>) || {});
-                    const af = (dna.additional_fields as Record<string, any>) || {};
-                    const stringFields: Record<string, string> = {};
-                    Object.keys(ADDITIONAL_LABELS).forEach((k) => {
-                      stringFields[k] = typeof af[k] === "string" ? af[k] : "";
-                    });
-                    setDraftAdditional(stringFields);
-                    setEditingAnswers(false);
-                  }}
-                  className="gap-1.5"
-                >
-                  <X className="h-3.5 w-3.5" /> Cancel
-                </Button>
-                <Button size="sm" onClick={handleSaveAnswers} disabled={upsertDNA.isPending} className="gap-1.5">
-                  {upsertDNA.isPending ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                  Save
-                </Button>
-              </div>
-            )}
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            {Object.entries(QUESTION_LABELS).map(([key, label]) => (
-              <Card key={key} className="border-border/60">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {editingAnswers ? (
-                    <Textarea
-                      value={draftCallNotes[key] || ""}
-                      onChange={(e) => setDraftCallNotes((p) => ({ ...p, [key]: e.target.value }))}
-                      rows={3}
-                      className="text-sm"
-                      placeholder="Enter answer…"
-                    />
-                  ) : (
-                    <p className="text-sm text-foreground whitespace-pre-wrap">
-                      {callNotes[key] || <span className="italic text-muted-foreground">Not answered</span>}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+            {layerAction()}
           </div>
 
-          {(editingAnswers ||
-            Object.entries(ADDITIONAL_LABELS).some(([key]) => {
-              const val = additionalFields[key];
-              return val && typeof val === "string" && val.trim();
-            })) && (
+          {activeLayer === "synthesis" && (
             <>
-              <h3 className="text-sm font-semibold text-muted-foreground mt-4">Additional Details</h3>
-              <div className="grid gap-4 md:grid-cols-2">
-                {Object.entries(ADDITIONAL_LABELS).map(([key, label]) => {
-                  const val = additionalFields[key];
-                  if (!editingAnswers && (!val || typeof val !== "string" || !val.trim())) return null;
-                  return (
+              {hasSynthesis ? (
+                <>
+                  <SynthesizedProfileCard profile={synthesizedProfile} clinicId={clinicId} canEdit={true} />
+                  <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+                    <AdminDNAProfileCard clinicId={clinicId} />
+                  </Suspense>
+                </>
+              ) : (
+                emptyState(
+                  <Sparkles className="h-10 w-10 mx-auto" />,
+                  "DNA hasn't been synthesized yet.",
+                  "Capture the Website, Reviews, Owner call, and Locality layers, then click Synthesize DNA."
+                )
+              )}
+            </>
+          )}
+
+          {activeLayer === "website" && (
+            websiteExtraction
+              ? <WebsiteExtractionCard data={websiteExtraction} clinicId={clinicId} canEdit={true} />
+              : emptyState(<Globe className="h-10 w-10 mx-auto" />, "No website extraction yet.", "Click Extract Website to pull hospital details from the live site.")
+          )}
+
+          {activeLayer === "reviews" && (
+            reviewMining
+              ? <ReviewMiningCard data={reviewMining} clinicId={clinicId} canEdit={true} />
+              : emptyState(<Star className="h-10 w-10 mx-auto" />, "No review mining yet.", "Click Mine Reviews to analyse Google reviews for themes and voice signals.")
+          )}
+
+          {activeLayer === "locality" && (
+            localityData
+              ? <LocalityCard data={localityData} clinicId={clinicId} canEdit={true} />
+              : emptyState(<MapPin className="h-10 w-10 mx-auto" />, "No locality data yet.", "Click Fetch Locality to populate neighbourhood, trails, and cultural signals.")
+          )}
+
+          {activeLayer === "owner_call" && (
+            dna ? (
+              <>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {Object.entries(QUESTION_LABELS).map(([key, label]) => (
                     <Card key={key} className="border-border/60">
                       <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
                       </CardHeader>
                       <CardContent>
                         {editingAnswers ? (
-                          <Input
-                            value={draftAdditional[key] || ""}
-                            onChange={(e) => setDraftAdditional((p) => ({ ...p, [key]: e.target.value }))}
+                          <Textarea
+                            value={draftCallNotes[key] || ""}
+                            onChange={(e) => setDraftCallNotes((p) => ({ ...p, [key]: e.target.value }))}
+                            rows={3}
                             className="text-sm"
-                            placeholder="Optional…"
+                            placeholder="Enter answer…"
                           />
                         ) : (
-                          <p className="text-sm text-foreground">{val}</p>
+                          <p className="text-sm text-foreground whitespace-pre-wrap">
+                            {callNotes[key] || <span className="italic text-muted-foreground">Not answered</span>}
+                          </p>
                         )}
                       </CardContent>
                     </Card>
-                  );
-                })}
-              </div>
-            </>
+                  ))}
+                </div>
+
+                {(editingAnswers ||
+                  Object.entries(ADDITIONAL_LABELS).some(([key]) => {
+                    const val = additionalFields[key];
+                    return val && typeof val === "string" && val.trim();
+                  })) && (
+                  <>
+                    <h4 className="text-sm font-semibold text-muted-foreground mt-4">Additional Details</h4>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {Object.entries(ADDITIONAL_LABELS).map(([key, label]) => {
+                        const val = additionalFields[key];
+                        if (!editingAnswers && (!val || typeof val !== "string" || !val.trim())) return null;
+                        return (
+                          <Card key={key} className="border-border/60">
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              {editingAnswers ? (
+                                <Input
+                                  value={draftAdditional[key] || ""}
+                                  onChange={(e) => setDraftAdditional((p) => ({ ...p, [key]: e.target.value }))}
+                                  className="text-sm"
+                                  placeholder="Optional…"
+                                />
+                              ) : (
+                                <p className="text-sm text-foreground">{val}</p>
+                              )}
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </>
+            ) : emptyState(<Dna className="h-10 w-10 mx-auto" />, "No collection call submitted yet.", "Waiting for the client to complete the Brand DNA questionnaire.")
           )}
-        </>
-      )}
+
+          {activeLayer === "tasks" && (
+            hasSynthesis
+              ? <ImproveScoreChecklist profile={synthesizedProfile} />
+              : emptyState(<CheckSquare className="h-10 w-10 mx-auto" />, "No tasks yet.", "Synthesize the DNA first to see field-level improvement actions.")
+          )}
+        </div>
+      </div>
     </div>
   );
 }
