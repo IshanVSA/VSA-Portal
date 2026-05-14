@@ -827,19 +827,19 @@ function WebsiteExtractionCard({ data, clinicId, canEdit }: { data: Record<strin
   return (
     <Card className="border-primary/20 bg-primary/5">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <Globe className="h-4 w-4 text-primary" />
-            Layer 1 - Website Extraction
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2 min-w-0">
+            <Globe className="h-4 w-4 text-primary shrink-0" />
+            <span className="truncate">Layer 1 - Website Extraction</span>
           </CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {data.confidence && (
               <Badge variant={data.confidence === "high" ? "default" : data.confidence === "medium" ? "secondary" : "destructive"}>
                 {data.confidence} confidence
               </Badge>
             )}
             {data.extracted_at && (
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
                 {format(new Date(data.extracted_at), "MMM d, yyyy h:mm a")}
               </span>
             )}
