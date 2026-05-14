@@ -99,7 +99,11 @@ export function AdminSocialOverview({ clinicId }: AdminSocialOverviewProps) {
           const r = await supabase.from("content_posts").select("scheduled_date").eq("clinic_id", clinicId).gte("scheduled_date", days[0]).lte("scheduled_date", days[6]);
           return { days, data: r.data || [] };
         })(),
-        supabase.from("department_tickets").select("status").eq("department", "social_media" as any).eq("clinic_id", clinicId),
+        (supabase
+          .from("department_ticket_assignments" as any)
+          .select("status, department_tickets!inner(clinic_id)")
+          .eq("department", "social_media")
+          .eq("department_tickets.clinic_id", clinicId) as any),
         supabase.from("sm2_generations").select("created_at, failure_reason, pipeline_data").eq("clinic_id", clinicId).order("created_at", { ascending: false }).limit(20),
         supabase.from("geo_clusters").select("clinics"),
         supabase.from("gbp_post_history").select("status, scheduled_publish_at, published_at").eq("clinic_id", clinicId).gte("created_at", format(subDays(new Date(), 7), "yyyy-MM-dd")),
