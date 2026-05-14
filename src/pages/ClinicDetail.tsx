@@ -203,6 +203,13 @@ export default function ClinicDetail() {
   // Determine initial tab based on OAuth URL params
   const hasOAuthParams = searchParams.has("google") || searchParams.has("meta") || searchParams.has("google_token_ref") || searchParams.has("meta_token_ref") || searchParams.has("gbp_token_ref");
   const [activeTab, setActiveTab] = useState(hasOAuthParams ? "connections" : "instagram");
+
+  // Snap back to a permitted tab if user lands on a hidden one (e.g. concierge)
+  useEffect(() => {
+    if (activeTab === "google" && !canSeeGoogleAds) setActiveTab("instagram");
+    if (activeTab === "ai" && !canSeeAIInsights) setActiveTab("instagram");
+  }, [activeTab, canSeeGoogleAds, canSeeAIInsights]);
+
   const [metaScopes, setMetaScopes] = useState<string[]>([]);
 
   const fetchOAuthData = async (tokenRef: string) => {
