@@ -438,6 +438,7 @@ export function NotificationBell() {
         });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "sm2_generations" }, async (payload) => {
+        if (!rtSocialAllowed) return;
         const g = payload.new as any;
         const oldG = payload.old as any;
         if (!g) return;
