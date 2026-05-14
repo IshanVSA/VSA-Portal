@@ -16,14 +16,15 @@ interface Props {
   allowedDepartments?: DepartmentType[];
 }
 
-export function ProtectedRoute({ children, allowedRoles }: Props) {
+export function ProtectedRoute({ children, allowedRoles, allowedDepartments }: Props) {
   const { user, loading, signOut } = useAuth();
   const { role, isLoading } = useUserRole();
+  const { departments, isAllAccess, isLoading: deptsLoading } = useUserDepartments();
   const { hasAccepted, currentVersion, isLoading: termsLoading } = useTermsAcceptance();
   const [timedOut, setTimedOut] = useState(false);
   const location = useLocation();
 
-  const allLoading = loading || isLoading || termsLoading;
+  const allLoading = loading || isLoading || termsLoading || (allowedDepartments ? deptsLoading : false);
 
   useEffect(() => {
     if (!allLoading) return;
