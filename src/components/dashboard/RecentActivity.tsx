@@ -9,6 +9,7 @@ import type { DashboardFilter } from "./AdminDashboard";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useUserDepartments, type DepartmentType } from "@/hooks/useUserDepartments";
 
 const deptRoute: Record<string, string> = {
   website: "/website",
