@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useUserDepartments, type DepartmentType } from "@/hooks/useUserDepartments";
 import { formatDistanceToNow, isToday, isYesterday, isThisWeek } from "date-fns";
 
 interface Notification {
