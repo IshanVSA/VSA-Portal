@@ -488,7 +488,7 @@ export function NotificationBell() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [user, role]);
+  }, [user, role, isAllAccess, departments?.join(",")]);
 
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
