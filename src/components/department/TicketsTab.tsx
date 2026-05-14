@@ -396,7 +396,7 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
           ))}
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Select value={monthFilter} onValueChange={setMonthFilter}>
+          <Select value={monthFilter} onValueChange={handleMonthChange}>
             <SelectTrigger className="h-8 w-full sm:w-[180px] text-xs gap-1.5">
               <CalendarRange className="h-3.5 w-3.5 text-muted-foreground" />
               <SelectValue placeholder="Select month" />
