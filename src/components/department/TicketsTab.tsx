@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -52,13 +53,35 @@ function buildMonthOptions(count = 12) {
 }
 
 export function TicketsTab({ department, services, clinicId }: TicketsTabProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlMonth = searchParams.get("month");
   const [filter, setFilter] = useState("all");
-  const [monthFilter, setMonthFilter] = useState<string>(currentMonthKey());
+  const [monthFilter, setMonthFilter] = useState<string>(urlMonth || currentMonthKey());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { role } = useUserRole();
   const isClient = role === "client";
   const monthOptions = useMemo(() => buildMonthOptions(12), []);
+
+  // Sync month from URL when notification deep-links into a specific month
+  useEffect(() => {
+    if (urlMonth && urlMonth !== monthFilter) {
+      setMonthFilter(urlMonth);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlMonth]);
+
+  const handleMonthChange = (value: string) => {
+    setMonthFilter(value);
+    // Clean the URL param so the user's manual selection sticks
+    if (searchParams.get("month")) {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("month");
+        return next;
+      }, { replace: true });
+    }
+  };
 
   // Fetch team members for assignment dropdown
   const { data: teamMemberProfiles = [] } = useQuery({
@@ -373,7 +396,7 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
           ))}
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Select value={monthFilter} onValueChange={setMonthFilter}>
+          <Select value={monthFilter} onValueChange={handleMonthChange}>
             <SelectTrigger className="h-8 w-full sm:w-[180px] text-xs gap-1.5">
               <CalendarRange className="h-3.5 w-3.5 text-muted-foreground" />
               <SelectValue placeholder="Select month" />
