@@ -123,6 +123,7 @@ function buildSM2PostLink(clinicId: string | null | undefined, scheduledDate: st
 export function NotificationBell() {
   const { user } = useAuth();
   const { role } = useUserRole();
+  const { departments, isAllAccess } = useUserDepartments();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
