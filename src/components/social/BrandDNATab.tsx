@@ -133,38 +133,52 @@ export default function BrandDNATab({ clinicId }: Props) {
       (f: any) => f.status !== "captured" && f.weight > 0
     ).length;
 
-  const layers: Array<{ key: LayerKey; label: string; meta: React.ReactNode; metaTone?: "ok" | "warn" | "muted" | "critical" }> = [
+  const inProgressMeta = (label: string) => (
+    <span className="flex items-center gap-1 text-primary">
+      <RefreshCw className="h-3 w-3 animate-spin" />
+      {label}
+    </span>
+  );
+
+  const layers: Array<{ key: LayerKey; label: string; meta: React.ReactNode; metaTone?: "ok" | "warn" | "muted" | "critical" | "active"; busy?: boolean }> = [
     {
       key: "synthesis",
       label: "Synthesis",
-      meta: hasSynthesis ? "synthesized" : "pending",
-      metaTone: hasSynthesis ? "ok" : "muted",
+      meta: synthesizeDNA.isPending ? inProgressMeta("synthesizing") : hasSynthesis ? "synthesized" : "pending",
+      metaTone: synthesizeDNA.isPending ? "active" : hasSynthesis ? "ok" : "muted",
+      busy: synthesizeDNA.isPending,
     },
     {
       key: "website",
       label: "Website",
-      meta: websiteExtraction ? "verified" : "pending",
-      metaTone: websiteExtraction ? "ok" : "muted",
+      meta: extractWebsite.isPending ? inProgressMeta("extracting") : websiteExtraction ? "verified" : "pending",
+      metaTone: extractWebsite.isPending ? "active" : websiteExtraction ? "ok" : "muted",
+      busy: extractWebsite.isPending,
     },
     {
       key: "reviews",
       label: "Reviews",
-      meta: reviewMining
-        ? `${reviewMining.review_count ?? 0} / ${reviewMining.total_reviews_on_google ?? reviewMining.review_count ?? 0}`
-        : "pending",
-      metaTone: reviewMining ? "ok" : "muted",
+      meta: mineReviews.isPending
+        ? inProgressMeta("mining")
+        : reviewMining
+          ? `${reviewMining.review_count ?? 0} / ${reviewMining.total_reviews_on_google ?? reviewMining.review_count ?? 0}`
+          : "pending",
+      metaTone: mineReviews.isPending ? "active" : reviewMining ? "ok" : "muted",
+      busy: mineReviews.isPending,
     },
     {
       key: "owner_call",
       label: "Owner call",
-      meta: `${answeredCount} / 10`,
-      metaTone: answeredCount >= 10 ? "ok" : answeredCount > 0 ? "warn" : "muted",
+      meta: upsertDNA.isPending ? inProgressMeta("saving") : `${answeredCount} / 10`,
+      metaTone: upsertDNA.isPending ? "active" : answeredCount >= 10 ? "ok" : answeredCount > 0 ? "warn" : "muted",
+      busy: upsertDNA.isPending,
     },
     {
       key: "locality",
       label: "Locality",
-      meta: localityData ? "verified" : "pending",
-      metaTone: localityData ? "ok" : "muted",
+      meta: localityFetch.isPending ? inProgressMeta("fetching") : localityData ? "verified" : "pending",
+      metaTone: localityFetch.isPending ? "active" : localityData ? "ok" : "muted",
+      busy: localityFetch.isPending,
     },
     {
       key: "tasks",
