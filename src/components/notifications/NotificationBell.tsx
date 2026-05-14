@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useUserDepartments, type DepartmentType } from "@/hooks/useUserDepartments";
 import { formatDistanceToNow, isToday, isYesterday, isThisWeek } from "date-fns";
 
 interface Notification {
@@ -123,6 +124,7 @@ function buildSM2PostLink(clinicId: string | null | undefined, scheduledDate: st
 export function NotificationBell() {
   const { user } = useAuth();
   const { role } = useUserRole();
+  const { departments, isAllAccess } = useUserDepartments();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -202,6 +204,8 @@ export function NotificationBell() {
       });
 
       const isClient = role === "client";
+      const staffScoped = !isAllAccess && departments !== null;
+      const deptSet = new Set<DepartmentType>(departments ?? []);
 
       const { data: ticketData } = await supabase
         .from("department_tickets")
@@ -209,7 +213,28 @@ export function NotificationBell() {
         .order("updated_at", { ascending: false })
         .limit(15);
 
+      // For staff scoped to specific departments, also surface tickets that
+      // were fanned out to one of their departments (e.g. Website ticket with
+      // "Promote on Social Media: Yes" → social_media).
+      let fanOutTicketIds = new Set<string>();
+      if (staffScoped && deptSet.size > 0 && (ticketData || []).length > 0) {
+        const ticketIds = (ticketData || []).map((t: any) => t.id);
+        const { data: faRows } = await supabase
+          .from("department_ticket_assignments")
+          .select("ticket_id")
+          .in("ticket_id", ticketIds)
+          .in("department", Array.from(deptSet));
+        fanOutTicketIds = new Set((faRows || []).map((r: any) => r.ticket_id));
+      }
+
+      const ticketVisible = (t: any) => {
+        if (!staffScoped) return true;
+        if (t.department && deptSet.has(t.department as DepartmentType)) return true;
+        return fanOutTicketIds.has(t.id);
+      };
+
       const ticketNotifs: Notification[] = (ticketData || []).flatMap((t: any): Notification[] => {
+        if (!ticketVisible(t)) return [];
         // Clients: only surface meaningful status changes (work done on their tickets),
         // not raw "ticket created" events.
         if (isClient) {
@@ -238,14 +263,21 @@ export function NotificationBell() {
         }];
       });
 
-      // SM2 generation notifications
-      const { data: sm2Data } = await supabase
-        .from("sm2_generations")
-        .select("id, month_year, approval_status, created_at, updated_at, clinic_id")
-        .order("updated_at", { ascending: false })
-        .limit(10);
+      // SM2 + post_activity_log notifications are inherently social_media domain.
+      const socialAllowed = !staffScoped || deptSet.has("social_media");
 
-      const sm2Notifs: Notification[] = (sm2Data || [])
+      // SM2 generation notifications
+      let sm2Data: any[] = [];
+      if (socialAllowed) {
+        const res = await supabase
+          .from("sm2_generations")
+          .select("id, month_year, approval_status, created_at, updated_at, clinic_id")
+          .order("updated_at", { ascending: false })
+          .limit(10);
+        sm2Data = res.data || [];
+      }
+
+      const sm2Notifs: Notification[] = sm2Data
         // Clients only see "ready for review" and "approved/finalized" milestones
         .filter((g: any) => !isClient || CLIENT_VISIBLE_SM2_STATUSES.has(g.approval_status))
         .map((g: any) => ({
@@ -261,7 +293,7 @@ export function NotificationBell() {
 
       // Client notes on SM2 posts (staff-only relevant)
       let noteNotifs: Notification[] = [];
-      if (role !== "client") {
+      if (role !== "client" && socialAllowed) {
         const { data: noteData } = await supabase
           .from("sm2_posts")
           .select("id, post_number, scheduled_date, client_feedback, updated_at, clinic_id")
@@ -289,7 +321,10 @@ export function NotificationBell() {
         });
       }
 
-      const all = [...activityNotifs, ...ticketNotifs, ...sm2Notifs, ...noteNotifs]
+      // post_activity_log is also social-media domain; drop for non-social staff.
+      const scopedActivityNotifs = socialAllowed ? activityNotifs : [];
+
+      const all = [...scopedActivityNotifs, ...ticketNotifs, ...sm2Notifs, ...noteNotifs]
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         .slice(0, 30)
         .map(withRead);
@@ -325,9 +360,25 @@ export function NotificationBell() {
       });
     };
 
+    const rtStaffScoped = !isAllAccess && departments !== null;
+    const rtDeptSet = new Set<DepartmentType>(departments ?? []);
+    const rtSocialAllowed = !rtStaffScoped || rtDeptSet.has("social_media");
+    const isTicketVisibleForStaff = async (t: any): Promise<boolean> => {
+      if (!rtStaffScoped) return true;
+      if (t.department && rtDeptSet.has(t.department as DepartmentType)) return true;
+      const { data } = await supabase
+        .from("department_ticket_assignments")
+        .select("ticket_id")
+        .eq("ticket_id", t.id)
+        .in("department", Array.from(rtDeptSet))
+        .limit(1);
+      return (data || []).length > 0;
+    };
+
     const channel = supabase
       .channel(`user:${user.id}:notifications`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "post_activity_log" }, async (payload) => {
+        if (!rtSocialAllowed) return;
         const log = payload.new as any;
         const meta = typeof log.metadata === "object" ? log.metadata : {};
         let type: Notification["type"] = "status_changed";
@@ -352,6 +403,7 @@ export function NotificationBell() {
         // Clients should not see "ticket created" — they already know they made it.
         if (role === "client") return;
         const t = payload.new as any;
+        if (!(await isTicketVisibleForStaff(t))) return;
         await enrichAndPush({
           id: `ticket-${t.id}`, type: "ticket_created",
           title: "New Ticket",
@@ -367,6 +419,7 @@ export function NotificationBell() {
         // Only notify when the status actually changed — other field edits
         // (description, assignee, etc.) shouldn't resurrect the bell.
         if (!oldT || oldT.status === t.status) return;
+        if (role !== "client" && !(await isTicketVisibleForStaff(t))) return;
         const isClient = role === "client";
         // Clients only get notified about meaningful resolution / progress updates.
         const clientLabel = TICKET_STATUS_LABELS_FOR_CLIENT[t.status];
@@ -385,6 +438,7 @@ export function NotificationBell() {
         });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "sm2_generations" }, async (payload) => {
+        if (!rtSocialAllowed) return;
         const g = payload.new as any;
         const oldG = payload.old as any;
         if (!g) return;
@@ -408,6 +462,7 @@ export function NotificationBell() {
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "sm2_posts" }, async (payload) => {
         // Only staff (admin/concierge) get client-note notifications
         if (role === "client") return;
+        if (!rtSocialAllowed) return;
         const newRow = payload.new as any;
         const oldRow = payload.old as any;
         const newFb = (newRow?.client_feedback || "").trim();
@@ -433,7 +488,7 @@ export function NotificationBell() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [user, role]);
+  }, [user, role, isAllAccess, departments?.join(",")]);
 
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);

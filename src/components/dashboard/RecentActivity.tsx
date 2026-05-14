@@ -9,6 +9,7 @@ import type { DashboardFilter } from "./AdminDashboard";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useUserDepartments, type DepartmentType } from "@/hooks/useUserDepartments";
 
 const deptRoute: Record<string, string> = {
   website: "/website",
@@ -70,6 +71,8 @@ const priorityLabels: Record<string, string> = {
 export default function RecentActivity({ filter }: { filter?: DashboardFilter } = {}) {
   const [allItems, setAllItems] = useState<UnifiedActivity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [extraTicketIds, setExtraTicketIds] = useState<Set<string>>(new Set());
+  const { departments, isAllAccess } = useUserDepartments();
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -100,6 +103,23 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
 
       const postClinicMap = new Map<string, string | null>();
       (postsRes.data || []).forEach((p: any) => postClinicMap.set(p.id, p.clinic_id || null));
+
+      // Fan-out aware: also surface tickets whose department_ticket_assignments
+      // include a department the current user belongs to (e.g. Website ticket
+      // with "Promote on Social Media: Yes" should appear for social_media).
+      if (!isAllAccess && departments && departments.length > 0) {
+        const ticketIds = (ticketsRes.data || []).map((t: any) => t.id);
+        if (ticketIds.length > 0) {
+          const { data: faRows } = await supabase
+            .from("department_ticket_assignments")
+            .select("ticket_id, department")
+            .in("ticket_id", ticketIds)
+            .in("department", departments);
+          setExtraTicketIds(new Set((faRows || []).map((r: any) => r.ticket_id)));
+        } else {
+          setExtraTicketIds(new Set());
+        }
+      }
 
       const activities: UnifiedActivity[] = [];
 
@@ -290,13 +310,41 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
       setLoading(false);
     };
     fetchAll();
-  }, []);
+  }, [isAllAccess, departments?.join(",")]);
 
   const items = allItems
     .filter(i => {
       if (filter?.clinicId && i.clinic_id !== filter.clinicId) return false;
       if (filter?.department && i.department !== filter.department) return false;
       if (filter?.status && i.status !== filter.status) return false;
+
+      // Department scoping for staff (non-admin, non-client) users.
+      if (!isAllAccess && departments) {
+        const deptSet = new Set<DepartmentType>(departments);
+        const ticketId = i.type === "ticket" ? i.id.replace(/^ticket-/, "").replace(/-(created|in_progress|completed|void|emergency)$/, "") : null;
+
+        switch (i.type) {
+          case "ticket": {
+            if (i.department && deptSet.has(i.department as DepartmentType)) return true;
+            return ticketId ? extraTicketIds.has(ticketId) : false;
+          }
+          case "chat":
+            return !!(i.department && deptSet.has(i.department as DepartmentType));
+          case "blog_post":
+          case "gbp_post":
+            return deptSet.has("seo");
+          case "sm2_generation":
+          case "promotion":
+          case "content_post":
+          case "content_request":
+          case "post_comment":
+            return deptSet.has("social_media");
+          case "clinic_created":
+            return true;
+          default:
+            return false;
+        }
+      }
       return true;
     })
     .slice(0, 25);
