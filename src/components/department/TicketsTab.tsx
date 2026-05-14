@@ -156,17 +156,33 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
       if (results.length > 0) {
         const ticketIds = results.map((t: any) => t.id);
 
-        // Legacy pool (kept for back-compat where it still exists)
-        const { data: assigneeRows } = await (supabase
-          .from("ticket_assignees" as any)
-          .select("ticket_id, user_id")
-          .in("ticket_id", ticketIds) as any);
+        // Per-department candidate pool (the new model — scoped to this dept)
+        const { data: candidateRows } = await (supabase
+          .from("department_ticket_candidates" as any)
+          .select("ticket_id, department, user_id")
+          .in("ticket_id", ticketIds)
+          .eq("department", department) as any);
         const poolMap = new Map<string, string[]>();
-        ((assigneeRows || []) as { ticket_id: string; user_id: string }[]).forEach(r => {
+        ((candidateRows || []) as { ticket_id: string; user_id: string }[]).forEach(r => {
           const arr = poolMap.get(r.ticket_id) || [];
           arr.push(r.user_id);
           poolMap.set(r.ticket_id, arr);
         });
+
+        // Legacy fallback: only use ticket_assignees for tickets that have no
+        // department-scoped candidates (back-compat with pre-fanout tickets).
+        const ticketsMissingCandidates = ticketIds.filter(id => !poolMap.has(id));
+        if (ticketsMissingCandidates.length > 0) {
+          const { data: legacyRows } = await (supabase
+            .from("ticket_assignees" as any)
+            .select("ticket_id, user_id")
+            .in("ticket_id", ticketsMissingCandidates) as any);
+          ((legacyRows || []) as { ticket_id: string; user_id: string }[]).forEach(r => {
+            const arr = poolMap.get(r.ticket_id) || [];
+            arr.push(r.user_id);
+            poolMap.set(r.ticket_id, arr);
+          });
+        }
 
         // Per-department assignment rows (the new model)
         const { data: dtaRows } = await (supabase
