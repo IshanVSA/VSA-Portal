@@ -71,6 +71,8 @@ const priorityLabels: Record<string, string> = {
 export default function RecentActivity({ filter }: { filter?: DashboardFilter } = {}) {
   const [allItems, setAllItems] = useState<UnifiedActivity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [extraTicketIds, setExtraTicketIds] = useState<Set<string>>(new Set());
+  const { departments, isAllAccess } = useUserDepartments();
 
   useEffect(() => {
     const fetchAll = async () => {
