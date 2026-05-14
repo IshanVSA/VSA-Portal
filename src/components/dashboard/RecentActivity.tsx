@@ -375,7 +375,7 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
               {items.map((item) => {
                 const Icon = item.icon;
                 const isClosed = item.type === "ticket" && (item.status === "completed" || item.status === "void");
-                const href = buildHref(item);
+                const href = buildHref(item, isAllAccess ? null : departments);
                 return (
                   <li key={item.id} className="relative">
                     <Link
