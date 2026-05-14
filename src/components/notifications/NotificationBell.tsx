@@ -204,6 +204,8 @@ export function NotificationBell() {
       });
 
       const isClient = role === "client";
+      const staffScoped = !isAllAccess && departments !== null;
+      const deptSet = new Set<DepartmentType>(departments ?? []);
 
       const { data: ticketData } = await supabase
         .from("department_tickets")
@@ -211,7 +213,28 @@ export function NotificationBell() {
         .order("updated_at", { ascending: false })
         .limit(15);
 
+      // For staff scoped to specific departments, also surface tickets that
+      // were fanned out to one of their departments (e.g. Website ticket with
+      // "Promote on Social Media: Yes" → social_media).
+      let fanOutTicketIds = new Set<string>();
+      if (staffScoped && deptSet.size > 0 && (ticketData || []).length > 0) {
+        const ticketIds = (ticketData || []).map((t: any) => t.id);
+        const { data: faRows } = await supabase
+          .from("department_ticket_assignments")
+          .select("ticket_id")
+          .in("ticket_id", ticketIds)
+          .in("department", Array.from(deptSet));
+        fanOutTicketIds = new Set((faRows || []).map((r: any) => r.ticket_id));
+      }
+
+      const ticketVisible = (t: any) => {
+        if (!staffScoped) return true;
+        if (t.department && deptSet.has(t.department as DepartmentType)) return true;
+        return fanOutTicketIds.has(t.id);
+      };
+
       const ticketNotifs: Notification[] = (ticketData || []).flatMap((t: any): Notification[] => {
+        if (!ticketVisible(t)) return [];
         // Clients: only surface meaningful status changes (work done on their tickets),
         // not raw "ticket created" events.
         if (isClient) {
