@@ -290,15 +290,15 @@ export default function BrandDNATab({ clinicId }: Props) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="h-9 w-9 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
             <Dna className="h-5 w-5 text-primary" />
           </div>
-          <div>
-            <h2 className="text-base font-semibold">Brand DNA Profile</h2>
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold truncate">Brand DNA Profile</h2>
             {dna && (
-              <div className="flex items-center gap-2 mt-0.5">
+              <div className="flex flex-wrap items-center gap-2 mt-0.5">
                 <StatusIcon status={dna.status} />
                 <span className="text-xs text-muted-foreground capitalize">{dna.status}</span>
                 <ScoreBadge score={computeBrandDNAScore(dna as any)} />
@@ -308,13 +308,28 @@ export default function BrandDNATab({ clinicId }: Props) {
         </div>
       </div>
 
+      {/* Mobile layer selector */}
+      <div className="md:hidden">
+        <select
+          value={activeLayer}
+          onChange={(e) => setActiveLayer(e.target.value as LayerKey)}
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+        >
+          {layers.map((l) => (
+            <option key={l.key} value={l.key}>
+              {l.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {/* Two-pane navigator */}
       <div className="grid gap-6 md:grid-cols-[220px_1fr]">
-        {/* Left rail */}
-        <Card className="h-fit md:sticky md:top-4">
+        {/* Left rail (desktop/tablet only) */}
+        <Card className="hidden md:block h-fit md:sticky md:top-4">
           <CardContent className="p-2">
             <p className="text-[10px] font-semibold tracking-widest text-muted-foreground px-3 pt-2 pb-1">LAYERS</p>
-            <nav className="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible">
+            <nav className="flex flex-col gap-1">
               {layers.map((l) => {
                 const active = activeLayer === l.key;
                 return (
@@ -347,11 +362,11 @@ export default function BrandDNATab({ clinicId }: Props) {
 
         {/* Right detail */}
         <div className="space-y-4 min-w-0">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <h3 className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
               {layerTitle[activeLayer]}
             </h3>
-            {layerAction()}
+            <div className="shrink-0">{layerAction()}</div>
           </div>
 
           {activeLayer === "synthesis" && (
