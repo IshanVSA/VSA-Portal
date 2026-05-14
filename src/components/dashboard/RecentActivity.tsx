@@ -104,6 +104,23 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
       const postClinicMap = new Map<string, string | null>();
       (postsRes.data || []).forEach((p: any) => postClinicMap.set(p.id, p.clinic_id || null));
 
+      // Fan-out aware: also surface tickets whose department_ticket_assignments
+      // include a department the current user belongs to (e.g. Website ticket
+      // with "Promote on Social Media: Yes" should appear for social_media).
+      if (!isAllAccess && departments && departments.length > 0) {
+        const ticketIds = (ticketsRes.data || []).map((t: any) => t.id);
+        if (ticketIds.length > 0) {
+          const { data: faRows } = await supabase
+            .from("department_ticket_assignments")
+            .select("ticket_id, department")
+            .in("ticket_id", ticketIds)
+            .in("department", departments);
+          setExtraTicketIds(new Set((faRows || []).map((r: any) => r.ticket_id)));
+        } else {
+          setExtraTicketIds(new Set());
+        }
+      }
+
       const activities: UnifiedActivity[] = [];
 
       // ---- Content requests / calendar lifecycle ----
