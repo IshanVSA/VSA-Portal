@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole, type AppRole } from "@/hooks/useUserRole";
+import { useUserDepartments, type DepartmentType } from "@/hooks/useUserDepartments";
 import { useTermsAcceptance } from "@/hooks/useTermsAcceptance";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
@@ -12,16 +13,18 @@ import AccessDenied from "@/pages/AccessDenied";
 interface Props {
   children: React.ReactNode;
   allowedRoles?: AppRole[];
+  allowedDepartments?: DepartmentType[];
 }
 
-export function ProtectedRoute({ children, allowedRoles }: Props) {
+export function ProtectedRoute({ children, allowedRoles, allowedDepartments }: Props) {
   const { user, loading, signOut } = useAuth();
   const { role, isLoading } = useUserRole();
+  const { departments, isAllAccess, isLoading: deptsLoading } = useUserDepartments();
   const { hasAccepted, currentVersion, isLoading: termsLoading } = useTermsAcceptance();
   const [timedOut, setTimedOut] = useState(false);
   const location = useLocation();
 
-  const allLoading = loading || isLoading || termsLoading;
+  const allLoading = loading || isLoading || termsLoading || (allowedDepartments ? deptsLoading : false);
 
   useEffect(() => {
     if (!allLoading) return;
@@ -57,6 +60,13 @@ export function ProtectedRoute({ children, allowedRoles }: Props) {
 
   if (allowedRoles && role && !allowedRoles.includes(role)) {
     return <AccessDenied attemptedPath={location.pathname} requiredRoles={allowedRoles} />;
+  }
+
+  // Department-level gate (concierge only). Admin & client bypass via isAllAccess.
+  if (allowedDepartments && !isAllAccess) {
+    const userDepts = departments ?? [];
+    const ok = allowedDepartments.some((d) => userDepts.includes(d));
+    if (!ok) return <AccessDenied attemptedPath={location.pathname} />;
   }
 
   // Terms acceptance gate — admins bypass
