@@ -567,18 +567,18 @@ function SynthesizedProfileCard({ profile, clinicId, canEdit }: { profile: Recor
   return (
     <Card className="border-violet-500/20 bg-violet-500/5">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-violet-500" />
-            Synthesized DNA Profile
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2 min-w-0">
+            <Sparkles className="h-4 w-4 text-violet-500 shrink-0" />
+            <span className="truncate">Synthesized DNA Profile</span>
           </CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <div className="text-right">
               <span className={`text-lg font-bold ${scoreColor}`}>{Math.round(score)}%</span>
               <p className="text-xs text-muted-foreground">{scoreLabel}</p>
             </div>
             {profile.synthesized_at && (
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
                 {format(new Date(profile.synthesized_at), "MMM d, yyyy h:mm a")}
               </span>
             )}
