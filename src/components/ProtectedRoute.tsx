@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole, type AppRole } from "@/hooks/useUserRole";
+import { useUserDepartments, type DepartmentType } from "@/hooks/useUserDepartments";
 import { useTermsAcceptance } from "@/hooks/useTermsAcceptance";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
@@ -12,6 +13,7 @@ import AccessDenied from "@/pages/AccessDenied";
 interface Props {
   children: React.ReactNode;
   allowedRoles?: AppRole[];
+  allowedDepartments?: DepartmentType[];
 }
 
 export function ProtectedRoute({ children, allowedRoles }: Props) {
