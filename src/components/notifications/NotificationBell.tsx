@@ -259,7 +259,7 @@ export function NotificationBell() {
             message: `[${t.department}] ${t.title}`,
             read: false,
             created_at: t.updated_at || t.created_at,
-            link: buildTicketLink(t.department, t.clinic_id, t.id),
+            link: buildTicketLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments),
             clinicId: t.clinic_id ?? null,
           }];
         }
@@ -270,7 +270,7 @@ export function NotificationBell() {
           message: `[${t.department}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
           read: false,
           created_at: t.created_at,
-          link: buildTicketLink(t.department, t.clinic_id, t.id),
+          link: buildTicketLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments),
           clinicId: t.clinic_id ?? null,
         }];
       });
@@ -421,7 +421,7 @@ export function NotificationBell() {
           title: "New Ticket",
           message: `[${t.department}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
           read: false, created_at: t.created_at,
-          link: buildTicketLink(t.department, t.clinic_id, t.id),
+          link: buildTicketLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments),
           clinicId: t.clinic_id ?? null,
         });
       })
@@ -445,7 +445,7 @@ export function NotificationBell() {
           title,
           message: `[${t.department}] ${t.title}`,
           read: false, created_at: t.updated_at || new Date().toISOString(),
-          link: buildTicketLink(t.department, t.clinic_id, t.id),
+          link: buildTicketLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments),
           clinicId: t.clinic_id ?? null,
         });
       })
