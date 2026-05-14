@@ -210,17 +210,19 @@ export function ConciergeSocialOverview({ clinicId }: ConciergeSocialOverviewPro
   return (
     <div className="space-y-6">
       {/* Row 1 — Action KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <button onClick={() => goTab("generation")} className="text-left">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 items-stretch">
+        <button onClick={() => goTab("generation")} className="text-left h-full">
           <StatsCard title="Pending Review" value={pendingReview} icon={Inbox} index={0} change={pendingReview > 0 ? "Click to review" : "All clear"} changeType={pendingReview > 0 ? "negative" : "positive"} />
         </button>
-        <div className="relative">
+        <div className="relative h-full">
           <StatsCard title="Awaiting Client" value={awaitingClient.count} icon={Clock} index={1} change={autoCountdown ? `Auto-approve ${autoCountdown}` : undefined} changeType="neutral" />
         </div>
-        <button onClick={() => goTab("tickets")} className="text-left">
+        <button onClick={() => goTab("tickets")} className="text-left h-full">
           <StatsCard title="My Open Tickets" value={myOpenTickets} icon={Ticket} index={2} />
         </button>
-        <StatsCard title="Scheduled This Week" value={scheduledThisWeek} icon={CalendarDays} index={3} />
+        <div className="h-full">
+          <StatsCard title="Scheduled This Week" value={scheduledThisWeek} icon={CalendarDays} index={3} />
+        </div>
       </div>
 
       {/* Row 2 — Quick Actions */}
