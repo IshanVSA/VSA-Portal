@@ -403,6 +403,7 @@ export function NotificationBell() {
         // Clients should not see "ticket created" — they already know they made it.
         if (role === "client") return;
         const t = payload.new as any;
+        if (!(await isTicketVisibleForStaff(t))) return;
         await enrichAndPush({
           id: `ticket-${t.id}`, type: "ticket_created",
           title: "New Ticket",
