@@ -462,6 +462,7 @@ export function NotificationBell() {
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "sm2_posts" }, async (payload) => {
         // Only staff (admin/concierge) get client-note notifications
         if (role === "client") return;
+        if (!rtSocialAllowed) return;
         const newRow = payload.new as any;
         const oldRow = payload.old as any;
         const newFb = (newRow?.client_feedback || "").trim();
