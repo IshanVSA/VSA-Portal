@@ -85,7 +85,7 @@ export function ConciergeSocialOverview({ clinicId }: ConciergeSocialOverviewPro
       const [reviewRes, awaitingRes, ticketsRes, scheduledRes, queueRes, sm2Res, weekRes, dnaRes] = await Promise.all([
         supabase.from("content_requests").select("*", { count: "exact", head: true }).eq("clinic_id", clinicId).in("status", ["generated", "concierge_preferred"]),
         supabase.from("content_requests").select("auto_approve_at").eq("clinic_id", clinicId).eq("status", "admin_approved").not("auto_approve_at", "is", null),
-        supabase.from("department_tickets").select("status, assigned_to").eq("department", "social_media" as any).eq("clinic_id", clinicId),
+        supabase.from("department_tickets").select("id, status, assigned_to").eq("department", "social_media" as any).eq("clinic_id", clinicId),
         supabase.from("content_posts").select("*", { count: "exact", head: true }).eq("clinic_id", clinicId).gte("scheduled_date", weekStart).lte("scheduled_date", weekEnd),
         supabase.from("content_requests").select("id, created_at, status, intake_data").eq("clinic_id", clinicId).in("status", ["generated", "concierge_preferred"]).order("created_at", { ascending: false }).limit(5),
         supabase.from("sm2_generations").select("pipeline_data, approval_status, sent_to_client_at, failure_reason").eq("clinic_id", clinicId).order("created_at", { ascending: false }).limit(50),
@@ -115,14 +115,41 @@ export function ConciergeSocialOverview({ clinicId }: ConciergeSocialOverviewPro
 
       let mineOpen = 0;
       const sumT = { open: 0, inProgress: 0, completed: 0, emergency: 0 };
+      const clinicTicketIds: string[] = [];
       (ticketsRes.data || []).forEach((t: any) => {
+        clinicTicketIds.push(t.id);
         if (t.status === "open") sumT.open++;
         else if (t.status === "in_progress") sumT.inProgress++;
         else if (t.status === "completed") sumT.completed++;
         else if (t.status === "emergency") sumT.emergency++;
-        if (user && t.assigned_to === user.id && (t.status === "open" || t.status === "in_progress" || t.status === "emergency")) mineOpen++;
       });
       setTicketSummary(sumT);
+
+      // "My Open Tickets" — mirror the MyTickets card: count tickets where I'm
+      // directly assigned OR where I'm a candidate in the broadcast pool and
+      // the assignment is still unclaimed.
+      if (user && clinicTicketIds.length > 0) {
+        const [aRes, cRes] = await Promise.all([
+          (supabase
+            .from("department_ticket_assignments" as any)
+            .select("ticket_id, status, assigned_to")
+            .in("ticket_id", clinicTicketIds)
+            .eq("department", "social_media")
+            .in("status", ["open", "in_progress", "emergency"]) as any),
+          (supabase
+            .from("department_ticket_candidates" as any)
+            .select("ticket_id")
+            .eq("user_id", user.id)
+            .eq("department", "social_media")
+            .in("ticket_id", clinicTicketIds) as any),
+        ]);
+        const candSet = new Set(((cRes.data || []) as any[]).map((r) => r.ticket_id));
+        const seen = new Set<string>();
+        ((aRes.data || []) as any[]).forEach((r) => {
+          const mine = r.assigned_to === user.id || (r.assigned_to === null && candSet.has(r.ticket_id));
+          if (mine && !seen.has(r.ticket_id)) { seen.add(r.ticket_id); mineOpen++; }
+        });
+      }
       setMyOpenTickets(mineOpen);
 
       setScheduledThisWeek(scheduledRes.count || 0);
@@ -183,17 +210,19 @@ export function ConciergeSocialOverview({ clinicId }: ConciergeSocialOverviewPro
   return (
     <div className="space-y-6">
       {/* Row 1 — Action KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <button onClick={() => goTab("generation")} className="text-left">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 items-stretch">
+        <button onClick={() => goTab("generation")} className="text-left h-full">
           <StatsCard title="Pending Review" value={pendingReview} icon={Inbox} index={0} change={pendingReview > 0 ? "Click to review" : "All clear"} changeType={pendingReview > 0 ? "negative" : "positive"} />
         </button>
-        <div className="relative">
+        <div className="relative h-full">
           <StatsCard title="Awaiting Client" value={awaitingClient.count} icon={Clock} index={1} change={autoCountdown ? `Auto-approve ${autoCountdown}` : undefined} changeType="neutral" />
         </div>
-        <button onClick={() => goTab("tickets")} className="text-left">
+        <button onClick={() => goTab("tickets")} className="text-left h-full">
           <StatsCard title="My Open Tickets" value={myOpenTickets} icon={Ticket} index={2} />
         </button>
-        <StatsCard title="Scheduled This Week" value={scheduledThisWeek} icon={CalendarDays} index={3} />
+        <div className="h-full">
+          <StatsCard title="Scheduled This Week" value={scheduledThisWeek} icon={CalendarDays} index={3} />
+        </div>
       </div>
 
       {/* Row 2 — Quick Actions */}

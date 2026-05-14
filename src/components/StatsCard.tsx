@@ -19,7 +19,7 @@ export function StatsCard({ title, value, icon: Icon, description, change, chang
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.08, ease: [0.16, 1, 0.3, 1] }}
       whileHover={{ y: -2, transition: { duration: 0.2 } }}
-      className="bg-card rounded-xl border border-border/50 border-l-[3px] border-l-primary p-5 transition-shadow duration-200"
+      className="bg-card rounded-xl border border-border/50 border-l-[3px] border-l-primary p-5 transition-shadow duration-200 h-full flex flex-col"
       style={{ boxShadow: "var(--shadow-sm)" }}
       onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = "var(--shadow-lg)"; }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = "var(--shadow-sm)"; }}
