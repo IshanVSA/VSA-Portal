@@ -83,8 +83,20 @@ const DEPARTMENT_ROUTE: Record<string, string> = {
   ai_seo: "/ai-seo",
 };
 
-function buildTicketLink(department: string | null | undefined, clinicId: string | null | undefined, ticketId: string): string {
-  const base = DEPARTMENT_ROUTE[department || ""] || "/social";
+function buildTicketLink(
+  department: string | null | undefined,
+  clinicId: string | null | undefined,
+  ticketId: string,
+  allowedDepartments?: DepartmentType[] | null,
+): string {
+  let dept = department || "";
+  // If the user is dept-scoped and the ticket's home department isn't theirs
+  // (cross-posted ticket), route to the user's first allowed department so the
+  // page is actually accessible.
+  if (allowedDepartments && allowedDepartments.length > 0 && !allowedDepartments.includes(dept as DepartmentType)) {
+    dept = allowedDepartments[0];
+  }
+  const base = DEPARTMENT_ROUTE[dept] || "/social";
   const params = new URLSearchParams({ tab: "tickets", ticket: ticketId });
   if (clinicId) params.set("clinic", clinicId);
   return `${base}?${params.toString()}`;
@@ -247,7 +259,7 @@ export function NotificationBell() {
             message: `[${t.department}] ${t.title}`,
             read: false,
             created_at: t.updated_at || t.created_at,
-            link: buildTicketLink(t.department, t.clinic_id, t.id),
+            link: buildTicketLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments),
             clinicId: t.clinic_id ?? null,
           }];
         }
@@ -258,7 +270,7 @@ export function NotificationBell() {
           message: `[${t.department}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
           read: false,
           created_at: t.created_at,
-          link: buildTicketLink(t.department, t.clinic_id, t.id),
+          link: buildTicketLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments),
           clinicId: t.clinic_id ?? null,
         }];
       });
@@ -409,7 +421,7 @@ export function NotificationBell() {
           title: "New Ticket",
           message: `[${t.department}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
           read: false, created_at: t.created_at,
-          link: buildTicketLink(t.department, t.clinic_id, t.id),
+          link: buildTicketLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments),
           clinicId: t.clinic_id ?? null,
         });
       })
@@ -433,7 +445,7 @@ export function NotificationBell() {
           title,
           message: `[${t.department}] ${t.title}`,
           read: false, created_at: t.updated_at || new Date().toISOString(),
-          link: buildTicketLink(t.department, t.clinic_id, t.id),
+          link: buildTicketLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments),
           clinicId: t.clinic_id ?? null,
         });
       })
