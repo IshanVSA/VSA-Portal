@@ -419,6 +419,7 @@ export function NotificationBell() {
         // Only notify when the status actually changed — other field edits
         // (description, assignee, etc.) shouldn't resurrect the bell.
         if (!oldT || oldT.status === t.status) return;
+        if (role !== "client" && !(await isTicketVisibleForStaff(t))) return;
         const isClient = role === "client";
         // Clients only get notified about meaningful resolution / progress updates.
         const clientLabel = TICKET_STATUS_LABELS_FOR_CLIENT[t.status];
