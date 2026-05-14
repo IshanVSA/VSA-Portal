@@ -18,12 +18,18 @@ const deptRoute: Record<string, string> = {
   social_media: "/social",
 };
 
-function buildHref(item: UnifiedActivity): string {
+function buildHref(item: UnifiedActivity, allowedDepartments?: DepartmentType[] | null): string {
   const clinic = item.clinic_id ? `clinic=${item.clinic_id}` : "";
   const join = (...parts: string[]) => parts.filter(Boolean).join("&");
+  const resolveDept = (d: string | null | undefined) => {
+    if (allowedDepartments && allowedDepartments.length > 0 && !allowedDepartments.includes((d || "") as DepartmentType)) {
+      return allowedDepartments[0];
+    }
+    return d || "";
+  };
   switch (item.type) {
     case "ticket": {
-      const base = deptRoute[item.department || ""] || "/";
+      const base = deptRoute[resolveDept(item.department)] || "/";
       return `${base}?${join(clinic, "tab=tickets")}`;
     }
     case "content_request":
@@ -39,7 +45,7 @@ function buildHref(item: UnifiedActivity): string {
     case "promotion":
       return `/social?${join(clinic, "tab=promotions")}`;
     case "chat": {
-      const base = deptRoute[item.department || ""] || "/";
+      const base = deptRoute[resolveDept(item.department)] || "/";
       return `${base}?${join(clinic, "tab=chat")}`;
     }
     case "clinic_created":
