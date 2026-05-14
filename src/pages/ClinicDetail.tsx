@@ -177,6 +177,9 @@ export default function ClinicDetail() {
   const { id } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const { role } = useUserRole();
+  const { departments, isAllAccess } = useUserDepartments();
+  const canSeeGoogleAds = isAllAccess || (departments?.includes("google_ads") ?? false);
+  const canSeeAIInsights = isAllAccess; // synthesis across channels — admin/client only
   const { user } = useAuth();
   const isDebraj =
     user?.id === DEBRAJ_USER_ID ||
