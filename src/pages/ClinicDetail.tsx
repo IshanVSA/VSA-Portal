@@ -451,8 +451,8 @@ export default function ClinicDetail() {
           <TabsList className="bg-secondary w-full justify-start overflow-x-auto flex-nowrap tabs-scroll">
             <TabsTrigger value="instagram">Instagram</TabsTrigger>
             <TabsTrigger value="facebook">Facebook</TabsTrigger>
-            <TabsTrigger value="google">Google Ads</TabsTrigger>
-            <TabsTrigger value="ai">Tony AI Insights</TabsTrigger>
+            {canSeeGoogleAds && <TabsTrigger value="google">Google Ads</TabsTrigger>}
+            {canSeeAIInsights && <TabsTrigger value="ai">Tony AI Insights</TabsTrigger>}
             {(role === "admin" || isDebraj) && <TabsTrigger value="connections">Connections</TabsTrigger>}
           </TabsList>
 
