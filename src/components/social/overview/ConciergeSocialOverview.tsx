@@ -115,14 +115,41 @@ export function ConciergeSocialOverview({ clinicId }: ConciergeSocialOverviewPro
 
       let mineOpen = 0;
       const sumT = { open: 0, inProgress: 0, completed: 0, emergency: 0 };
+      const clinicTicketIds: string[] = [];
       (ticketsRes.data || []).forEach((t: any) => {
+        clinicTicketIds.push(t.id);
         if (t.status === "open") sumT.open++;
         else if (t.status === "in_progress") sumT.inProgress++;
         else if (t.status === "completed") sumT.completed++;
         else if (t.status === "emergency") sumT.emergency++;
-        if (user && t.assigned_to === user.id && (t.status === "open" || t.status === "in_progress" || t.status === "emergency")) mineOpen++;
       });
       setTicketSummary(sumT);
+
+      // "My Open Tickets" — mirror the MyTickets card: count tickets where I'm
+      // directly assigned OR where I'm a candidate in the broadcast pool and
+      // the assignment is still unclaimed.
+      if (user && clinicTicketIds.length > 0) {
+        const [aRes, cRes] = await Promise.all([
+          (supabase
+            .from("department_ticket_assignments" as any)
+            .select("ticket_id, status, assigned_to")
+            .in("ticket_id", clinicTicketIds)
+            .eq("department", "social_media")
+            .in("status", ["open", "in_progress", "emergency"]) as any),
+          (supabase
+            .from("department_ticket_candidates" as any)
+            .select("ticket_id")
+            .eq("user_id", user.id)
+            .eq("department", "social_media")
+            .in("ticket_id", clinicTicketIds) as any),
+        ]);
+        const candSet = new Set(((cRes.data || []) as any[]).map((r) => r.ticket_id));
+        const seen = new Set<string>();
+        ((aRes.data || []) as any[]).forEach((r) => {
+          const mine = r.assigned_to === user.id || (r.assigned_to === null && candSet.has(r.ticket_id));
+          if (mine && !seen.has(r.ticket_id)) { seen.add(r.ticket_id); mineOpen++; }
+        });
+      }
       setMyOpenTickets(mineOpen);
 
       setScheduledThisWeek(scheduledRes.count || 0);
