@@ -324,7 +324,7 @@ export function NotificationBell() {
       // post_activity_log is also social-media domain; drop for non-social staff.
       const scopedActivityNotifs = socialAllowed ? activityNotifs : [];
 
-      const all = [...activityNotifs, ...ticketNotifs, ...sm2Notifs, ...noteNotifs]
+      const all = [...scopedActivityNotifs, ...ticketNotifs, ...sm2Notifs, ...noteNotifs]
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         .slice(0, 30)
         .map(withRead);
