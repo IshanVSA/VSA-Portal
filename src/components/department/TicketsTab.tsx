@@ -98,21 +98,40 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
 
   const { data: ticketsQuery, refetch, isLoading } = useQuery({
     queryKey: ["department-tickets", department, filter, clinicId, isClient],
-    queryFn: async () => {
-      const orClauses = [`department.eq.${department}`];
-      if (visibleTypes.length > 0) {
-        orClauses.push(`ticket_type.in.(${visibleTypes.join(",")})`);
-      }
+     queryFn: async () => {
+       // Pre-fetch ticket IDs that have a fanned-out assignment for this department
+       // so we can show tickets whose origin is a different department but were
+       // forwarded here (e.g. Pop-up Offers / Add-Remove Team with "Promote on Social Media: Yes").
+       let fannedTicketIds: string[] = [];
+       {
+         let dtaQ = (supabase
+           .from("department_ticket_assignments" as any)
+           .select("ticket_id, department_tickets!inner(clinic_id)")
+           .eq("department", department) as any);
+         if (clinicId) {
+           dtaQ = dtaQ.eq("department_tickets.clinic_id", clinicId);
+         }
+         const { data: dtaIdRows } = await dtaQ;
+         fannedTicketIds = Array.from(new Set(((dtaIdRows || []) as any[]).map(r => r.ticket_id)));
+       }
 
-      let query = supabase
-        .from("department_tickets" as any)
-        .select("*")
-        .or(orClauses.join(","))
-        .order("created_at", { ascending: false });
+       const orClauses = [`department.eq.${department}`];
+       if (visibleTypes.length > 0) {
+         orClauses.push(`ticket_type.in.(${visibleTypes.join(",")})`);
+       }
+       if (fannedTicketIds.length > 0) {
+         orClauses.push(`id.in.(${fannedTicketIds.join(",")})`);
+       }
 
-      if (clinicId) {
-        query = query.eq("clinic_id", clinicId);
-      }
+       let query = supabase
+         .from("department_tickets" as any)
+         .select("*")
+         .or(orClauses.join(","))
+         .order("created_at", { ascending: false });
+
+       if (clinicId) {
+         query = query.eq("clinic_id", clinicId);
+       }
 
       // For clients, filter on parent (rollup) status. For staff, we re-filter
       // post-merge against the per-department status.
