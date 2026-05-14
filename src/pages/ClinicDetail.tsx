@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useUserDepartments } from "@/hooks/useUserDepartments";
 import { useAuth } from "@/hooks/useAuth";
 
 const DEBRAJ_USER_ID = "ac32880b-4a29-4617-9ab9-d4b28ed7b998";
@@ -176,6 +177,9 @@ export default function ClinicDetail() {
   const { id } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const { role } = useUserRole();
+  const { departments, isAllAccess } = useUserDepartments();
+  const canSeeGoogleAds = isAllAccess || (departments?.includes("google_ads") ?? false);
+  const canSeeAIInsights = isAllAccess; // synthesis across channels — admin/client only
   const { user } = useAuth();
   const isDebraj =
     user?.id === DEBRAJ_USER_ID ||
@@ -199,6 +203,13 @@ export default function ClinicDetail() {
   // Determine initial tab based on OAuth URL params
   const hasOAuthParams = searchParams.has("google") || searchParams.has("meta") || searchParams.has("google_token_ref") || searchParams.has("meta_token_ref") || searchParams.has("gbp_token_ref");
   const [activeTab, setActiveTab] = useState(hasOAuthParams ? "connections" : "instagram");
+
+  // Snap back to a permitted tab if user lands on a hidden one (e.g. concierge)
+  useEffect(() => {
+    if (activeTab === "google" && !canSeeGoogleAds) setActiveTab("instagram");
+    if (activeTab === "ai" && !canSeeAIInsights) setActiveTab("instagram");
+  }, [activeTab, canSeeGoogleAds, canSeeAIInsights]);
+
   const [metaScopes, setMetaScopes] = useState<string[]>([]);
 
   const fetchOAuthData = async (tokenRef: string) => {
@@ -447,8 +458,8 @@ export default function ClinicDetail() {
           <TabsList className="bg-secondary w-full justify-start overflow-x-auto flex-nowrap tabs-scroll">
             <TabsTrigger value="instagram">Instagram</TabsTrigger>
             <TabsTrigger value="facebook">Facebook</TabsTrigger>
-            <TabsTrigger value="google">Google Ads</TabsTrigger>
-            <TabsTrigger value="ai">Tony AI Insights</TabsTrigger>
+            {canSeeGoogleAds && <TabsTrigger value="google">Google Ads</TabsTrigger>}
+            {canSeeAIInsights && <TabsTrigger value="ai">Tony AI Insights</TabsTrigger>}
             {(role === "admin" || isDebraj) && <TabsTrigger value="connections">Connections</TabsTrigger>}
           </TabsList>
 
