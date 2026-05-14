@@ -9,6 +9,14 @@ import { Ticket, Clock, CheckCircle2, Inbox, AlertTriangle, Ban } from "lucide-r
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
+
+const deptRoute: Record<string, string> = {
+  website: "/website",
+  seo: "/seo",
+  google_ads: "/google-ads",
+  social_media: "/social",
+};
 
 const statusConfig: Record<string, { label: string; icon: React.ElementType; className: string }> = {
   open: { label: "Open", icon: Inbox, className: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
@@ -33,6 +41,15 @@ const deptLabels: Record<string, string> = {
 
 export default function MyTickets({ filter }: { filter?: DashboardFilter } = {}) {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const goToTicket = (t: { department: string; clinic_id: string | null }) => {
+    const base = deptRoute[t.department] || "/";
+    const params = new URLSearchParams();
+    if (t.clinic_id) params.set("clinic", t.clinic_id);
+    params.set("tab", "tickets");
+    navigate(`${base}?${params.toString()}`);
+  };
 
   const { data: rawTickets = [], refetch } = useQuery({
     queryKey: ["my-assigned-tickets", user?.id],
@@ -139,7 +156,11 @@ export default function MyTickets({ filter }: { filter?: DashboardFilter } = {})
               const pc = priorityConfig[t.priority] || priorityConfig.regular;
               const StatusIcon = sc.icon;
               return (
-                <li key={t.id} className="px-4 py-3 hover:bg-muted/30 transition-colors">
+                <li
+                  key={t.id}
+                  onClick={() => goToTicket(t)}
+                  className="px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
@@ -155,16 +176,18 @@ export default function MyTickets({ filter }: { filter?: DashboardFilter } = {})
                         </span>
                       </div>
                     </div>
-                    <Select value={t.status} onValueChange={(v) => handleStatusChange(t.id, v)}>
-                      <SelectTrigger className="h-7 text-xs w-[120px] shrink-0">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="open" className="text-xs">Open</SelectItem>
-                        <SelectItem value="in_progress" className="text-xs">In Progress</SelectItem>
-                        <SelectItem value="completed" className="text-xs">Completed</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Select value={t.status} onValueChange={(v) => handleStatusChange(t.id, v)}>
+                        <SelectTrigger className="h-7 text-xs w-[120px] shrink-0">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="open" className="text-xs">Open</SelectItem>
+                          <SelectItem value="in_progress" className="text-xs">In Progress</SelectItem>
+                          <SelectItem value="completed" className="text-xs">Completed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </li>
               );
