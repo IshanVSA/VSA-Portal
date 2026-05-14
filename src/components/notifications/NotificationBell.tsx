@@ -360,9 +360,25 @@ export function NotificationBell() {
       });
     };
 
+    const rtStaffScoped = !isAllAccess && departments !== null;
+    const rtDeptSet = new Set<DepartmentType>(departments ?? []);
+    const rtSocialAllowed = !rtStaffScoped || rtDeptSet.has("social_media");
+    const isTicketVisibleForStaff = async (t: any): Promise<boolean> => {
+      if (!rtStaffScoped) return true;
+      if (t.department && rtDeptSet.has(t.department as DepartmentType)) return true;
+      const { data } = await supabase
+        .from("department_ticket_assignments")
+        .select("ticket_id")
+        .eq("ticket_id", t.id)
+        .in("department", Array.from(rtDeptSet))
+        .limit(1);
+      return (data || []).length > 0;
+    };
+
     const channel = supabase
       .channel(`user:${user.id}:notifications`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "post_activity_log" }, async (payload) => {
+        if (!rtSocialAllowed) return;
         const log = payload.new as any;
         const meta = typeof log.metadata === "object" ? log.metadata : {};
         let type: Notification["type"] = "status_changed";
