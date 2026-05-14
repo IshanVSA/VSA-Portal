@@ -83,8 +83,20 @@ const DEPARTMENT_ROUTE: Record<string, string> = {
   ai_seo: "/ai-seo",
 };
 
-function buildTicketLink(department: string | null | undefined, clinicId: string | null | undefined, ticketId: string): string {
-  const base = DEPARTMENT_ROUTE[department || ""] || "/social";
+function buildTicketLink(
+  department: string | null | undefined,
+  clinicId: string | null | undefined,
+  ticketId: string,
+  allowedDepartments?: DepartmentType[] | null,
+): string {
+  let dept = department || "";
+  // If the user is dept-scoped and the ticket's home department isn't theirs
+  // (cross-posted ticket), route to the user's first allowed department so the
+  // page is actually accessible.
+  if (allowedDepartments && allowedDepartments.length > 0 && !allowedDepartments.includes(dept as DepartmentType)) {
+    dept = allowedDepartments[0];
+  }
+  const base = DEPARTMENT_ROUTE[dept] || "/social";
   const params = new URLSearchParams({ tab: "tickets", ticket: ticketId });
   if (clinicId) params.set("clinic", clinicId);
   return `${base}?${params.toString()}`;
