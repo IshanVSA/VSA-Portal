@@ -62,6 +62,13 @@ export function ProtectedRoute({ children, allowedRoles, allowedDepartments }: P
     return <AccessDenied attemptedPath={location.pathname} requiredRoles={allowedRoles} />;
   }
 
+  // Department-level gate (concierge only). Admin & client bypass via isAllAccess.
+  if (allowedDepartments && !isAllAccess) {
+    const userDepts = departments ?? [];
+    const ok = allowedDepartments.some((d) => userDepts.includes(d));
+    if (!ok) return <AccessDenied attemptedPath={location.pathname} />;
+  }
+
   // Terms acceptance gate — admins bypass
   if (!hasAccepted && currentVersion && role !== "admin") {
     if (role === "concierge") {
