@@ -964,12 +964,12 @@ function ReviewMiningCard({ data, clinicId, canEdit }: { data: Record<string, an
   return (
     <Card className="border-amber-500/20 bg-amber-500/5">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <Star className="h-4 w-4 text-amber-500" />
-            Layer 2 - Review Mining
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2 min-w-0">
+            <Star className="h-4 w-4 text-amber-500 shrink-0" />
+            <span className="truncate">Layer 2 - Review Mining</span>
           </CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {data.confidence && (
               <Badge variant={data.confidence === "high" ? "default" : data.confidence === "medium" ? "secondary" : "destructive"}>
                 {data.confidence} confidence
@@ -982,7 +982,7 @@ function ReviewMiningCard({ data, clinicId, canEdit }: { data: Record<string, an
               </Badge>
             )}
             {data.mined_at && (
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
                 {format(new Date(data.mined_at), "MMM d, yyyy h:mm a")}
               </span>
             )}
