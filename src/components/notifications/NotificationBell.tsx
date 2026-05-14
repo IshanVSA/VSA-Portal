@@ -263,14 +263,21 @@ export function NotificationBell() {
         }];
       });
 
-      // SM2 generation notifications
-      const { data: sm2Data } = await supabase
-        .from("sm2_generations")
-        .select("id, month_year, approval_status, created_at, updated_at, clinic_id")
-        .order("updated_at", { ascending: false })
-        .limit(10);
+      // SM2 + post_activity_log notifications are inherently social_media domain.
+      const socialAllowed = !staffScoped || deptSet.has("social_media");
 
-      const sm2Notifs: Notification[] = (sm2Data || [])
+      // SM2 generation notifications
+      let sm2Data: any[] = [];
+      if (socialAllowed) {
+        const res = await supabase
+          .from("sm2_generations")
+          .select("id, month_year, approval_status, created_at, updated_at, clinic_id")
+          .order("updated_at", { ascending: false })
+          .limit(10);
+        sm2Data = res.data || [];
+      }
+
+      const sm2Notifs: Notification[] = sm2Data
         // Clients only see "ready for review" and "approved/finalized" milestones
         .filter((g: any) => !isClient || CLIENT_VISIBLE_SM2_STATUSES.has(g.approval_status))
         .map((g: any) => ({
@@ -286,7 +293,7 @@ export function NotificationBell() {
 
       // Client notes on SM2 posts (staff-only relevant)
       let noteNotifs: Notification[] = [];
-      if (role !== "client") {
+      if (role !== "client" && socialAllowed) {
         const { data: noteData } = await supabase
           .from("sm2_posts")
           .select("id, post_number, scheduled_date, client_feedback, updated_at, clinic_id")
@@ -313,6 +320,9 @@ export function NotificationBell() {
           };
         });
       }
+
+      // post_activity_log is also social-media domain; drop for non-social staff.
+      const scopedActivityNotifs = socialAllowed ? activityNotifs : [];
 
       const all = [...activityNotifs, ...ticketNotifs, ...sm2Notifs, ...noteNotifs]
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
