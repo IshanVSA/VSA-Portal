@@ -41,6 +41,15 @@ const deptLabels: Record<string, string> = {
 
 export default function MyTickets({ filter }: { filter?: DashboardFilter } = {}) {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const goToTicket = (t: { department: string; clinic_id: string | null }) => {
+    const base = deptRoute[t.department] || "/";
+    const params = new URLSearchParams();
+    if (t.clinic_id) params.set("clinic", t.clinic_id);
+    params.set("tab", "tickets");
+    navigate(`${base}?${params.toString()}`);
+  };
 
   const { data: rawTickets = [], refetch } = useQuery({
     queryKey: ["my-assigned-tickets", user?.id],
