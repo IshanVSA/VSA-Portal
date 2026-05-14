@@ -9,6 +9,14 @@ import { Ticket, Clock, CheckCircle2, Inbox, AlertTriangle, Ban } from "lucide-r
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
+
+const deptRoute: Record<string, string> = {
+  website: "/website",
+  seo: "/seo",
+  google_ads: "/google-ads",
+  social_media: "/social",
+};
 
 const statusConfig: Record<string, { label: string; icon: React.ElementType; className: string }> = {
   open: { label: "Open", icon: Inbox, className: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
