@@ -188,14 +188,16 @@ export default function BrandDNATab({ clinicId }: Props) {
     },
   ];
 
-  const toneClass = (tone?: "ok" | "warn" | "muted" | "critical") =>
-    tone === "ok"
-      ? "text-emerald-500"
-      : tone === "warn"
-        ? "text-amber-500"
-        : tone === "critical"
-          ? "text-destructive"
-          : "text-muted-foreground";
+  const toneClass = (tone?: "ok" | "warn" | "muted" | "critical" | "active") =>
+    tone === "active"
+      ? "text-primary"
+      : tone === "ok"
+        ? "text-emerald-500"
+        : tone === "warn"
+          ? "text-amber-500"
+          : tone === "critical"
+            ? "text-destructive"
+            : "text-muted-foreground";
 
   // Per-layer header action
   const layerAction = () => {
