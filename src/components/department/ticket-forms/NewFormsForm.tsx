@@ -34,11 +34,11 @@ export function NewFormsForm({ onChange, files, onFilesChange }: NewFormsFormPro
 
       <div className="space-y-1.5">
         <Label>Form Name / Purpose *</Label>
-        <Input placeholder="e.g. New Patient Registration Form" value={formName} onChange={e => setFormName(e.target.value)} maxLength={200} />
+        <Input placeholder="e.g. New Patient Registration Form" value={formName} onChange={e => setFormName(e.target.value)} />
       </div>
       <div className="space-y-1.5">
         <Label>Fields Needed</Label>
-        <Textarea placeholder="List the fields you need, e.g.&#10;- Pet name&#10;- Owner name&#10;- Phone number&#10;- Appointment type" value={fieldsNeeded} onChange={e => setFieldsNeeded(e.target.value)} rows={4} maxLength={2000} />
+        <Textarea placeholder="List the fields you need, e.g.&#10;- Pet name&#10;- Owner name&#10;- Phone number&#10;- Appointment type" value={fieldsNeeded} onChange={e => setFieldsNeeded(e.target.value)} rows={4} />
       </div>
       <FileUploader files={files} onFilesChange={onFilesChange} label="Attachments / Upload your own form" />
     </div>

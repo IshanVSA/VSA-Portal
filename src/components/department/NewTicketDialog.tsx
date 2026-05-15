@@ -406,7 +406,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
               {!isCustomForm && (
                 <div className="space-y-1.5">
                   <Label htmlFor="ticket-title">Title *</Label>
-                  <Input id="ticket-title" placeholder="Brief summary of the issue" value={title} onChange={e => setTitle(e.target.value)} maxLength={200} />
+                  <Input id="ticket-title" placeholder="Brief summary of the issue" value={title} onChange={e => setTitle(e.target.value)} />
                 </div>
               )}
 
@@ -429,14 +429,14 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
               ) : (
                 <div className="space-y-1.5">
                   <Label htmlFor="ticket-desc">Description</Label>
-                  <Textarea id="ticket-desc" placeholder="Describe the issue in detail..." value={genericDescription} onChange={e => setGenericDescription(e.target.value)} rows={3} maxLength={2000} />
+                  <Textarea id="ticket-desc" placeholder="Describe the issue in detail..." value={genericDescription} onChange={e => setGenericDescription(e.target.value)} rows={3} />
                 </div>
               )}
 
               {ticketType !== "Pop-up Offers" && !["Content Request","Client Visit","Special Promotion","Boost","Bulk Uploads","Add/Remove Team Members"].includes(ticketType) && (
                 <div className="space-y-1.5">
                   <Label htmlFor="ticket-notes">Notes</Label>
-                  <Textarea id="ticket-notes" placeholder="Additional notes..." value={notes} onChange={e => setNotes(e.target.value)} rows={2} maxLength={1000} />
+                  <Textarea id="ticket-notes" placeholder="Additional notes..." value={notes} onChange={e => setNotes(e.target.value)} rows={2} />
                 </div>
               )}
 

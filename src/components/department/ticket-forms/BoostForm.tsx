@@ -40,7 +40,7 @@ export function BoostForm({ onChange }: BoostFormProps) {
           value={concerns}
           onChange={e => setConcerns(e.target.value)}
           rows={3}
-          maxLength={2000}
+         
         />
       </div>
 
@@ -50,7 +50,7 @@ export function BoostForm({ onChange }: BoostFormProps) {
           placeholder="e.g. Senior wellness exam, dental month..."
           value={service}
           onChange={e => setService(e.target.value)}
-          maxLength={300}
+         
         />
       </div>
 
@@ -92,7 +92,7 @@ export function BoostForm({ onChange }: BoostFormProps) {
           value={notes}
           onChange={e => setNotes(e.target.value)}
           rows={2}
-          maxLength={1000}
+         
         />
       </div>
     </div>

@@ -108,7 +108,7 @@ export function PaymentOptionsForm({ onChange }: PaymentOptionsFormProps) {
           placeholder="e.g. Stripe, Square, Moneris, Global Payments..."
           value={providerName}
           onChange={e => setProviderName(e.target.value)}
-          maxLength={200}
+         
         />
       </div>
 
@@ -118,7 +118,7 @@ export function PaymentOptionsForm({ onChange }: PaymentOptionsFormProps) {
           placeholder="e.g. Homepage, Contact page, dedicated payment page..."
           value={pageLocation}
           onChange={e => setPageLocation(e.target.value)}
-          maxLength={300}
+         
         />
       </div>
 
@@ -129,7 +129,7 @@ export function PaymentOptionsForm({ onChange }: PaymentOptionsFormProps) {
           value={details}
           onChange={e => setDetails(e.target.value)}
           rows={3}
-          maxLength={2000}
+         
         />
       </div>
 

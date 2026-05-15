@@ -274,7 +274,7 @@ export function AddRemoveTeamForm({ onChange, onValidityChange, onFilesChange }:
                   value={m.name}
                   onChange={(e) => updateMember(m.id, { name: e.target.value })}
                   onBlur={() => markTouched(m.id, "name")}
-                  maxLength={100}
+                 
                   aria-invalid={!!showNameErr}
                   className={cn(showNameErr && "border-destructive focus-visible:ring-destructive")}
                 />
@@ -292,7 +292,7 @@ export function AddRemoveTeamForm({ onChange, onValidityChange, onFilesChange }:
                   value={m.role}
                   onChange={(e) => updateMember(m.id, { role: e.target.value })}
                   onBlur={() => markTouched(m.id, "role")}
-                  maxLength={80}
+                 
                   aria-invalid={!!showRoleErr}
                   className={cn(showRoleErr && "border-destructive focus-visible:ring-destructive")}
                 />
@@ -311,7 +311,7 @@ export function AddRemoveTeamForm({ onChange, onValidityChange, onFilesChange }:
                     value={m.bio}
                     onChange={(e) => updateMember(m.id, { bio: e.target.value })}
                     rows={3}
-                    maxLength={1000}
+                   
                   />
                 </div>
               )}

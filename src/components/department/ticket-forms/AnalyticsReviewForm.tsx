@@ -60,7 +60,7 @@ export function AnalyticsReviewForm({ onChange }: AnalyticsReviewFormProps) {
       </div>
       <div className="space-y-1.5">
         <Label>Specific Concerns / Questions</Label>
-        <Textarea placeholder="What specific metrics or trends are you concerned about?" value={concerns} onChange={e => setConcerns(e.target.value)} rows={3} maxLength={2000} />
+        <Textarea placeholder="What specific metrics or trends are you concerned about?" value={concerns} onChange={e => setConcerns(e.target.value)} rows={3} />
       </div>
     </div>
   );

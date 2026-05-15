@@ -63,7 +63,7 @@ export function ThirdPartyIntegrationsForm({ onChange }: ThirdPartyIntegrationsF
           placeholder="e.g. PetDesk, Weave..."
           value={providerName}
           onChange={e => setProviderName(e.target.value)}
-          maxLength={200}
+         
         />
       </div>
 
@@ -73,7 +73,7 @@ export function ThirdPartyIntegrationsForm({ onChange }: ThirdPartyIntegrationsF
           placeholder="https://..."
           value={accountUrl}
           onChange={e => setAccountUrl(e.target.value)}
-          maxLength={500}
+         
         />
       </div>
 
@@ -84,7 +84,7 @@ export function ThirdPartyIntegrationsForm({ onChange }: ThirdPartyIntegrationsF
           value={description}
           onChange={e => setDescription(e.target.value)}
           rows={3}
-          maxLength={2000}
+         
         />
       </div>
 

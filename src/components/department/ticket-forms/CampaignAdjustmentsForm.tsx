@@ -53,15 +53,15 @@ export function CampaignAdjustmentsForm({ onChange }: CampaignAdjustmentsFormPro
       </div>
       <div className="space-y-1.5">
         <Label>Campaign Name *</Label>
-        <Input placeholder="Name of the campaign to adjust" value={campaignName} onChange={e => setCampaignName(e.target.value)} maxLength={200} />
+        <Input placeholder="Name of the campaign to adjust" value={campaignName} onChange={e => setCampaignName(e.target.value)} />
       </div>
       <div className="space-y-1.5">
         <Label>Current Setup</Label>
-        <Textarea placeholder="Describe the current configuration (e.g. current budget, current targeting)..." value={currentSetup} onChange={e => setCurrentSetup(e.target.value)} rows={2} maxLength={1000} />
+        <Textarea placeholder="Describe the current configuration (e.g. current budget, current targeting)..." value={currentSetup} onChange={e => setCurrentSetup(e.target.value)} rows={2} />
       </div>
       <div className="space-y-1.5">
         <Label>Requested Change *</Label>
-        <Textarea placeholder="Describe exactly what you'd like changed..." value={requestedChange} onChange={e => setRequestedChange(e.target.value)} rows={3} maxLength={2000} />
+        <Textarea placeholder="Describe exactly what you'd like changed..." value={requestedChange} onChange={e => setRequestedChange(e.target.value)} rows={3} />
       </div>
       <div className="space-y-1.5">
         <Label>Urgency</Label>

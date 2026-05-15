@@ -48,15 +48,15 @@ export function DashboardAccessForm({ onChange }: DashboardAccessFormProps) {
       </div>
       <div className="space-y-1.5">
         <Label>User Name *</Label>
-        <Input placeholder="Full name of the person who needs access" value={userName} onChange={e => setUserName(e.target.value)} maxLength={200} />
+        <Input placeholder="Full name of the person who needs access" value={userName} onChange={e => setUserName(e.target.value)} />
       </div>
       <div className="space-y-1.5">
         <Label>User Email *</Label>
-        <Input type="email" placeholder="user@clinic.com" value={userEmail} onChange={e => setUserEmail(e.target.value)} maxLength={200} />
+        <Input type="email" placeholder="user@clinic.com" value={userEmail} onChange={e => setUserEmail(e.target.value)} />
       </div>
       <div className="space-y-1.5">
         <Label>Additional Details</Label>
-        <Textarea placeholder="Specify which dashboards/reports they need access to..." value={details} onChange={e => setDetails(e.target.value)} rows={3} maxLength={2000} />
+        <Textarea placeholder="Specify which dashboards/reports they need access to..." value={details} onChange={e => setDetails(e.target.value)} rows={3} />
       </div>
     </div>
   );

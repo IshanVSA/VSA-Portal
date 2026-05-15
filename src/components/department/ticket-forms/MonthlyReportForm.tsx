@@ -61,7 +61,7 @@ export function MonthlyReportForm({ onChange }: MonthlyReportFormProps) {
       </div>
       <div className="space-y-1.5">
         <Label>Additional Notes</Label>
-        <Textarea placeholder="Any specific data points, comparisons, or format preferences..." value={additionalNotes} onChange={e => setAdditionalNotes(e.target.value)} rows={3} maxLength={2000} />
+        <Textarea placeholder="Any specific data points, comparisons, or format preferences..." value={additionalNotes} onChange={e => setAdditionalNotes(e.target.value)} rows={3} />
       </div>
     </div>
   );

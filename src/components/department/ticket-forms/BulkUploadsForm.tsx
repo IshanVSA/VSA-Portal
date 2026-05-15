@@ -37,7 +37,7 @@ export function BulkUploadsForm({ onChange, files, onFilesChange }: BulkUploadsF
           value={note}
           onChange={e => setNote(e.target.value)}
           rows={2}
-          maxLength={1000}
+         
         />
       </div>
     </div>

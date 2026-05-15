@@ -70,30 +70,30 @@ export function WrongCallTrackingForm({ onChange }: WrongCallTrackingFormProps) 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label>Caller's Phone Number</Label>
-          <Input placeholder="e.g. (555) 123-4567" value={callerNumber} onChange={e => setCallerNumber(e.target.value)} maxLength={30} />
+          <Input placeholder="e.g. (555) 123-4567" value={callerNumber} onChange={e => setCallerNumber(e.target.value)} />
         </div>
         <div className="space-y-1.5">
           <Label>Our Tracking Number They Called</Label>
-          <Input placeholder="e.g. (555) 987-6543" value={receivingNumber} onChange={e => setReceivingNumber(e.target.value)} maxLength={30} />
+          <Input placeholder="e.g. (555) 987-6543" value={receivingNumber} onChange={e => setReceivingNumber(e.target.value)} />
         </div>
       </div>
 
       <div className="space-y-1.5">
         <Label>What Did the Caller Say / Ask For? *</Label>
-        <Textarea placeholder="e.g. They asked about grooming services, wanted to book a dental cleaning at XYZ Animal Hospital..." value={callerSaid} onChange={e => setCallerSaid(e.target.value)} rows={3} maxLength={2000} />
+        <Textarea placeholder="e.g. They asked about grooming services, wanted to book a dental cleaning at XYZ Animal Hospital..." value={callerSaid} onChange={e => setCallerSaid(e.target.value)} rows={3} />
       </div>
 
       {(reason === "Service We Don't Provide") && (
         <div className="space-y-1.5">
           <Label>What Service Were They Looking For?</Label>
-          <Input placeholder="e.g. Exotic pet care, grooming, boarding..." value={serviceRequested} onChange={e => setServiceRequested(e.target.value)} maxLength={200} />
+          <Input placeholder="e.g. Exotic pet care, grooming, boarding..." value={serviceRequested} onChange={e => setServiceRequested(e.target.value)} />
         </div>
       )}
 
       {(reason === "Meant for Another Hospital/Clinic") && (
         <div className="space-y-1.5">
           <Label>Which Business Were They Trying to Reach?</Label>
-          <Input placeholder="e.g. ABC Animal Hospital, Downtown Vet Clinic..." value={intendedBusiness} onChange={e => setIntendedBusiness(e.target.value)} maxLength={200} />
+          <Input placeholder="e.g. ABC Animal Hospital, Downtown Vet Clinic..." value={intendedBusiness} onChange={e => setIntendedBusiness(e.target.value)} />
         </div>
       )}
 
