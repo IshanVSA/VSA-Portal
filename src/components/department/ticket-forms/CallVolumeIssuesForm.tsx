@@ -48,15 +48,15 @@ export function CallVolumeIssuesForm({ onChange }: CallVolumeIssuesFormProps) {
       </div>
       <div className="space-y-1.5">
         <Label>Call Tracking Number</Label>
-        <Input placeholder="e.g. (555) 123-4567" value={trackingNumber} onChange={e => setTrackingNumber(e.target.value)} maxLength={30} />
+        <Input placeholder="e.g. (555) 123-4567" value={trackingNumber} onChange={e => setTrackingNumber(e.target.value)} />
       </div>
       <div className="space-y-1.5">
         <Label>When did this start? *</Label>
-        <Input placeholder="e.g. Since last Monday, past 2 weeks..." value={timeframe} onChange={e => setTimeframe(e.target.value)} maxLength={200} />
+        <Input placeholder="e.g. Since last Monday, past 2 weeks..." value={timeframe} onChange={e => setTimeframe(e.target.value)} />
       </div>
       <div className="space-y-1.5">
         <Label>Describe the Issue *</Label>
-        <Textarea placeholder="Provide details about the call volume issue, expected vs. actual call counts..." value={description} onChange={e => setDescription(e.target.value)} rows={3} maxLength={2000} />
+        <Textarea placeholder="Provide details about the call volume issue, expected vs. actual call counts..." value={description} onChange={e => setDescription(e.target.value)} rows={3} />
       </div>
     </div>
   );

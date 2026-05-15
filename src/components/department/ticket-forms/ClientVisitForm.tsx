@@ -48,7 +48,7 @@ export function ClientVisitForm({ onChange }: ClientVisitFormProps) {
             placeholder="e.g. Bella"
             value={petName}
             onChange={e => setPetName(e.target.value)}
-            maxLength={100}
+           
           />
         </div>
       </div>
@@ -59,7 +59,7 @@ export function ClientVisitForm({ onChange }: ClientVisitFormProps) {
           placeholder="e.g. Annual checkup, dental cleaning..."
           value={reason}
           onChange={e => setReason(e.target.value)}
-          maxLength={300}
+         
         />
       </div>
 
@@ -69,7 +69,7 @@ export function ClientVisitForm({ onChange }: ClientVisitFormProps) {
           placeholder="Which service do you want to promote from this visit?"
           value={highlightService}
           onChange={e => setHighlightService(e.target.value)}
-          maxLength={300}
+         
         />
       </div>
 
@@ -80,7 +80,7 @@ export function ClientVisitForm({ onChange }: ClientVisitFormProps) {
           value={description}
           onChange={e => setDescription(e.target.value)}
           rows={4}
-          maxLength={2000}
+         
         />
       </div>
     </div>

@@ -39,7 +39,7 @@ export function SpecialPromotionForm({ onChange }: SpecialPromotionFormProps) {
           placeholder="e.g. Back-to-School Wellness Bundle"
           value={title}
           onChange={e => setTitle(e.target.value)}
-          maxLength={200}
+         
         />
       </div>
       <div className="space-y-1.5">
@@ -49,7 +49,7 @@ export function SpecialPromotionForm({ onChange }: SpecialPromotionFormProps) {
           value={description}
           onChange={e => setDescription(e.target.value)}
           rows={4}
-          maxLength={2000}
+         
         />
       </div>
 
@@ -91,7 +91,7 @@ export function SpecialPromotionForm({ onChange }: SpecialPromotionFormProps) {
           value={notes}
           onChange={e => setNotes(e.target.value)}
           rows={2}
-          maxLength={1000}
+         
         />
       </div>
     </div>

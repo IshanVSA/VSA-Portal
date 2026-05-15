@@ -136,7 +136,7 @@ export function ContentRequestForm({ onChange }: ContentRequestFormProps) {
           placeholder="e.g. Spring vaccine awareness post"
           value={title}
           onChange={e => setTitle(e.target.value)}
-          maxLength={200}
+         
         />
       </div>
       <div className="space-y-1.5">
@@ -146,7 +146,7 @@ export function ContentRequestForm({ onChange }: ContentRequestFormProps) {
           value={description}
           onChange={e => setDescription(e.target.value)}
           rows={6}
-          maxLength={2000}
+         
         />
       </div>
       <div className="space-y-1.5">
@@ -156,7 +156,7 @@ export function ContentRequestForm({ onChange }: ContentRequestFormProps) {
           value={notes}
           onChange={e => setNotes(e.target.value)}
           rows={3}
-          maxLength={1000}
+         
         />
       </div>
     </div>

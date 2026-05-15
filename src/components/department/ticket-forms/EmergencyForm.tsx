@@ -72,7 +72,7 @@ export function EmergencyForm({ onChange }: EmergencyFormProps) {
           value={affectedUrl}
           onChange={e => setAffectedUrl(e.target.value)}
           rows={1}
-          maxLength={500}
+         
         />
       </div>
 
@@ -83,7 +83,7 @@ export function EmergencyForm({ onChange }: EmergencyFormProps) {
           value={description}
           onChange={e => setDescription(e.target.value)}
           rows={3}
-          maxLength={2000}
+         
         />
       </div>
 
@@ -94,7 +94,7 @@ export function EmergencyForm({ onChange }: EmergencyFormProps) {
           value={impact}
           onChange={e => setImpact(e.target.value)}
           rows={2}
-          maxLength={1000}
+         
         />
       </div>
     </div>

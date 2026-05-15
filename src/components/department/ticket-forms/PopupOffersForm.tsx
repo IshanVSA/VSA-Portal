@@ -160,7 +160,7 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
           placeholder="e.g. Spring Sale 20% Off"
           value={offerTitle}
           onChange={e => { setOfferTitle(e.target.value); handleFieldChange(); }}
-          maxLength={200}
+         
           disabled={locked}
         />
       </div>
@@ -172,7 +172,7 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
           value={offerText}
           onChange={e => { setOfferText(e.target.value); handleFieldChange(); }}
           rows={2}
-          maxLength={1000}
+         
           disabled={locked}
         />
       </div>
@@ -184,7 +184,7 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
           value={termsAndConditions}
           onChange={e => { setTermsAndConditions(e.target.value); handleFieldChange(); }}
           rows={2}
-          maxLength={2000}
+         
           disabled={locked}
         />
       </div>
@@ -196,7 +196,7 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
           value={additionalNotes}
           onChange={e => { setAdditionalNotes(e.target.value); handleFieldChange(); }}
           rows={2}
-          maxLength={1000}
+         
           disabled={locked}
         />
       </div>
@@ -312,7 +312,7 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
               value={overrideReason}
               onChange={(e) => setOverrideReason(e.target.value)}
               rows={2}
-              maxLength={500}
+             
               className="text-xs"
             />
           )}
