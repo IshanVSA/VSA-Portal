@@ -234,6 +234,7 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
               onChange={(e) => setDescription(e.target.value)}
               rows={5}
               disabled={isClient}
+              className="break-words [overflow-wrap:anywhere] whitespace-pre-wrap"
             />
           </div>
 
