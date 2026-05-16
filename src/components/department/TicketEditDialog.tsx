@@ -242,6 +242,19 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
             />
           </div>
 
+          <div className="space-y-1.5">
+            <Label htmlFor="ticket-notes">Additional Notes</Label>
+            <Textarea
+              id="ticket-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              disabled={isClient}
+              placeholder="Additional notes…"
+              className="break-words [overflow-wrap:anywhere] whitespace-pre-wrap"
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Status</Label>
