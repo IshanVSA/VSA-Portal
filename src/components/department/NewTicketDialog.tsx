@@ -240,6 +240,13 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     if ((ticketType === "Add/Remove Team Members" || ticketType === "Pop-up Offers") && promoteSocial && finalDescription) {
       finalDescription = `${finalDescription}\nPromote on Social Media: Yes`;
     }
+    // Merge additional notes into the description so they're always visible on the ticket
+    const trimmedNotes = notes.trim();
+    if (trimmedNotes) {
+      finalDescription = finalDescription
+        ? `${finalDescription}\n\nAdditional Notes:\n${trimmedNotes}`
+        : `Additional Notes:\n${trimmedNotes}`;
+    }
 
     setLoading(true);
 
