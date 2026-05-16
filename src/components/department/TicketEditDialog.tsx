@@ -77,6 +77,7 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [notes, setNotes] = useState("");
   const [priority, setPriority] = useState<EditableTicket["priority"]>("regular");
   const [status, setStatus] = useState<EditableTicket["status"]>("open");
   const [assignedTo, setAssignedTo] = useState<string>(UNASSIGNED);
@@ -104,16 +105,18 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
     (async () => {
       const { data, error } = await supabase
         .from("department_tickets" as any)
-        .select("attachments")
+        .select("attachments, notes")
         .eq("id", ticket.id)
         .single();
       if (cancelled) return;
       if (error || !data) {
         setAttachments([]);
+        setNotes("");
         return;
       }
       const paths: string[] = Array.isArray((data as any).attachments) ? (data as any).attachments : [];
       setAttachments(paths.map((p) => ({ path: p, name: p.split("/").pop() || p })));
+      setNotes((data as any).notes || "");
     })();
     return () => { cancelled = true; };
   }, [ticket, open]);
@@ -149,6 +152,7 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
       const parentPatch: Record<string, any> = {
         title: title.trim(),
         description: description.trim() || null,
+        notes: notes.trim() || null,
         priority,
       };
       const { error: parentErr } = await supabase
@@ -234,6 +238,19 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
               onChange={(e) => setDescription(e.target.value)}
               rows={5}
               disabled={isClient}
+              className="break-words [overflow-wrap:anywhere] whitespace-pre-wrap"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="ticket-notes">Additional Notes</Label>
+            <Textarea
+              id="ticket-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              disabled={isClient}
+              placeholder="Additional notes…"
               className="break-words [overflow-wrap:anywhere] whitespace-pre-wrap"
             />
           </div>
