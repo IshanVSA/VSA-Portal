@@ -226,11 +226,14 @@ export function NotificationBell() {
       const staffScoped = !isAllAccess && departments !== null;
       const deptSet = new Set<DepartmentType>(departments ?? []);
 
+      // For staff, notifications are "New Ticket" events keyed off created_at,
+      // so order by created_at to avoid old tickets (recently edited) pushing
+      // newer ones out of the cap. Bump cap to give some headroom.
       const { data: ticketData } = await supabase
         .from("department_tickets")
         .select("id, title, department, priority, status, created_at, updated_at, clinic_id")
-        .order("updated_at", { ascending: false })
-        .limit(15);
+        .order(isClient ? "updated_at" : "created_at", { ascending: false })
+        .limit(50);
 
       // For staff scoped to specific departments, also surface tickets that
       // were fanned out to one of their departments (e.g. Website ticket with
