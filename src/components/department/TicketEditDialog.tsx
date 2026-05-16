@@ -77,6 +77,7 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [notes, setNotes] = useState("");
   const [priority, setPriority] = useState<EditableTicket["priority"]>("regular");
   const [status, setStatus] = useState<EditableTicket["status"]>("open");
   const [assignedTo, setAssignedTo] = useState<string>(UNASSIGNED);
