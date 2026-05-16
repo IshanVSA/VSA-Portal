@@ -152,6 +152,7 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
       const parentPatch: Record<string, any> = {
         title: title.trim(),
         description: description.trim() || null,
+        notes: notes.trim() || null,
         priority,
       };
       const { error: parentErr } = await supabase
