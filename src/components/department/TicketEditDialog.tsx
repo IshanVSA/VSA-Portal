@@ -105,16 +105,18 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
     (async () => {
       const { data, error } = await supabase
         .from("department_tickets" as any)
-        .select("attachments")
+        .select("attachments, notes")
         .eq("id", ticket.id)
         .single();
       if (cancelled) return;
       if (error || !data) {
         setAttachments([]);
+        setNotes("");
         return;
       }
       const paths: string[] = Array.isArray((data as any).attachments) ? (data as any).attachments : [];
       setAttachments(paths.map((p) => ({ path: p, name: p.split("/").pop() || p })));
+      setNotes((data as any).notes || "");
     })();
     return () => { cancelled = true; };
   }, [ticket, open]);
