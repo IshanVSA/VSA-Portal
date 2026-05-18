@@ -766,7 +766,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
                                   : "bg-muted text-foreground rounded-tl-sm"
                               }`}
                             >
-                              {renderMessageWithMentions(msg.message, searchQuery.trim() ? searchQuery : undefined)}
+                              {renderMessageWithMentions(msg.message, searchQuery.trim() ? searchQuery : undefined, mentionableNames)}
                             </div>
                             {msg.edited_at && (
                               <span className="text-[10px] text-muted-foreground italic mt-0.5">
