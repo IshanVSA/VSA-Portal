@@ -246,22 +246,43 @@ export function MentionInput({
 }
 
 /** Render message text with @mentions highlighted */
-export function renderMessageWithMentions(text: string, searchQuery?: string) {
-  // Split by @mention pattern (word characters, spaces within a name)
-  const mentionRegex = /@([\w][\w\s]*?)(?=\s@|\s[^@]|$)/g;
+export function renderMessageWithMentions(
+  text: string,
+  searchQuery?: string,
+  knownNames?: string[]
+) {
   const parts: { type: "text" | "mention"; value: string }[] = [];
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
 
-  while ((match = mentionRegex.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push({ type: "text", value: text.slice(lastIndex, match.index) });
+  // Sort known names by length desc so "Debraj Mondal" matches before "Debraj".
+  const names = (knownNames || []).slice().sort((a, b) => b.length - a.length);
+
+  let i = 0;
+  while (i < text.length) {
+    if (text[i] === "@") {
+      // Try to match the longest known name first
+      let matched: string | null = null;
+      for (const n of names) {
+        if (n && text.slice(i + 1, i + 1 + n.length).toLowerCase() === n.toLowerCase()) {
+          matched = text.slice(i, i + 1 + n.length);
+          break;
+        }
+      }
+      // Fallback: single word after @
+      if (!matched) {
+        const m = text.slice(i).match(/^@[\w]+/);
+        if (m) matched = m[0];
+      }
+      if (matched) {
+        parts.push({ type: "mention", value: matched });
+        i += matched.length;
+        continue;
+      }
     }
-    parts.push({ type: "mention", value: match[0] });
-    lastIndex = match.index + match[0].length;
-  }
-  if (lastIndex < text.length) {
-    parts.push({ type: "text", value: text.slice(lastIndex) });
+    // Accumulate plain text
+    const last = parts[parts.length - 1];
+    if (last && last.type === "text") last.value += text[i];
+    else parts.push({ type: "text", value: text[i] });
+    i++;
   }
 
   if (parts.length === 0) parts.push({ type: "text", value: text });

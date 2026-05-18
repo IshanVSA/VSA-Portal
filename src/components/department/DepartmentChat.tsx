@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { EmojiPicker } from "./EmojiPicker";
 import { MessageReactions } from "./MessageReactions";
-import { MentionInput, renderMessageWithMentions } from "./MentionInput";
+import { MentionInput, renderMessageWithMentions, useMentionableUsers } from "./MentionInput";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUserRole } from "@/hooks/useUserRole";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
@@ -111,6 +111,9 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     setPageLimit(PAGE_SIZE);
     setHasMore(false);
   }, [department, clinicId]);
+
+  const { data: mentionableUsers = [] } = useMentionableUsers(department, clinicId);
+  const mentionableNames = mentionableUsers.map((u) => u.name);
 
   const queryKey = ["department-chats", department, clinicId, pageLimit];
 
@@ -763,7 +766,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
                                   : "bg-muted text-foreground rounded-tl-sm"
                               }`}
                             >
-                              {renderMessageWithMentions(msg.message, searchQuery.trim() ? searchQuery : undefined)}
+                              {renderMessageWithMentions(msg.message, searchQuery.trim() ? searchQuery : undefined, mentionableNames)}
                             </div>
                             {msg.edited_at && (
                               <span className="text-[10px] text-muted-foreground italic mt-0.5">
