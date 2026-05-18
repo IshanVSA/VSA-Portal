@@ -597,6 +597,30 @@ export function NotificationBell() {
           clinicId: newRow.clinic_id ?? null,
         });
       })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "department_chats" }, async (payload) => {
+        const c = payload.new as any;
+        if (!c || c.user_id === user.id) return;
+        if (rtStaffScoped && !rtDeptSet.has(c.department as DepartmentType)) return;
+        const names = userMentionNamesRef.current;
+        if (names.length === 0 || !messageMentionsUser(c.message || "", names)) return;
+        const { data: sender } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", c.user_id)
+          .maybeSingle();
+        const senderName = (sender as any)?.full_name || "Someone";
+        const preview = (c.message || "").length > 120 ? c.message.slice(0, 120) + "…" : c.message;
+        await enrichAndPush({
+          id: `chat-mention-${c.id}`,
+          type: "chat_mention",
+          title: `${senderName} mentioned you`,
+          message: preview,
+          read: false,
+          created_at: c.created_at || new Date().toISOString(),
+          link: buildChatLink(c.department, c.clinic_id),
+          clinicId: c.clinic_id ?? null,
+        });
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
