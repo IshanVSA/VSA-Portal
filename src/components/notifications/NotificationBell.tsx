@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useLayoutEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { Bell, Check, FileText, MessageSquare, AlertTriangle, CheckCircle, Ticket, Sparkles, Send, ThumbsUp, Inbox, Settings2, AtSign } from "lucide-react";
+import { Bell, Check, FileText, MessageSquare, AlertTriangle, CheckCircle, Ticket, Sparkles, Send, ThumbsUp, Inbox, Settings2, AtSign, MessagesSquare } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +12,7 @@ import { formatDistanceToNow, isToday, isYesterday, isThisWeek } from "date-fns"
 
 interface Notification {
   id: string;
-  type: "post_approved" | "post_flagged" | "comment_added" | "status_changed" | "ticket_created" | "sm2_generated" | "sm2_sent" | "sm2_approved" | "sm2_feedback" | "client_note" | "chat_mention";
+  type: "post_approved" | "post_flagged" | "comment_added" | "status_changed" | "ticket_created" | "sm2_generated" | "sm2_sent" | "sm2_approved" | "sm2_feedback" | "client_note" | "chat_mention" | "team_chat";
   title: string;
   message: string;
   read: boolean;
@@ -34,6 +34,7 @@ const typeConfig = {
   sm2_feedback: { icon: MessageSquare, color: "text-orange-500", bg: "bg-orange-500/10" },
   client_note: { icon: MessageSquare, color: "text-orange-500", bg: "bg-orange-500/10" },
   chat_mention: { icon: AtSign, color: "text-sky-500", bg: "bg-sky-500/10" },
+  team_chat: { icon: MessagesSquare, color: "text-indigo-500", bg: "bg-indigo-500/10" },
 };
 
 function mapSM2Status(status: string): Notification["type"] {
@@ -390,22 +391,19 @@ export function NotificationBell() {
       // post_activity_log is also social-media domain; drop for non-social staff.
       const scopedActivityNotifs = socialAllowed ? activityNotifs : [];
 
-      // Chat @mentions of the current user
+      // Chat messages — admins see all (RLS), staff see their dept's chats
+      // (RLS via is_clinic_dept_team_member). Clients are excluded from team chat.
       const mentionNames = userMentionNamesRef.current;
       let chatMentionNotifs: Notification[] = [];
-      if (mentionNames.length > 0) {
-        // Pull a small recent window and filter in-memory (mentions are rare).
-        let chatQuery = supabase
+      let teamChatNotifs: Notification[] = [];
+      if (role !== "client") {
+        const { data: chatRows } = await supabase
           .from("department_chats")
           .select("id, message, created_at, department, clinic_id, user_id")
           .neq("user_id", user.id)
           .gte("created_at", windowStart)
           .order("created_at", { ascending: false })
           .limit(200);
-        if (staffScoped && deptSet.size > 0) {
-          chatQuery = chatQuery.in("department", Array.from(deptSet));
-        }
-        const { data: chatRows } = await chatQuery;
         const senderIds = Array.from(new Set((chatRows || []).map((c: any) => c.user_id).filter(Boolean)));
         const senderNameMap = new Map<string, string>();
         if (senderIds.length > 0) {
@@ -415,25 +413,38 @@ export function NotificationBell() {
             .in("id", senderIds);
           (senderProfiles || []).forEach((p: any) => senderNameMap.set(p.id, p.full_name || "Someone"));
         }
-        chatMentionNotifs = (chatRows || [])
-          .filter((c: any) => messageMentionsUser(c.message || "", mentionNames))
-          .map((c: any) => {
-            const sender = senderNameMap.get(c.user_id) || "Someone";
-            const preview = (c.message || "").length > 120 ? c.message.slice(0, 120) + "…" : c.message;
-            return {
+        (chatRows || []).forEach((c: any) => {
+          const sender = senderNameMap.get(c.user_id) || "Someone";
+          const preview = (c.message || "").length > 120 ? c.message.slice(0, 120) + "…" : c.message;
+          const deptLabel = String(c.department || "").replace(/_/g, " ");
+          const isMention = mentionNames.length > 0 && messageMentionsUser(c.message || "", mentionNames);
+          if (isMention) {
+            chatMentionNotifs.push({
               id: `chat-mention-${c.id}`,
-              type: "chat_mention" as const,
+              type: "chat_mention",
               title: `${sender} mentioned you`,
               message: preview,
               read: false,
               created_at: c.created_at,
               link: buildChatLink(c.department, c.clinic_id),
               clinicId: c.clinic_id ?? null,
-            };
-          });
+            });
+          } else {
+            teamChatNotifs.push({
+              id: `chat-${c.id}`,
+              type: "team_chat",
+              title: `${sender} in ${deptLabel} chat`,
+              message: preview,
+              read: false,
+              created_at: c.created_at,
+              link: buildChatLink(c.department, c.clinic_id),
+              clinicId: c.clinic_id ?? null,
+            });
+          }
+        });
       }
 
-      const all = [...scopedActivityNotifs, ...ticketNotifs, ...sm2Notifs, ...noteNotifs, ...chatMentionNotifs]
+      const all = [...scopedActivityNotifs, ...ticketNotifs, ...sm2Notifs, ...noteNotifs, ...chatMentionNotifs, ...teamChatNotifs]
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         .slice(0, 30)
         .map(withRead);
@@ -600,9 +611,9 @@ export function NotificationBell() {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "department_chats" }, async (payload) => {
         const c = payload.new as any;
         if (!c || c.user_id === user.id) return;
-        if (rtStaffScoped && !rtDeptSet.has(c.department as DepartmentType)) return;
-        const names = userMentionNamesRef.current;
-        if (names.length === 0 || !messageMentionsUser(c.message || "", names)) return;
+        if (role === "client") return;
+        // RLS on department_chats ensures this INSERT is only delivered to
+        // users who can see the channel (admins + dept team members of clinic).
         const { data: sender } = await supabase
           .from("profiles")
           .select("full_name")
@@ -610,10 +621,22 @@ export function NotificationBell() {
           .maybeSingle();
         const senderName = (sender as any)?.full_name || "Someone";
         const preview = (c.message || "").length > 120 ? c.message.slice(0, 120) + "…" : c.message;
-        await enrichAndPush({
+        const names = userMentionNamesRef.current;
+        const isMention = names.length > 0 && messageMentionsUser(c.message || "", names);
+        const deptLabel = String(c.department || "").replace(/_/g, " ");
+        await enrichAndPush(isMention ? {
           id: `chat-mention-${c.id}`,
           type: "chat_mention",
           title: `${senderName} mentioned you`,
+          message: preview,
+          read: false,
+          created_at: c.created_at || new Date().toISOString(),
+          link: buildChatLink(c.department, c.clinic_id),
+          clinicId: c.clinic_id ?? null,
+        } : {
+          id: `chat-${c.id}`,
+          type: "team_chat",
+          title: `${senderName} in ${deptLabel} chat`,
           message: preview,
           read: false,
           created_at: c.created_at || new Date().toISOString(),
@@ -853,7 +876,9 @@ export function NotificationBell() {
                                     ? "/social"
                                     : notif.type === "ticket_created" || notif.type === "status_changed"
                                       ? "/social?tab=tickets"
-                                      : "/";
+                                      : notif.type === "chat_mention" || notif.type === "team_chat"
+                                        ? "/social?tab=chat"
+                                        : "/";
                                   navigate(notif.link || fallback);
                                 }}
                               >
