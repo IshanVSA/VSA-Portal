@@ -222,6 +222,22 @@ export function NotificationBell() {
 
     const withRead = (n: Notification): Notification => ({ ...n, read: isReadById(n) });
 
+    const refreshUserMentionNames = async () => {
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+      const full = (prof?.full_name || "").trim();
+      const names = new Set<string>();
+      if (full) {
+        names.add(full);
+        const first = full.split(/\s+/)[0];
+        if (first) names.add(first);
+      }
+      userMentionNamesRef.current = Array.from(names);
+    };
+
     const fetchNotifications = async () => {
       const { data: activityData } = await supabase
         .from("post_activity_log")
