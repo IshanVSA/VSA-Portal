@@ -112,6 +112,9 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     setHasMore(false);
   }, [department, clinicId]);
 
+  const { data: mentionableUsers = [] } = useMentionableUsers(department, clinicId);
+  const mentionableNames = mentionableUsers.map((u) => u.name);
+
   const queryKey = ["department-chats", department, clinicId, pageLimit];
 
   const { data: messages = [], isLoading } = useQuery({
