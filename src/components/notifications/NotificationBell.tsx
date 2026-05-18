@@ -12,7 +12,7 @@ import { formatDistanceToNow, isToday, isYesterday, isThisWeek } from "date-fns"
 
 interface Notification {
   id: string;
-  type: "post_approved" | "post_flagged" | "comment_added" | "status_changed" | "ticket_created" | "sm2_generated" | "sm2_sent" | "sm2_approved" | "sm2_feedback" | "client_note" | "chat_mention";
+  type: "post_approved" | "post_flagged" | "comment_added" | "status_changed" | "ticket_created" | "sm2_generated" | "sm2_sent" | "sm2_approved" | "sm2_feedback" | "client_note" | "chat_mention" | "team_chat";
   title: string;
   message: string;
   read: boolean;
