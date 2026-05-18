@@ -270,7 +270,7 @@ export function renderMessageWithMentions(text: string, searchQuery?: string) {
     <>
       {parts.map((part, i) =>
         part.type === "mention" ? (
-          <span key={i} className="font-semibold text-primary">
+          <span key={i} className="font-semibold underline underline-offset-2 decoration-current/50">
             {part.value}
           </span>
         ) : searchQuery?.trim() ? (
