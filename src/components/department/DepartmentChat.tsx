@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { EmojiPicker } from "./EmojiPicker";
 import { MessageReactions } from "./MessageReactions";
-import { MentionInput, renderMessageWithMentions } from "./MentionInput";
+import { MentionInput, renderMessageWithMentions, useMentionableUsers } from "./MentionInput";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUserRole } from "@/hooks/useUserRole";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
