@@ -141,6 +141,28 @@ function buildSM2PostLink(clinicId: string | null | undefined, scheduledDate: st
   return `/social?${params.toString()}`;
 }
 
+function buildChatLink(department: string | null | undefined, clinicId: string | null | undefined): string {
+  const base = DEPARTMENT_ROUTE[department || ""] || "/social";
+  const params = new URLSearchParams({ tab: "chat" });
+  if (clinicId) params.set("clinic", clinicId);
+  return `${base}?${params.toString()}`;
+}
+
+/** Returns true if `message` contains an @mention of any of the provided names (case-insensitive, word-boundary). */
+function messageMentionsUser(message: string, names: string[]): boolean {
+  if (!message || names.length === 0) return false;
+  const lower = message.toLowerCase();
+  return names.some((n) => {
+    const name = n.trim().toLowerCase();
+    if (!name) return false;
+    const idx = lower.indexOf("@" + name);
+    if (idx === -1) return false;
+    // Ensure the next char after the match isn't a word char (so "@deb" doesn't match "@debraj")
+    const next = lower[idx + 1 + name.length];
+    return !next || !/[a-z0-9_]/.test(next);
+  });
+}
+
 export function NotificationBell() {
   const { user } = useAuth();
   const { role } = useUserRole();
