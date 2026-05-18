@@ -21,18 +21,48 @@ interface MentionInputProps {
   placeholder?: string;
 }
 
+const DEPARTMENT_TEAM_ROLES: Record<string, string[]> = {
+  website: ["Developer", "Maintenance"],
+  seo: ["SEO Lead"],
+  google_ads: ["Ads Strategist", "Ads Analyst"],
+  social_media: ["Social & Concierge", "Meta Ads Specialist"],
+};
+
 export function useMentionableUsers(department: DepartmentType, clinicId: string | undefined) {
   return useQuery({
     queryKey: ["mentionable-users", department, clinicId],
     queryFn: async (): Promise<MentionUser[]> => {
       if (!clinicId) return [];
-      // Get department members
+
+      // Legacy: explicit department_members rows (if any exist)
       const { data: deptMembers } = await supabase
         .from("department_members")
         .select("user_id")
         .eq("department", department);
-      
-      // Get admins
+
+      // Staff with a team_role mapped to this department, assigned to this clinic
+      const allowedRoles = DEPARTMENT_TEAM_ROLES[department] || [];
+      let deptStaffIds: string[] = [];
+      if (allowedRoles.length > 0) {
+        const { data: roleProfiles } = await supabase
+          .from("profiles")
+          .select("id, team_role")
+          .in("team_role", allowedRoles);
+        const candidateIds = (roleProfiles || []).map((p) => p.id);
+        if (candidateIds.length > 0) {
+          const { data: assignments } = await (supabase
+            .from("clinic_team_members" as any)
+            .select("user_id")
+            .eq("clinic_id", clinicId)
+            .in("user_id", candidateIds) as any);
+          const assigned = new Set(
+            ((assignments || []) as { user_id: string }[]).map((a) => a.user_id)
+          );
+          deptStaffIds = candidateIds.filter((id) => assigned.has(id));
+        }
+      }
+
+      // Admins (always mentionable)
       const { data: adminRoles } = await supabase
         .from("user_roles")
         .select("user_id")
@@ -41,6 +71,7 @@ export function useMentionableUsers(department: DepartmentType, clinicId: string
       const userIds = [
         ...new Set([
           ...(deptMembers || []).map((m) => m.user_id),
+          ...deptStaffIds,
           ...(adminRoles || []).map((r) => r.user_id),
         ]),
       ];
