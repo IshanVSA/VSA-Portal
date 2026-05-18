@@ -458,7 +458,10 @@ export function NotificationBell() {
       setNotifications(allWithNames);
     };
 
-    fetchNotifications();
+    (async () => {
+      await refreshUserMentionNames();
+      await fetchNotifications();
+    })();
 
     const enrichAndPush = async (notif: Notification) => {
       const clinicName = await getClinicName(notif.clinicId);
