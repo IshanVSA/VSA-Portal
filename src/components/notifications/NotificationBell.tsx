@@ -611,9 +611,9 @@ export function NotificationBell() {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "department_chats" }, async (payload) => {
         const c = payload.new as any;
         if (!c || c.user_id === user.id) return;
-        if (rtStaffScoped && !rtDeptSet.has(c.department as DepartmentType)) return;
-        const names = userMentionNamesRef.current;
-        if (names.length === 0 || !messageMentionsUser(c.message || "", names)) return;
+        if (role === "client") return;
+        // RLS on department_chats ensures this INSERT is only delivered to
+        // users who can see the channel (admins + dept team members of clinic).
         const { data: sender } = await supabase
           .from("profiles")
           .select("full_name")
@@ -621,10 +621,22 @@ export function NotificationBell() {
           .maybeSingle();
         const senderName = (sender as any)?.full_name || "Someone";
         const preview = (c.message || "").length > 120 ? c.message.slice(0, 120) + "…" : c.message;
-        await enrichAndPush({
+        const names = userMentionNamesRef.current;
+        const isMention = names.length > 0 && messageMentionsUser(c.message || "", names);
+        const deptLabel = String(c.department || "").replace(/_/g, " ");
+        await enrichAndPush(isMention ? {
           id: `chat-mention-${c.id}`,
           type: "chat_mention",
           title: `${senderName} mentioned you`,
+          message: preview,
+          read: false,
+          created_at: c.created_at || new Date().toISOString(),
+          link: buildChatLink(c.department, c.clinic_id),
+          clinicId: c.clinic_id ?? null,
+        } : {
+          id: `chat-${c.id}`,
+          type: "team_chat",
+          title: `${senderName} in ${deptLabel} chat`,
           message: preview,
           read: false,
           created_at: c.created_at || new Date().toISOString(),
