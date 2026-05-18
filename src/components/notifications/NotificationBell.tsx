@@ -34,6 +34,7 @@ const typeConfig = {
   sm2_feedback: { icon: MessageSquare, color: "text-orange-500", bg: "bg-orange-500/10" },
   client_note: { icon: MessageSquare, color: "text-orange-500", bg: "bg-orange-500/10" },
   chat_mention: { icon: AtSign, color: "text-sky-500", bg: "bg-sky-500/10" },
+  team_chat: { icon: MessagesSquare, color: "text-indigo-500", bg: "bg-indigo-500/10" },
 };
 
 function mapSM2Status(status: string): Notification["type"] {
