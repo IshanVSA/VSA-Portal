@@ -2912,6 +2912,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_clinic_dept_team_member: {
+        Args: {
+          _clinic_id: string
+          _department: Database["public"]["Enums"]["department_type"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_clinic_team_member: {
         Args: { _clinic_id: string; _user_id: string }
         Returns: boolean
