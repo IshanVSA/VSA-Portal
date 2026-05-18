@@ -876,7 +876,9 @@ export function NotificationBell() {
                                     ? "/social"
                                     : notif.type === "ticket_created" || notif.type === "status_changed"
                                       ? "/social?tab=tickets"
-                                      : "/";
+                                      : notif.type === "chat_mention" || notif.type === "team_chat"
+                                        ? "/social?tab=chat"
+                                        : "/";
                                   navigate(notif.link || fallback);
                                 }}
                               >
