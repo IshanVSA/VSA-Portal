@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useLayoutEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { Bell, Check, FileText, MessageSquare, AlertTriangle, CheckCircle, Ticket, Sparkles, Send, ThumbsUp, Inbox, Settings2 } from "lucide-react";
+import { Bell, Check, FileText, MessageSquare, AlertTriangle, CheckCircle, Ticket, Sparkles, Send, ThumbsUp, Inbox, Settings2, AtSign } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +12,7 @@ import { formatDistanceToNow, isToday, isYesterday, isThisWeek } from "date-fns"
 
 interface Notification {
   id: string;
-  type: "post_approved" | "post_flagged" | "comment_added" | "status_changed" | "ticket_created" | "sm2_generated" | "sm2_sent" | "sm2_approved" | "sm2_feedback" | "client_note";
+  type: "post_approved" | "post_flagged" | "comment_added" | "status_changed" | "ticket_created" | "sm2_generated" | "sm2_sent" | "sm2_approved" | "sm2_feedback" | "client_note" | "chat_mention";
   title: string;
   message: string;
   read: boolean;
@@ -33,6 +33,7 @@ const typeConfig = {
   sm2_approved: { icon: ThumbsUp, color: "text-emerald-500", bg: "bg-emerald-500/10" },
   sm2_feedback: { icon: MessageSquare, color: "text-orange-500", bg: "bg-orange-500/10" },
   client_note: { icon: MessageSquare, color: "text-orange-500", bg: "bg-orange-500/10" },
+  chat_mention: { icon: AtSign, color: "text-sky-500", bg: "bg-sky-500/10" },
 };
 
 function mapSM2Status(status: string): Notification["type"] {
@@ -140,6 +141,28 @@ function buildSM2PostLink(clinicId: string | null | undefined, scheduledDate: st
   return `/social?${params.toString()}`;
 }
 
+function buildChatLink(department: string | null | undefined, clinicId: string | null | undefined): string {
+  const base = DEPARTMENT_ROUTE[department || ""] || "/social";
+  const params = new URLSearchParams({ tab: "chat" });
+  if (clinicId) params.set("clinic", clinicId);
+  return `${base}?${params.toString()}`;
+}
+
+/** Returns true if `message` contains an @mention of any of the provided names (case-insensitive, word-boundary). */
+function messageMentionsUser(message: string, names: string[]): boolean {
+  if (!message || names.length === 0) return false;
+  const lower = message.toLowerCase();
+  return names.some((n) => {
+    const name = n.trim().toLowerCase();
+    if (!name) return false;
+    const idx = lower.indexOf("@" + name);
+    if (idx === -1) return false;
+    // Ensure the next char after the match isn't a word char (so "@deb" doesn't match "@debraj")
+    const next = lower[idx + 1 + name.length];
+    return !next || !/[a-z0-9_]/.test(next);
+  });
+}
+
 export function NotificationBell() {
   const { user } = useAuth();
   const { role } = useUserRole();
@@ -148,6 +171,7 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const clinicNameMapRef = useRef<Map<string, string>>(new Map());
+  const userMentionNamesRef = useRef<string[]>([]);
 
   const storageKey = user ? `notif-read-ids:${user.id}` : null;
   const readAllKey = user ? `notif-read-all-at:${user.id}` : null;
@@ -197,6 +221,22 @@ export function NotificationBell() {
       (readAllAtRef.current > 0 && new Date(n.created_at).getTime() <= readAllAtRef.current);
 
     const withRead = (n: Notification): Notification => ({ ...n, read: isReadById(n) });
+
+    const refreshUserMentionNames = async () => {
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+      const full = (prof?.full_name || "").trim();
+      const names = new Set<string>();
+      if (full) {
+        names.add(full);
+        const first = full.split(/\s+/)[0];
+        if (first) names.add(first);
+      }
+      userMentionNamesRef.current = Array.from(names);
+    };
 
     const fetchNotifications = async () => {
       const { data: activityData } = await supabase
@@ -350,7 +390,50 @@ export function NotificationBell() {
       // post_activity_log is also social-media domain; drop for non-social staff.
       const scopedActivityNotifs = socialAllowed ? activityNotifs : [];
 
-      const all = [...scopedActivityNotifs, ...ticketNotifs, ...sm2Notifs, ...noteNotifs]
+      // Chat @mentions of the current user
+      const mentionNames = userMentionNamesRef.current;
+      let chatMentionNotifs: Notification[] = [];
+      if (mentionNames.length > 0) {
+        // Pull a small recent window and filter in-memory (mentions are rare).
+        let chatQuery = supabase
+          .from("department_chats")
+          .select("id, message, created_at, department, clinic_id, user_id")
+          .neq("user_id", user.id)
+          .gte("created_at", windowStart)
+          .order("created_at", { ascending: false })
+          .limit(200);
+        if (staffScoped && deptSet.size > 0) {
+          chatQuery = chatQuery.in("department", Array.from(deptSet));
+        }
+        const { data: chatRows } = await chatQuery;
+        const senderIds = Array.from(new Set((chatRows || []).map((c: any) => c.user_id).filter(Boolean)));
+        const senderNameMap = new Map<string, string>();
+        if (senderIds.length > 0) {
+          const { data: senderProfiles } = await supabase
+            .from("profiles")
+            .select("id, full_name")
+            .in("id", senderIds);
+          (senderProfiles || []).forEach((p: any) => senderNameMap.set(p.id, p.full_name || "Someone"));
+        }
+        chatMentionNotifs = (chatRows || [])
+          .filter((c: any) => messageMentionsUser(c.message || "", mentionNames))
+          .map((c: any) => {
+            const sender = senderNameMap.get(c.user_id) || "Someone";
+            const preview = (c.message || "").length > 120 ? c.message.slice(0, 120) + "…" : c.message;
+            return {
+              id: `chat-mention-${c.id}`,
+              type: "chat_mention" as const,
+              title: `${sender} mentioned you`,
+              message: preview,
+              read: false,
+              created_at: c.created_at,
+              link: buildChatLink(c.department, c.clinic_id),
+              clinicId: c.clinic_id ?? null,
+            };
+          });
+      }
+
+      const all = [...scopedActivityNotifs, ...ticketNotifs, ...sm2Notifs, ...noteNotifs, ...chatMentionNotifs]
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         .slice(0, 30)
         .map(withRead);
@@ -375,7 +458,10 @@ export function NotificationBell() {
       setNotifications(allWithNames);
     };
 
-    fetchNotifications();
+    (async () => {
+      await refreshUserMentionNames();
+      await fetchNotifications();
+    })();
 
     const enrichAndPush = async (notif: Notification) => {
       const clinicName = await getClinicName(notif.clinicId);
@@ -509,6 +595,30 @@ export function NotificationBell() {
           created_at: newRow.updated_at || new Date().toISOString(),
           link: buildSM2PostLink(newRow.clinic_id, newRow.scheduled_date),
           clinicId: newRow.clinic_id ?? null,
+        });
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "department_chats" }, async (payload) => {
+        const c = payload.new as any;
+        if (!c || c.user_id === user.id) return;
+        if (rtStaffScoped && !rtDeptSet.has(c.department as DepartmentType)) return;
+        const names = userMentionNamesRef.current;
+        if (names.length === 0 || !messageMentionsUser(c.message || "", names)) return;
+        const { data: sender } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", c.user_id)
+          .maybeSingle();
+        const senderName = (sender as any)?.full_name || "Someone";
+        const preview = (c.message || "").length > 120 ? c.message.slice(0, 120) + "…" : c.message;
+        await enrichAndPush({
+          id: `chat-mention-${c.id}`,
+          type: "chat_mention",
+          title: `${senderName} mentioned you`,
+          message: preview,
+          read: false,
+          created_at: c.created_at || new Date().toISOString(),
+          link: buildChatLink(c.department, c.clinic_id),
+          clinicId: c.clinic_id ?? null,
         });
       })
       .subscribe();
