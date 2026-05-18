@@ -171,6 +171,7 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const clinicNameMapRef = useRef<Map<string, string>>(new Map());
+  const userMentionNamesRef = useRef<string[]>([]);
 
   const storageKey = user ? `notif-read-ids:${user.id}` : null;
   const readAllKey = user ? `notif-read-all-at:${user.id}` : null;
