@@ -66,10 +66,11 @@ export default function WebsiteDepartment() {
   const { isLocked, isAdminBypass, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "website", clinicsLoading);
   const isStaff = role === "admin" || role === "concierge";
   const { unreadCount, markAsRead } = useDepartmentChatUnread("website", selectedClinicId);
+  const myOpenTasks = useMyOpenTaskCount("website", selectedClinicId);
   const tabs = [
     ...baseTabs,
     ...(canViewHealth ? [healthTab] : []),
-    ...(isStaff ? [chatTab] : []),
+    ...(isStaff ? [tasksTabDef, chatTab] : []),
   ];
   const selectedClinicName = selectedClinic?.clinic_name;
 
@@ -130,6 +131,11 @@ export default function WebsiteDepartment() {
                           {unreadCount > 99 ? "99+" : unreadCount}
                         </span>
                       )}
+                      {tab.value === "tasks" && myOpenTasks > 0 && currentTab !== "tasks" && (
+                        <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                          {myOpenTasks > 99 ? "99+" : myOpenTasks}
+                        </span>
+                      )}
                     </TabsTrigger>
                   ))}
                 </TabsList>
@@ -143,6 +149,7 @@ export default function WebsiteDepartment() {
                 <TabsContent value="reports" className="mt-4"><WebsiteReportsTab clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="website" clinicId={selectedClinicId} /></TabsContent>
                 {canViewHealth && <TabsContent value="health" className="mt-4"><WebsiteHealthTab clinicId={selectedClinicId} /></TabsContent>}
+                {isStaff && <TabsContent value="tasks" className="mt-4"><TasksTab department="website" clinicId={selectedClinicId} /></TabsContent>}
                 {isStaff && <TabsContent value="chat" className="mt-4"><DepartmentChat department="website" clinicId={selectedClinicId} onVisible={markAsRead} /></TabsContent>}
               </Tabs>
             </motion.div>
