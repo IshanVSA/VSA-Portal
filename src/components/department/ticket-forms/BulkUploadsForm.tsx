@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { FileUploader, type AttachedFile } from "./FileUploader";
 import { Info } from "lucide-react";
+import { VoiceDictation } from "./VoiceDictation";
 
 interface BulkUploadsFormProps {
   onChange: (description: string) => void;
