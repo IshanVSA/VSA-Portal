@@ -34,6 +34,18 @@ export function SpecialPromotionForm({ onChange }: SpecialPromotionFormProps) {
 
   return (
     <div className="space-y-3">
+      <VoiceDictation
+        formType="Special Promotion"
+        onFieldsExtracted={(f) => {
+          if (f.title) setTitle(f.title);
+          if (f.description) setDescription(f.description);
+          if (f.notes) setNotes(f.notes);
+          try {
+            if (f.startDate) setStartDate(parse(f.startDate, "yyyy-MM-dd", new Date()));
+            if (f.endDate) setEndDate(parse(f.endDate, "yyyy-MM-dd", new Date()));
+          } catch {}
+        }}
+      />
       <div className="space-y-1.5">
         <Label>Title *</Label>
         <Input
