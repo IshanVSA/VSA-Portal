@@ -137,55 +137,100 @@ export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationPr
 
   return (
     <>
-      <div className="flex items-center gap-2">
-        <Tooltip>
-          <TooltipTrigger asChild>
+      {!recording && (
+        <div className="flex items-center gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={startRecording}
+                disabled={transcribing}
+              >
+                {transcribing ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Transcribing…
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    Dictate with Tony AI
+                  </>
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="max-w-[200px]">
+              {transcribing ? "Transcribing your audio…" : "Speak to autofill the form with Tony AI"}
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      )}
+
+      {recording && (
+        <div className="relative overflow-hidden rounded-xl border border-primary/25 bg-gradient-to-r from-primary/[0.08] via-primary/[0.04] to-transparent p-3 animate-fade-in">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 opacity-70"
+            style={{
+              background:
+                "radial-gradient(120% 80% at 0% 50%, hsl(var(--primary) / 0.18), transparent 60%)",
+            }}
+          />
+          <div className="relative flex items-center gap-3">
+            {/* AI Orb — click to stop */}
+            <button
+              type="button"
+              onClick={stopRecording}
+              aria-label="Stop recording"
+              className="group relative flex h-11 w-11 shrink-0 items-center justify-center"
+            >
+              <span className="absolute inset-0 rounded-full bg-primary/25 animate-ping" />
+              <span className="absolute inset-1 rounded-full bg-primary/20 animate-pulse" />
+              <span
+                className="absolute inset-0 rounded-full"
+                style={{
+                  background:
+                    "conic-gradient(from 0deg, hsl(var(--primary)), hsl(var(--primary) / 0.35), hsl(var(--primary)))",
+                  animation: "spin 3s linear infinite",
+                }}
+              />
+              <span className="absolute inset-[3px] rounded-full bg-background" />
+              <span className="relative h-3 w-3 rounded-[3px] bg-primary transition-transform group-hover:scale-110" />
+            </button>
+
+            <div className="flex flex-1 min-w-0 flex-col gap-1">
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="h-3 w-3 text-primary animate-pulse" />
+                <span
+                  className="text-xs font-medium bg-clip-text text-transparent bg-[length:200%_100%]"
+                  style={{
+                    backgroundImage:
+                      "linear-gradient(90deg, hsl(var(--primary)) 0%, hsl(var(--foreground)) 50%, hsl(var(--primary)) 100%)",
+                    animation: "shimmer 2.2s linear infinite",
+                  }}
+                >
+                  Tony is listening… speak naturally
+                </span>
+              </div>
+              <VoiceWaveform stream={activeStream} height={22} className="w-full" />
+            </div>
+
             <Button
               type="button"
-              variant={recording ? "destructive" : "outline"}
+              variant="ghost"
               size="sm"
-              className="gap-1.5"
-              onClick={recording ? stopRecording : startRecording}
-              disabled={transcribing}
+              onClick={stopRecording}
+              className="shrink-0 h-8 gap-1.5 text-muted-foreground hover:text-foreground"
             >
-              {transcribing ? (
-                <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Transcribing…
-                </>
-              ) : recording ? (
-                <>
-                  <MicOff className="h-3.5 w-3.5" />
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive-foreground opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive-foreground" />
-                  </span>
-                  Stop
-                </>
-              ) : (
-                <>
-                  <Mic className="h-3.5 w-3.5" />
-                  Dictate
-                </>
-              )}
+              <MicOff className="h-3.5 w-3.5" />
+              Stop
             </Button>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="max-w-[200px]">
-            {transcribing
-              ? "Transcribing your audio…"
-              : recording
-                ? "Click to stop recording"
-                : "Speak to autofill the form with Tony AI"}
-          </TooltipContent>
-        </Tooltip>
-
-        {recording && (
-          <div className="flex items-center gap-2 flex-1 min-w-0 max-w-[260px] animate-fade-in">
-            <VoiceWaveform stream={activeStream} height={28} className="flex-1" />
-            <span className="text-xs text-muted-foreground italic shrink-0">speak now</span>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <Dialog open={showDialog} onOpenChange={(open) => { if (!open) handleCancel(); }}>
         <DialogContent className="sm:max-w-md">
