@@ -8,8 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, ClipboardList, CalendarDays, User, Loader2, Mic } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Plus, ClipboardList, CalendarDays, User, Loader2, Mic, Type, AlignLeft, Flag, UserCircle2, Sparkles, X } from "lucide-react";
 import { format, isBefore, startOfDay } from "date-fns";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
