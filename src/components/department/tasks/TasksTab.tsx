@@ -270,10 +270,14 @@ function CreateTaskDialog({
       <DialogTrigger asChild>
         <Button className="gap-2"><Plus className="h-4 w-4" /> New task</Button>
       </DialogTrigger>
-      <DialogContent>
-        <DialogHeader><DialogTitle>Create task</DialogTitle></DialogHeader>
-        <div className="space-y-3">
-          <div className="flex justify-start">
+      <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden gap-0 border-border/60">
+        {/* Header */}
+        <div className="relative px-6 pt-6 pb-5 border-b border-border/60 bg-gradient-to-br from-primary/5 via-background to-background">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-xl font-semibold tracking-tight">Create task</DialogTitle>
+            <p className="text-sm text-muted-foreground">Capture the work — or dictate it and let AI fill it in.</p>
+          </DialogHeader>
+          <div className="mt-4">
             <VoiceDictation
               formType="Task"
               onFieldsExtracted={(fields) => {
@@ -284,49 +288,134 @@ function CreateTaskDialog({
               }}
             />
           </div>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 py-5 space-y-5 max-h-[60vh] overflow-y-auto">
+          {/* Title */}
           <div className="space-y-1.5">
-            <Label>Title</Label>
-            <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="What needs to be done?" />
+            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+              <Type className="h-3 w-3" /> Title
+            </Label>
+            <Input
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="What needs to be done?"
+              className="h-11 text-[15px] font-medium border-border/70 focus-visible:ring-primary/30 focus-visible:border-primary/50 transition-colors"
+            />
           </div>
+
+          {/* Description */}
           <div className="space-y-1.5">
-            <Label>Description</Label>
-            <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} />
+            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+              <AlignLeft className="h-3 w-3" /> Description
+            </Label>
+            <Textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              rows={3}
+              placeholder="Add context, links, or acceptance criteria…"
+              className="text-sm resize-none border-border/70 focus-visible:ring-primary/30 focus-visible:border-primary/50 transition-colors"
+            />
           </div>
+
+          {/* Priority + Due date */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Priority</Label>
+              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                <Flag className="h-3 w-3" /> Priority
+              </Label>
               <Select value={priority} onValueChange={v => setPriority(v as TaskPriority)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-11 border-border/70 [&>span]:flex [&>span]:items-center [&>span]:gap-2">
+                  <SelectValue>
+                    <PriorityDot value={priority} />
+                    <span className="capitalize text-sm font-medium">{priority}</span>
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="urgent">Urgent</SelectItem>
+                  {(["low","medium","high","urgent"] as TaskPriority[]).map(p => (
+                    <SelectItem key={p} value={p}>
+                      <span className="flex items-center gap-2">
+                        <PriorityDot value={p} />
+                        <span className="capitalize">{p}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Due date</Label>
-              <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
+              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                <CalendarDays className="h-3 w-3" /> Due date
+              </Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className={cn(
+                      "h-11 w-full justify-start text-left font-normal border-border/70 hover:bg-accent/40",
+                      !dueDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarDays className="h-4 w-4 mr-2 opacity-70" />
+                    {dueDate ? format(new Date(dueDate), "MMM d, yyyy") : "Pick a date"}
+                    {dueDate && (
+                      <span
+                        role="button"
+                        onClick={(e) => { e.stopPropagation(); setDueDate(""); }}
+                        className="ml-auto rounded-md p-0.5 hover:bg-muted text-muted-foreground"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dueDate ? new Date(dueDate) : undefined}
+                    onSelect={(d) => setDueDate(d ? format(d, "yyyy-MM-dd") : "")}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
+
+          {/* Assignee */}
           <div className="space-y-1.5">
-            <Label>Assignee</Label>
+            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+              <UserCircle2 className="h-3 w-3" /> Assignee
+            </Label>
             <Select value={assignee} onValueChange={setAssignee}>
-              <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
+              <SelectTrigger className="h-11 border-border/70 [&>span]:flex [&>span]:items-center [&>span]:gap-2.5">
+                <SelectValue>
+                  <AssigneeBadge name={assignee === "unassigned" ? null : staff.find(s => s.id === assignee)?.name ?? null} />
+                </SelectValue>
+              </SelectTrigger>
               <SelectContent>
-                <SelectItem value="unassigned">Unassigned</SelectItem>
-                {staff.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                <SelectItem value="unassigned">
+                  <span className="flex items-center gap-2.5"><AssigneeBadge name={null} /></span>
+                </SelectItem>
+                {staff.map(s => (
+                  <SelectItem key={s.id} value={s.id}>
+                    <span className="flex items-center gap-2.5"><AssigneeBadge name={s.name} /></span>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             {staff.length === 0 && (
               <p className="text-xs text-muted-foreground">No {department.replace("_", " ")} team members assigned to this clinic.</p>
             )}
           </div>
+
+          {/* Voice note */}
           <div className="rounded-xl border border-border/70 bg-gradient-to-br from-muted/40 to-muted/10 p-3.5 space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20">
                   <Mic className="h-4 w-4" />
                 </div>
                 <div className="space-y-0.5">
@@ -362,7 +451,9 @@ function CreateTaskDialog({
             )}
           </div>
         </div>
-        <DialogFooter>
+
+        {/* Footer */}
+        <DialogFooter className="px-6 py-4 border-t border-border/60 bg-muted/20">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button
             disabled={!title.trim() || isSubmitting}
@@ -373,11 +464,49 @@ function CreateTaskDialog({
               due_date: dueDate || null,
               assigned_to: assignee === "unassigned" ? null : assignee,
             }, voice ? { blob: voice.blob, durationSeconds: voice.durationSeconds } : null)}
+            className="gap-2 shadow-sm"
           >
-            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Sparkles className="h-4 w-4" /> Create task</>}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+const priorityDotColor: Record<TaskPriority, string> = {
+  low: "bg-muted-foreground/50",
+  medium: "bg-blue-500",
+  high: "bg-amber-500",
+  urgent: "bg-red-500",
+};
+
+function PriorityDot({ value }: { value: TaskPriority }) {
+  return (
+    <span className={cn("inline-block h-2 w-2 rounded-full ring-2 ring-offset-1 ring-offset-background", priorityDotColor[value], {
+      "ring-blue-500/20": value === "medium",
+      "ring-amber-500/20": value === "high",
+      "ring-red-500/20": value === "urgent",
+      "ring-muted-foreground/20": value === "low",
+    })} />
+  );
+}
+
+function AssigneeBadge({ name }: { name: string | null }) {
+  const initials = name
+    ? name.split(/\s+/).map(p => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase()
+    : "?";
+  return (
+    <>
+      <Avatar className="h-6 w-6">
+        <AvatarFallback className={cn(
+          "text-[10px] font-semibold",
+          name ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+        )}>
+          {initials}
+        </AvatarFallback>
+      </Avatar>
+      <span className={cn("text-sm", !name && "text-muted-foreground")}>{name ?? "Unassigned"}</span>
+    </>
   );
 }
