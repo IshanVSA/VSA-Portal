@@ -5,7 +5,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Share2, LayoutDashboard, BarChart3, Ticket, Upload, MessageSquare, Dna, Sparkles, Eye, SlidersHorizontal, MapPin, Tag, Megaphone, FileText } from "lucide-react";
+import { Share2, LayoutDashboard, BarChart3, Ticket, Upload, MessageSquare, Dna, Sparkles, Eye, SlidersHorizontal, MapPin, Tag, Megaphone, FileText, ClipboardList } from "lucide-react";
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { ComingSoonTab } from "@/components/department/ComingSoonTab";
 import { GBPPostsTab } from "@/components/seo/gbp/GBPPostsTab";
@@ -21,6 +21,8 @@ import { DepartmentAccessLocked } from "@/components/department/DepartmentAccess
 import { AdminServiceLockNotice } from "@/components/department/AdminServiceLockNotice";
 import { DepartmentChat } from "@/components/department/DepartmentChat";
 import { useDepartmentChatUnread } from "@/hooks/useDepartmentChatUnread";
+import { TasksTab } from "@/components/department/tasks/TasksTab";
+import { useMyOpenTaskCount } from "@/hooks/useDepartmentTasks";
 import { usePendingCounts } from "@/hooks/usePendingCounts";
 import { useBrandDNA } from "@/hooks/useBrandDNA";
 import { BrandDNAForm } from "@/components/social/BrandDNAForm";
@@ -54,6 +56,7 @@ const baseTabs = [
   { value: "uploads", label: "Files", icon: Upload },
 ];
 const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
+const tasksTabDef = { value: "tasks", label: "Tasks", icon: ClipboardList };
 const dnaTab = { value: "brand-dna", label: "Brand DNA", icon: Dna };
 const generationTab = { value: "generation", label: "Generate", icon: Sparkles };
 const gbpPostsTab = { value: "gbp-posts", label: "GBP Posts", icon: MapPin };
@@ -73,6 +76,7 @@ export default function SocialMedia() {
   const isStaff = role === "admin" || role === "concierge";
   const isClient = role === "client";
   const { unreadCount, markAsRead } = useDepartmentChatUnread("social_media", selectedClinicId);
+  const myOpenTasks = useMyOpenTaskCount("social_media", selectedClinicId);
   const { socialPending } = usePendingCounts(selectedClinicId);
 
   // Client gate: if DNA not completed, show the form instead
@@ -91,7 +95,7 @@ export default function SocialMedia() {
         themeSlidersTab,
         metaAdsTab,
       ]
-    : [...baseTabs, generationTab, gbpPostsTab, dnaTab, themeSlidersTab, metaAdsTab, ...(isStaff ? [chatTab] : [])];
+    : [...baseTabs, generationTab, gbpPostsTab, dnaTab, themeSlidersTab, metaAdsTab, ...(isStaff ? [tasksTabDef, chatTab] : [])];
 
   const handleTabChange = (value: string) => {
     setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", value); return next; }, { replace: true });
@@ -159,6 +163,7 @@ export default function SocialMedia() {
                         (isStaff && tab.value === "generation")) &&
                       currentTab !== tab.value;
                     const showChatBadge = tab.value === "chat" && unreadCount > 0 && currentTab !== "chat";
+                    const showTasksBadge = tab.value === "tasks" && myOpenTasks > 0 && currentTab !== "tasks";
                     return (
                       <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm relative">
                         <tab.icon className="h-3.5 w-3.5 shrink-0" />
@@ -171,6 +176,11 @@ export default function SocialMedia() {
                         {showSocialBadge && (
                           <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center px-1">
                             {socialPending > 99 ? "99+" : socialPending}
+                          </span>
+                        )}
+                        {showTasksBadge && (
+                          <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                            {myOpenTasks > 99 ? "99+" : myOpenTasks}
                           </span>
                         )}
                       </TabsTrigger>
@@ -195,6 +205,7 @@ export default function SocialMedia() {
                 {isStaff && (
                   <>
                     <TabsContent value="generation" className="mt-4"><Suspense fallback={<TabFallback />}><ContentGenerationTab clinicId={selectedClinicId} /></Suspense></TabsContent>
+                    <TabsContent value="tasks" className="mt-4"><TasksTab department="social_media" clinicId={selectedClinicId} /></TabsContent>
                     <TabsContent value="chat" className="mt-4"><DepartmentChat department="social_media" clinicId={selectedClinicId} onVisible={markAsRead} /></TabsContent>
                   </>
                 )}

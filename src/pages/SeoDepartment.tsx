@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { SearchCode, LayoutDashboard, BarChart3, FileText, Upload, Globe, Link2, Hash, TrendingUp, MessageSquare, BookOpen } from "lucide-react";
+import { SearchCode, LayoutDashboard, BarChart3, FileText, Upload, Globe, Link2, Hash, TrendingUp, MessageSquare, BookOpen, ClipboardList } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { SeoAnalyticsTab } from "@/components/department/SeoAnalyticsTab";
 import { SeoReportsTab } from "@/components/department/SeoReportsTab";
@@ -27,6 +27,8 @@ import { AdminServiceLockNotice } from "@/components/department/AdminServiceLock
 import { DepartmentChat } from "@/components/department/DepartmentChat";
 import { useDepartmentChatUnread } from "@/hooks/useDepartmentChatUnread";
 import { BlogTab } from "@/components/seo/blog/BlogTab";
+import { TasksTab } from "@/components/department/tasks/TasksTab";
+import { useMyOpenTaskCount } from "@/hooks/useDepartmentTasks";
 
 
 
@@ -39,6 +41,7 @@ const commonTabs = [
   { value: "uploads", label: "Files", icon: Upload },
 ];
 const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
+const tasksTabDef = { value: "tasks", label: "Tasks", icon: ClipboardList };
 const blogTab = { value: "blog", label: "Blog", icon: BookOpen };
 function TopKeywordsCard({ keywords }: { keywords: SeoKeyword[] }) {
   if (keywords.length === 0) {
@@ -125,7 +128,8 @@ export default function SeoDepartment() {
   const isClient = role === "client";
   const isStaff = !isClient;
   const { unreadCount, markAsRead } = useDepartmentChatUnread("seo", selectedClinicId);
-  const tabs = isStaff ? [...commonTabs, blogTab, chatTab] : [...commonTabs, blogTab];
+  const myOpenTasks = useMyOpenTaskCount("seo", selectedClinicId);
+  const tabs = isStaff ? [...commonTabs, blogTab, tasksTabDef, chatTab] : [...commonTabs, blogTab];
   const [seoDialogOpen, setSeoDialogOpen] = useState(false);
 
   const selectedClinicName = selectedClinic?.clinic_name;
@@ -190,6 +194,11 @@ export default function SeoDepartment() {
                           {unreadCount > 99 ? "99+" : unreadCount}
                         </span>
                       )}
+                      {tab.value === "tasks" && myOpenTasks > 0 && currentTab !== "tasks" && (
+                        <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                          {myOpenTasks > 99 ? "99+" : myOpenTasks}
+                        </span>
+                      )}
                     </TabsTrigger>
                   ))}
                 </TabsList>
@@ -203,6 +212,7 @@ export default function SeoDepartment() {
                 
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="seo" clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="blog" className="mt-4"><BlogTab clinicId={selectedClinicId} /></TabsContent>
+                {isStaff && <TabsContent value="tasks" className="mt-4"><TasksTab department="seo" clinicId={selectedClinicId} /></TabsContent>}
                 {isStaff && <TabsContent value="chat" className="mt-4"><DepartmentChat department="seo" clinicId={selectedClinicId} onVisible={markAsRead} /></TabsContent>}
               </Tabs>
             </motion.div>

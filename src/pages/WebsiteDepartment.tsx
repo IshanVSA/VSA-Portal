@@ -3,7 +3,7 @@ import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Eye, TrendingUp, Clock, Layers, HeartPulse, MessageSquare } from "lucide-react";
+import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Eye, TrendingUp, Clock, Layers, HeartPulse, MessageSquare, ClipboardList } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { WebsiteAnalyticsTab } from "@/components/department/WebsiteAnalyticsTab";
@@ -19,6 +19,8 @@ import { DepartmentAccessLocked } from "@/components/department/DepartmentAccess
 import { AdminServiceLockNotice } from "@/components/department/AdminServiceLockNotice";
 import { DepartmentChat } from "@/components/department/DepartmentChat";
 import { useDepartmentChatUnread } from "@/hooks/useDepartmentChatUnread";
+import { TasksTab } from "@/components/department/tasks/TasksTab";
+import { useMyOpenTaskCount } from "@/hooks/useDepartmentTasks";
 
 const baseTabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
@@ -29,6 +31,7 @@ const baseTabs = [
 ];
 
 const healthTab = { value: "health", label: "Health", icon: HeartPulse };
+const tasksTabDef = { value: "tasks", label: "Tasks", icon: ClipboardList };
 const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
 
 const services = [
@@ -63,10 +66,11 @@ export default function WebsiteDepartment() {
   const { isLocked, isAdminBypass, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "website", clinicsLoading);
   const isStaff = role === "admin" || role === "concierge";
   const { unreadCount, markAsRead } = useDepartmentChatUnread("website", selectedClinicId);
+  const myOpenTasks = useMyOpenTaskCount("website", selectedClinicId);
   const tabs = [
     ...baseTabs,
     ...(canViewHealth ? [healthTab] : []),
-    ...(isStaff ? [chatTab] : []),
+    ...(isStaff ? [tasksTabDef, chatTab] : []),
   ];
   const selectedClinicName = selectedClinic?.clinic_name;
 
@@ -127,6 +131,11 @@ export default function WebsiteDepartment() {
                           {unreadCount > 99 ? "99+" : unreadCount}
                         </span>
                       )}
+                      {tab.value === "tasks" && myOpenTasks > 0 && currentTab !== "tasks" && (
+                        <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                          {myOpenTasks > 99 ? "99+" : myOpenTasks}
+                        </span>
+                      )}
                     </TabsTrigger>
                   ))}
                 </TabsList>
@@ -140,6 +149,7 @@ export default function WebsiteDepartment() {
                 <TabsContent value="reports" className="mt-4"><WebsiteReportsTab clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="website" clinicId={selectedClinicId} /></TabsContent>
                 {canViewHealth && <TabsContent value="health" className="mt-4"><WebsiteHealthTab clinicId={selectedClinicId} /></TabsContent>}
+                {isStaff && <TabsContent value="tasks" className="mt-4"><TasksTab department="website" clinicId={selectedClinicId} /></TabsContent>}
                 {isStaff && <TabsContent value="chat" className="mt-4"><DepartmentChat department="website" clinicId={selectedClinicId} onVisible={markAsRead} /></TabsContent>}
               </Tabs>
             </motion.div>

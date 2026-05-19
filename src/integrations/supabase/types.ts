@@ -1454,6 +1454,141 @@ export type Database = {
         }
         Relationships: []
       }
+      department_task_attachments: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          file_name: string
+          file_path: string
+          id: string
+          kind: string
+          mime_type: string | null
+          size_bytes: number | null
+          task_id: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          file_name: string
+          file_path: string
+          id?: string
+          kind: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          task_id: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          file_name?: string
+          file_path?: string
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          task_id?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_task_attachments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "department_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      department_task_comments: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "department_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      department_tasks: {
+        Row: {
+          assigned_to: string | null
+          clinic_id: string
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          department: Database["public"]["Enums"]["department_type"]
+          description: string | null
+          due_date: string | null
+          id: string
+          priority: Database["public"]["Enums"]["task_priority"]
+          status: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          clinic_id: string
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          department: Database["public"]["Enums"]["department_type"]
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          status?: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          clinic_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          department?: Database["public"]["Enums"]["department_type"]
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          status?: Database["public"]["Enums"]["task_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_tasks_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       department_ticket_assignments: {
         Row: {
           assigned_to: string | null
@@ -2805,6 +2940,14 @@ export type Database = {
     }
     Functions: {
       _rebuild_gbp_batches_from_clusters: { Args: never; Returns: undefined }
+      can_access_clinic_department: {
+        Args: {
+          _clinic_id: string
+          _department: Database["public"]["Enums"]["department_type"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       can_manage_clinic_logo: {
         Args: { _clinic_id: string; _user_id: string }
         Returns: boolean
@@ -2974,6 +3117,8 @@ export type Database = {
     Enums: {
       app_role: "admin" | "concierge" | "client" | "sub_client"
       department_type: "website" | "seo" | "google_ads" | "social_media"
+      task_priority: "low" | "medium" | "high" | "urgent"
+      task_status: "todo" | "in_progress" | "done" | "cancelled"
       ticket_priority: "regular" | "urgent" | "emergency"
       ticket_status: "open" | "in_progress" | "completed" | "emergency" | "void"
     }
@@ -3105,6 +3250,8 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "concierge", "client", "sub_client"],
       department_type: ["website", "seo", "google_ads", "social_media"],
+      task_priority: ["low", "medium", "high", "urgent"],
+      task_status: ["todo", "in_progress", "done", "cancelled"],
       ticket_priority: ["regular", "urgent", "emergency"],
       ticket_status: ["open", "in_progress", "completed", "emergency", "void"],
     },
