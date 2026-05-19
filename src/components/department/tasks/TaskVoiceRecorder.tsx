@@ -74,7 +74,7 @@ export function TaskVoiceRecorder({ disabled, onRecorded }: Props) {
 
   if (uploading) {
     return (
-      <Button type="button" variant="outline" size="sm" disabled className="gap-2">
+      <Button type="button" variant="outline" size="sm" disabled className="gap-2 rounded-full">
         <Loader2 className="h-4 w-4 animate-spin" /> Uploading…
       </Button>
     );
@@ -82,16 +82,34 @@ export function TaskVoiceRecorder({ disabled, onRecorded }: Props) {
 
   if (recording) {
     return (
-      <Button type="button" variant="destructive" size="sm" onClick={stop} className="gap-2">
-        <Square className="h-3.5 w-3.5" />
-        Stop · {fmt(elapsed)}
+      <Button
+        type="button"
+        size="sm"
+        onClick={stop}
+        className="gap-2 rounded-full bg-red-500/10 text-red-500 border border-red-500/30 hover:bg-red-500/20 shadow-[0_0_0_4px_hsl(0_84%_60%/0.08)] transition-all"
+      >
+        <span className="relative flex h-2.5 w-2.5">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500/60" />
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+        </span>
+        <span className="tabular-nums font-medium">{fmt(elapsed)}</span>
+        <Square className="h-3 w-3 ml-0.5 fill-current" />
       </Button>
     );
   }
 
   return (
-    <Button type="button" variant="outline" size="sm" onClick={start} disabled={disabled} className="gap-2">
-      <Mic className="h-4 w-4" />
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      onClick={start}
+      disabled={disabled}
+      className="gap-2 rounded-full border-dashed hover:border-solid hover:bg-primary/5 hover:text-primary hover:border-primary/40 transition-all group"
+    >
+      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+        <Mic className="h-3 w-3" />
+      </span>
       Record voice note
     </Button>
   );
