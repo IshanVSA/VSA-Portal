@@ -244,7 +244,8 @@ function CreateTaskDialog({
   clinicId: string;
   onCreate: (
     input: { title: string; description?: string; priority: TaskPriority; due_date?: string | null; assigned_to?: string | null },
-    voice?: { blob: Blob; durationSeconds: number } | null
+    voice?: { blob: Blob; durationSeconds: number } | null,
+    files?: AttachedFile[]
   ) => Promise<void>;
   isSubmitting: boolean;
 }) {
