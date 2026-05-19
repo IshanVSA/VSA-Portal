@@ -1674,6 +1674,9 @@ export type Database = {
           assigned_to: string | null
           attachments: string[] | null
           clinic_id: string | null
+          completion_email_error: string | null
+          completion_email_recipients: number | null
+          completion_email_sent_at: string | null
           created_at: string
           created_by: string | null
           department: Database["public"]["Enums"]["department_type"]
@@ -1693,6 +1696,9 @@ export type Database = {
           assigned_to?: string | null
           attachments?: string[] | null
           clinic_id?: string | null
+          completion_email_error?: string | null
+          completion_email_recipients?: number | null
+          completion_email_sent_at?: string | null
           created_at?: string
           created_by?: string | null
           department: Database["public"]["Enums"]["department_type"]
@@ -1712,6 +1718,9 @@ export type Database = {
           assigned_to?: string | null
           attachments?: string[] | null
           clinic_id?: string | null
+          completion_email_error?: string | null
+          completion_email_recipients?: number | null
+          completion_email_sent_at?: string | null
           created_at?: string
           created_by?: string | null
           department?: Database["public"]["Enums"]["department_type"]

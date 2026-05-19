@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
 import { formatDistanceToNow } from "date-fns";
 import { syncSpecialPromotionFromTicket } from "@/lib/special-promotion-sync";
-import { FileIcon, Image as ImageIcon, Eye, Download, Paperclip } from "lucide-react";
+import { FileIcon, Image as ImageIcon, Eye, Download, Paperclip, MailCheck, MailWarning } from "lucide-react";
 import { FilePreviewDialog } from "@/components/FilePreviewDialog";
 
 const ATTACHMENT_BUCKET = "department-files";
@@ -84,6 +84,7 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
   const [saving, setSaving] = useState(false);
   const [attachments, setAttachments] = useState<TicketAttachmentItem[]>([]);
   const [previewAtt, setPreviewAtt] = useState<TicketAttachmentItem | null>(null);
+  const [completionEmail, setCompletionEmail] = useState<{ sentAt: string | null; recipients: number | null; error: string | null }>({ sentAt: null, recipients: null, error: null });
 
   useEffect(() => {
     if (ticket) {
@@ -105,18 +106,24 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
     (async () => {
       const { data, error } = await supabase
         .from("department_tickets" as any)
-        .select("attachments, notes")
+        .select("attachments, notes, completion_email_sent_at, completion_email_recipients, completion_email_error")
         .eq("id", ticket.id)
         .single();
       if (cancelled) return;
       if (error || !data) {
         setAttachments([]);
         setNotes("");
+        setCompletionEmail({ sentAt: null, recipients: null, error: null });
         return;
       }
       const paths: string[] = Array.isArray((data as any).attachments) ? (data as any).attachments : [];
       setAttachments(paths.map((p) => ({ path: p, name: p.split("/").pop() || p })));
       setNotes((data as any).notes || "");
+      setCompletionEmail({
+        sentAt: (data as any).completion_email_sent_at ?? null,
+        recipients: (data as any).completion_email_recipients ?? null,
+        error: (data as any).completion_email_error ?? null,
+      });
     })();
     return () => { cancelled = true; };
   }, [ticket, open]);
@@ -218,6 +225,32 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
             Created {formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true })}
           </DialogDescription>
         </DialogHeader>
+
+        {ticket.status === "completed" && (
+          completionEmail.sentAt ? (
+            <div className="flex items-start gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2.5">
+              <MailCheck className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
+              <div className="text-[12px] leading-snug">
+                <p className="font-medium text-foreground">Completion email sent</p>
+                <p className="text-muted-foreground">
+                  {new Date(completionEmail.sentAt).toLocaleString(undefined, {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
+                  {completionEmail.recipients ? ` · ${completionEmail.recipients} recipient${completionEmail.recipients === 1 ? "" : "s"}` : ""}
+                </p>
+              </div>
+            </div>
+          ) : completionEmail.error ? (
+            <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5">
+              <MailWarning className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+              <div className="text-[12px] leading-snug">
+                <p className="font-medium text-foreground">Completion email failed</p>
+                <p className="text-muted-foreground break-words">{completionEmail.error}</p>
+              </div>
+            </div>
+          ) : null
+        )}
 
         <div className="space-y-4">
           <div className="space-y-1.5">
