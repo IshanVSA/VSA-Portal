@@ -270,14 +270,43 @@ function CreateTaskDialog({
       <DialogTrigger asChild>
         <Button className="gap-2"><Plus className="h-4 w-4" /> New task</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden gap-0 border-border/60">
-        {/* Header */}
-        <div className="relative px-6 pt-6 pb-5 border-b border-border/60 bg-gradient-to-br from-primary/5 via-background to-background">
-          <DialogHeader className="space-y-1">
-            <DialogTitle className="text-xl font-semibold tracking-tight">Create task</DialogTitle>
-            <p className="text-sm text-muted-foreground">Capture the work — or dictate it and let AI fill it in.</p>
-          </DialogHeader>
-          <div className="mt-4">
+      <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden gap-0 rounded-[28px] border-0 bg-background/95 backdrop-blur-2xl shadow-2xl">
+        {/* iOS-style header bar */}
+        <div className="relative flex items-center justify-between px-4 pt-4 pb-3">
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="text-[15px] text-primary font-normal hover:opacity-70 transition-opacity"
+          >
+            Cancel
+          </button>
+          <DialogTitle className="absolute left-1/2 -translate-x-1/2 text-[17px] font-semibold tracking-tight">
+            New Task
+          </DialogTitle>
+          <button
+            type="button"
+            disabled={!title.trim() || isSubmitting}
+            onClick={() => onCreate({
+              title: title.trim(),
+              description: description.trim() || undefined,
+              priority,
+              due_date: dueDate || null,
+              assigned_to: assignee === "unassigned" ? null : assignee,
+            }, voice ? { blob: voice.blob, durationSeconds: voice.durationSeconds } : null)}
+            className="text-[15px] text-primary font-semibold hover:opacity-70 transition-opacity disabled:opacity-40"
+          >
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+          </button>
+        </div>
+
+        <DialogHeader className="sr-only">
+          <DialogTitle>New Task</DialogTitle>
+        </DialogHeader>
+
+        {/* Body */}
+        <div className="px-4 pb-5 pt-1 space-y-5 max-h-[70vh] overflow-y-auto">
+          {/* AI Dictate pill */}
+          <div className="flex justify-center">
             <VoiceDictation
               formType="Task"
               onFieldsExtracted={(fields) => {
@@ -288,51 +317,46 @@ function CreateTaskDialog({
               }}
             />
           </div>
-        </div>
 
-        {/* Body */}
-        <div className="px-6 py-5 space-y-5 max-h-[60vh] overflow-y-auto">
-          {/* Title */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-              <Type className="h-3 w-3" /> Title
-            </Label>
-            <Input
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              placeholder="What needs to be done?"
-              className="h-11 text-[15px] font-medium border-border/70 focus-visible:ring-primary/30 focus-visible:border-primary/50 transition-colors"
-            />
+          {/* Section: Title + Notes */}
+          <div className="rounded-2xl bg-card border border-border/40 overflow-hidden divide-y divide-border/40 shadow-sm">
+            <div className="px-4 py-2.5">
+              <Input
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                placeholder="Title"
+                className="h-9 border-0 bg-transparent px-0 text-[17px] font-medium placeholder:text-muted-foreground/60 focus-visible:ring-0 shadow-none"
+              />
+            </div>
+            <div className="px-4 py-2.5">
+              <Textarea
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                rows={3}
+                placeholder="Notes"
+                className="border-0 bg-transparent px-0 py-0 text-[15px] resize-none placeholder:text-muted-foreground/60 focus-visible:ring-0 shadow-none min-h-[72px]"
+              />
+            </div>
           </div>
 
-          {/* Description */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-              <AlignLeft className="h-3 w-3" /> Description
-            </Label>
-            <Textarea
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              rows={3}
-              placeholder="Add context, links, or acceptance criteria…"
-              className="text-sm resize-none border-border/70 focus-visible:ring-primary/30 focus-visible:border-primary/50 transition-colors"
-            />
-          </div>
-
-          {/* Priority + Due date */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                <Flag className="h-3 w-3" /> Priority
-              </Label>
+          {/* Section: Priority / Due / Assignee */}
+          <div className="rounded-2xl bg-card border border-border/40 overflow-hidden divide-y divide-border/40 shadow-sm">
+            {/* Priority */}
+            <div className="flex items-center px-4 h-12">
+              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-orange-500 text-white shadow-sm mr-3">
+                <Flag className="h-3.5 w-3.5" />
+              </div>
+              <span className="text-[15px] flex-1">Priority</span>
               <Select value={priority} onValueChange={v => setPriority(v as TaskPriority)}>
-                <SelectTrigger className="h-11 border-border/70 [&>span]:flex [&>span]:items-center [&>span]:gap-2">
+                <SelectTrigger className="w-auto gap-1.5 border-0 bg-transparent text-[15px] text-muted-foreground p-0 h-auto shadow-none focus:ring-0 [&>svg]:opacity-50">
                   <SelectValue>
-                    <PriorityDot value={priority} />
-                    <span className="capitalize text-sm font-medium">{priority}</span>
+                    <span className="flex items-center gap-2">
+                      <PriorityDot value={priority} />
+                      <span className="capitalize">{priority}</span>
+                    </span>
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent align="end" className="rounded-xl">
                   {(["low","medium","high","urgent"] as TaskPriority[]).map(p => (
                     <SelectItem key={p} value={p}>
                       <span className="flex items-center gap-2">
@@ -344,85 +368,76 @@ function CreateTaskDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                <CalendarDays className="h-3 w-3" /> Due date
-              </Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className={cn(
-                      "h-11 w-full justify-start text-left font-normal border-border/70 hover:bg-accent/40",
-                      !dueDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarDays className="h-4 w-4 mr-2 opacity-70" />
-                    {dueDate ? format(new Date(dueDate), "MMM d, yyyy") : "Pick a date"}
-                    {dueDate && (
-                      <span
-                        role="button"
-                        onClick={(e) => { e.stopPropagation(); setDueDate(""); }}
-                        className="ml-auto rounded-md p-0.5 hover:bg-muted text-muted-foreground"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dueDate ? new Date(dueDate) : undefined}
-                    onSelect={(d) => setDueDate(d ? format(d, "yyyy-MM-dd") : "")}
-                    initialFocus
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
+
+            {/* Due date */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button type="button" className="flex items-center px-4 h-12 w-full text-left hover:bg-accent/30 transition-colors">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-red-500 text-white shadow-sm mr-3">
+                    <CalendarDays className="h-3.5 w-3.5" />
+                  </div>
+                  <span className="text-[15px] flex-1">Due date</span>
+                  <span className={cn("text-[15px]", dueDate ? "text-primary" : "text-muted-foreground")}>
+                    {dueDate ? format(new Date(dueDate), "MMM d, yyyy") : "None"}
+                  </span>
+                  {dueDate && (
+                    <span
+                      role="button"
+                      onClick={(e) => { e.stopPropagation(); setDueDate(""); }}
+                      className="ml-2 rounded-full p-0.5 hover:bg-muted text-muted-foreground"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </span>
+                  )}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 rounded-2xl" align="end">
+                <Calendar
+                  mode="single"
+                  selected={dueDate ? new Date(dueDate) : undefined}
+                  onSelect={(d) => setDueDate(d ? format(d, "yyyy-MM-dd") : "")}
+                  initialFocus
+                  className="pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+
+            {/* Assignee */}
+            <div className="flex items-center px-4 h-12">
+              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-500 text-white shadow-sm mr-3">
+                <UserCircle2 className="h-4 w-4" />
+              </div>
+              <span className="text-[15px] flex-1">Assignee</span>
+              <Select value={assignee} onValueChange={setAssignee}>
+                <SelectTrigger className="w-auto gap-1.5 border-0 bg-transparent text-[15px] text-muted-foreground p-0 h-auto shadow-none focus:ring-0 [&>svg]:opacity-50">
+                  <SelectValue>
+                    <span className="text-[15px]">
+                      {assignee === "unassigned" ? "Unassigned" : staff.find(s => s.id === assignee)?.name ?? "Unassigned"}
+                    </span>
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent align="end" className="rounded-xl">
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  {staff.map(s => (
+                    <SelectItem key={s.id} value={s.id}>
+                      <span className="flex items-center gap-2.5"><AssigneeBadge name={s.name} /></span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
+          {staff.length === 0 && (
+            <p className="text-[12px] text-muted-foreground px-4 -mt-3">No {department.replace("_", " ")} team members assigned to this clinic.</p>
+          )}
 
-          {/* Assignee */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-              <UserCircle2 className="h-3 w-3" /> Assignee
-            </Label>
-            <Select value={assignee} onValueChange={setAssignee}>
-              <SelectTrigger className="h-11 border-border/70 [&>span]:flex [&>span]:items-center [&>span]:gap-2.5">
-                <SelectValue>
-                  <AssigneeBadge name={assignee === "unassigned" ? null : staff.find(s => s.id === assignee)?.name ?? null} />
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unassigned">
-                  <span className="flex items-center gap-2.5"><AssigneeBadge name={null} /></span>
-                </SelectItem>
-                {staff.map(s => (
-                  <SelectItem key={s.id} value={s.id}>
-                    <span className="flex items-center gap-2.5"><AssigneeBadge name={s.name} /></span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {staff.length === 0 && (
-              <p className="text-xs text-muted-foreground">No {department.replace("_", " ")} team members assigned to this clinic.</p>
-            )}
-          </div>
-
-          {/* Voice note */}
-          <div className="rounded-xl border border-border/70 bg-gradient-to-br from-muted/40 to-muted/10 p-3.5 space-y-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20">
-                  <Mic className="h-4 w-4" />
-                </div>
-                <div className="space-y-0.5">
-                  <p className="text-sm font-medium leading-none">Voice note</p>
-                  <p className="text-[11px] text-muted-foreground">Optional — attach audio for the team to play.</p>
-                </div>
+          {/* Section: Voice note */}
+          <div className="rounded-2xl bg-card border border-border/40 overflow-hidden shadow-sm">
+            <div className="flex items-center px-4 h-12">
+              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-purple-500 text-white shadow-sm mr-3">
+                <Mic className="h-3.5 w-3.5" />
               </div>
+              <span className="text-[15px] flex-1">Voice note</span>
               {!voice && (
                 <TaskVoiceRecorder
                   onRecorded={(blob, durationSeconds) => {
@@ -433,42 +448,25 @@ function CreateTaskDialog({
               )}
             </div>
             {voice && (
-              <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-background/80 backdrop-blur p-2 shadow-sm">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500 ring-1 ring-emerald-500/30">
-                  <Mic className="h-3.5 w-3.5" />
-                </span>
+              <div className="border-t border-border/40 px-3 py-2.5 flex items-center gap-2 bg-muted/30">
                 <audio src={voice.url} controls className="h-8 flex-1 min-w-0" />
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   onClick={clearVoice}
-                  className="text-muted-foreground hover:text-destructive shrink-0"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0 rounded-full h-8 px-3"
                 >
                   Remove
                 </Button>
               </div>
             )}
           </div>
-        </div>
 
-        {/* Footer */}
-        <DialogFooter className="px-6 py-4 border-t border-border/60 bg-muted/20">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button
-            disabled={!title.trim() || isSubmitting}
-            onClick={() => onCreate({
-              title: title.trim(),
-              description: description.trim() || undefined,
-              priority,
-              due_date: dueDate || null,
-              assigned_to: assignee === "unassigned" ? null : assignee,
-            }, voice ? { blob: voice.blob, durationSeconds: voice.durationSeconds } : null)}
-            className="gap-2 shadow-sm"
-          >
-            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Sparkles className="h-4 w-4" /> Create task</>}
-          </Button>
-        </DialogFooter>
+          <p className="text-[11px] text-muted-foreground/70 text-center px-4">
+            Tip: tap the AI button to dictate everything at once.
+          </p>
+        </div>
       </DialogContent>
     </Dialog>
   );
