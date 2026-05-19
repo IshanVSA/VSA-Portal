@@ -290,6 +290,7 @@ function CreateTaskDialog({
   const reset = () => {
     setTitle(""); setDescription(""); setPriority("medium"); setDueDate(""); setAssignee("unassigned");
     clearVoice();
+    setFiles([]);
   };
 
   return (
