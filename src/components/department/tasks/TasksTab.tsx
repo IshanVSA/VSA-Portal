@@ -320,7 +320,7 @@ function CreateTaskDialog({
               priority,
               due_date: dueDate || null,
               assigned_to: assignee === "unassigned" ? null : assignee,
-            }, voice ? { blob: voice.blob, durationSeconds: voice.durationSeconds } : null)}
+            }, voice ? { blob: voice.blob, durationSeconds: voice.durationSeconds } : null, files)}
             className="text-[15px] text-primary font-semibold hover:opacity-70 transition-opacity disabled:opacity-40"
           >
             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
