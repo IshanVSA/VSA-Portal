@@ -111,7 +111,107 @@ Deno.serve(async (req) => {
       return json({ error: assignErr.message }, 500);
     }
 
-    return json({ success: true, sub_account_id: subRow.id, sub_user_id: subUserId });
+    // Send welcome email to the sub-account (non-fatal on failure)
+    let welcome_email_sent = false;
+    let welcome_email_error: string | null = null;
+    try {
+      const { data: clinicRows } = await admin
+        .from("clinics")
+        .select("clinic_name")
+        .in("id", clinic_ids);
+      const clinicNames = (clinicRows ?? [])
+        .map((c: any) => c.clinic_name)
+        .filter(Boolean) as string[];
+
+      const { data: parentProfile } = await admin
+        .from("profiles")
+        .select("full_name")
+        .eq("id", parentUserId)
+        .maybeSingle();
+      const parentName = (parentProfile?.full_name as string) || "your account owner";
+
+      const resetPasswordUrl = getResetPasswordUrl();
+      const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+        type: "recovery",
+        email,
+        options: { redirectTo: resetPasswordUrl },
+      });
+
+      if (linkError || !linkData?.properties?.hashed_token) {
+        throw new Error(linkError?.message || "Failed to generate password setup link");
+      }
+
+      const resetUrl = new URL(resetPasswordUrl);
+      resetUrl.searchParams.set("token_hash", linkData.properties.hashed_token);
+      resetUrl.searchParams.set("type", "recovery");
+      const passwordSetupLink = withCanonicalRedirect(resetUrl.toString(), resetPasswordUrl);
+      const loginUrl = `${resolvePublicSiteUrl()}/login`;
+      const firstName = (full_name.split(" ")[0] || "there");
+
+      const clinicListHtml = clinicNames.length
+        ? `<ul style="margin:8px 0 16px;padding-left:20px;color:#374151;">${clinicNames
+            .map((n) => `<li style="margin:4px 0;">${escapeHtml(n)}</li>`)
+            .join("")}</ul>`
+        : "";
+
+      const bodyHtml = `
+        <p style="margin:0 0 14px;">Hi ${escapeHtml(firstName)},</p>
+        <p style="margin:0 0 14px;"><strong>${escapeHtml(parentName)}</strong> has invited you to collaborate on <strong>VSA Vet Media</strong> — our AI-powered veterinary marketing platform.</p>
+        ${clinicListHtml ? `<p style="margin:0 0 6px;">You have been granted access to:</p>${clinicListHtml}` : ""}
+        <p style="margin:0 0 10px;">Set your password using the secure link below to sign in:</p>
+        <table cellpadding="0" cellspacing="0" style="margin:8px 0 20px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;width:100%;">
+          <tr><td style="padding:12px 16px;background:#f9fafb;font-weight:600;color:#374151;width:140px;">Email</td><td style="padding:12px 16px;color:#111827;font-family:Menlo,monospace;">${escapeHtml(email)}</td></tr>
+        </table>
+        <p style="text-align:center;margin:24px 0 10px;">
+          <a href="${passwordSetupLink}" style="display:inline-block;background:#0f172a;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;margin:4px;">Set your password</a>
+          <a href="${loginUrl}" style="display:inline-block;background:#ffffff;color:#0f172a;border:1px solid #0f172a;text-decoration:none;padding:11px 28px;border-radius:8px;font-weight:600;margin:4px;">Go to sign in</a>
+        </p>
+        <p style="margin:0 0 24px;font-size:12px;color:#6b7280;text-align:center;">The "Set your password" link is valid for 60 minutes. You can also reset it any time from the login page.</p>
+        <p style="margin:0 0 14px;">Questions? Reach us at <a href="mailto:support@vsavetmedia.ca" style="color:#0f172a;">support@vsavetmedia.ca</a>.</p>
+        <p style="margin:0;">Best regards,<br/><strong>Team VSA</strong></p>
+      `;
+
+      const sendResult = await sendZohoEmail({
+        to: email,
+        subject: "You've been invited to VSA Vet Media",
+        html: brandedEmailWrapper({
+          heading: "Welcome to VSA Vet Media",
+          preheader: `${parentName} has invited you to collaborate.`,
+          bodyHtml,
+        }),
+      });
+
+      if (!sendResult.ok) {
+        throw new Error((sendResult as any).errorKind || "send_failed");
+      }
+      welcome_email_sent = true;
+      await admin
+        .from("profiles")
+        .update({
+          welcome_email_sent_at: new Date().toISOString(),
+          welcome_email_last_attempt_at: new Date().toISOString(),
+          welcome_email_last_error: null,
+        })
+        .eq("id", subUserId);
+    } catch (mailErr) {
+      welcome_email_error = (mailErr as Error).message || "Unknown email error";
+      console.error("create-sub-account welcome email failed", welcome_email_error);
+      await admin
+        .from("profiles")
+        .update({
+          welcome_email_last_attempt_at: new Date().toISOString(),
+          welcome_email_last_error: welcome_email_error,
+        })
+        .eq("id", subUserId);
+    }
+
+    return json({
+      success: true,
+      sub_account_id: subRow.id,
+      sub_user_id: subUserId,
+      welcome_email_sent,
+      welcome_email_error,
+    });
   } catch (e) {
     console.error("create-sub-account error", e);
     return json({ error: (e as Error).message || "Unknown error" }, 500);
