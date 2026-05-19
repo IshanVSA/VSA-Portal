@@ -23,6 +23,7 @@ import {
 } from "@/hooks/useDepartmentTasks";
 import { TaskInspector } from "./TaskInspector";
 import { VoiceDictation } from "@/components/department/ticket-forms/VoiceDictation";
+import { TaskVoiceRecorder } from "./TaskVoiceRecorder";
 
 interface Props {
   department: DepartmentType;
