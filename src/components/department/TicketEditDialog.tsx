@@ -84,6 +84,7 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
   const [saving, setSaving] = useState(false);
   const [attachments, setAttachments] = useState<TicketAttachmentItem[]>([]);
   const [previewAtt, setPreviewAtt] = useState<TicketAttachmentItem | null>(null);
+  const [completionEmail, setCompletionEmail] = useState<{ sentAt: string | null; recipients: number | null; error: string | null }>({ sentAt: null, recipients: null, error: null });
 
   useEffect(() => {
     if (ticket) {
