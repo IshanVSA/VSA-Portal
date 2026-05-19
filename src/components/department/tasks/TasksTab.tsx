@@ -237,7 +237,7 @@ function CreateTaskDialog({
       <DialogContent>
         <DialogHeader><DialogTitle>Create task</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div className="flex justify-end">
+          <div className="flex justify-start">
             <VoiceDictation
               formType="Task"
               onFieldsExtracted={(fields) => {
