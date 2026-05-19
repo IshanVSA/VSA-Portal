@@ -96,9 +96,30 @@ export function TasksTab({ department, clinicId }: Props) {
             onOpenChange={setCreateOpen}
             department={department}
             clinicId={clinicId}
-            onCreate={async input => {
+            onCreate={async (input, voice) => {
               try {
-                await createTask.mutateAsync(input);
+                const created: any = await createTask.mutateAsync(input);
+                if (voice && created?.id) {
+                  const ext = "webm";
+                  const path = `tasks/${clinicId}/${created.id}/voice/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+                  const { error: upErr } = await supabase.storage
+                    .from("department-files")
+                    .upload(path, voice.blob, { contentType: "audio/webm", upsert: false });
+                  if (upErr) throw upErr;
+                  const { error: insErr } = await supabase
+                    .from("department_task_attachments" as any)
+                    .insert({
+                      task_id: created.id,
+                      kind: "voice",
+                      file_path: path,
+                      file_name: `voice-${Date.now()}.webm`,
+                      mime_type: "audio/webm",
+                      size_bytes: voice.blob.size,
+                      duration_seconds: voice.durationSeconds,
+                      uploaded_by: user?.id,
+                    } as any);
+                  if (insErr) throw insErr;
+                }
                 toast.success("Task created");
                 setCreateOpen(false);
               } catch (e: any) {
