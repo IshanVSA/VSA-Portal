@@ -226,6 +226,32 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
           </DialogDescription>
         </DialogHeader>
 
+        {ticket.status === "completed" && (
+          completionEmail.sentAt ? (
+            <div className="flex items-start gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2.5">
+              <MailCheck className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
+              <div className="text-[12px] leading-snug">
+                <p className="font-medium text-foreground">Completion email sent</p>
+                <p className="text-muted-foreground">
+                  {new Date(completionEmail.sentAt).toLocaleString(undefined, {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
+                  {completionEmail.recipients ? ` · ${completionEmail.recipients} recipient${completionEmail.recipients === 1 ? "" : "s"}` : ""}
+                </p>
+              </div>
+            </div>
+          ) : completionEmail.error ? (
+            <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5">
+              <MailWarning className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+              <div className="text-[12px] leading-snug">
+                <p className="font-medium text-foreground">Completion email failed</p>
+                <p className="text-muted-foreground break-words">{completionEmail.error}</p>
+              </div>
+            </div>
+          ) : null
+        )}
+
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="ticket-title">Title</Label>
