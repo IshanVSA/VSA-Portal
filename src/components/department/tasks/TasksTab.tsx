@@ -28,6 +28,8 @@ import {
 import { TaskInspector } from "./TaskInspector";
 import { VoiceDictation } from "@/components/department/ticket-forms/VoiceDictation";
 import { TaskVoiceRecorder } from "./TaskVoiceRecorder";
+import { FileUploader, type AttachedFile } from "@/components/department/ticket-forms/FileUploader";
+import { Paperclip } from "lucide-react";
 
 interface Props {
   department: DepartmentType;
