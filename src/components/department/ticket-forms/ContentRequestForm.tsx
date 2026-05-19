@@ -112,6 +112,15 @@ export function ContentRequestForm({ onChange }: ContentRequestFormProps) {
 
   return (
     <div className="space-y-3">
+      <VoiceDictation
+        formType="Content Request"
+        onFieldsExtracted={(f) => {
+          if (f.category && CATEGORIES.some(c => c.value === f.category)) handleCategoryChange(f.category);
+          if (f.title) setTitle(f.title);
+          if (f.description) setDescription(f.description);
+          if (f.notes) setNotes(f.notes);
+        }}
+      />
       <div className="space-y-1.5">
         <Label>Category *</Label>
         <Select value={category} onValueChange={handleCategoryChange}>
