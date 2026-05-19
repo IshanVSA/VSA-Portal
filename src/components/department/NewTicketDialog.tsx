@@ -237,7 +237,8 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     if (!user) return;
 
     let finalDescription = isCustomForm ? customDescription : (genericDescription.trim() || null);
-    if ((ticketType === "Add/Remove Team Members" || ticketType === "Pop-up Offers") && promoteSocial && finalDescription) {
+    const socialEnabled = clinicServices?.["Social Media"] !== false;
+    if ((ticketType === "Add/Remove Team Members" || ticketType === "Pop-up Offers") && promoteSocial && socialEnabled && finalDescription) {
       finalDescription = `${finalDescription}\nPromote on Social Media: Yes`;
     }
     // Merge additional notes into the description so they're always visible on the ticket
@@ -451,7 +452,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
                 <FileUploader files={files} onFilesChange={setFiles} label={ticketType === "Price List Updates" ? "Upload your price list doc" : "Attachments"} />
               )}
 
-              {(isAddTeamMember || isPopupOffer) && (
+              {(isAddTeamMember || isPopupOffer) && clinicServices?.["Social Media"] !== false && (
                 <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 p-3">
                   <Checkbox
                     id="promote-social"
