@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, ClipboardList, CalendarDays, User, Loader2 } from "lucide-react";
+import { Plus, ClipboardList, CalendarDays, User, Loader2, Mic } from "lucide-react";
 import { format, isBefore, startOfDay } from "date-fns";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
