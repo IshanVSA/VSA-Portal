@@ -1,70 +1,43 @@
+## Goal
+Make sub-accounts receive every email the parent client receives.
 
-## Department Tasks — Plan
+## Current state (audit)
+I checked every email-sending edge function:
 
-A new staff-only **Tasks** tab inside each department page (Website / SEO / Google Ads / Social Media / AI SEO), scoped to the currently selected clinic. Admins create and assign tasks to team members; assignees update status, comment, attach files, and record voice notes.
+| Edge function | Sends to client? | Includes sub-accounts? |
+|---|---|---|
+| `notify-content-approval` (monthly calendar review) | Yes | ✅ Already — filtered by `sub_account_clinics` for that clinic |
+| `notify-ticket-completed` | Yes | ✅ Already — filtered by `sub_account_clinics` for that clinic |
+| `notify-ticket-created` | No — internal staff only | n/a |
+| `notify-terms-decline` | No — alerts admins | n/a |
+| `request-password-reset` | Per-email user only | n/a (each user uses their own) |
+| `resend-welcome-email` | Sends client welcome | ❌ Admin-triggered; not called for sub-accounts |
+| `create-sub-account` | — | ❌ **No welcome email sent at all** |
 
-### Visibility (mirrors Team Chat)
-- Visible only to `admin` and `concierge` roles. Clients never see the tab.
-- A concierge sees a task only if they belong to that clinic + department (same rule as `is_clinic_dept_team_member`).
-- Admins see everything.
+So the only real gap is the **welcome email**: when a parent client creates a sub-account, the sub-account never gets a "set your password / welcome" email.
 
-### Tabs / placement
-- Add `tasks` tab next to `chat` in: `WebsiteDepartment`, `SeoDepartment`, `GoogleAdsDepartment`, `SocialMedia`, `AiSeoDepartment`.
-- Unread/open-count badge on the tab (mirrors `useDepartmentChatUnread` pattern).
+## Plan
 
-### Task fields
-- title, description, priority (low / medium / high / urgent), due_date
-- assignee (single team member; admin chooses from clinic+department staff)
-- status: `todo`, `in_progress`, `done`, `cancelled`
-- attachments: files in `department-files` bucket under `tasks/{clinic_id}/{task_id}/...`
-- voice notes: same bucket, `tasks/{clinic_id}/{task_id}/voice/...` (`audio/webm` from MediaRecorder, identical to existing `VoiceDictation` flow but stored, not transcribed)
-- comments (lightweight discussion thread on the task)
+### 1. Send a welcome email automatically from `create-sub-account`
+After the sub-account row + clinic assignments are inserted successfully, send a branded welcome email using the same Zoho + `generateLink('recovery')` pattern as `resend-welcome-email`, but with sub-account-appropriate copy:
 
-### UI
-- List view with filters: All / My Tasks / Open / Overdue, plus priority chips.
-- "New Task" button (admin only) opens a slide-in inspector matching the existing PostInspector aesthetic.
-- Task detail drawer: edit fields, status dropdown, attachments grid, voice notes player list (record + play inline), comments thread.
-- Overdue rows highlighted with `destructive` accent; priority shown with department color.
+- Subject: `"You've been invited to VSA Vet Media"`
+- Body mentions which parent clinic/client invited them and lists the clinics they were given access to
+- Includes a "Set your password" button (recovery link, 60-min TTL) + "Go to sign in" link
+- Skips the long "beta access" marketing paragraph used for primary clients — sub-accounts are operational logins, not new client onboarding
+- Failure to send the email does **not** roll back the sub-account creation (just log + return a non-fatal warning in the response, same pattern used elsewhere)
 
-### Notifications (in-app only)
-- On assign / reassign / status change / new comment → insert a row consumed by existing `NotificationBell`.
-- Tab badge shows count of open tasks assigned to the current user in that clinic+department.
+### 2. No changes needed to existing client notifications
+`notify-content-approval` and `notify-ticket-completed` already loop sub-accounts via `sub_account_clinics` for the relevant clinic, so they will automatically deliver to sub-accounts whenever the parent gets the email. I'll leave them alone.
 
-### Database (migration)
+### 3. Optional admin-side "Resend welcome" for sub-accounts (ask)
+Currently `resend-welcome-email` is admin-only and targets primary clients. If you want admins (or the parent client) to be able to re-send the sub-account welcome from the Sub Accounts page, I can extend that — but it's not required to fulfill "sub accounts receive the same emails."
 
-```text
-department_tasks
-  id, clinic_id, department (department_type), title, description,
-  priority (enum: low|medium|high|urgent), status (enum: todo|in_progress|done|cancelled),
-  due_date (date), assigned_to (uuid), created_by (uuid),
-  completed_at, created_at, updated_at
+## Technical notes
+- Reuse `_shared/zoho-mail.ts` (`sendZohoEmail`, `brandedEmailWrapper`) and `_shared/password-reset-link.ts` (`getResetPasswordUrl`, `withCanonicalRedirect`)
+- Look up parent clinic names from the `clinic_ids` already in scope to personalize the email
+- No DB schema changes
+- No frontend changes (the UI in `src/pages/SubAccounts.tsx` keeps working as-is)
 
-department_task_attachments
-  id, task_id, kind (file|voice), file_path, file_name, mime_type,
-  size_bytes, duration_seconds (voice), uploaded_by, created_at
-
-department_task_comments
-  id, task_id, user_id, body, created_at
-```
-
-RLS via new security-definer helper `can_access_clinic_department(uid, clinic_id, department)` reusing `has_role('admin')`, `is_clinic_dept_team_member`. Only admins can `INSERT`/`DELETE` tasks; assignees + admins can `UPDATE` status, due_date, and own comments/attachments.
-
-`updated_at` trigger via existing `update_updated_at_column()`. Auto-set `completed_at` when status flips to `done`.
-
-### Notifications wiring
-- Reuse existing notification table/pattern used by tickets. A small trigger inserts a notification row on insert/update of `department_tasks` when `assigned_to` changes or status changes.
-
-### Files to add
-- `supabase/migrations/*` — tables, enums, RLS, triggers.
-- `src/hooks/useDepartmentTasks.ts` — list/create/update/delete with React Query.
-- `src/hooks/useDepartmentTaskUnread.ts` — open-tasks-for-me count per clinic+dept.
-- `src/components/department/tasks/TasksTab.tsx` — list + filters + "New Task".
-- `src/components/department/tasks/TaskInspector.tsx` — slide-in detail/edit.
-- `src/components/department/tasks/TaskVoiceRecorder.tsx` — MediaRecorder → upload to `department-files`.
-- `src/components/department/tasks/TaskAttachments.tsx`, `TaskComments.tsx`.
-
-### Files to edit
-- `WebsiteDepartment.tsx`, `SeoDepartment.tsx`, `GoogleAdsDepartment.tsx`, `SocialMedia.tsx`, `AiSeoDepartment.tsx` — add `tasksTab` (staff-only) and `<TasksTab>` content.
-
-### Out of scope
-- Email notifications, recurring tasks, subtasks/checklists, client visibility, cross-clinic task views, AI auto-fill.
+## Question for you
+Do you also want a **"Resend welcome email" button** on the Sub Accounts page (item 3), or just the automatic send on creation (items 1–2)?
