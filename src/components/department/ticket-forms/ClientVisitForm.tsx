@@ -31,6 +31,19 @@ export function ClientVisitForm({ onChange }: ClientVisitFormProps) {
 
   return (
     <div className="space-y-3">
+      <VoiceDictation
+        formType="Client Visit"
+        onFieldsExtracted={(f) => {
+          if (f.petType) {
+            const match = PET_TYPES.find((p) => p.toLowerCase().startsWith(String(f.petType).toLowerCase()));
+            setPetType(match || "Others");
+          }
+          if (f.petName) setPetName(f.petName);
+          if (f.reason) setReason(f.reason);
+          if (f.highlightService) setHighlightService(f.highlightService);
+          if (f.description) setDescription(f.description);
+        }}
+      />
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label>Pet Type *</Label>
