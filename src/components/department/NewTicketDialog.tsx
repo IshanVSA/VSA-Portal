@@ -451,7 +451,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
                 <FileUploader files={files} onFilesChange={setFiles} label={ticketType === "Price List Updates" ? "Upload your price list doc" : "Attachments"} />
               )}
 
-              {(isAddTeamMember || isPopupOffer) && (
+              {(isAddTeamMember || isPopupOffer) && clinicServices?.["Social Media"] !== false && (
                 <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 p-3">
                   <Checkbox
                     id="promote-social"
