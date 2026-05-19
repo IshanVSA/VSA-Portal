@@ -3,7 +3,7 @@ import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Megaphone, LayoutDashboard, Ticket, BarChart3, FileText, Upload, DollarSign, MousePointerClick, Percent, Eye, MessageSquare } from "lucide-react";
+import { Megaphone, LayoutDashboard, Ticket, BarChart3, FileText, Upload, DollarSign, MousePointerClick, Percent, Eye, MessageSquare, ClipboardList } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { GoogleAdsAnalyticsTab } from "@/components/department/GoogleAdsAnalyticsTab";
@@ -21,6 +21,8 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useFinancialsVisible } from "@/hooks/useFinancialsVisible";
 import { DepartmentChat } from "@/components/department/DepartmentChat";
 import { useDepartmentChatUnread } from "@/hooks/useDepartmentChatUnread";
+import { TasksTab } from "@/components/department/tasks/TasksTab";
+import { useMyOpenTaskCount } from "@/hooks/useDepartmentTasks";
 
 const baseTabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
@@ -30,6 +32,7 @@ const baseTabs = [
   { value: "uploads", label: "Files", icon: Upload },
 ];
 const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
+const tasksTabDef = { value: "tasks", label: "Tasks", icon: ClipboardList };
 
 const services = ["Dashboard Access", "Analytics Review", "Monthly Performance Report", "Call Volume Issues", "Wrong Call Tracking", "Campaign Adjustments", "Others"];
 const quickActions = ["Call Volume Issues", "Wrong Call Tracking", "Others"];
@@ -45,7 +48,8 @@ export default function GoogleAdsDepartment() {
   const isStaff = role === "admin" || role === "concierge";
   const { visible: showMoney } = useFinancialsVisible();
   const { unreadCount, markAsRead } = useDepartmentChatUnread("google_ads", selectedClinicId);
-  const tabs = isStaff ? [...baseTabs, chatTab] : baseTabs;
+  const myOpenTasks = useMyOpenTaskCount("google_ads", selectedClinicId);
+  const tabs = isStaff ? [...baseTabs, tasksTabDef, chatTab] : baseTabs;
   const selectedClinicName = selectedClinic?.clinic_name;
 
   const kpis = [
@@ -131,6 +135,11 @@ export default function GoogleAdsDepartment() {
                           {unreadCount > 99 ? "99+" : unreadCount}
                         </span>
                       )}
+                      {tab.value === "tasks" && myOpenTasks > 0 && currentTab !== "tasks" && (
+                        <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                          {myOpenTasks > 99 ? "99+" : myOpenTasks}
+                        </span>
+                      )}
                     </TabsTrigger>
                   ))}
                 </TabsList>
@@ -143,6 +152,7 @@ export default function GoogleAdsDepartment() {
                 <TabsContent value="analytics" className="mt-4"><GoogleAdsAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="reports" className="mt-4"><GoogleAdsReportsTab clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="google_ads" clinicId={selectedClinicId} /></TabsContent>
+                {isStaff && <TabsContent value="tasks" className="mt-4"><TasksTab department="google_ads" clinicId={selectedClinicId} /></TabsContent>}
                 {isStaff && <TabsContent value="chat" className="mt-4"><DepartmentChat department="google_ads" clinicId={selectedClinicId} onVisible={markAsRead} /></TabsContent>}
               </Tabs>
             </motion.div>
