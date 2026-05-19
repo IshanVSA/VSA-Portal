@@ -22,6 +22,7 @@ import {
   useDepartmentTasks,
 } from "@/hooks/useDepartmentTasks";
 import { TaskInspector } from "./TaskInspector";
+import { VoiceDictation } from "@/components/department/ticket-forms/VoiceDictation";
 
 interface Props {
   department: DepartmentType;
@@ -236,6 +237,17 @@ function CreateTaskDialog({
       <DialogContent>
         <DialogHeader><DialogTitle>Create task</DialogTitle></DialogHeader>
         <div className="space-y-3">
+          <div className="flex justify-end">
+            <VoiceDictation
+              formType="Task"
+              onFieldsExtracted={(fields) => {
+                if (typeof fields.title === "string" && fields.title.trim()) setTitle(fields.title.trim());
+                if (typeof fields.description === "string" && fields.description.trim()) setDescription(fields.description.trim());
+                if (fields.priority && ["low","medium","high","urgent"].includes(fields.priority)) setPriority(fields.priority as TaskPriority);
+                if (typeof fields.dueDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(fields.dueDate)) setDueDate(fields.dueDate);
+              }}
+            />
+          </div>
           <div className="space-y-1.5">
             <Label>Title</Label>
             <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="What needs to be done?" />

@@ -223,6 +223,20 @@ const TOOLS_BY_FORM: Record<string, any> = {
       required: [],
     },
   },
+  Task: {
+    name: "extract_task",
+    description: "Extract a department task: title, description, priority and due date from user speech",
+    parameters: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Short, action-oriented title summarizing the task" },
+        description: { type: "string", description: "Detailed description of what needs to be done" },
+        priority: { type: "string", enum: ["low", "medium", "high", "urgent"], description: "Priority level inferred from urgency cues" },
+        dueDate: { type: "string", description: "Due date in YYYY-MM-DD format if mentioned (resolve relative dates like 'next Friday' against today)" },
+      },
+      required: [],
+    },
+  },
 };
 
 serve(async (req) => {
