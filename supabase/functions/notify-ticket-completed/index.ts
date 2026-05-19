@@ -183,6 +183,21 @@ Deno.serve(async (req) => {
     const sent = results.filter((r) => r.ok && !r.skipped).length;
     const failed = results.filter((r) => !r.ok).length;
 
+    // Persist completion email status on the ticket so the UI can show
+    // confirmation of when (and to whom) the email went out.
+    if (!testRecipient) {
+      const firstError = results.find((r) => !r.ok) as any;
+      const errMsg = firstError?.error || firstError?.message || null;
+      await supabase
+        .from("department_tickets")
+        .update({
+          completion_email_sent_at: sent > 0 ? new Date().toISOString() : null,
+          completion_email_recipients: sent,
+          completion_email_error: failed > 0 ? (errMsg ?? `Failed to send to ${failed} recipient(s)`) : null,
+        })
+        .eq("id", ticketId);
+    }
+
     return new Response(
       JSON.stringify({ ok: true, recipients: emails.length, sent, failed, testMode: !!testRecipient, results }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
