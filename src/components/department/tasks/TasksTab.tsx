@@ -23,6 +23,7 @@ import {
 } from "@/hooks/useDepartmentTasks";
 import { TaskInspector } from "./TaskInspector";
 import { VoiceDictation } from "@/components/department/ticket-forms/VoiceDictation";
+import { TaskVoiceRecorder } from "./TaskVoiceRecorder";
 
 interface Props {
   department: DepartmentType;
@@ -96,9 +97,30 @@ export function TasksTab({ department, clinicId }: Props) {
             onOpenChange={setCreateOpen}
             department={department}
             clinicId={clinicId}
-            onCreate={async input => {
+            onCreate={async (input, voice) => {
               try {
-                await createTask.mutateAsync(input);
+                const created: any = await createTask.mutateAsync(input);
+                if (voice && created?.id) {
+                  const ext = "webm";
+                  const path = `tasks/${clinicId}/${created.id}/voice/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+                  const { error: upErr } = await supabase.storage
+                    .from("department-files")
+                    .upload(path, voice.blob, { contentType: "audio/webm", upsert: false });
+                  if (upErr) throw upErr;
+                  const { error: insErr } = await supabase
+                    .from("department_task_attachments" as any)
+                    .insert({
+                      task_id: created.id,
+                      kind: "voice",
+                      file_path: path,
+                      file_name: `voice-${Date.now()}.webm`,
+                      mime_type: "audio/webm",
+                      size_bytes: voice.blob.size,
+                      duration_seconds: voice.durationSeconds,
+                      uploaded_by: user?.id,
+                    } as any);
+                  if (insErr) throw insErr;
+                }
                 toast.success("Task created");
                 setCreateOpen(false);
               } catch (e: any) {
@@ -191,7 +213,10 @@ function CreateTaskDialog({
   onOpenChange: (v: boolean) => void;
   department: DepartmentType;
   clinicId: string;
-  onCreate: (input: { title: string; description?: string; priority: TaskPriority; due_date?: string | null; assigned_to?: string | null }) => Promise<void>;
+  onCreate: (
+    input: { title: string; description?: string; priority: TaskPriority; due_date?: string | null; assigned_to?: string | null },
+    voice?: { blob: Blob; durationSeconds: number } | null
+  ) => Promise<void>;
   isSubmitting: boolean;
 }) {
   const [title, setTitle] = useState("");
@@ -200,6 +225,7 @@ function CreateTaskDialog({
   const [dueDate, setDueDate] = useState("");
   const [assignee, setAssignee] = useState<string>("unassigned");
   const [staff, setStaff] = useState<{ id: string; name: string }[]>([]);
+  const [voice, setVoice] = useState<{ blob: Blob; durationSeconds: number; url: string } | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -225,8 +251,14 @@ function CreateTaskDialog({
     })();
   }, [open, clinicId, department]);
 
+  const clearVoice = () => {
+    if (voice?.url) URL.revokeObjectURL(voice.url);
+    setVoice(null);
+  };
+
   const reset = () => {
     setTitle(""); setDescription(""); setPriority("medium"); setDueDate(""); setAssignee("unassigned");
+    clearVoice();
   };
 
   return (
@@ -287,6 +319,23 @@ function CreateTaskDialog({
               <p className="text-xs text-muted-foreground">No {department.replace("_", " ")} team members assigned to this clinic.</p>
             )}
           </div>
+          <div className="space-y-1.5">
+            <Label>Voice note</Label>
+            {voice ? (
+              <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 p-2">
+                <audio src={voice.url} controls className="h-8 flex-1" />
+                <Button type="button" variant="ghost" size="sm" onClick={clearVoice}>Remove</Button>
+              </div>
+            ) : (
+              <TaskVoiceRecorder
+                onRecorded={(blob, durationSeconds) => {
+                  const url = URL.createObjectURL(blob);
+                  setVoice({ blob, durationSeconds, url });
+                }}
+              />
+            )}
+            <p className="text-xs text-muted-foreground">Optional — recorded audio is attached to the task for the team to play.</p>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
@@ -298,7 +347,7 @@ function CreateTaskDialog({
               priority,
               due_date: dueDate || null,
               assigned_to: assignee === "unassigned" ? null : assignee,
-            })}
+            }, voice ? { blob: voice.blob, durationSeconds: voice.durationSeconds } : null)}
           >
             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}
           </Button>
