@@ -378,6 +378,11 @@
   100% { left: 100%; }
 }
 
+@keyframes shimmer {
+  0% { background-position: 200% 50%; }
+  100% { background-position: -200% 50%; }
+}
+
 @keyframes stagger-fade-in {
   0% { opacity: 0; transform: translateY(8px); }
   100% { opacity: 1; transform: translateY(0); }
