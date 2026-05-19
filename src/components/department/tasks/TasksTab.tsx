@@ -207,7 +207,7 @@ function CreateTaskDialog({
         .from("clinic_team_members" as any)
         .select("user_id")
         .eq("clinic_id", clinicId);
-      const ids = ((ctm ?? []) as { user_id: string }[]).map(r => r.user_id);
+      const ids = ((ctm ?? []) as unknown as { user_id: string }[]).map(r => r.user_id);
       if (!ids.length) { setStaff([]); return; }
       const allowedRoles: Record<DepartmentType, string[]> = {
         website: ["Developer", "Maintenance"],
