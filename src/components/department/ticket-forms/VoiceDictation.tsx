@@ -215,7 +215,17 @@ export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationPr
                   Tony is listening… speak naturally
                 </span>
               </div>
-              <VoiceWaveform stream={activeStream} height={22} className="w-full" />
+              <div className="relative w-full">
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-x-0 -inset-y-2 rounded-full blur-xl opacity-60"
+                  style={{
+                    background:
+                      "radial-gradient(60% 100% at 50% 50%, hsl(var(--primary) / 0.35), transparent 70%)",
+                  }}
+                />
+                <VoiceWaveform stream={activeStream} height={36} className="relative w-full" />
+              </div>
             </div>
 
             <Button

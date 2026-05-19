@@ -144,23 +144,38 @@ export function VoiceWaveform({
       const centerY = h / 2;
       const maxH = h * 0.95;
 
+      // Vertical gradient for active bars — gives that AI/Siri feel
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, `hsla(${primaryHsl} / 0.95)`);
+      grad.addColorStop(0.5, `hsla(${primaryHsl} / 0.75)`);
+      grad.addColorStop(1, `hsla(${primaryHsl} / 0.95)`);
+
+      const now = performance.now() / 1000;
+
       for (let i = 0; i < displayed.length; i++) {
         const v = displayed[i];
-        const barH = Math.max(minH, v * maxH);
+        // Subtle ambient breathing so bars feel alive even when quiet
+        const breathe = 0.04 + 0.03 * Math.sin(now * 2 + i * 0.35);
+        const vBoost = Math.max(v, breathe);
+        const barH = Math.max(minH, vBoost * maxH);
         const x = i * slot;
         const y = centerY - barH / 2;
         const isActive = v > 0.05;
-        const alpha = isActive ? 0.6 + v * 0.4 : 0.4;
-        const color = isActive ? primaryHsl : mutedHsl;
-        ctx.fillStyle = `hsla(${color} / ${alpha})`;
+
+        if (isActive) {
+          ctx.shadowColor = `hsla(${primaryHsl} / 0.6)`;
+          ctx.shadowBlur = 8 * dpr;
+          ctx.fillStyle = grad;
+        } else {
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = `hsla(${mutedHsl} / 0.5)`;
+        }
 
         if (barH <= minH * 1.2) {
-          // dot
           ctx.beginPath();
           ctx.arc(x + bw / 2, centerY, bw / 2, 0, Math.PI * 2);
           ctx.fill();
         } else {
-          // rounded bar
           const r = bw / 2;
           ctx.beginPath();
           ctx.moveTo(x + r, y);
@@ -176,6 +191,7 @@ export function VoiceWaveform({
           ctx.fill();
         }
       }
+      ctx.shadowBlur = 0;
 
       rafId = requestAnimationFrame(draw);
     };
