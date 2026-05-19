@@ -103,7 +103,7 @@ export function TasksTab({ department, clinicId }: Props) {
             onOpenChange={setCreateOpen}
             department={department}
             clinicId={clinicId}
-            onCreate={async (input, voice) => {
+            onCreate={async (input, voice, files) => {
               try {
                 const created: any = await createTask.mutateAsync(input);
                 if (voice && created?.id) {
@@ -126,6 +126,29 @@ export function TasksTab({ department, clinicId }: Props) {
                       uploaded_by: user?.id,
                     } as any);
                   if (insErr) throw insErr;
+                }
+                if (files && files.length && created?.id) {
+                  for (const af of files) {
+                    const f = af.file;
+                    const ext = f.name.includes(".") ? f.name.split(".").pop() : "bin";
+                    const path = `tasks/${clinicId}/${created.id}/file/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+                    const { error: upErr } = await supabase.storage
+                      .from("department-files")
+                      .upload(path, f, { contentType: f.type || "application/octet-stream", upsert: false });
+                    if (upErr) throw upErr;
+                    const { error: insErr } = await supabase
+                      .from("department_task_attachments" as any)
+                      .insert({
+                        task_id: created.id,
+                        kind: "file",
+                        file_path: path,
+                        file_name: f.name,
+                        mime_type: f.type || null,
+                        size_bytes: f.size,
+                        uploaded_by: user?.id,
+                      } as any);
+                    if (insErr) throw insErr;
+                  }
                 }
                 toast.success("Task created");
                 setCreateOpen(false);
