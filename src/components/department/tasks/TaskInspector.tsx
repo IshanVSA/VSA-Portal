@@ -49,7 +49,6 @@ export function TaskInspector({ task, department, clinicId, open, onOpenChange }
   const canChangeStatus = isAdmin || isAssignee;
 
   const { updateTask, deleteTask } = useDepartmentTasks(department, clinicId);
-  const { team } = useDepartmentTeam(department, clinicId);
   const { attachments, upload, remove, getPublicUrl } = useTaskAttachments(task.id);
   const { comments, add } = useTaskComments(task.id);
 
