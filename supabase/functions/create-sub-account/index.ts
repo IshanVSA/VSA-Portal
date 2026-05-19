@@ -1,4 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendZohoEmail, brandedEmailWrapper } from "../_shared/zoho-mail.ts";
+import { getResetPasswordUrl, withCanonicalRedirect, resolvePublicSiteUrl } from "../_shared/password-reset-link.ts";
+
+const escapeHtml = (s: string) =>
+  s.replace(/[<>&"']/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c]!));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
