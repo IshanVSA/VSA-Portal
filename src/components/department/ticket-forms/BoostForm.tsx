@@ -34,6 +34,18 @@ export function BoostForm({ onChange }: BoostFormProps) {
 
   return (
     <div className="space-y-3">
+      <VoiceDictation
+        formType="Boost"
+        onFieldsExtracted={(f) => {
+          if (f.concerns) setConcerns(f.concerns);
+          if (f.service) setService(f.service);
+          if (f.notes) setNotes(f.notes);
+          try {
+            if (f.startDate) setStartDate(parse(f.startDate, "yyyy-MM-dd", new Date()));
+            if (f.endDate) setEndDate(parse(f.endDate, "yyyy-MM-dd", new Date()));
+          } catch {}
+        }}
+      />
       <div className="space-y-1.5">
         <Label>Tell us your issues / concerns *</Label>
         <Textarea
