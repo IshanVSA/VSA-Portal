@@ -319,22 +319,43 @@ function CreateTaskDialog({
               <p className="text-xs text-muted-foreground">No {department.replace("_", " ")} team members assigned to this clinic.</p>
             )}
           </div>
-          <div className="space-y-1.5">
-            <Label>Voice note</Label>
-            {voice ? (
-              <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 p-2">
-                <audio src={voice.url} controls className="h-8 flex-1" />
-                <Button type="button" variant="ghost" size="sm" onClick={clearVoice}>Remove</Button>
+          <div className="rounded-xl border border-border/70 bg-gradient-to-br from-muted/40 to-muted/10 p-3.5 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20">
+                  <Mic className="h-4 w-4" />
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium leading-none">Voice note</p>
+                  <p className="text-[11px] text-muted-foreground">Optional — attach audio for the team to play.</p>
+                </div>
               </div>
-            ) : (
-              <TaskVoiceRecorder
-                onRecorded={(blob, durationSeconds) => {
-                  const url = URL.createObjectURL(blob);
-                  setVoice({ blob, durationSeconds, url });
-                }}
-              />
+              {!voice && (
+                <TaskVoiceRecorder
+                  onRecorded={(blob, durationSeconds) => {
+                    const url = URL.createObjectURL(blob);
+                    setVoice({ blob, durationSeconds, url });
+                  }}
+                />
+              )}
+            </div>
+            {voice && (
+              <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-background/80 backdrop-blur p-2 shadow-sm">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500 ring-1 ring-emerald-500/30">
+                  <Mic className="h-3.5 w-3.5" />
+                </span>
+                <audio src={voice.url} controls className="h-8 flex-1 min-w-0" />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearVoice}
+                  className="text-muted-foreground hover:text-destructive shrink-0"
+                >
+                  Remove
+                </Button>
+              </div>
             )}
-            <p className="text-xs text-muted-foreground">Optional — recorded audio is attached to the task for the team to play.</p>
           </div>
         </div>
         <DialogFooter>
