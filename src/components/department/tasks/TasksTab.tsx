@@ -491,6 +491,22 @@ function CreateTaskDialog({
             )}
           </div>
 
+          {/* Section: Attachments */}
+          <div className="rounded-2xl bg-card border border-border/40 overflow-hidden shadow-sm">
+            <div className="flex items-center px-4 h-12">
+              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-500 text-white shadow-sm mr-3">
+                <Paperclip className="h-3.5 w-3.5" />
+              </div>
+              <span className="text-[15px] flex-1">Attachments</span>
+              <span className="text-[13px] text-muted-foreground">{files.length}/10</span>
+            </div>
+            <div className="border-t border-border/40 px-3 py-3 bg-muted/20">
+              <FileUploader files={files} onFilesChange={setFiles} maxFiles={10} label="Files" />
+            </div>
+          </div>
+
+
+
           <p className="text-[11px] text-muted-foreground/70 text-center px-4">
             Tip: tap the AI button to dictate everything at once.
           </p>
