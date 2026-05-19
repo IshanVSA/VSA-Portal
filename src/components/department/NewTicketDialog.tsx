@@ -237,7 +237,8 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     if (!user) return;
 
     let finalDescription = isCustomForm ? customDescription : (genericDescription.trim() || null);
-    if ((ticketType === "Add/Remove Team Members" || ticketType === "Pop-up Offers") && promoteSocial && finalDescription) {
+    const socialEnabled = clinicServices?.["Social Media"] !== false;
+    if ((ticketType === "Add/Remove Team Members" || ticketType === "Pop-up Offers") && promoteSocial && socialEnabled && finalDescription) {
       finalDescription = `${finalDescription}\nPromote on Social Media: Yes`;
     }
     // Merge additional notes into the description so they're always visible on the ticket
