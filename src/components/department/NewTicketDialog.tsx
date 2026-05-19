@@ -400,6 +400,16 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
             </DialogHeader>
 
             <div className="space-y-4 py-2">
+              {!isCustomForm && (
+                <VoiceDictation
+                  formType="Generic"
+                  onFieldsExtracted={(fields) => {
+                    if (fields.title) setTitle(fields.title);
+                    if (fields.description) setGenericDescription(fields.description);
+                    if (fields.notes) setNotes(fields.notes);
+                  }}
+                />
+              )}
               {needsClinicSelection && (
                 <div className="space-y-1.5">
                   <Label>Clinic *</Label>
