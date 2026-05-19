@@ -106,18 +106,24 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
     (async () => {
       const { data, error } = await supabase
         .from("department_tickets" as any)
-        .select("attachments, notes")
+        .select("attachments, notes, completion_email_sent_at, completion_email_recipients, completion_email_error")
         .eq("id", ticket.id)
         .single();
       if (cancelled) return;
       if (error || !data) {
         setAttachments([]);
         setNotes("");
+        setCompletionEmail({ sentAt: null, recipients: null, error: null });
         return;
       }
       const paths: string[] = Array.isArray((data as any).attachments) ? (data as any).attachments : [];
       setAttachments(paths.map((p) => ({ path: p, name: p.split("/").pop() || p })));
       setNotes((data as any).notes || "");
+      setCompletionEmail({
+        sentAt: (data as any).completion_email_sent_at ?? null,
+        recipients: (data as any).completion_email_recipients ?? null,
+        error: (data as any).completion_email_error ?? null,
+      });
     })();
     return () => { cancelled = true; };
   }, [ticket, open]);
