@@ -140,6 +140,89 @@ const TOOLS_BY_FORM: Record<string, any> = {
       required: [],
     },
   },
+  Generic: {
+    name: "extract_generic",
+    description: "Extract a generic ticket request: title, description, and notes from user speech",
+    parameters: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Short title summarizing the request" },
+        description: { type: "string", description: "Detailed description of what is needed" },
+        notes: { type: "string", description: "Any additional notes or context" },
+      },
+      required: [],
+    },
+  },
+  "Content Request": {
+    name: "extract_content_request",
+    description: "Extract content/marketing collateral request details from user speech",
+    parameters: {
+      type: "object",
+      properties: {
+        category: { type: "string", description: "One of: business_cards, google_review_stand, posters, brochures, flyers, social_post, other" },
+        title: { type: "string" },
+        description: { type: "string" },
+        notes: { type: "string" },
+      },
+      required: [],
+    },
+  },
+  "Client Visit": {
+    name: "extract_client_visit",
+    description: "Extract details of a notable client/pet visit from user speech",
+    parameters: {
+      type: "object",
+      properties: {
+        petType: { type: "string", description: "Species: dog, cat, etc." },
+        petName: { type: "string" },
+        reason: { type: "string", description: "Reason for visit" },
+        highlightService: { type: "string", description: "Service to highlight" },
+        description: { type: "string" },
+      },
+      required: [],
+    },
+  },
+  "Bulk Uploads": {
+    name: "extract_bulk_uploads",
+    description: "Extract notes for a bulk content upload from user speech",
+    parameters: {
+      type: "object",
+      properties: {
+        note: { type: "string", description: "Note/context describing the bulk upload" },
+      },
+      required: [],
+    },
+  },
+  "Special Promotion": {
+    name: "extract_special_promotion",
+    description: "Extract special promotion details from user speech",
+    parameters: {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        description: { type: "string" },
+        startDate: { type: "string", description: "YYYY-MM-DD" },
+        endDate: { type: "string", description: "YYYY-MM-DD" },
+        notes: { type: "string" },
+      },
+      required: [],
+    },
+  },
+  Boost: {
+    name: "extract_boost",
+    description: "Extract a content boost request from user speech",
+    parameters: {
+      type: "object",
+      properties: {
+        service: { type: "string", description: "Service to promote/boost" },
+        concerns: { type: "string", description: "Concerns or context" },
+        startDate: { type: "string", description: "YYYY-MM-DD" },
+        endDate: { type: "string", description: "YYYY-MM-DD" },
+        notes: { type: "string" },
+      },
+      required: [],
+    },
+  },
 };
 
 serve(async (req) => {
