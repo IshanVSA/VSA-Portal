@@ -325,7 +325,7 @@ function CreateTaskDialog({
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 placeholder="Title"
-                className="h-9 border-0 bg-transparent px-0 text-[17px] font-medium placeholder:text-muted-foreground/60 focus-visible:ring-0 shadow-none"
+                className="h-9 border-0 bg-transparent px-0 text-[17px] font-medium placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none shadow-none"
               />
             </div>
             <div className="px-4 py-2.5">
@@ -334,7 +334,7 @@ function CreateTaskDialog({
                 onChange={e => setDescription(e.target.value)}
                 rows={3}
                 placeholder="Notes"
-                className="border-0 bg-transparent px-0 py-0 text-[15px] resize-none placeholder:text-muted-foreground/60 focus-visible:ring-0 shadow-none min-h-[72px]"
+                className="border-0 bg-transparent px-0 py-0 text-[15px] resize-none placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none shadow-none min-h-[72px]"
               />
             </div>
           </div>
