@@ -256,6 +256,7 @@ function CreateTaskDialog({
   const [assignee, setAssignee] = useState<string>("unassigned");
   const [staff, setStaff] = useState<{ id: string; name: string }[]>([]);
   const [voice, setVoice] = useState<{ blob: Blob; durationSeconds: number; url: string } | null>(null);
+  const [files, setFiles] = useState<AttachedFile[]>([]);
 
   useEffect(() => {
     if (!open) return;
