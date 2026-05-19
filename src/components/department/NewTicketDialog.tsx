@@ -33,6 +33,7 @@ import { SpecialPromotionForm } from "./ticket-forms/SpecialPromotionForm";
 import { BoostForm } from "./ticket-forms/BoostForm";
 import { BulkUploadsForm } from "./ticket-forms/BulkUploadsForm";
 import { ClinicSelector } from "@/components/department/ClinicSelector";
+import { VoiceDictation } from "./ticket-forms/VoiceDictation";
 import type { ClinicOption } from "@/hooks/useClinicSelector";
 
 interface NewTicketDialogProps {
