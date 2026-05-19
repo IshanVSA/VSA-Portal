@@ -156,7 +156,7 @@ export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationPr
                   </>
                 ) : (
                   <>
-                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    <Mic className="h-3.5 w-3.5 text-primary" />
                     Dictate with Tony AI
                   </>
                 )}
