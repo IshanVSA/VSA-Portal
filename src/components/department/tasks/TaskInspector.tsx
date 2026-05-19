@@ -8,12 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Paperclip, Trash2, Play, Pause, Download, Send, FileText } from "lucide-react";
+import { Paperclip, Trash2, Download, Send, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
-import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { supabase } from "@/integrations/supabase/client";
 import {
   DepartmentTask,
@@ -50,7 +49,6 @@ export function TaskInspector({ task, department, clinicId, open, onOpenChange }
   const canChangeStatus = isAdmin || isAssignee;
 
   const { updateTask, deleteTask } = useDepartmentTasks(department, clinicId);
-  const { team } = useDepartmentTeam(department, clinicId);
   const { attachments, upload, remove, getPublicUrl } = useTaskAttachments(task.id);
   const { comments, add } = useTaskComments(task.id);
 
