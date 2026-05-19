@@ -3,7 +3,7 @@ import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Eye, TrendingUp, Clock, Layers, HeartPulse, MessageSquare } from "lucide-react";
+import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Eye, TrendingUp, Clock, Layers, HeartPulse, MessageSquare, ClipboardList } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { WebsiteAnalyticsTab } from "@/components/department/WebsiteAnalyticsTab";
@@ -19,6 +19,8 @@ import { DepartmentAccessLocked } from "@/components/department/DepartmentAccess
 import { AdminServiceLockNotice } from "@/components/department/AdminServiceLockNotice";
 import { DepartmentChat } from "@/components/department/DepartmentChat";
 import { useDepartmentChatUnread } from "@/hooks/useDepartmentChatUnread";
+import { TasksTab } from "@/components/department/tasks/TasksTab";
+import { useMyOpenTaskCount } from "@/hooks/useDepartmentTasks";
 
 const baseTabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
@@ -29,6 +31,7 @@ const baseTabs = [
 ];
 
 const healthTab = { value: "health", label: "Health", icon: HeartPulse };
+const tasksTabDef = { value: "tasks", label: "Tasks", icon: ClipboardList };
 const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
 
 const services = [
