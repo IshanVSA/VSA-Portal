@@ -1,104 +1,70 @@
-## Goal
 
-Scope the notification bell and the dashboard "Recent Activity" feed for staff team members (concierges) to the department they belong to. Admins continue to see everything. Clients are unaffected. A Website ticket created with "Promote on Social Media: Yes" should still appear for a Social Media team member, because the existing fan-out trigger already creates a `social_media` assignment row for it.
+## Department Tasks — Plan
 
-## Current behaviour (the bug)
+A new staff-only **Tasks** tab inside each department page (Website / SEO / Google Ads / Social Media / AI SEO), scoped to the currently selected clinic. Admins create and assign tasks to team members; assignees update status, comment, attach files, and record voice notes.
 
-Simar's `profiles.team_role` is "Social & Concierge", which maps to the `social_media` department. But:
+### Visibility (mirrors Team Chat)
+- Visible only to `admin` and `concierge` roles. Clients never see the tab.
+- A concierge sees a task only if they belong to that clinic + department (same rule as `is_clinic_dept_team_member`).
+- Admins see everything.
 
-- `NotificationBell` fetches the latest 15 rows from `department_tickets` with no department filter, so it shows Website / SEO / Google Ads tickets too.
-- `RecentActivity` fetches 40 tickets, 40 chats, blog/GBP/promotion/clinic events and lets the user see them all. The component-level `filter.department` only kicks in when the admin dashboard passes a filter — concierges don't.
+### Tabs / placement
+- Add `tasks` tab next to `chat` in: `WebsiteDepartment`, `SeoDepartment`, `GoogleAdsDepartment`, `SocialMedia`, `AiSeoDepartment`.
+- Unread/open-count badge on the tab (mirrors `useDepartmentChatUnread` pattern).
 
-That is why the Avon "Pop-up Offer" (a Website ticket) shows up in Simar's bell and her recent-activity feed, even though it has nothing to do with social media.
+### Task fields
+- title, description, priority (low / medium / high / urgent), due_date
+- assignee (single team member; admin chooses from clinic+department staff)
+- status: `todo`, `in_progress`, `done`, `cancelled`
+- attachments: files in `department-files` bucket under `tasks/{clinic_id}/{task_id}/...`
+- voice notes: same bucket, `tasks/{clinic_id}/{task_id}/voice/...` (`audio/webm` from MediaRecorder, identical to existing `VoiceDictation` flow but stored, not transcribed)
+- comments (lightweight discussion thread on the task)
 
-## Approach
+### UI
+- List view with filters: All / My Tasks / Open / Overdue, plus priority chips.
+- "New Task" button (admin only) opens a slide-in inspector matching the existing PostInspector aesthetic.
+- Task detail drawer: edit fields, status dropdown, attachments grid, voice notes player list (record + play inline), comments thread.
+- Overdue rows highlighted with `destructive` accent; priority shown with department color.
 
-Introduce a single source of truth for "which department(s) does this staff user belong to" and use it to filter both feeds. Reuse the existing fan-out signal — `department_ticket_assignments` — so the "Promote on Social Media: Yes" exception keeps working automatically.
+### Notifications (in-app only)
+- On assign / reassign / status change / new comment → insert a row consumed by existing `NotificationBell`.
+- Tab badge shows count of open tasks assigned to the current user in that clinic+department.
 
-### 1. New hook: `useUserDepartments`
+### Database (migration)
 
-`src/hooks/useUserDepartments.ts`
+```text
+department_tasks
+  id, clinic_id, department (department_type), title, description,
+  priority (enum: low|medium|high|urgent), status (enum: todo|in_progress|done|cancelled),
+  due_date (date), assigned_to (uuid), created_by (uuid),
+  completed_at, created_at, updated_at
 
-- For `role === "admin"` → returns `{ departments: null, isAllAccess: true }` (no filtering).
-- For `role === "client" / "sub_client"` → returns `null` (these feeds already have their own client-specific filtering, no change).
-- For `role === "concierge"` → reads `profiles.team_role` of the current user and maps to one or more `department_type` values, using the same mapping the DB triggers use:
+department_task_attachments
+  id, task_id, kind (file|voice), file_path, file_name, mime_type,
+  size_bytes, duration_seconds (voice), uploaded_by, created_at
 
-  ```
-  Developer, Maintenance               → website
-  SEO Lead                             → seo
-  Ads Strategist, Ads Analyst          → google_ads
-  Social & Concierge, Meta Ads Spec.   → social_media
-  ```
-
-  Result: `{ departments: ["social_media"], isAllAccess: false }`.
-
-A small in-memory cache keyed by `user.id` keeps it cheap.
-
-### 2. Tickets: use fan-out assignments, not just `department`
-
-For both feeds, when filtering tickets for a non-admin staff user, the visible set is:
-
-```
-ticket.department ∈ user.departments
-  OR
-  ticket.id has a row in department_ticket_assignments where department ∈ user.departments
-```
-
-The second branch is what makes "Website ticket + Promote on Social Media: Yes" appear for Simar (the trigger writes a `social_media` row), while a plain Website ticket without that flag does not.
-
-Implementation: in each feed, after fetching tickets, also query
-
-```ts
-supabase
-  .from("department_ticket_assignments")
-  .select("ticket_id, department")
-  .in("ticket_id", ticketIds)
-  .in("department", userDepartments)
+department_task_comments
+  id, task_id, user_id, body, created_at
 ```
 
-and keep tickets that either match directly or appear in that result.
+RLS via new security-definer helper `can_access_clinic_department(uid, clinic_id, department)` reusing `has_role('admin')`, `is_clinic_dept_team_member`. Only admins can `INSERT`/`DELETE` tasks; assignees + admins can `UPDATE` status, due_date, and own comments/attachments.
 
-### 3. `NotificationBell` changes
+`updated_at` trigger via existing `update_updated_at_column()`. Auto-set `completed_at` when status flips to `done`.
 
-`src/components/notifications/NotificationBell.tsx`
+### Notifications wiring
+- Reuse existing notification table/pattern used by tickets. A small trigger inserts a notification row on insert/update of `department_tasks` when `assigned_to` changes or status changes.
 
-- Call `useUserDepartments()`.
-- For staff (non-admin, non-client):
-  - Filter the `department_tickets` result through the rule above.
-  - Apply the same filter to the realtime `INSERT` / `UPDATE` handlers on `department_tickets`. For inserts we can't see the assignments row yet (race with the trigger); use a short `select(...)` on `department_ticket_assignments` for the new ticket id, falling back to the ticket's own `department`.
-  - SM2 events (`sm2_generations`, `sm2_posts.client_feedback`) and `post_activity_log` are inherently social-media-domain — only include them if `social_media ∈ user.departments`.
-- Admins: behaviour unchanged.
-- Clients: behaviour unchanged.
+### Files to add
+- `supabase/migrations/*` — tables, enums, RLS, triggers.
+- `src/hooks/useDepartmentTasks.ts` — list/create/update/delete with React Query.
+- `src/hooks/useDepartmentTaskUnread.ts` — open-tasks-for-me count per clinic+dept.
+- `src/components/department/tasks/TasksTab.tsx` — list + filters + "New Task".
+- `src/components/department/tasks/TaskInspector.tsx` — slide-in detail/edit.
+- `src/components/department/tasks/TaskVoiceRecorder.tsx` — MediaRecorder → upload to `department-files`.
+- `src/components/department/tasks/TaskAttachments.tsx`, `TaskComments.tsx`.
 
-### 4. `RecentActivity` changes
+### Files to edit
+- `WebsiteDepartment.tsx`, `SeoDepartment.tsx`, `GoogleAdsDepartment.tsx`, `SocialMedia.tsx`, `AiSeoDepartment.tsx` — add `tasksTab` (staff-only) and `<TasksTab>` content.
 
-`src/components/dashboard/RecentActivity.tsx`
-
-- Call `useUserDepartments()`.
-- After building the unified list, before the existing `.slice(0, 25)`, drop any item whose `department` is not in the user's set, with these specifics:
-  - Tickets: use the fan-out-aware rule (direct match OR assignment row).
-  - Chats: filter by chat `department`.
-  - Blog / GBP: only kept if `seo ∈ user.departments`.
-  - SM2 generation / Promotions / Content posts / Content requests / Post comments: only kept if `social_media ∈ user.departments`.
-  - Clinic created: kept for everyone (it's not department-bound).
-- Admins skip this filter entirely.
-
-### 5. Out of scope
-
-- No database / RLS changes. The recently-tightened `department_tickets` RLS for concierges stays as-is; this is purely a presentation filter for two staff-facing feeds.
-- No change to the actual department pages (Website / SEO / Social Media tabs) — they already scope tickets by department.
-- No change to client notifications.
-
-## Files touched
-
-- `src/hooks/useUserDepartments.ts` (new)
-- `src/components/notifications/NotificationBell.tsx`
-- `src/components/dashboard/RecentActivity.tsx`
-
-## Verification
-
-- Log in as Simar (concierge, team_role "Social & Concierge"):
-  - Bell shows only social_media tickets and any Website ticket with "Promote on Social Media: Yes" (e.g. it would surface as a social_media notification).
-  - Recent Activity hides Website / SEO / Google Ads items; keeps social posts, SM2, promotions, social chats, and the cross-posted Website ticket.
-- Log in as an admin → both feeds look exactly the same as today.
-- Log in as a client → both feeds look exactly the same as today.
+### Out of scope
+- Email notifications, recurring tasks, subtasks/checklists, client visibility, cross-clinic task views, AI auto-fill.
