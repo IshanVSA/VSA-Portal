@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 import { cn } from "@/lib/utils";
+import { VoiceDictation } from "./VoiceDictation";
 
 interface SpecialPromotionFormProps {
   onChange: (description: string) => void;
@@ -33,6 +34,18 @@ export function SpecialPromotionForm({ onChange }: SpecialPromotionFormProps) {
 
   return (
     <div className="space-y-3">
+      <VoiceDictation
+        formType="Special Promotion"
+        onFieldsExtracted={(f) => {
+          if (f.title) setTitle(f.title);
+          if (f.description) setDescription(f.description);
+          if (f.notes) setNotes(f.notes);
+          try {
+            if (f.startDate) setStartDate(parse(f.startDate, "yyyy-MM-dd", new Date()));
+            if (f.endDate) setEndDate(parse(f.endDate, "yyyy-MM-dd", new Date()));
+          } catch {}
+        }}
+      />
       <div className="space-y-1.5">
         <Label>Title *</Label>
         <Input

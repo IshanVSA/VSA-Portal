@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { VoiceDictation } from "./VoiceDictation";
 
 interface ContentRequestFormProps {
   onChange: (description: string) => void;
@@ -111,6 +112,15 @@ export function ContentRequestForm({ onChange }: ContentRequestFormProps) {
 
   return (
     <div className="space-y-3">
+      <VoiceDictation
+        formType="Content Request"
+        onFieldsExtracted={(f) => {
+          if (f.category && CATEGORIES.some(c => c.value === f.category)) handleCategoryChange(f.category);
+          if (f.title) setTitle(f.title);
+          if (f.description) setDescription(f.description);
+          if (f.notes) setNotes(f.notes);
+        }}
+      />
       <div className="space-y-1.5">
         <Label>Category *</Label>
         <Select value={category} onValueChange={handleCategoryChange}>

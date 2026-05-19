@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { FileUploader, type AttachedFile } from "./FileUploader";
 import { Info } from "lucide-react";
+import { VoiceDictation } from "./VoiceDictation";
 
 interface BulkUploadsFormProps {
   onChange: (description: string) => void;
@@ -23,6 +24,7 @@ export function BulkUploadsForm({ onChange, files, onFilesChange }: BulkUploadsF
 
   return (
     <div className="space-y-3">
+      <VoiceDictation formType="Bulk Uploads" onFieldsExtracted={(f) => { if (f.note) setNote(f.note); }} />
       <div className="flex items-start gap-2 rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
         <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
         <span>Upload up to 20 files. They'll appear in the Uploads tab once this ticket is marked as completed.</span>
