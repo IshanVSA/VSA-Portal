@@ -28,6 +28,8 @@ const typeConfig = {
   comment_added: { icon: MessageSquare, color: "text-primary", bg: "bg-primary/10" },
   status_changed: { icon: FileText, color: "text-muted-foreground", bg: "bg-muted" },
   ticket_created: { icon: Ticket, color: "text-amber-500", bg: "bg-amber-500/10" },
+  task_created: { icon: ClipboardList, color: "text-primary", bg: "bg-primary/10" },
+  task_assigned: { icon: ClipboardList, color: "text-blue-500", bg: "bg-blue-500/10" },
   sm2_generated: { icon: Sparkles, color: "text-violet-500", bg: "bg-violet-500/10" },
   sm2_sent: { icon: Send, color: "text-blue-500", bg: "bg-blue-500/10" },
   sm2_approved: { icon: ThumbsUp, color: "text-emerald-500", bg: "bg-emerald-500/10" },
