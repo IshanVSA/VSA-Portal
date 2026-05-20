@@ -74,14 +74,9 @@ export default function ClientJourneyPage() {
     <PageTransition>
       <div className="p-4 sm:p-6 space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="p-2 rounded-lg bg-primary/10 shrink-0">
-              <Milestone className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight truncate">Client Journey</h1>
-              <p className="text-xs sm:text-sm text-muted-foreground">Track onboarding progress across all phases</p>
-            </div>
+          <div className="min-w-0">
+            <h1 className="text-[28px] sm:text-[34px] font-bold tracking-tight leading-tight truncate">Client Journey</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Track onboarding progress across all phases</p>
           </div>
 
           {clinics.length > 1 && (
