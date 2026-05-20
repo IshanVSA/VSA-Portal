@@ -227,7 +227,7 @@ export default function OpenTasksList({ open, onOpenChange }: OpenTasksListProps
                     <Link
                       to={taskLink(t)}
                       onClick={() => onOpenChange(false)}
-                      className="group flex items-center gap-3 px-5 py-3 transition-colors hover:bg-muted/40"
+                      className="group flex items-center gap-3 px-5 py-3 transition-colors hover:bg-accent/40"
                     >
                       <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted/60", cfg.color)}>
                         <Icon className="h-4 w-4" />
