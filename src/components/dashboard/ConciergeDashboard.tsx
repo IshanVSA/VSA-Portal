@@ -11,6 +11,7 @@ import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import UpcomingPosts from "./UpcomingPosts";
 import RecentActivity from "./RecentActivity";
 import MyTickets from "./MyTickets";
+import MyTasks from "./MyTasks";
 
 import { formatDisplayName } from "@/lib/display-name";
 
@@ -74,8 +75,12 @@ export default function ConciergeDashboard() {
         <KPICard label="Pending Review" value={pendingCount} icon={Megaphone} index={2} gradient="amber" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <MyTickets />
+        <MyTasks />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <UpcomingPosts />
         <RecentActivity />
       </div>
