@@ -6,7 +6,7 @@ import {
   MessagesSquare, BookOpen, Tag, Globe, Building2, Image as ImageIcon, ClipboardList,
 } from "lucide-react";
 import type { DashboardFilter } from "./AdminDashboard";
-import { Card, CardContent } from "@/components/ui/card";
+// Card removed in iOS pass
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useUserDepartments, type DepartmentType } from "@/hooks/useUserDepartments";
