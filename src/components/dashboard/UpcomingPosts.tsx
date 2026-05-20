@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowRight, Facebook, Instagram } from "lucide-react";
 import type { DashboardFilter } from "./AdminDashboard";
-import { Card, CardContent } from "@/components/ui/card";
+// Card removed in iOS pass
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format, parseISO } from "date-fns";
