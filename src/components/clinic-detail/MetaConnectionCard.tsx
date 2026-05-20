@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, RefreshCw, Loader2, Unlink } from "lucide-react";
+import { CheckCircle2, RefreshCw, Loader2, Unlink, Facebook, Hash, Instagram, Clock, KeyRound } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
+import { IOSGroup, IOSRow } from "@/components/ui/ios-list";
 
 interface MetaConnectionCardProps {
   clinicId: string;
@@ -56,11 +56,6 @@ export function MetaConnectionCard({
   const handleDisconnect = async () => {
     setDisconnecting(true);
     try {
-      const res = await supabase.functions.invoke("meta-oauth", {
-        body: { clinic_id: clinicId },
-        headers: { "x-action": "disconnect" },
-      });
-      // The disconnect action is called via POST with action=disconnect query param
       const response = await fetch(
         `${supabaseUrl}/functions/v1/meta-oauth?action=disconnect`,
         {
@@ -80,75 +75,69 @@ export function MetaConnectionCard({
     }
   };
 
+  if (!hasMetaCreds) {
+    return (
+      <IOSGroup
+        header="Meta (Instagram + Facebook)"
+        footer="App must be in Development Mode with the Page admin added as an App Tester. Unlocks full insights, demographics, and per-post metrics without Business Verification."
+      >
+        <IOSRow icon={<Facebook />} tone="blue" label="Status" value="Not connected" />
+        <IOSRow
+          centered
+          label={<span className="text-primary font-medium">Connect with Facebook</span>}
+          onClick={() => { window.location.href = oauthUrl; }}
+        />
+      </IOSGroup>
+    );
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Meta (Instagram + Facebook)</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {!hasMetaCreds ? (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <XCircle className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground text-sm">Not connected</span>
-            </div>
-            <div className="rounded-xl border border-border/60 bg-muted/30 p-3 text-xs space-y-1.5">
-              <p className="font-semibold text-foreground">Setup requirements (Dev Mode)</p>
-              <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-                <li>App must be in <strong>Development Mode</strong> (Live toggle OFF)</li>
-                <li>Add the Page admin as an <strong>App Tester</strong> in App Roles → Roles at developers.facebook.com</li>
-                <li>Connect using that admin's Facebook account below</li>
-              </ol>
-              <p className="text-muted-foreground pt-1">This unlocks full insights, demographics, and per-post metrics without Business Verification.</p>
-            </div>
-            <Button className="w-full" onClick={() => { window.location.href = oauthUrl; }}>
-              Connect with Facebook
-            </Button>
+    <IOSGroup header="Meta (Instagram + Facebook)">
+      <IOSRow
+        icon={<CheckCircle2 />}
+        tone="green"
+        label={metaPageName || "Connected"}
+        sublabel="Active connection"
+      />
+      {metaPageId && (
+        <IOSRow icon={<Facebook />} tone="blue" label="Page ID" value={<span className="font-mono text-xs">{metaPageId}</span>} />
+      )}
+      {metaInstagramBusinessId && (
+        <IOSRow icon={<Instagram />} tone="pink" label="Instagram ID" value={<span className="font-mono text-xs">{metaInstagramBusinessId}</span>} />
+      )}
+      {lastMetaSyncAt && (
+        <IOSRow
+          icon={<Clock />}
+          tone="indigo"
+          label="Last synced"
+          value={new Date(lastMetaSyncAt).toLocaleString()}
+        />
+      )}
+      {grantedScopes && grantedScopes.length > 0 && (
+        <div className="px-4 py-3 space-y-2">
+          <div className="flex items-center gap-2 text-[13px] text-foreground/90">
+            <KeyRound className="h-3.5 w-3.5 text-muted-foreground" />
+            Granted permissions
           </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-primary" />
-              <span className="text-foreground text-sm font-medium">
-                {metaPageName || "Connected"}
-              </span>
-              <Badge variant="secondary" className="text-xs">Connected</Badge>
-            </div>
-
-            <div className="space-y-1 text-xs text-muted-foreground">
-              {metaPageId && <p>Page ID: {metaPageId}</p>}
-              {metaInstagramBusinessId && <p>Instagram ID: {metaInstagramBusinessId}</p>}
-              {lastMetaSyncAt && (
-                <p>Last synced: {new Date(lastMetaSyncAt).toLocaleString()}</p>
-              )}
-            </div>
-
-            {grantedScopes && grantedScopes.length > 0 && (
-              <div className="space-y-1.5">
-                <p className="text-xs font-medium text-foreground">Granted permissions</p>
-                <div className="flex flex-wrap gap-1">
-                  {grantedScopes.map((scope) => (
-                    <Badge key={scope} variant="outline" className="text-[10px] font-mono">
-                      {scope}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              <Button onClick={handleSync} disabled={syncing} variant="outline" size="sm" className="flex-1">
-                {syncing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
-                Sync Now
-              </Button>
-              <Button onClick={handleDisconnect} disabled={disconnecting} variant="destructive" size="sm" className="flex-1">
-                {disconnecting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Unlink className="h-4 w-4 mr-1" />}
-                Disconnect
-              </Button>
-            </div>
+          <div className="flex flex-wrap gap-1">
+            {grantedScopes.map((scope) => (
+              <Badge key={scope} variant="outline" className="text-[10px] font-mono rounded-md">
+                {scope}
+              </Badge>
+            ))}
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      )}
+      <div className="flex gap-2 p-3">
+        <Button onClick={handleSync} disabled={syncing} variant="outline" size="sm" className="flex-1 rounded-xl">
+          {syncing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+          Sync Now
+        </Button>
+        <Button onClick={handleDisconnect} disabled={disconnecting} variant="destructive" size="sm" className="flex-1 rounded-xl">
+          {disconnecting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Unlink className="h-4 w-4 mr-1" />}
+          Disconnect
+        </Button>
+      </div>
+    </IOSGroup>
   );
 }
