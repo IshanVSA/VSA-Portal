@@ -32,6 +32,11 @@ function buildHref(item: UnifiedActivity, allowedDepartments?: DepartmentType[] 
       const base = deptRoute[resolveDept(item.department)] || "/";
       return `${base}?${join(clinic, "tab=tickets")}`;
     }
+    case "task": {
+      const base = deptRoute[resolveDept(item.department)] || "/";
+      const taskId = item.id.replace(/^task-/, "").replace(/-(created|done|in_progress)$/, "");
+      return `${base}?${join(clinic, "tab=tasks", `task=${taskId}`)}`;
+    }
     case "content_request":
     case "content_post":
     case "post_comment":
