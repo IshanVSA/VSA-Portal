@@ -398,6 +398,27 @@ export default function AdminDashboard() {
     return Object.entries(deptMap).map(([department, counts]) => ({ department, ...counts }));
   }, [filteredTickets]);
 
+  const filteredTasks = useMemo(() => {
+    return tasks.filter(t => {
+      if (filter.clinicId && t.clinic_id !== filter.clinicId) return false;
+      if (filter.department && t.department !== filter.department) return false;
+      return true;
+    });
+  }, [tasks, filter]);
+
+  const taskSummary: TaskSummary[] = useMemo(() => {
+    const deptMap: Record<string, { todo: number; in_progress: number; total: number }> = {};
+    filteredTasks.forEach(t => {
+      if (!deptMap[t.department]) deptMap[t.department] = { todo: 0, in_progress: 0, total: 0 };
+      deptMap[t.department].total++;
+      if (t.status === "todo") deptMap[t.department].todo++;
+      if (t.status === "in_progress") deptMap[t.department].in_progress++;
+    });
+    return Object.entries(deptMap).map(([department, counts]) => ({ department, ...counts }));
+  }, [filteredTasks]);
+
+  const openTasks = filteredTasks.length;
+
   const pipeline: PipelineStage[] = useMemo(() => {
     const sc: Record<string, number> = {};
     filteredRequests.forEach(r => { sc[r.status] = (sc[r.status] || 0) + 1; });
