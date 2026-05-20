@@ -83,7 +83,7 @@ const adminSections: NavSection[] = [
   ]},
   { title: "WORKSPACE", items: [
     { label: "Clinics", icon: Building2, path: "/clinics" },
-    { label: "Team", icon: Users, path: "/employees" },
+    { label: "Team", icon: UsersRound, path: "/employees" },
     { label: "Clients", icon: UserCheck, path: "/clients" },
   ]},
   { title: "ADMIN", items: [
@@ -283,7 +283,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
       { label: "Social Media", icon: Share2, path: "/social" },
     ]},
     { title: "ACCOUNT", items: [
-      ...(role === "client" && !isSubAccount ? [{ label: "Sub Accounts", icon: Users, path: "/sub-accounts" }] : []),
+      ...(role === "client" && !isSubAccount ? [{ label: "Sub Accounts", icon: UsersRound, path: "/sub-accounts" }] : []),
       { label: "Settings", icon: Settings, path: "/settings" },
     ] },
   ];
