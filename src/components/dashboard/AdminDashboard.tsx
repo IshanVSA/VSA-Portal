@@ -283,6 +283,7 @@ export default function AdminDashboard() {
 
   // raw datasets so we can recompute under filters
   const [tickets, setTickets] = useState<TicketAssignmentRow[]>([]);
+  const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [posts, setPosts] = useState<PostRow[]>([]);
   const [contentRequests, setContentRequests] = useState<RequestRow[]>([]);
   const [loading, setLoading] = useState(true);
