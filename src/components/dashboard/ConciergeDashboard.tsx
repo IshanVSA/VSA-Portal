@@ -11,6 +11,7 @@ import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import UpcomingPosts from "./UpcomingPosts";
 import RecentActivity from "./RecentActivity";
 import MyTickets from "./MyTickets";
+import MyTasks from "./MyTasks";
 
 import { formatDisplayName } from "@/lib/display-name";
 
