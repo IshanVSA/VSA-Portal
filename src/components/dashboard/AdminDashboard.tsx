@@ -20,6 +20,7 @@ import {
   TrendingUp,
   X,
   Filter as FilterIcon,
+  ClipboardList,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -95,6 +96,20 @@ interface LoginSummaryRow {
 interface TicketSummary {
   department: string;
   open: number;
+  in_progress: number;
+  total: number;
+}
+
+interface TaskRow {
+  id: string;
+  department: string;
+  status: string;
+  clinic_id: string | null;
+}
+
+interface TaskSummary {
+  department: string;
+  todo: number;
   in_progress: number;
   total: number;
 }
@@ -268,6 +283,7 @@ export default function AdminDashboard() {
 
   // raw datasets so we can recompute under filters
   const [tickets, setTickets] = useState<TicketAssignmentRow[]>([]);
+  const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [posts, setPosts] = useState<PostRow[]>([]);
   const [contentRequests, setContentRequests] = useState<RequestRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -284,7 +300,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const fetchAll = async () => {
-      const [clinicsRes, profilesRes, rolesRes, postsRes, ticketsRes, contentReqRes, loginRes] = await Promise.all([
+      const [clinicsRes, profilesRes, rolesRes, postsRes, ticketsRes, contentReqRes, loginRes, tasksRes] = await Promise.all([
         supabase.from("clinics").select("id, clinic_name, status, assigned_concierge_id, website_enabled, seo_enabled, google_ads_enabled, social_media_enabled"),
         supabase.from("profiles").select("id, full_name"),
         supabase.from("user_roles").select("user_id, role"),
@@ -292,6 +308,7 @@ export default function AdminDashboard() {
         supabase.from("department_tickets").select("id, priority, clinic_id"),
         supabase.from("content_requests").select("id, status, clinic_id"),
         supabase.rpc("get_client_login_summary" as never),
+        supabase.from("department_tasks" as never).select("id, department, status, clinic_id").in("status", ["todo", "in_progress"] as never),
       ]);
 
       setClinics((clinicsRes.data || []) as Clinic[]);
@@ -324,6 +341,7 @@ export default function AdminDashboard() {
       }
       setPosts((postsRes.data || []) as PostRow[]);
       setContentRequests((contentReqRes.data || []) as RequestRow[]);
+      setTasks(((tasksRes as { data: TaskRow[] | null }).data || []) as TaskRow[]);
 
       // Count clients active in the last 30 days based on portal logins
       const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
@@ -379,6 +397,27 @@ export default function AdminDashboard() {
     });
     return Object.entries(deptMap).map(([department, counts]) => ({ department, ...counts }));
   }, [filteredTickets]);
+
+  const filteredTasks = useMemo(() => {
+    return tasks.filter(t => {
+      if (filter.clinicId && t.clinic_id !== filter.clinicId) return false;
+      if (filter.department && t.department !== filter.department) return false;
+      return true;
+    });
+  }, [tasks, filter]);
+
+  const taskSummary: TaskSummary[] = useMemo(() => {
+    const deptMap: Record<string, { todo: number; in_progress: number; total: number }> = {};
+    filteredTasks.forEach(t => {
+      if (!deptMap[t.department]) deptMap[t.department] = { todo: 0, in_progress: 0, total: 0 };
+      deptMap[t.department].total++;
+      if (t.status === "todo") deptMap[t.department].todo++;
+      if (t.status === "in_progress") deptMap[t.department].in_progress++;
+    });
+    return Object.entries(deptMap).map(([department, counts]) => ({ department, ...counts }));
+  }, [filteredTasks]);
+
+  const openTasks = filteredTasks.length;
 
   const pipeline: PipelineStage[] = useMemo(() => {
     const sc: Record<string, number> = {};
@@ -555,8 +594,8 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      {/* ROW: Tickets */}
-      <div className="grid grid-cols-1 gap-4">
+      {/* ROW: Tickets & Tasks */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Tickets by Department */}
         <section className="rounded-2xl border border-border/60 bg-card">
           <header className="flex items-center justify-between border-b border-border/50 px-5 py-4">
@@ -609,6 +648,64 @@ export default function AdminDashboard() {
                           </span>
                          </button>
                        </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </section>
+
+        {/* Tasks by Department */}
+        <section className="rounded-2xl border border-border/60 bg-card">
+          <header className="flex items-center justify-between border-b border-border/50 px-5 py-4">
+            <div>
+              <h3 className="text-sm font-bold tracking-tight text-foreground">Tasks by Department</h3>
+              <p className="text-[11px] text-muted-foreground">Click a row to open department tasks</p>
+            </div>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+              {openTasks} active
+            </span>
+          </header>
+          <div className="p-2">
+            {taskSummary.length === 0 ? (
+              <div className="py-10 text-center">
+                <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-success/10">
+                  <ClipboardList className="h-4 w-4 text-success" />
+                </div>
+                <p className="text-sm text-muted-foreground">No open tasks</p>
+              </div>
+            ) : (
+              <ul className="space-y-1">
+                {taskSummary.map((dept) => {
+                  const cfg = deptConfig[dept.department] || {
+                    icon: ClipboardList,
+                    label: dept.department,
+                    path: "/",
+                    ring: "bg-muted text-muted-foreground",
+                    text: "text-muted-foreground",
+                  };
+                  const Icon = cfg.icon;
+                  const tasksPath = cfg.path.replace(/tab=tickets/, "tab=tasks");
+                  return (
+                    <li key={dept.department}>
+                      <Link
+                        to={tasksPath}
+                        className="group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-muted/50"
+                      >
+                        <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl", cfg.ring)}>
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-foreground">{cfg.label}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {dept.todo} to do · {dept.in_progress} in progress
+                          </p>
+                        </div>
+                        <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-bold tabular-nums text-foreground">
+                          {dept.total}
+                        </span>
+                      </Link>
                     </li>
                   );
                 })}
