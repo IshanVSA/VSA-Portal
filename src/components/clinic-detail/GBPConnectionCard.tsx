@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Loader2, Unlink, MapPin, AlertTriangle } from "lucide-react";
+import { CheckCircle2, Loader2, Unlink, MapPin, AlertTriangle, Hash, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { IOSGroup, IOSRow } from "@/components/ui/ios-list";
 
 interface Props {
   clinicId: string;
@@ -47,64 +46,59 @@ export function GBPConnectionCard({
     }
   };
 
+  if (!hasGbpCreds) {
+    return (
+      <IOSGroup
+        header="Google Business Profile"
+        footer="Approved posts will auto-publish at their scheduled time. Requires Google's Business Profile APIs production access; test accounts work without approval."
+      >
+        <IOSRow icon={<MapPin />} tone="blue" label="Status" value="Not connected" />
+        <IOSRow
+          icon={<AlertTriangle />}
+          tone="yellow"
+          label="Production access required"
+          sublabel="Test accounts work without approval"
+        />
+        <IOSRow
+          centered
+          label={<span className="text-primary font-medium">Connect Google Business Profile</span>}
+          onClick={() => { window.location.href = oauthUrl; }}
+        />
+      </IOSGroup>
+    );
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-primary" />
-          Google Business Profile
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {!hasGbpCreds ? (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <XCircle className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground text-sm">Not connected</span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Connect this clinic's GBP location to enable automatic publishing of approved posts.
-            </p>
-            <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-2 text-xs text-amber-700 dark:text-amber-400">
-              <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-              <span>Requires Google's "Business Profile APIs" production access. Test accounts work without approval.</span>
-            </div>
-            <Button className="w-full" onClick={() => { window.location.href = oauthUrl; }}>
-              Connect Google Business Profile
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-primary" />
-              <span className="text-foreground text-sm font-medium">
-                {locationName || "Connected"}
-              </span>
-              <Badge variant="secondary" className="text-xs">Connected</Badge>
-            </div>
-
-            <div className="rounded-xl bg-muted/50 p-3 space-y-1.5 text-xs text-muted-foreground">
-              {locationId && <p>Location: {locationId}</p>}
-              {connectedAt && (
-                <p>
-                  Connected {formatDistanceToNow(new Date(connectedAt), { addSuffix: true })}
-                </p>
-              )}
-              <p>Approved posts will auto-publish at their scheduled time (every 15 min check).</p>
-            </div>
-
-            <div className="flex gap-2">
-              <Button onClick={() => { window.location.href = oauthUrl; }} variant="outline" size="sm" className="flex-1">
-                Reconnect
-              </Button>
-              <Button onClick={handleDisconnect} disabled={disconnecting} variant="destructive" size="sm" className="flex-1">
-                {disconnecting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Unlink className="h-4 w-4 mr-1" />}
-                Disconnect
-              </Button>
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <IOSGroup
+      header="Google Business Profile"
+      footer="Approved posts auto-publish at their scheduled time (every 15 min check)."
+    >
+      <IOSRow
+        icon={<CheckCircle2 />}
+        tone="green"
+        label={locationName || "Connected"}
+        sublabel="Active connection"
+      />
+      {locationId && (
+        <IOSRow icon={<Hash />} tone="gray" label="Location ID" value={<span className="font-mono text-xs">{locationId}</span>} />
+      )}
+      {connectedAt && (
+        <IOSRow
+          icon={<Clock />}
+          tone="indigo"
+          label="Connected"
+          value={formatDistanceToNow(new Date(connectedAt), { addSuffix: true })}
+        />
+      )}
+      <div className="flex gap-2 p-3">
+        <Button onClick={() => { window.location.href = oauthUrl; }} variant="outline" size="sm" className="flex-1 rounded-xl">
+          Reconnect
+        </Button>
+        <Button onClick={handleDisconnect} disabled={disconnecting} variant="destructive" size="sm" className="flex-1 rounded-xl">
+          {disconnecting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Unlink className="h-4 w-4 mr-1" />}
+          Disconnect
+        </Button>
+      </div>
+    </IOSGroup>
   );
 }
