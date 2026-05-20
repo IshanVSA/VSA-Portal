@@ -594,8 +594,8 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      {/* ROW: Tickets */}
-      <div className="grid grid-cols-1 gap-4">
+      {/* ROW: Tickets & Tasks */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Tickets by Department */}
         <section className="rounded-2xl border border-border/60 bg-card">
           <header className="flex items-center justify-between border-b border-border/50 px-5 py-4">
