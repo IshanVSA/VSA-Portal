@@ -438,8 +438,8 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
                         />
                       )}
                       <div className="relative shrink-0">
-                        <item.icon className={cn(
-                          "h-[18px] w-[18px] transition-colors duration-200",
+                        <item.icon strokeWidth={1.5} className={cn(
+                          "h-[19px] w-[19px] transition-colors duration-200",
                           active ? "text-[hsl(var(--sidebar-primary))]" : "group-hover:text-[hsl(var(--sidebar-foreground))]"
                         )} />
                         {collapsed && (
