@@ -52,7 +52,7 @@ export function DateRangeFilter({
               })
             }
             className={cn(
-              "relative px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200",
+              "relative px-3 py-1.5 text-xs font-medium rounded-xl transition-all duration-200",
               activePreset?.days === preset.days
                 ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted"

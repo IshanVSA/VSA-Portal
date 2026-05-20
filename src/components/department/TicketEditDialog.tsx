@@ -346,7 +346,7 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
                 Attachments
                 <span className="text-muted-foreground font-normal">({attachments.length})</span>
               </Label>
-              <ul className="rounded-md border border-border/60 divide-y divide-border/40 overflow-hidden">
+              <ul className="rounded-xl border border-border/60 divide-y divide-border/40 overflow-hidden">
                 {attachments.map((att) => (
                   <li key={att.path} className="flex items-center gap-2 px-3 py-2 bg-muted/20 hover:bg-muted/40 transition-colors">
                     {isImagePath(att.path) ? (

@@ -77,7 +77,7 @@ export function FileUploader({ files, onFilesChange, maxFiles = 5, label = "Atta
         ) : (
           <div className="space-y-2">
             {files.map((f, i) => (
-              <div key={i} className="flex items-center gap-2 p-1.5 rounded-md bg-muted/40 group">
+              <div key={i} className="flex items-center gap-2 p-1.5 rounded-xl bg-muted/40 group">
                 {f.preview ? (
                   <img src={f.preview} alt="" className="h-8 w-8 rounded object-cover shrink-0" />
                 ) : (

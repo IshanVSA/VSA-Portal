@@ -268,7 +268,7 @@ export function TaskInspector({ task, department, clinicId, open, onOpenChange }
               ) : (
                 <div className="space-y-2">
                   {attachments.map(a => (
-                    <div key={a.id} className="flex items-center gap-2 p-2 rounded-md border border-border/60 bg-card/50">
+                    <div key={a.id} className="flex items-center gap-2 p-2 rounded-xl border border-border/60 bg-card/50">
                       {a.kind === "voice" ? (
                         <audio controls src={getPublicUrl(a.file_path)} className="h-8 flex-1" />
                       ) : (
@@ -301,7 +301,7 @@ export function TaskInspector({ task, department, clinicId, open, onOpenChange }
                   <p className="text-xs text-muted-foreground italic">No comments yet.</p>
                 )}
                 {comments.map(c => (
-                  <div key={c.id} className="p-2 rounded-md bg-muted/40 text-sm">
+                  <div key={c.id} className="p-2 rounded-xl bg-muted/40 text-sm">
                     <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
                       <span className="font-medium text-foreground">{c.author_name ?? "User"}</span>
                       <span>{format(new Date(c.created_at), "MMM d, p")}</span>

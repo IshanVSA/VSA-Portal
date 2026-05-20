@@ -387,7 +387,7 @@ function CreateTaskDialog({
           <div className="rounded-2xl bg-card border border-border/40 overflow-hidden divide-y divide-border/40 shadow-sm">
             {/* Priority */}
             <div className="flex items-center px-4 h-12">
-              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-orange-500 text-white shadow-sm mr-3">
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-orange-500 text-white shadow-sm mr-3">
                 <Flag className="h-3.5 w-3.5" />
               </div>
               <span className="text-[15px] flex-1">Priority</span>
@@ -417,7 +417,7 @@ function CreateTaskDialog({
             <Popover>
               <PopoverTrigger asChild>
                 <button type="button" className="flex items-center px-4 h-12 w-full text-left hover:bg-accent/30 transition-colors">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-red-500 text-white shadow-sm mr-3">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-red-500 text-white shadow-sm mr-3">
                     <CalendarDays className="h-3.5 w-3.5" />
                   </div>
                   <span className="text-[15px] flex-1">Due date</span>
@@ -448,7 +448,7 @@ function CreateTaskDialog({
 
             {/* Assignee */}
             <div className="flex items-center px-4 h-12">
-              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-500 text-white shadow-sm mr-3">
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-blue-500 text-white shadow-sm mr-3">
                 <UserCircle2 className="h-4 w-4" />
               </div>
               <span className="text-[15px] flex-1">Assignee</span>
@@ -478,7 +478,7 @@ function CreateTaskDialog({
           {/* Section: Voice note */}
           <div className="rounded-2xl bg-card border border-border/40 overflow-hidden shadow-sm">
             <div className="flex items-center px-4 h-12">
-              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-purple-500 text-white shadow-sm mr-3">
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-purple-500 text-white shadow-sm mr-3">
                 <Mic className="h-3.5 w-3.5" />
               </div>
               <span className="text-[15px] flex-1">Voice note</span>
@@ -510,7 +510,7 @@ function CreateTaskDialog({
           {/* Section: Attachments */}
           <div className="rounded-2xl bg-card border border-border/40 overflow-hidden shadow-sm">
             <div className="flex items-center px-4 h-12">
-              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-500 text-white shadow-sm mr-3">
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-sm mr-3">
                 <Paperclip className="h-3.5 w-3.5" />
               </div>
               <span className="text-[15px] flex-1">Attachments</span>

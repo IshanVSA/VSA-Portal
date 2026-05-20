@@ -240,7 +240,7 @@ export function ClusterManager() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Clinics in Cluster</Label>
-              <div className="border rounded-md p-2 max-h-40 overflow-y-auto space-y-1">
+              <div className="border rounded-xl p-2 max-h-40 overflow-y-auto space-y-1">
                 {allClinics.map(clinic => {
                   const isSelected = editingCluster?.clinics?.includes(clinic.id) ?? false;
                   return (

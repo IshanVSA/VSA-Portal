@@ -52,7 +52,7 @@ export function MonthlyReportForm({ onChange }: MonthlyReportFormProps) {
         <Label>Report Sections</Label>
         <div className="grid grid-cols-2 gap-2">
           {REPORT_SECTIONS.map(section => (
-            <div key={section} className="flex items-center gap-2 rounded-md border border-border/60 bg-muted/20 p-2">
+            <div key={section} className="flex items-center gap-2 rounded-xl border border-border/60 bg-muted/20 p-2">
               <Checkbox checked={sections.includes(section)} onCheckedChange={() => toggleSection(section)} id={`section-${section}`} />
               <Label htmlFor={`section-${section}`} className="cursor-pointer text-xs font-normal">{section}</Label>
             </div>

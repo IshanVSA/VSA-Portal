@@ -106,7 +106,7 @@ export function TicketAuditLog({ ticketId }: TicketAuditLogProps) {
             const actionVerb = isSystemAssignment(entry) ? "assigned" : "changed";
             return (
               <li key={entry.id} className="flex items-start gap-2 text-[11px]">
-                <div className={cn("h-5 w-5 rounded-md bg-background border border-border flex items-center justify-center shrink-0 mt-0.5")}>
+                <div className={cn("h-5 w-5 rounded-xl bg-background border border-border flex items-center justify-center shrink-0 mt-0.5")}>
                   <Icon className="h-2.5 w-2.5 text-muted-foreground" />
                 </div>
                 <div className="flex-1 min-w-0">

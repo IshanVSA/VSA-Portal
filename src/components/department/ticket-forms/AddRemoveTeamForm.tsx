@@ -334,7 +334,7 @@ export function AddRemoveTeamForm({ onChange, onValidityChange, onFilesChange }:
                     }}
                   />
                   {m.photo ? (
-                    <div className="flex items-center gap-2 p-2 rounded-md border border-border/60 bg-background/40">
+                    <div className="flex items-center gap-2 p-2 rounded-xl border border-border/60 bg-background/40">
                       {m.photo.preview ? (
                         <img src={m.photo.preview} alt="" className="h-10 w-10 rounded object-cover shrink-0" />
                       ) : (
@@ -363,7 +363,7 @@ export function AddRemoveTeamForm({ onChange, onValidityChange, onFilesChange }:
                       type="button"
                       onClick={() => photoInputRefs.current[m.id]?.click()}
                       className={cn(
-                        "w-full flex items-center justify-center gap-2 rounded-md border-2 border-dashed py-3 text-xs transition-colors",
+                        "w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed py-3 text-xs transition-colors",
                         missingPhoto
                           ? "border-amber-500/40 text-amber-500 hover:bg-amber-500/5"
                           : "border-border text-muted-foreground hover:border-primary/50 hover:bg-muted/30"

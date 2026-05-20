@@ -373,7 +373,7 @@ export function TicketKanbanView({ tickets, teamMembers, assignableMembers, curr
 
                   {isVoid && t.void_reason && (
                     <div className="mb-2 pl-[2.25rem]">
-                      <div className="rounded-md border border-destructive/20 bg-destructive/5 px-2 py-1.5">
+                      <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-2 py-1.5">
                         <p className="text-[10px] font-semibold uppercase tracking-wide text-destructive mb-0.5">Void reason</p>
                         <p className="text-[11px] text-foreground whitespace-pre-wrap leading-relaxed">{t.void_reason}</p>
                       </div>

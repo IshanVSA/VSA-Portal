@@ -15,7 +15,7 @@ function PassFail({ value }: { value: 'PASS' | 'FAIL' | string }) {
 function CountBadge({ label, count, details }: { label: string; count: number; details: string[] }) {
   const isFail = count > 0;
   return (
-    <div className={`flex items-center justify-between py-1.5 px-2 rounded-md ${isFail ? 'bg-destructive/5 border border-destructive/20' : ''}`}>
+    <div className={`flex items-center justify-between py-1.5 px-2 rounded-xl ${isFail ? 'bg-destructive/5 border border-destructive/20' : ''}`}>
       <span className={`text-xs ${isFail ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>{label}</span>
       <div className="flex items-center gap-2">
         {count > 0 && (
@@ -33,7 +33,7 @@ function CountBadge({ label, count, details }: { label: string; count: number; d
 function CheckRow({ label, value }: { label: string; value: 'PASS' | 'FAIL' | string }) {
   const isFail = value === 'FAIL';
   return (
-    <div className={`flex items-center justify-between py-1.5 px-2 rounded-md ${isFail ? 'bg-destructive/5 border border-destructive/20' : ''}`}>
+    <div className={`flex items-center justify-between py-1.5 px-2 rounded-xl ${isFail ? 'bg-destructive/5 border border-destructive/20' : ''}`}>
       <span className={`text-xs ${isFail ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>{label}</span>
       <PassFail value={value} />
     </div>
@@ -158,7 +158,7 @@ export function ComplianceScanDisplay({ scan, onFixIssues, isFixing }: Props) {
       <CardContent className="px-4 pb-4 space-y-2">
         {/* Tier 1: VSA Core */}
         <Collapsible open={openTiers.tier1} onOpenChange={() => toggle('tier1')}>
-          <CollapsibleTrigger className="flex items-center justify-between w-full py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors">
+          <CollapsibleTrigger className="flex items-center justify-between w-full py-1.5 px-2 rounded-xl hover:bg-muted/50 transition-colors">
             <span className="text-xs font-medium">Tier 1 - VSA Core</span>
             <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${openTiers.tier1 ? 'rotate-180' : ''}`} />
           </CollapsibleTrigger>
@@ -175,7 +175,7 @@ export function ComplianceScanDisplay({ scan, onFixIssues, isFixing }: Props) {
 
         {/* Tier 2: Google Ads Healthcare */}
         <Collapsible open={openTiers.tier2} onOpenChange={() => toggle('tier2')}>
-          <CollapsibleTrigger className="flex items-center justify-between w-full py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors">
+          <CollapsibleTrigger className="flex items-center justify-between w-full py-1.5 px-2 rounded-xl hover:bg-muted/50 transition-colors">
             <span className="text-xs font-medium">Tier 2 - Google Ads Healthcare</span>
             <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${openTiers.tier2 ? 'rotate-180' : ''}`} />
           </CollapsibleTrigger>
@@ -191,7 +191,7 @@ export function ComplianceScanDisplay({ scan, onFixIssues, isFixing }: Props) {
 
         {/* Tier 3: Performance */}
         <Collapsible open={openTiers.tier3} onOpenChange={() => toggle('tier3')}>
-          <CollapsibleTrigger className="flex items-center justify-between w-full py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors">
+          <CollapsibleTrigger className="flex items-center justify-between w-full py-1.5 px-2 rounded-xl hover:bg-muted/50 transition-colors">
             <span className="text-xs font-medium">Tier 3 - Performance</span>
             <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${openTiers.tier3 ? 'rotate-180' : ''}`} />
           </CollapsibleTrigger>
@@ -200,7 +200,7 @@ export function ComplianceScanDisplay({ scan, onFixIssues, isFixing }: Props) {
               const key = `post_${i}` as keyof typeof scan.tier_3.geo_keyword_first_100;
               const isFail = !scan.tier_3.geo_keyword_first_100[key];
               return (
-                <div key={i} className={`flex items-center justify-between py-1.5 px-2 rounded-md ${isFail ? 'bg-destructive/5 border border-destructive/20' : ''}`}>
+                <div key={i} className={`flex items-center justify-between py-1.5 px-2 rounded-xl ${isFail ? 'bg-destructive/5 border border-destructive/20' : ''}`}>
                   <span className={`text-xs ${isFail ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>Post {i} Geo Keyword in First 100</span>
                   <PassFail value={isFail ? 'FAIL' : 'PASS'} />
                 </div>
@@ -212,7 +212,7 @@ export function ComplianceScanDisplay({ scan, onFixIssues, isFixing }: Props) {
               const wc = scan.tier_3.word_count[key];
               const pass = wc >= 80 && wc <= 120;
               return (
-                <div key={`wc-${i}`} className={`flex items-center justify-between py-1.5 px-2 rounded-md ${!pass ? 'bg-destructive/5 border border-destructive/20' : ''}`}>
+                <div key={`wc-${i}`} className={`flex items-center justify-between py-1.5 px-2 rounded-xl ${!pass ? 'bg-destructive/5 border border-destructive/20' : ''}`}>
                   <span className={`text-xs ${!pass ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>Post {i} Word Count</span>
                   <div className="flex items-center gap-1.5">
                     <span className={`text-[10px] ${!pass ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>{wc}w</span>

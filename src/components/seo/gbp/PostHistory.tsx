@@ -244,7 +244,7 @@ export function PostHistory({ clinicId: navClinicId }: PostHistoryProps) {
                   <Badge variant="outline" className="text-[10px]">Variant {selectedPost.topic_variant}</Badge>
                   <Badge variant="outline" className="text-[10px]">{selectedPost.word_count}w</Badge>
                 </div>
-                <div className="bg-muted/30 rounded-md p-3 border border-border/30">
+                <div className="bg-muted/30 rounded-xl p-3 border border-border/30">
                   <p className="text-xs leading-relaxed whitespace-pre-wrap">{selectedPost.post_content}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-xs">
