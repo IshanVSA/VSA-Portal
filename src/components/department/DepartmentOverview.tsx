@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card";
+// Card removed in iOS pass
 import KPICard from "@/components/dashboard/KPICard";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { BarChart3, CheckCircle2, Clock, AlertTriangle, Inbox, Sparkles, LucideIcon } from "lucide-react";
