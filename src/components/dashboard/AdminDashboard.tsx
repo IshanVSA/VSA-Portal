@@ -300,7 +300,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const fetchAll = async () => {
-      const [clinicsRes, profilesRes, rolesRes, postsRes, ticketsRes, contentReqRes, loginRes] = await Promise.all([
+      const [clinicsRes, profilesRes, rolesRes, postsRes, ticketsRes, contentReqRes, loginRes, tasksRes] = await Promise.all([
         supabase.from("clinics").select("id, clinic_name, status, assigned_concierge_id, website_enabled, seo_enabled, google_ads_enabled, social_media_enabled"),
         supabase.from("profiles").select("id, full_name"),
         supabase.from("user_roles").select("user_id, role"),
@@ -308,6 +308,7 @@ export default function AdminDashboard() {
         supabase.from("department_tickets").select("id, priority, clinic_id"),
         supabase.from("content_requests").select("id, status, clinic_id"),
         supabase.rpc("get_client_login_summary" as never),
+        supabase.from("department_tasks" as never).select("id, department, status, clinic_id").in("status", ["todo", "in_progress"] as never),
       ]);
 
       setClinics((clinicsRes.data || []) as Clinic[]);
