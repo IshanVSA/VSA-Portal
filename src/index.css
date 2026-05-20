@@ -135,6 +135,18 @@
     --chart-4: 280 65% 65%;
     --chart-5: 350 80% 60%;
 
+    /* iOS system colors — dark */
+    --ios-orange: 28 100% 55%;
+    --ios-red: 4 90% 62%;
+    --ios-blue: 211 100% 56%;
+    --ios-green: 142 70% 50%;
+    --ios-purple: 280 65% 65%;
+    --ios-indigo: 240 60% 65%;
+    --ios-pink: 340 82% 65%;
+    --ios-teal: 180 60% 50%;
+    --ios-yellow: 45 100% 55%;
+    --ios-gray: 240 5% 55%;
+
     --shadow-xs: 0 1px 2px 0 hsl(0 0% 0% / 0.15);
     --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.2), 0 1px 2px -1px hsl(0 0% 0% / 0.15);
     --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.2), 0 2px 4px -2px hsl(0 0% 0% / 0.15);
