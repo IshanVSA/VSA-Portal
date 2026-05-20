@@ -14,9 +14,10 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', '"Plus Jakarta Sans"', '"DM Sans"', 'system-ui', 'sans-serif'],
-        display: ['Inter', '"Plus Jakarta Sans"', 'sans-serif'],
-        body: ['Inter', '"DM Sans"', 'sans-serif'],
+        sans: ['Inter', 'sans-serif'],
+        serif: ['Fraunces', 'serif'],
+        display: ['Fraunces', 'serif'],
+        body: ['Inter', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
