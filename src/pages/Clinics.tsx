@@ -642,8 +642,8 @@ export default function Clinics() {
                 </DialogContent>
               </Dialog>
             )}
-          </div>
         </div>
+
 
         {/* Search */}
         <div className="relative">
