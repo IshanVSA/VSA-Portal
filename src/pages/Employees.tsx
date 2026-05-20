@@ -415,7 +415,7 @@ export default function Employees() {
                     className="pl-8 h-9"
                   />
                 </div>
-                <div className="max-h-48 overflow-y-auto space-y-1 border rounded-md p-2">
+                <div className="max-h-48 overflow-y-auto space-y-1 border rounded-xl p-2">
                   {allClinics.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-3">No active clinics found.</p>
                   ) : (() => {
@@ -444,7 +444,7 @@ export default function Employees() {
                     return visible.map(c => {
                       const existingMembers = sameRoleMap.get(c.id);
                       return (
-                        <label key={c.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer">
+                        <label key={c.id} className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-muted cursor-pointer">
                           <Checkbox
                             checked={editForm.clinicIds.includes(c.id)}
                             onCheckedChange={(checked) => {

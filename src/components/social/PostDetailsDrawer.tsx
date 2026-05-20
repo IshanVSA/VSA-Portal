@@ -129,7 +129,7 @@ export default function PostDetailsDrawer({
                         key={p.id}
                         onClick={() => setActiveIndex(idx)}
                         className={cn(
-                          "relative aspect-square rounded-md overflow-hidden border-2 transition-all bg-muted",
+                          "relative aspect-square rounded-xl overflow-hidden border-2 transition-all bg-muted",
                           idx === activeIndex
                             ? "border-primary ring-2 ring-primary/30"
                             : "border-border hover:border-primary/50"
@@ -300,7 +300,7 @@ function Section({
         {icon}
         {label}
       </p>
-      <div className="rounded-md border bg-muted/30 p-3">{children}</div>
+      <div className="rounded-xl border bg-muted/30 p-3">{children}</div>
     </div>
   );
 }

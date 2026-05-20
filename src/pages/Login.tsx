@@ -166,7 +166,7 @@ export default function Login() {
                     <p className="text-sm text-gray-600">
                       We've sent a reset link to <span className="font-medium text-gray-900">{resetEmail}</span>.
                     </p>
-                    <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                       ⏱ This link expires in about <strong>{resetSentInfo.minutes} minutes</strong>
                       {" "}(around <strong>{formatExpiry(resetSentInfo.expiresAt)}</strong>). Request a new one if it expires.
                     </div>
