@@ -68,12 +68,12 @@
     --chart-4: 280 65% 60%;
     --chart-5: 350 80% 55%;
 
-    /* Premium shadows */
-    --shadow-xs: 0 1px 2px 0 hsl(0 0% 0% / 0.03);
-    --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.04), 0 1px 2px -1px hsl(0 0% 0% / 0.03);
-    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.05), 0 2px 4px -2px hsl(0 0% 0% / 0.03);
-    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.05), 0 4px 6px -4px hsl(0 0% 0% / 0.03);
-    --shadow-elevated: 0 20px 25px -5px hsl(0 0% 0% / 0.06), 0 8px 10px -6px hsl(0 0% 0% / 0.03);
+    /* Premium shadows — iOS soft */
+    --shadow-xs: 0 1px 1px 0 hsl(0 0% 0% / 0.04);
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.05);
+    --shadow-md: 0 2px 8px -2px hsl(0 0% 0% / 0.06), 0 1px 3px -1px hsl(0 0% 0% / 0.04);
+    --shadow-lg: 0 8px 24px -8px hsl(0 0% 0% / 0.10), 0 2px 6px -2px hsl(0 0% 0% / 0.05);
+    --shadow-elevated: 0 20px 40px -12px hsl(0 0% 0% / 0.14), 0 6px 12px -4px hsl(0 0% 0% / 0.06);
   }
 
   .dark {
