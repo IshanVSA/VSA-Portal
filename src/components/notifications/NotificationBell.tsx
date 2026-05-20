@@ -462,7 +462,34 @@ export function NotificationBell() {
         });
       }
 
-      const all = [...scopedActivityNotifs, ...ticketNotifs, ...sm2Notifs, ...noteNotifs, ...chatMentionNotifs, ...teamChatNotifs]
+      // ---- Tasks ----
+      let taskNotifs: Notification[] = [];
+      if (!isClient) {
+        const taskWindow = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const { data: taskData } = await (supabase
+          .from("department_tasks" as any)
+          .select("id, title, department, priority, status, created_at, updated_at, assigned_to, clinic_id")
+          .gte("created_at", taskWindow)
+          .order("created_at", { ascending: false })
+          .limit(100) as any);
+        taskNotifs = ((taskData || []) as any[])
+          .filter(t => !staffScoped || (t.department && deptSet.has(t.department as DepartmentType)))
+          .map(t => {
+            const isMine = t.assigned_to === user.id;
+            return {
+              id: `task-${t.id}`,
+              type: isMine ? "task_assigned" : "task_created",
+              title: isMine ? "Task assigned to you" : "New Task",
+              message: `[${String(t.department || "").replace(/_/g, " ")}] ${t.title}${t.priority && t.priority !== "low" ? ` (${t.priority})` : ""}`,
+              read: false,
+              created_at: t.created_at,
+              link: buildTaskLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments),
+              clinicId: t.clinic_id ?? null,
+            } as Notification;
+          });
+      }
+
+      const all = [...scopedActivityNotifs, ...ticketNotifs, ...taskNotifs, ...sm2Notifs, ...noteNotifs, ...chatMentionNotifs, ...teamChatNotifs]
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         .slice(0, 30)
         .map(withRead);
