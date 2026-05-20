@@ -314,7 +314,7 @@ function CreateTaskDialog({
       <DialogTrigger asChild>
         <Button className="gap-2"><Plus className="h-4 w-4" /> New task</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden gap-0 rounded-[28px] border-0 bg-background/95 backdrop-blur-2xl shadow-2xl">
+      <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden gap-0 rounded-[28px] border-0 bg-background/95 backdrop-blur-2xl shadow-2xl [&>button.absolute]:hidden">
         {/* iOS-style header bar */}
         <div className="relative flex items-center justify-between px-4 pt-4 pb-3">
           <button
