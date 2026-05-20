@@ -49,8 +49,8 @@ export function CalendarSkeleton() {
           <Skeleton className="h-10 w-[200px] rounded-lg" />
         </div>
         <div className="flex items-center gap-2">
-          <Skeleton className="h-8 w-20 rounded-md" />
-          <Skeleton className="h-8 w-24 rounded-md" />
+          <Skeleton className="h-8 w-20 rounded-xl" />
+          <Skeleton className="h-8 w-24 rounded-xl" />
         </div>
       </div>
       <div className="grid grid-cols-7 gap-px border border-border/60 rounded-xl overflow-hidden bg-border/60">

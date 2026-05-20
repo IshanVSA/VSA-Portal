@@ -35,7 +35,7 @@ export function ContentPostCard({ post, index, defaultOpen = false, isLast = fal
       {/* Collapsed row */}
       <button
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-1 text-left cursor-pointer group hover:bg-accent/30 transition-colors rounded-md flex-wrap"
+        className="w-full flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-1 text-left cursor-pointer group hover:bg-accent/30 transition-colors rounded-xl flex-wrap"
       >
         <ChevronRight className={cn(
           "h-3.5 w-3.5 text-muted-foreground/60 shrink-0 transition-transform duration-200",
@@ -116,7 +116,7 @@ export function ContentPostCard({ post, index, defaultOpen = false, isLast = fal
           )}
 
           {post.compliance_note && (
-            <div className="flex items-start gap-1.5 p-2 rounded-md bg-primary/5 border border-primary/15 mt-1">
+            <div className="flex items-start gap-1.5 p-2 rounded-xl bg-primary/5 border border-primary/15 mt-1">
               <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
               <p className="text-[11px] text-primary/70 leading-relaxed">{post.compliance_note}</p>
             </div>

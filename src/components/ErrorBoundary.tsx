@@ -86,7 +86,7 @@ export class ErrorBoundary extends Component<Props, State> {
               </p>
             </div>
           </div>
-          <pre className="text-[11px] bg-muted/40 rounded-md p-2 max-h-32 overflow-auto mb-4 whitespace-pre-wrap break-words">
+          <pre className="text-[11px] bg-muted/40 rounded-xl p-2 max-h-32 overflow-auto mb-4 whitespace-pre-wrap break-words">
             {error.message}
           </pre>
           <div className="flex gap-2 justify-end">

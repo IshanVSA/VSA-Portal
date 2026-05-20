@@ -58,7 +58,7 @@ export function ClinicClock({ clinicId }: ClinicClockProps) {
 
   return (
     <div
-      className="hidden sm:flex items-center gap-1.5 px-2 sm:px-2.5 h-8 rounded-md bg-muted/40 border border-border/40 text-[11px] font-medium text-foreground shrink-0"
+      className="hidden sm:flex items-center gap-1.5 px-2 sm:px-2.5 h-8 rounded-xl bg-muted/40 border border-border/40 text-[11px] font-medium text-foreground shrink-0"
       title={`Clinic local time (${timezone})`}
     >
       <Clock className="h-3 w-3 text-muted-foreground" />

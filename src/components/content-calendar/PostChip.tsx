@@ -70,7 +70,7 @@ export function PostChip({ post, onClick, compact = false }: PostChipProps) {
         onDragStart={handleDragStart}
         onClick={() => onClick(post)}
         className={cn(
-          "p-1.5 rounded-md text-xs border-l-2 bg-background/80 cursor-pointer hover:bg-accent/40 transition-all shadow-[0_1px_2px_hsl(var(--foreground)/0.04)] space-y-1",
+          "p-1.5 rounded-xl text-xs border-l-2 bg-background/80 cursor-pointer hover:bg-accent/40 transition-all shadow-[0_1px_2px_hsl(var(--foreground)/0.04)] space-y-1",
           statusBorder[post.status] || "border-l-muted",
           !isDraggable && "cursor-default opacity-75"
         )}

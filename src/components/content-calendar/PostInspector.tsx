@@ -131,7 +131,7 @@ export function PostInspector({ post, onClose, onSaved, onDeleted }: PostInspect
                       href={url}
                       target="_blank"
                       rel="noreferrer"
-                      className="block relative aspect-square w-full overflow-hidden rounded-md border border-border bg-muted hover:opacity-90 transition-opacity"
+                      className="block relative aspect-square w-full overflow-hidden rounded-xl border border-border bg-muted hover:opacity-90 transition-opacity"
                     >
                       <img src={url} alt={`Post image ${i + 1}`} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
                     </a>
@@ -144,7 +144,7 @@ export function PostInspector({ post, onClose, onSaved, onDeleted }: PostInspect
           {post.content && (
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Main Content</Label>
-              <div className="text-sm text-foreground bg-muted/50 rounded-md p-3 whitespace-pre-wrap max-h-[200px] overflow-y-auto">
+              <div className="text-sm text-foreground bg-muted/50 rounded-xl p-3 whitespace-pre-wrap max-h-[200px] overflow-y-auto">
                 {post.content}
               </div>
             </div>
@@ -175,7 +175,7 @@ export function PostInspector({ post, onClose, onSaved, onDeleted }: PostInspect
           {post.compliance_note && (
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Compliance Note</Label>
-              <div className="text-sm text-foreground bg-yellow-500/10 border border-yellow-500/20 rounded-md p-3 whitespace-pre-wrap">
+              <div className="text-sm text-foreground bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 whitespace-pre-wrap">
                 {post.compliance_note}
               </div>
             </div>
@@ -184,7 +184,7 @@ export function PostInspector({ post, onClose, onSaved, onDeleted }: PostInspect
           {post.flag_reason && (
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Flag Reason</Label>
-              <div className="text-sm text-foreground bg-destructive/10 border border-destructive/20 rounded-md p-3 whitespace-pre-wrap">
+              <div className="text-sm text-foreground bg-destructive/10 border border-destructive/20 rounded-xl p-3 whitespace-pre-wrap">
                 {post.flag_reason}
               </div>
             </div>

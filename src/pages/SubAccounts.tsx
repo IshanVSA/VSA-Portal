@@ -412,7 +412,7 @@ export default function SubAccounts() {
                   will lose access immediately. This cannot be undone.
                 </p>
                 {isAdmin && deleteTarget && (
-                  <div className="rounded-md border border-border/60 bg-muted/40 p-2 text-xs">
+                  <div className="rounded-xl border border-border/60 bg-muted/40 p-2 text-xs">
                     <div><span className="text-muted-foreground">Parent client:</span> <span className="font-medium text-foreground">{clientName(deleteTarget.parent_user_id)}</span></div>
                     <div><span className="text-muted-foreground">Email:</span> {deleteTarget.email || "—"}</div>
                     <div><span className="text-muted-foreground">Assigned clinics:</span> {deleteTarget.clinic_ids.length}</div>
