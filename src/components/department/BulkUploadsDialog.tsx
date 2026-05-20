@@ -95,7 +95,7 @@ export function BulkUploadsDialog({ open, onOpenChange, department, onUploaded }
             </DialogHeader>
 
             <div className="space-y-3 py-2">
-              <div className="flex items-start gap-2 rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+              <div className="flex items-start gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
                 <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
                 <span>No ticket is created. Files go straight into the {department.replace(/_/g, " ")} Files tab.</span>
               </div>

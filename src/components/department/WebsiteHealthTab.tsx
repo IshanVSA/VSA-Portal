@@ -196,10 +196,10 @@ export function WebsiteHealthTab({ clinicId }: WebsiteHealthTabProps) {
         </div>
         <div className="flex items-center gap-3">
           <ToggleGroup type="single" value={strategy} onValueChange={(v) => v && setStrategy(v)} className="bg-muted/50 rounded-lg p-0.5">
-            <ToggleGroupItem value="mobile" className="gap-1.5 text-xs px-3 py-1.5 data-[state=on]:bg-background data-[state=on]:shadow-sm rounded-md">
+            <ToggleGroupItem value="mobile" className="gap-1.5 text-xs px-3 py-1.5 data-[state=on]:bg-background data-[state=on]:shadow-sm rounded-xl">
               <Smartphone className="h-3.5 w-3.5" /> Mobile
             </ToggleGroupItem>
-            <ToggleGroupItem value="desktop" className="gap-1.5 text-xs px-3 py-1.5 data-[state=on]:bg-background data-[state=on]:shadow-sm rounded-md">
+            <ToggleGroupItem value="desktop" className="gap-1.5 text-xs px-3 py-1.5 data-[state=on]:bg-background data-[state=on]:shadow-sm rounded-xl">
               <Monitor className="h-3.5 w-3.5" /> Desktop
             </ToggleGroupItem>
           </ToggleGroup>

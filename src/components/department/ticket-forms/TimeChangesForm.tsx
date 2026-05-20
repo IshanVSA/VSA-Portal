@@ -295,7 +295,7 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
           {DAYS.map(day => (
             <div key={day} className="space-y-1">
               <div className={cn(
-                "flex flex-wrap items-center gap-2 p-2 rounded-md bg-muted/30 min-w-0",
+                "flex flex-wrap items-center gap-2 p-2 rounded-xl bg-muted/30 min-w-0",
                 dayErrors[day] && "ring-1 ring-destructive/60"
               )}>
                 <div className="w-20 shrink-0 text-sm font-medium text-foreground truncate">{day}</div>
@@ -335,7 +335,7 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
       <div className="space-y-1.5">
         <Label className="text-sm font-medium">Statutory Holiday Hours</Label>
         <div className={cn(
-          "flex flex-wrap items-center gap-2 p-2 rounded-md bg-muted/30 min-w-0",
+          "flex flex-wrap items-center gap-2 p-2 rounded-xl bg-muted/30 min-w-0",
           statHolidayError && "ring-1 ring-destructive/60"
         )}>
           <div className="w-20 shrink-0 text-sm font-medium text-foreground">Stat Holidays</div>

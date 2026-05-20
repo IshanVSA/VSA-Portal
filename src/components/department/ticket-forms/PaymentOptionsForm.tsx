@@ -90,7 +90,7 @@ export function PaymentOptionsForm({ onChange }: PaymentOptionsFormProps) {
           {PAYMENT_METHODS.map(method => (
             <label
               key={method.id}
-              className="flex items-center gap-2 text-sm cursor-pointer rounded-md border border-border/50 px-3 py-2 hover:bg-muted/30 transition-colors has-[:checked]:border-primary/40 has-[:checked]:bg-primary/5"
+              className="flex items-center gap-2 text-sm cursor-pointer rounded-xl border border-border/50 px-3 py-2 hover:bg-muted/30 transition-colors has-[:checked]:border-primary/40 has-[:checked]:bg-primary/5"
             >
               <Checkbox
                 checked={selectedMethods.includes(method.id)}

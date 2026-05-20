@@ -241,7 +241,7 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
       </div>
 
       {complianceBody && (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 rounded-md px-3 py-2">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 rounded-xl px-3 py-2">
           <Shield className="h-3.5 w-3.5 shrink-0" />
           <span>Compliance: <strong className="text-foreground">{complianceBody}</strong></span>
         </div>
@@ -319,7 +319,7 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
         </div>
       )}
 
-      <div className={`flex items-start gap-2 rounded-md border p-3 ${!complianceCleared ? "opacity-50" : ""}`}>
+      <div className={`flex items-start gap-2 rounded-xl border p-3 ${!complianceCleared ? "opacity-50" : ""}`}>
         <Checkbox id="popup-consent" checked={consented} onCheckedChange={(checked) => handleConsentChange(checked === true)} disabled={!complianceCleared} className="mt-0.5" />
         <label htmlFor="popup-consent" className="text-xs leading-relaxed cursor-pointer select-none space-y-1.5 block">
           <span className="block font-medium text-foreground">

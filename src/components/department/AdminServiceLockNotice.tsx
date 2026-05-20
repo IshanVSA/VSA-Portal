@@ -14,7 +14,7 @@ interface AdminServiceLockNoticeProps {
 export function AdminServiceLockNotice({ clinicName, departmentName }: AdminServiceLockNoticeProps) {
   return (
     <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg border border-amber-500/25 bg-amber-500/5">
-      <div className="h-7 w-7 rounded-md bg-amber-500/10 flex items-center justify-center shrink-0">
+      <div className="h-7 w-7 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
         <Lock className="h-3.5 w-3.5 text-amber-600" />
       </div>
       <div className="flex-1 min-w-0">

@@ -27,7 +27,7 @@ function CollisionResults({ result }: { result: CollisionCheckResult }) {
   ];
 
   return (
-    <div className="space-y-1.5 mt-2 p-2 bg-muted/30 rounded-md border border-border/30">
+    <div className="space-y-1.5 mt-2 p-2 bg-muted/30 rounded-xl border border-border/30">
       <p className="text-[11px] font-medium text-muted-foreground mb-1">Collision Check</p>
       {checks.map((c) => (
         <div key={c.label} className="flex items-start gap-1.5">

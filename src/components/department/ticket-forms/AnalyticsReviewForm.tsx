@@ -51,7 +51,7 @@ export function AnalyticsReviewForm({ onChange }: AnalyticsReviewFormProps) {
         <Label>Focus Areas</Label>
         <div className="grid grid-cols-2 gap-2">
           {FOCUS_AREAS.map(area => (
-            <div key={area} className="flex items-center gap-2 rounded-md border border-border/60 bg-muted/20 p-2">
+            <div key={area} className="flex items-center gap-2 rounded-xl border border-border/60 bg-muted/20 p-2">
               <Checkbox checked={selectedAreas.includes(area)} onCheckedChange={() => toggleArea(area)} id={`area-${area}`} />
               <Label htmlFor={`area-${area}`} className="cursor-pointer text-xs font-normal">{area}</Label>
             </div>

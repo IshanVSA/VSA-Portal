@@ -122,7 +122,7 @@ export function PartnershipsDialog({ open, onOpenChange, clientUserId, clientNam
           ) : filteredClinics.length === 0 ? (
             <div className="py-10 text-center text-sm text-muted-foreground">No clinics match.</div>
           ) : (
-            <ScrollArea className="h-72 rounded-md border border-border/60">
+            <ScrollArea className="h-72 rounded-xl border border-border/60">
               <ul className="divide-y divide-border/60">
                 {filteredClinics.map((c) => {
                   const checked = partneredIds.has(c.id);

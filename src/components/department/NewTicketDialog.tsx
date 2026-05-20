@@ -379,7 +379,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
                     <p className="mb-1.5 font-medium text-foreground text-xs uppercase tracking-wide">Forwarded to</p>
                     <div className="flex flex-wrap gap-1.5">
                       {finalDepts.map(d => (
-                        <span key={d} className="inline-flex items-center rounded-md bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+                        <span key={d} className="inline-flex items-center rounded-xl bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
                           {d}
                         </span>
                       ))}
