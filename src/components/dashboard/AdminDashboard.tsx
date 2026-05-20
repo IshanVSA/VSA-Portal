@@ -292,6 +292,7 @@ export default function AdminDashboard() {
   // active drill-down filter
   const [filter, setFilter] = useState<DashboardFilter>({});
   const [ticketsOpen, setTicketsOpen] = useState(false);
+  const [tasksOpen, setTasksOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
