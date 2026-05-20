@@ -6,9 +6,12 @@ import { usePendingCounts } from "@/hooks/usePendingCounts";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Building2, Users, BarChart3, Settings, LogOut, Menu, X, ChevronRight,
-  ShieldCheck, LayoutDashboard, UserCheck, CalendarCheck,
-  Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone, Globe, Sparkles, Plus, FileText, SearchCode, Lock, Activity,
+  ShieldCheck, LayoutGrid, UserRound, CalendarCheck,
+  Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone, Globe, Sparkles, Plus, FileText, LineChart, Lock, Activity, UsersRound,
 } from "lucide-react";
+const LayoutDashboard = LayoutGrid;
+const UserCheck = UserRound;
+const SearchCode = LineChart;
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import vsaLogo from "@/assets/vsa-logo.jpg";
