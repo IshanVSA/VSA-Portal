@@ -242,8 +242,8 @@ export default function Employees() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          </div>
         </div>
+
 
         <Tabs defaultValue="members" className="space-y-4">
           <TabsList>
