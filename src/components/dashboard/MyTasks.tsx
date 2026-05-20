@@ -156,7 +156,7 @@ export default function MyTasks() {
             })}
           </ul>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
