@@ -341,6 +341,7 @@ export default function AdminDashboard() {
       }
       setPosts((postsRes.data || []) as PostRow[]);
       setContentRequests((contentReqRes.data || []) as RequestRow[]);
+      setTasks(((tasksRes as { data: TaskRow[] | null }).data || []) as TaskRow[]);
 
       // Count clients active in the last 30 days based on portal logins
       const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
