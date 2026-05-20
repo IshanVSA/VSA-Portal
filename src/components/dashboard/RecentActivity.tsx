@@ -98,7 +98,7 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
 
       const [
         ticketsRes, contentRequestsRes, postCommentsRes, chatsRes,
-        blogRes, sm2Res, promosRes, gbpRes, clinicNewRes, postsRes,
+        blogRes, sm2Res, promosRes, gbpRes, clinicNewRes, postsRes, tasksRes,
       ] = await Promise.all([
         supabase.from("department_tickets").select("id, title, department, priority, status, created_at, updated_at, created_by, clinic_id").order("created_at", { ascending: false }).limit(40),
         supabase.from("content_requests").select("id, status, created_at, created_by_concierge_id, clinic_id, intake_data").order("created_at", { ascending: false }).limit(40),
@@ -110,6 +110,7 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
         supabase.from("gbp_post_history").select("id, clinic_id, topic, status, created_at, generated_by").order("created_at", { ascending: false }).limit(30),
         supabase.from("clinics").select("id, clinic_name, created_at").order("created_at", { ascending: false }).limit(20),
         supabase.from("content_posts").select("id, clinic_id, title, workflow_stage, status, created_at, created_by, platform").order("created_at", { ascending: false }).limit(30),
+        supabase.from("department_tasks" as any).select("id, title, department, priority, status, created_at, updated_at, created_by, assigned_to, clinic_id").order("updated_at", { ascending: false }).limit(40),
       ]);
 
       const postClinicMap = new Map<string, string | null>();
