@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useLayoutEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { Bell, Check, FileText, MessageSquare, AlertTriangle, CheckCircle, Ticket, Sparkles, Send, ThumbsUp, Inbox, Settings2, AtSign, MessagesSquare } from "lucide-react";
+import { Bell, Check, FileText, MessageSquare, AlertTriangle, CheckCircle, Ticket, Sparkles, Send, ThumbsUp, Inbox, Settings2, AtSign, MessagesSquare, ClipboardList } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
