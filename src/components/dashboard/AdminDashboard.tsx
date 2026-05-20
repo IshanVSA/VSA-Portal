@@ -100,6 +100,20 @@ interface TicketSummary {
   total: number;
 }
 
+interface TaskRow {
+  id: string;
+  department: string;
+  status: string;
+  clinic_id: string | null;
+}
+
+interface TaskSummary {
+  department: string;
+  todo: number;
+  in_progress: number;
+  total: number;
+}
+
 interface PipelineStage {
   label: string;
   status: string;
