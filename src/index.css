@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -161,11 +159,17 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground antialiased font-sans;
     font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     letter-spacing: -0.011em;
+  }
+
+  h1, h2, h3 {
+    @apply font-serif font-semibold;
+    font-optical-sizing: auto;
+    letter-spacing: -0.02em;
   }
 
   /* Premium scrollbar */
