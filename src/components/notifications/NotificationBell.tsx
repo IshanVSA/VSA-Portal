@@ -605,6 +605,22 @@ export function NotificationBell() {
           clinicId: t.clinic_id ?? null,
         });
       })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "department_tasks" }, async (payload) => {
+        if (role === "client") return;
+        const t = payload.new as any;
+        if (rtStaffScoped && !(t.department && rtDeptSet.has(t.department as DepartmentType))) return;
+        const isMine = t.assigned_to === user.id;
+        await enrichAndPush({
+          id: `task-${t.id}`,
+          type: isMine ? "task_assigned" : "task_created",
+          title: isMine ? "Task assigned to you" : "New Task",
+          message: `[${String(t.department || "").replace(/_/g, " ")}] ${t.title}${t.priority && t.priority !== "low" ? ` (${t.priority})` : ""}`,
+          read: false,
+          created_at: t.created_at,
+          link: buildTaskLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments),
+          clinicId: t.clinic_id ?? null,
+        });
+      })
       .on("postgres_changes", { event: "*", schema: "public", table: "sm2_generations" }, async (payload) => {
         if (!rtSocialAllowed) return;
         const g = payload.new as any;
