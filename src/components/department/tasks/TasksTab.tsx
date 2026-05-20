@@ -81,6 +81,22 @@ export function TasksTab({ department, clinicId }: Props) {
     });
   }, [tasks, filter, user]);
 
+  // Auto-open a task when ?task=<id> is in the URL
+  useEffect(() => {
+    if (!tasks.length) return;
+    const params = new URLSearchParams(window.location.search);
+    const taskId = params.get("task");
+    if (!taskId) return;
+    const found = tasks.find(t => t.id === taskId);
+    if (found) {
+      setOpenTask(found);
+      params.delete("task");
+      const qs = params.toString();
+      const newUrl = window.location.pathname + (qs ? `?${qs}` : "") + window.location.hash;
+      window.history.replaceState({}, "", newUrl);
+    }
+  }, [tasks]);
+
   if (!clinicId) {
     return <p className="text-sm text-muted-foreground">Select a clinic to view tasks.</p>;
   }

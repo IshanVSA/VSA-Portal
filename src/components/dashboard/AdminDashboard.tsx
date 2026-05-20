@@ -30,6 +30,7 @@ import { motion } from "framer-motion";
 import UpcomingPosts from "./UpcomingPosts";
 import RecentActivity from "./RecentActivity";
 import OpenTicketsList from "./OpenTicketsList";
+import OpenTasksList from "./OpenTasksList";
 import TeamActivityCard from "./TeamActivityCard";
 
 import { cn } from "@/lib/utils";
@@ -291,6 +292,7 @@ export default function AdminDashboard() {
   // active drill-down filter
   const [filter, setFilter] = useState<DashboardFilter>({});
   const [ticketsOpen, setTicketsOpen] = useState(false);
+  const [tasksOpen, setTasksOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -686,12 +688,12 @@ export default function AdminDashboard() {
                     text: "text-muted-foreground",
                   };
                   const Icon = cfg.icon;
-                  const tasksPath = cfg.path.replace(/tab=tickets/, "tab=tasks");
                   return (
                     <li key={dept.department}>
-                      <Link
-                        to={tasksPath}
-                        className="group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-muted/50"
+                      <button
+                        type="button"
+                        onClick={() => setTasksOpen(true)}
+                        className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
                       >
                         <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl", cfg.ring)}>
                           <Icon className="h-4 w-4" />
@@ -705,7 +707,7 @@ export default function AdminDashboard() {
                         <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-bold tabular-nums text-foreground">
                           {dept.total}
                         </span>
-                      </Link>
+                      </button>
                     </li>
                   );
                 })}
@@ -836,6 +838,7 @@ export default function AdminDashboard() {
       </div>
 
       <OpenTicketsList open={ticketsOpen} onOpenChange={setTicketsOpen} />
+      <OpenTasksList open={tasksOpen} onOpenChange={setTasksOpen} />
 
       {/* ROW: Team Activity */}
       <TeamActivityCard />
