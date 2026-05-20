@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   CheckCircle2, Send, Sparkles, Ticket, FileText, Clock, MessageSquare,
-  MessagesSquare, BookOpen, Tag, Globe, Building2, Image as ImageIcon,
+  MessagesSquare, BookOpen, Tag, Globe, Building2, Image as ImageIcon, ClipboardList,
 } from "lucide-react";
 import type { DashboardFilter } from "./AdminDashboard";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,6 +31,11 @@ function buildHref(item: UnifiedActivity, allowedDepartments?: DepartmentType[] 
     case "ticket": {
       const base = deptRoute[resolveDept(item.department)] || "/";
       return `${base}?${join(clinic, "tab=tickets")}`;
+    }
+    case "task": {
+      const base = deptRoute[resolveDept(item.department)] || "/";
+      const taskId = item.id.replace(/^task-/, "").replace(/-(created|done|in_progress)$/, "");
+      return `${base}?${join(clinic, "tab=tasks", `task=${taskId}`)}`;
     }
     case "content_request":
     case "content_post":
@@ -93,7 +98,7 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
 
       const [
         ticketsRes, contentRequestsRes, postCommentsRes, chatsRes,
-        blogRes, sm2Res, promosRes, gbpRes, clinicNewRes, postsRes,
+        blogRes, sm2Res, promosRes, gbpRes, clinicNewRes, postsRes, tasksRes,
       ] = await Promise.all([
         supabase.from("department_tickets").select("id, title, department, priority, status, created_at, updated_at, created_by, clinic_id").order("created_at", { ascending: false }).limit(40),
         supabase.from("content_requests").select("id, status, created_at, created_by_concierge_id, clinic_id, intake_data").order("created_at", { ascending: false }).limit(40),
@@ -105,6 +110,7 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
         supabase.from("gbp_post_history").select("id, clinic_id, topic, status, created_at, generated_by").order("created_at", { ascending: false }).limit(30),
         supabase.from("clinics").select("id, clinic_name, created_at").order("created_at", { ascending: false }).limit(20),
         supabase.from("content_posts").select("id, clinic_id, title, workflow_stage, status, created_at, created_by, platform").order("created_at", { ascending: false }).limit(30),
+        supabase.from("department_tasks" as any).select("id, title, department, priority, status, created_at, updated_at, created_by, assigned_to, clinic_id").order("updated_at", { ascending: false }).limit(40),
       ]);
 
       const postClinicMap = new Map<string, string | null>();
@@ -300,6 +306,43 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
         });
       });
 
+      // ---- Department tasks ----
+      (tasksRes.data || []).forEach((t: any) => {
+        const creatorName = nameOf(t.created_by);
+        const assigneeName = t.assigned_to ? nameOf(t.assigned_to) : null;
+        const clinicName = clinicOf(t.clinic_id);
+        const deptLabel = (t.department || "").replace("_", " ") || "Unknown";
+        let desc = `"${t.title}" in ${deptLabel}`;
+        if (clinicName) desc += ` for ${clinicName}`;
+        desc += ` by ${creatorName}`;
+        if (assigneeName) desc += ` → ${assigneeName}`;
+
+        activities.push({
+          id: `task-${t.id}-created`, type: "task",
+          label: "Task created", description: desc,
+          created_at: t.created_at, icon: ClipboardList,
+          color: t.priority === "urgent" ? "text-destructive" : t.priority === "high" ? "text-warning" : "text-primary",
+          clinic_id: t.clinic_id || null, department: t.department || null,
+          status: t.status || "todo",
+        });
+
+        if (t.status === "done" && t.updated_at && t.updated_at !== t.created_at) {
+          activities.push({
+            id: `task-${t.id}-done`, type: "task",
+            label: "Task completed", description: desc,
+            created_at: t.updated_at, icon: CheckCircle2, color: "text-success",
+            clinic_id: t.clinic_id || null, department: t.department || null, status: "done",
+          });
+        } else if (t.status === "in_progress" && t.updated_at && t.updated_at !== t.created_at) {
+          activities.push({
+            id: `task-${t.id}-in_progress`, type: "task",
+            label: "Task in progress", description: desc,
+            created_at: t.updated_at, icon: Clock, color: "text-warning",
+            clinic_id: t.clinic_id || null, department: t.department || null, status: "in_progress",
+          });
+        }
+      });
+
       // ---- New clinics ----
       (clinicNewRes.data || []).forEach((c: any) => {
         activities.push({
@@ -335,6 +378,8 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
             return ticketId ? extraTicketIds.has(ticketId) : false;
           }
           case "chat":
+            return !!(i.department && deptSet.has(i.department as DepartmentType));
+          case "task":
             return !!(i.department && deptSet.has(i.department as DepartmentType));
           case "blog_post":
           case "gbp_post":

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useLayoutEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { Bell, Check, FileText, MessageSquare, AlertTriangle, CheckCircle, Ticket, Sparkles, Send, ThumbsUp, Inbox, Settings2, AtSign, MessagesSquare } from "lucide-react";
+import { Bell, Check, FileText, MessageSquare, AlertTriangle, CheckCircle, Ticket, Sparkles, Send, ThumbsUp, Inbox, Settings2, AtSign, MessagesSquare, ClipboardList } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +12,7 @@ import { formatDistanceToNow, isToday, isYesterday, isThisWeek } from "date-fns"
 
 interface Notification {
   id: string;
-  type: "post_approved" | "post_flagged" | "comment_added" | "status_changed" | "ticket_created" | "sm2_generated" | "sm2_sent" | "sm2_approved" | "sm2_feedback" | "client_note" | "chat_mention" | "team_chat";
+  type: "post_approved" | "post_flagged" | "comment_added" | "status_changed" | "ticket_created" | "task_created" | "task_assigned" | "sm2_generated" | "sm2_sent" | "sm2_approved" | "sm2_feedback" | "client_note" | "chat_mention" | "team_chat";
   title: string;
   message: string;
   read: boolean;
@@ -28,6 +28,8 @@ const typeConfig = {
   comment_added: { icon: MessageSquare, color: "text-primary", bg: "bg-primary/10" },
   status_changed: { icon: FileText, color: "text-muted-foreground", bg: "bg-muted" },
   ticket_created: { icon: Ticket, color: "text-amber-500", bg: "bg-amber-500/10" },
+  task_created: { icon: ClipboardList, color: "text-primary", bg: "bg-primary/10" },
+  task_assigned: { icon: ClipboardList, color: "text-blue-500", bg: "bg-blue-500/10" },
   sm2_generated: { icon: Sparkles, color: "text-violet-500", bg: "bg-violet-500/10" },
   sm2_sent: { icon: Send, color: "text-blue-500", bg: "bg-blue-500/10" },
   sm2_approved: { icon: ThumbsUp, color: "text-emerald-500", bg: "bg-emerald-500/10" },
@@ -108,6 +110,22 @@ function buildTicketLink(
       params.set("month", `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
     }
   }
+  return `${base}?${params.toString()}`;
+}
+
+function buildTaskLink(
+  department: string | null | undefined,
+  clinicId: string | null | undefined,
+  taskId: string,
+  allowedDepartments?: DepartmentType[] | null,
+): string {
+  let dept = department || "";
+  if (allowedDepartments && allowedDepartments.length > 0 && !allowedDepartments.includes(dept as DepartmentType)) {
+    dept = allowedDepartments[0];
+  }
+  const base = DEPARTMENT_ROUTE[dept] || "/";
+  const params = new URLSearchParams({ tab: "tasks", task: taskId });
+  if (clinicId) params.set("clinic", clinicId);
   return `${base}?${params.toString()}`;
 }
 
@@ -444,7 +462,34 @@ export function NotificationBell() {
         });
       }
 
-      const all = [...scopedActivityNotifs, ...ticketNotifs, ...sm2Notifs, ...noteNotifs, ...chatMentionNotifs, ...teamChatNotifs]
+      // ---- Tasks ----
+      let taskNotifs: Notification[] = [];
+      if (!isClient) {
+        const taskWindow = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const { data: taskData } = await (supabase
+          .from("department_tasks" as any)
+          .select("id, title, department, priority, status, created_at, updated_at, assigned_to, clinic_id")
+          .gte("created_at", taskWindow)
+          .order("created_at", { ascending: false })
+          .limit(100) as any);
+        taskNotifs = ((taskData || []) as any[])
+          .filter(t => !staffScoped || (t.department && deptSet.has(t.department as DepartmentType)))
+          .map(t => {
+            const isMine = t.assigned_to === user.id;
+            return {
+              id: `task-${t.id}`,
+              type: isMine ? "task_assigned" : "task_created",
+              title: isMine ? "Task assigned to you" : "New Task",
+              message: `[${String(t.department || "").replace(/_/g, " ")}] ${t.title}${t.priority && t.priority !== "low" ? ` (${t.priority})` : ""}`,
+              read: false,
+              created_at: t.created_at,
+              link: buildTaskLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments),
+              clinicId: t.clinic_id ?? null,
+            } as Notification;
+          });
+      }
+
+      const all = [...scopedActivityNotifs, ...ticketNotifs, ...taskNotifs, ...sm2Notifs, ...noteNotifs, ...chatMentionNotifs, ...teamChatNotifs]
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         .slice(0, 30)
         .map(withRead);
@@ -557,6 +602,22 @@ export function NotificationBell() {
           message: `[${t.department}] ${t.title}`,
           read: false, created_at: t.updated_at || new Date().toISOString(),
           link: buildTicketLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments, t.created_at),
+          clinicId: t.clinic_id ?? null,
+        });
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "department_tasks" }, async (payload) => {
+        if (role === "client") return;
+        const t = payload.new as any;
+        if (rtStaffScoped && !(t.department && rtDeptSet.has(t.department as DepartmentType))) return;
+        const isMine = t.assigned_to === user.id;
+        await enrichAndPush({
+          id: `task-${t.id}`,
+          type: isMine ? "task_assigned" : "task_created",
+          title: isMine ? "Task assigned to you" : "New Task",
+          message: `[${String(t.department || "").replace(/_/g, " ")}] ${t.title}${t.priority && t.priority !== "low" ? ` (${t.priority})` : ""}`,
+          read: false,
+          created_at: t.created_at,
+          link: buildTaskLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments),
           clinicId: t.clinic_id ?? null,
         });
       })
