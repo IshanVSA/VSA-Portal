@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Card, CardContent } from "@/components/ui/card";
+// Card removed in iOS pass
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClipboardList, Clock, CheckCircle2, Inbox, CalendarDays } from "lucide-react";
@@ -92,17 +92,15 @@ export default function MyTasks() {
   };
 
   return (
-    <Card className="border-border/60">
-      <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <ClipboardList className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-bold text-foreground">My Tasks</h3>
-        </div>
-        <span className="text-xs text-muted-foreground">{tasks.length} assigned</span>
+    <div className="space-y-1.5">
+      <div className="px-4 flex items-end justify-between">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/80">My Tasks</h3>
+        <span className="text-[11px] text-muted-foreground/70">{tasks.length} assigned</span>
       </div>
-      <CardContent className="p-0">
+      <div className="rounded-2xl bg-card border border-border/40 overflow-hidden shadow-sm">
         {tasks.length === 0 ? (
-          <div className="py-8 text-center">
+          <div className="py-10 text-center">
+            <ClipboardList className="h-5 w-5 text-muted-foreground/40 mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">No tasks assigned to you</p>
           </div>
         ) : (
@@ -158,7 +156,7 @@ export default function MyTasks() {
             })}
           </ul>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
