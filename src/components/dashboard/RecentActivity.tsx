@@ -306,6 +306,43 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
         });
       });
 
+      // ---- Department tasks ----
+      (tasksRes.data || []).forEach((t: any) => {
+        const creatorName = nameOf(t.created_by);
+        const assigneeName = t.assigned_to ? nameOf(t.assigned_to) : null;
+        const clinicName = clinicOf(t.clinic_id);
+        const deptLabel = (t.department || "").replace("_", " ") || "Unknown";
+        let desc = `"${t.title}" in ${deptLabel}`;
+        if (clinicName) desc += ` for ${clinicName}`;
+        desc += ` by ${creatorName}`;
+        if (assigneeName) desc += ` → ${assigneeName}`;
+
+        activities.push({
+          id: `task-${t.id}-created`, type: "task",
+          label: "Task created", description: desc,
+          created_at: t.created_at, icon: ClipboardList,
+          color: t.priority === "urgent" ? "text-destructive" : t.priority === "high" ? "text-warning" : "text-primary",
+          clinic_id: t.clinic_id || null, department: t.department || null,
+          status: t.status || "todo",
+        });
+
+        if (t.status === "done" && t.updated_at && t.updated_at !== t.created_at) {
+          activities.push({
+            id: `task-${t.id}-done`, type: "task",
+            label: "Task completed", description: desc,
+            created_at: t.updated_at, icon: CheckCircle2, color: "text-success",
+            clinic_id: t.clinic_id || null, department: t.department || null, status: "done",
+          });
+        } else if (t.status === "in_progress" && t.updated_at && t.updated_at !== t.created_at) {
+          activities.push({
+            id: `task-${t.id}-in_progress`, type: "task",
+            label: "Task in progress", description: desc,
+            created_at: t.updated_at, icon: Clock, color: "text-warning",
+            clinic_id: t.clinic_id || null, department: t.department || null, status: "in_progress",
+          });
+        }
+      });
+
       // ---- New clinics ----
       (clinicNewRes.data || []).forEach((c: any) => {
         activities.push({
