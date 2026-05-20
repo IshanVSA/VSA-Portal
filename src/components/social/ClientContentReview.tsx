@@ -181,7 +181,7 @@ export default function ClientContentReview({ clinicId }: Props) {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4" />
-                {format(new Date(viewingGen.month_year + "-01"), "MMMM yyyy")} — Content Calendar
+                {format(new Date(viewingGen.month_year + "-01T00:00:00"), "MMMM yyyy")} — Content Calendar
               </DialogTitle>
             </DialogHeader>
             <SM2CalendarView
@@ -308,7 +308,7 @@ function ContentReviewCard({
   onFeedback: () => void;
   isPendingApproval: boolean;
 }) {
-  const monthLabel = format(new Date(generation.month_year + "-01"), "MMMM yyyy");
+  const monthLabel = format(new Date(generation.month_year + "-01T00:00:00"), "MMMM yyyy");
   const status = generation.approval_status;
   const isCopyActionable = status === "sent_for_copy_review";
   const isFinalActionable = status === "sent_for_final_review";
@@ -557,7 +557,7 @@ function ClientHtmlPreview({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-4 w-4" />
-            {format(new Date(monthYear + "-01"), "MMMM yyyy")} - Content Preview
+            {format(new Date(monthYear + "-01T00:00:00"), "MMMM yyyy")} - Content Preview
           </DialogTitle>
         </DialogHeader>
         {loading ? (

@@ -38,7 +38,7 @@ export default function PostDetailsDrawer({
   const isActionable = approvalStatus === "sent_for_copy_review" || approvalStatus === "sent_for_final_review";
   const isCopyRound = approvalStatus === "sent_for_copy_review";
   const monthLabel = useMemo(
-    () => format(new Date(monthYear + "-01"), "MMMM yyyy"),
+    () => format(new Date(monthYear + "-01T00:00:00"), "MMMM yyyy"),
     [monthYear]
   );
 
