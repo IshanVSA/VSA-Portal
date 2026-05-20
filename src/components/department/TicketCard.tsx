@@ -227,10 +227,10 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
   return (
     <>
     <Card className={cn(
-      "overflow-hidden transition-all border-l-[3px]",
+      "overflow-hidden transition-all border-l-[2px] border-l-opacity-70",
       sc.border,
       isVoid && "opacity-70",
-      updating ? "opacity-60 pointer-events-none" : "hover:shadow-md"
+      updating ? "opacity-60 pointer-events-none" : "hover:shadow-[var(--shadow-md)]"
     )}>
       <div className="px-4 pt-3.5 pb-3">
         <div className="flex items-start justify-between gap-3">
