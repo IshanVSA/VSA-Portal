@@ -53,7 +53,7 @@ export function ListView({ posts, onPostClick }: ListViewProps) {
               key={post.id}
               onClick={() => onPostClick(post)}
               className={cn(
-                "border-t border-border cursor-pointer hover:bg-accent/50 transition-colors border-l-[3px]",
+                "border-t border-border cursor-pointer hover:bg-accent/50 transition-colors border-l-2",
                 statusBorder[post.status] || "border-l-muted"
               )}
             >

@@ -181,7 +181,7 @@ export function TicketTableView({ tickets, teamMembers, currentDepartment, onUpd
             return (
               <TableRow
                 key={t.id}
-                className={cn("border-l-[3px]", statusBorder[t.status] || "border-l-muted", isVoid && "opacity-70")}
+                className={cn("border-l-2", statusBorder[t.status] || "border-l-muted", isVoid && "opacity-70")}
               >
                 <TableCell>
                   <div>

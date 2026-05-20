@@ -227,10 +227,10 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
   return (
     <>
     <Card className={cn(
-      "overflow-hidden transition-all border-l-[3px]",
+      "overflow-hidden transition-all border-l-[2px] border-l-opacity-70",
       sc.border,
       isVoid && "opacity-70",
-      updating ? "opacity-60 pointer-events-none" : "hover:shadow-md"
+      updating ? "opacity-60 pointer-events-none" : "hover:shadow-[var(--shadow-md)]"
     )}>
       <div className="px-4 pt-3.5 pb-3">
         <div className="flex items-start justify-between gap-3">
@@ -254,32 +254,32 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
             </div>
 
             <div className="flex flex-wrap items-center gap-1.5 ml-[2.375rem]">
-              <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5 gap-1", sc.bg, sc.color, "border-0")}>
+              <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5 gap-1 rounded-full font-medium", sc.bg, sc.color, "border-0")}>
                 {sc.label}
               </Badge>
-              <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5 gap-1", pc.className)}>
+              <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5 gap-1 rounded-full font-medium border-0", pc.className)}>
                 <span className={cn("h-1.5 w-1.5 rounded-full", pc.dot)} />
                 {pc.label}
               </Badge>
-              <Badge variant="secondary" className="text-[10px] px-2 py-0.5 gap-1">
+              <Badge variant="secondary" className="text-[10px] px-2 py-0.5 gap-1 rounded-full font-medium">
                 <Tag className="h-2.5 w-2.5" />{ticket_type}
               </Badge>
-              <Badge variant="outline" className="text-[10px] px-2 py-0.5 gap-1 text-muted-foreground">
+              <Badge variant="outline" className="text-[10px] px-2 py-0.5 gap-1 rounded-full text-muted-foreground border-border/60">
                 <Building2 className="h-2.5 w-2.5" />{deptLabel}
               </Badge>
               {assigneeName && (
-                <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-primary/8 text-primary border-primary/20 gap-1">
+                <Badge variant="outline" className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border-primary/20 gap-1 font-medium">
                   <UserCircle className="h-2.5 w-2.5" />{assigneeName}
                 </Badge>
               )}
               {!assigneeName && poolNames.length > 0 && (
-                <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-primary/8 text-primary border-primary/20 gap-1" title={poolNames.join(", ")}>
+                <Badge variant="outline" className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border-primary/20 gap-1 font-medium" title={poolNames.join(", ")}>
                   <UserCircle className="h-2.5 w-2.5" />
                   {poolNames.slice(0, 3).join(", ")}{poolNames.length > 3 ? ` +${poolNames.length - 3}` : ""}
                 </Badge>
               )}
               {!assigneeName && poolNames.length === 0 && (
-                <Badge variant="outline" className="text-[10px] px-2 py-0.5 text-muted-foreground/60 border-dashed gap-1">
+                <Badge variant="outline" className="text-[10px] px-2 py-0.5 rounded-full text-muted-foreground/60 border-dashed gap-1">
                   <UserCircle className="h-2.5 w-2.5" />Unassigned
                 </Badge>
               )}
