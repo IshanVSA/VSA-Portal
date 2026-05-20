@@ -277,7 +277,7 @@ export default function SubAccounts() {
               <ArrowLeft className="h-3 w-3" /> Back to Clients
             </Link>
           )}
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="text-[28px] sm:text-[34px] font-bold tracking-tight leading-tight">
             {isAdmin && parentFilter ? `Sub Accounts · ${clientName(parentFilter)}` : "Sub Accounts"}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">

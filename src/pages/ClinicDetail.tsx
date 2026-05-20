@@ -424,8 +424,8 @@ export default function ClinicDetail() {
             />
           )}
           <div>
-            <h1 className="text-2xl font-bold text-foreground">{clinic?.clinic_name || "Loading..."}</h1>
-            <p className="text-muted-foreground">Clinic Analytics & Performance</p>
+            <h1 className="text-[28px] sm:text-[34px] font-bold text-foreground tracking-tight leading-tight">{clinic?.clinic_name || "Loading..."}</h1>
+            <p className="text-muted-foreground mt-1 text-sm">Clinic Analytics & Performance</p>
           </div>
         </div>
 
