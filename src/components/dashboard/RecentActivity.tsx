@@ -403,19 +403,19 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
   if (loading) return null;
 
   return (
-    <Card className="border-border/60">
-      <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
-        <h3 className="text-sm font-bold text-foreground">Recent Activity</h3>
-        <span className="text-xs text-muted-foreground">{items.length} events</span>
+    <div className="space-y-1.5">
+      <div className="px-4 flex items-end justify-between">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/80">Recent Activity</h3>
+        <span className="text-[11px] text-muted-foreground/70">{items.length} events</span>
       </div>
-      <CardContent className="p-0">
+      <div className="rounded-2xl bg-card border border-border/40 overflow-hidden shadow-sm">
         {items.length === 0 ? (
-          <div className="py-8 text-center">
-            <p className="text-sm text-muted-foreground">No activity yet - events will appear here as your team works.</p>
+          <div className="py-10 text-center">
+            <p className="text-sm text-muted-foreground">No activity yet — events will appear here as your team works.</p>
           </div>
         ) : (
           <div className="relative max-h-[560px] overflow-y-auto">
-            <div className="absolute left-[23px] top-0 bottom-0 w-px bg-border/60" />
+            <div className="absolute left-[27px] top-0 bottom-0 w-px bg-border/60" />
             <ul className="py-2">
               {items.map((item) => {
                 const Icon = item.icon;
@@ -425,7 +425,7 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
                   <li key={item.id} className="relative">
                     <Link
                       to={href}
-                      className="flex items-start gap-3 px-4 py-2 hover:bg-muted/30 transition-colors focus:outline-none focus:bg-muted/40"
+                      className="flex items-start gap-3 px-4 py-2 hover:bg-accent/40 transition-colors focus:outline-none focus:bg-accent/40"
                     >
                       <div className={cn("relative z-10 mt-0.5 h-5 w-5 rounded-full bg-card border-2 border-border flex items-center justify-center shrink-0")}>
                         <Icon className={cn("h-2.5 w-2.5", item.color)} />
@@ -433,7 +433,7 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
                       <div className="min-w-0 flex-1">
                         <p className={cn("text-sm text-foreground leading-snug", isClosed && "line-through text-muted-foreground")}>
                           <span className="font-medium">{item.label}</span>
-                          <span className="text-muted-foreground"> - {item.description}</span>
+                          <span className="text-muted-foreground"> — {item.description}</span>
                         </p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
                           {formatDistanceToNow(parseISO(item.created_at), { addSuffix: true })}
@@ -446,7 +446,7 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
             </ul>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
