@@ -63,7 +63,7 @@ export default function TeamActivityCard() {
         </div>
         <Link
           to="/employees?tab=activity"
-          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="inline-flex items-center gap-1 rounded-xl px-2 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           View all <ArrowUpRight className="h-3 w-3" />
         </Link>

@@ -645,7 +645,7 @@ export default function AdminDashboard() {
                               {dept.open} open · {dept.in_progress} in progress
                             </p>
                           </div>
-                          <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-bold tabular-nums text-foreground">
+                          <span className="rounded-xl bg-muted px-2 py-0.5 text-xs font-bold tabular-nums text-foreground">
                             {dept.total}
                           </span>
                          </button>
@@ -704,7 +704,7 @@ export default function AdminDashboard() {
                             {dept.todo} to do · {dept.in_progress} in progress
                           </p>
                         </div>
-                        <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-bold tabular-nums text-foreground">
+                        <span className="rounded-xl bg-muted px-2 py-0.5 text-xs font-bold tabular-nums text-foreground">
                           {dept.total}
                         </span>
                       </button>

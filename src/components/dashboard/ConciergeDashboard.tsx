@@ -101,7 +101,7 @@ export default function ConciergeDashboard() {
               <Card key={clinic.id} className="group border-border/60 hover:shadow-md transition-shadow">
                 <CardContent className="py-4 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-8 w-8 rounded-md bg-primary/8 flex items-center justify-center shrink-0">
+                    <div className="h-8 w-8 rounded-xl bg-primary/8 flex items-center justify-center shrink-0">
                       <span className="text-xs font-bold text-primary">{clinic.clinic_name.charAt(0)}</span>
                     </div>
                     <div className="min-w-0">
