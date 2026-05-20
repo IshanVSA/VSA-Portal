@@ -7,51 +7,52 @@
 @layer base {
   html, body { @apply overflow-x-hidden; }
   :root {
-    --background: 220 16% 96%;
-    --foreground: 224 71% 4%;
+    /* iOS 17 Settings — light */
+    --background: 240 6% 96%;          /* system grouped background */
+    --foreground: 0 0% 7%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 224 71% 4%;
+    --card: 0 0% 100%;                 /* grouped cell */
+    --card-foreground: 0 0% 7%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71% 4%;
+    --popover-foreground: 0 0% 7%;
 
-    --primary: 221 83% 53%;
+    --primary: 211 100% 50%;           /* iOS system blue */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 224 71% 4%;
+    --secondary: 240 6% 93%;           /* system gray 5 */
+    --secondary-foreground: 0 0% 7%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 240 6% 93%;
+    --muted-foreground: 240 3% 46%;
 
-    --accent: 221 83% 96%;
-    --accent-foreground: 221 83% 53%;
+    --accent: 211 100% 96%;
+    --accent-foreground: 211 100% 42%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 4 90% 58%;          /* iOS system red */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 221 83% 53%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 211 100% 50%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;                    /* iOS rounded-2xl */
 
-    --sidebar-background: 228 33% 6%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 221 83% 60%;
+    --sidebar-background: 240 6% 98%;
+    --sidebar-foreground: 0 0% 7%;
+    --sidebar-primary: 211 100% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 221 83% 12%;
-    --sidebar-accent-foreground: 221 83% 70%;
-    --sidebar-border: 220 20% 12%;
-    --sidebar-ring: 221 83% 53%;
-    --sidebar-muted: 215 20% 55%;
+    --sidebar-accent: 211 100% 95%;
+    --sidebar-accent-foreground: 211 100% 42%;
+    --sidebar-border: 240 6% 90%;
+    --sidebar-ring: 211 100% 50%;
+    --sidebar-muted: 240 3% 46%;
 
-    --success: 142 71% 45%;
+    --success: 142 70% 45%;            /* iOS system green */
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
+    --warning: 32 100% 50%;            /* iOS system orange */
     --warning-foreground: 0 0% 100%;
-    --info: 221 83% 53%;
+    --info: 211 100% 50%;
     --info-foreground: 0 0% 100%;
 
     /* Department accent colors */
@@ -67,46 +68,47 @@
     --chart-4: 280 65% 60%;
     --chart-5: 350 80% 55%;
 
-    /* Premium shadows */
-    --shadow-xs: 0 1px 2px 0 hsl(0 0% 0% / 0.03);
-    --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.04), 0 1px 2px -1px hsl(0 0% 0% / 0.03);
-    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.05), 0 2px 4px -2px hsl(0 0% 0% / 0.03);
-    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.05), 0 4px 6px -4px hsl(0 0% 0% / 0.03);
-    --shadow-elevated: 0 20px 25px -5px hsl(0 0% 0% / 0.06), 0 8px 10px -6px hsl(0 0% 0% / 0.03);
+    /* Premium shadows — iOS soft */
+    --shadow-xs: 0 1px 1px 0 hsl(0 0% 0% / 0.04);
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.05);
+    --shadow-md: 0 2px 8px -2px hsl(0 0% 0% / 0.06), 0 1px 3px -1px hsl(0 0% 0% / 0.04);
+    --shadow-lg: 0 8px 24px -8px hsl(0 0% 0% / 0.10), 0 2px 6px -2px hsl(0 0% 0% / 0.05);
+    --shadow-elevated: 0 20px 40px -12px hsl(0 0% 0% / 0.14), 0 6px 12px -4px hsl(0 0% 0% / 0.06);
   }
 
   .dark {
-    --background: 228 33% 5%;
-    --foreground: 210 40% 98%;
-    --card: 228 33% 8%;
-    --card-foreground: 210 40% 98%;
-    --popover: 228 33% 8%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 221 83% 58%;
+    /* iOS 17 Settings — dark */
+    --background: 0 0% 0%;             /* true black grouped bg */
+    --foreground: 0 0% 100%;
+    --card: 240 4% 11%;                /* elevated dark gray cell */
+    --card-foreground: 0 0% 100%;
+    --popover: 240 4% 14%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 211 100% 56%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 20% 14%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 220 20% 14%;
-    --muted-foreground: 215 20% 55%;
-    --accent: 221 83% 15%;
-    --accent-foreground: 221 83% 70%;
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 220 20% 16%;
-    --input: 220 20% 16%;
-    --ring: 221 83% 53%;
-    --sidebar-background: 228 33% 4%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 221 83% 60%;
+    --secondary: 240 4% 16%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 5% 65%;
+    --accent: 211 100% 18%;
+    --accent-foreground: 211 100% 75%;
+    --destructive: 4 90% 62%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 4% 18%;
+    --input: 240 4% 18%;
+    --ring: 211 100% 56%;
+    --sidebar-background: 0 0% 4%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 211 100% 56%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 221 83% 12%;
-    --sidebar-accent-foreground: 221 83% 70%;
-    --sidebar-border: 220 20% 10%;
-    --sidebar-ring: 221 83% 53%;
-    --sidebar-muted: 215 20% 45%;
-    --success: 142 71% 45%;
+    --sidebar-accent: 240 4% 14%;
+    --sidebar-accent-foreground: 211 100% 75%;
+    --sidebar-border: 240 4% 14%;
+    --sidebar-ring: 211 100% 56%;
+    --sidebar-muted: 240 5% 55%;
+    --success: 142 70% 50%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
+    --warning: 32 100% 55%;
     --warning-foreground: 0 0% 100%;
 
     --dept-website: 25 95% 58%;
@@ -166,14 +168,14 @@
 }
 
 @layer utilities {
-  /* Clean card system */
+  /* iOS grouped-cell card system */
   .glass-card {
-    @apply bg-card border border-border/50 rounded-xl;
+    @apply bg-card border border-border/60 rounded-2xl;
     box-shadow: var(--shadow-sm);
   }
 
   .glass-card-elevated {
-    @apply bg-card border border-border/40 rounded-xl;
+    @apply bg-card border border-border/50 rounded-2xl;
     box-shadow: var(--shadow-md);
   }
 
