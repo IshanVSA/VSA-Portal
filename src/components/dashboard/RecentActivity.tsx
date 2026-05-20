@@ -379,6 +379,8 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
           }
           case "chat":
             return !!(i.department && deptSet.has(i.department as DepartmentType));
+          case "task":
+            return !!(i.department && deptSet.has(i.department as DepartmentType));
           case "blog_post":
           case "gbp_post":
             return deptSet.has("seo");
