@@ -76,21 +76,19 @@ export default function UpcomingPosts({ filter }: { filter?: DashboardFilter } =
   if (loading) return null;
 
   return (
-    <Card className="border-border/60">
-      <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
-        <h3 className="text-sm font-bold text-foreground">Upcoming Posts</h3>
-        <Link to="/content-calendar">
-          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground hover:text-primary">
-            Calendar <ArrowRight className="h-3 w-3" />
-          </Button>
+    <div className="space-y-1.5">
+      <div className="px-4 flex items-end justify-between">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/80">Upcoming Posts</h3>
+        <Link to="/content-calendar" className="text-[12px] text-primary hover:opacity-70 inline-flex items-center gap-1">
+          Calendar <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
-      <CardContent className="p-0">
+      <div className="rounded-2xl bg-card border border-border/40 overflow-hidden shadow-sm">
         {posts.length === 0 ? (
-          <div className="py-8 text-center">
-            <p className="text-sm text-muted-foreground mb-2">No upcoming posts scheduled.</p>
+          <div className="py-10 text-center space-y-3">
+            <p className="text-sm text-muted-foreground">No upcoming posts scheduled.</p>
             <Link to="/content-calendar">
-              <Button size="sm" variant="outline" className="text-xs">Schedule a Post</Button>
+              <Button size="sm" variant="outline" className="text-xs rounded-xl">Schedule a Post</Button>
             </Link>
           </div>
         ) : (
@@ -100,7 +98,7 @@ export default function UpcomingPosts({ filter }: { filter?: DashboardFilter } =
               const PIcon = pcfg.icon;
               return (
                 <li key={post.id} className={cn(
-                  "flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors border-l-2",
+                  "flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-accent/40 transition-colors border-l-2",
                   pcfg.color
                 )}>
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -121,7 +119,7 @@ export default function UpcomingPosts({ filter }: { filter?: DashboardFilter } =
             })}
           </ul>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
