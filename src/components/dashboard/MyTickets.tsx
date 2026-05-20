@@ -192,7 +192,7 @@ export default function MyTickets({ filter }: { filter?: DashboardFilter } = {})
             })}
           </ul>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
