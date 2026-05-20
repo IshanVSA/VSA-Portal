@@ -348,8 +348,8 @@ export default function ClientsPage() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          </div>
         </div>
+
 
 
         {!loading && (
