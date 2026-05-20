@@ -29,7 +29,7 @@ export function PipelineFunnel({ stages, onStageClick }: PipelineFunnelProps) {
             type="button"
             onClick={() => onStageClick?.(s.key)}
             className={cn(
-              "group relative flex flex-col gap-2 p-3 rounded-lg border border-border/60 bg-card text-left transition-all",
+              "group relative flex flex-col gap-2 p-3 rounded-xl border border-border/60 bg-card text-left transition-all",
               onStageClick && "hover:border-primary/40 hover:bg-muted/30 hover:shadow-sm",
             )}
           >

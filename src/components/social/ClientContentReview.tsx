@@ -346,21 +346,21 @@ function ContentReviewCard({
       <CardContent className="space-y-4">
         {/* Round-specific helper text */}
         {isCopyActionable && (
-          <div className="rounded-lg border border-blue-200/50 bg-blue-50/30 p-3">
+          <div className="rounded-xl border border-blue-200/50 bg-blue-50/30 p-3">
             <p className="text-sm">
               <strong>Round 1: Review the copy.</strong> Check captions, hooks and hashtags. Visuals will be added by your concierge after you approve the copy.
             </p>
           </div>
         )}
         {isCopyApprovedWaiting && (
-          <div className="rounded-lg border border-blue-200/50 bg-blue-50/30 p-3">
+          <div className="rounded-xl border border-blue-200/50 bg-blue-50/30 p-3">
             <p className="text-sm">
               <strong>Copy approved.</strong> Your concierge is now adding visuals. You'll be asked for final approval shortly.
             </p>
           </div>
         )}
         {isFinalActionable && (
-          <div className="rounded-lg border border-blue-200/50 bg-blue-50/30 p-3">
+          <div className="rounded-xl border border-blue-200/50 bg-blue-50/30 p-3">
             <p className="text-sm">
               <strong>Round 2: Final approval.</strong> Review the visuals alongside the approved copy. Approving here unlocks scheduling.
             </p>
@@ -374,7 +374,7 @@ function ContentReviewCard({
 
         {/* Previous feedback */}
         {generation.client_feedback && (
-          <div className="rounded-lg border border-amber-200/50 bg-amber-50/30 p-3">
+          <div className="rounded-xl border border-amber-200/50 bg-amber-50/30 p-3">
             <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
               <MessageSquare className="h-3 w-3" /> Your Feedback
             </p>
@@ -448,7 +448,7 @@ function AutoApprovalNotice({ sentAt }: { sentAt: string }) {
   if (daysLeft <= 0) return null;
 
   return (
-    <div className="rounded-lg border border-blue-200/50 bg-blue-50/30 p-3 flex items-start gap-2">
+    <div className="rounded-xl border border-blue-200/50 bg-blue-50/30 p-3 flex items-start gap-2">
       <AlertTriangle className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
       <div>
         <p className="text-sm font-medium">Auto-approval in {daysLeft} day{daysLeft !== 1 ? "s" : ""}</p>
@@ -470,7 +470,7 @@ function PerPostFeedbackList({ generationId }: { generationId: string | undefine
   if (!generationId) return null;
 
   return (
-    <div className="rounded-lg border bg-muted/20 p-3 space-y-2 max-h-64 overflow-y-auto">
+    <div className="rounded-xl border bg-muted/20 p-3 space-y-2 max-h-64 overflow-y-auto">
       <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
         <MessageSquare className="h-3 w-3" />
         Per-post changes requested ({withFeedback.length})
@@ -484,7 +484,7 @@ function PerPostFeedbackList({ generationId }: { generationId: string | undefine
       ) : (
         <ul className="space-y-2">
           {withFeedback.map((p) => (
-            <li key={p.id} className="rounded-md bg-background border p-2">
+            <li key={p.id} className="rounded-xl bg-background border p-2">
               <p className="text-[11px] font-medium text-muted-foreground mb-0.5">
                 Post {p.post_number ?? "—"} · {p.platform}
                 {p.scheduled_date ? ` · ${format(new Date(p.scheduled_date), "MMM d")}` : ""}
@@ -565,7 +565,7 @@ function ClientHtmlPreview({
         ) : (
           <iframe
             srcDoc={htmlContent || ""}
-            className="w-full flex-1 rounded-lg border bg-white"
+            className="w-full flex-1 rounded-xl border bg-white"
             style={{ height: "calc(85vh - 120px)" }}
             sandbox="allow-same-origin allow-scripts"
             title="Content Preview"

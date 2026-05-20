@@ -65,7 +65,7 @@ export function GBPConnectionCard({
             <p className="text-xs text-muted-foreground">
               Connect this clinic's GBP location to enable automatic publishing of approved posts.
             </p>
-            <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-2 text-xs text-amber-700 dark:text-amber-400">
+            <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-2 text-xs text-amber-700 dark:text-amber-400">
               <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
               <span>Requires Google's "Business Profile APIs" production access. Test accounts work without approval.</span>
             </div>
@@ -83,7 +83,7 @@ export function GBPConnectionCard({
               <Badge variant="secondary" className="text-xs">Connected</Badge>
             </div>
 
-            <div className="rounded-lg bg-muted/50 p-3 space-y-1.5 text-xs text-muted-foreground">
+            <div className="rounded-xl bg-muted/50 p-3 space-y-1.5 text-xs text-muted-foreground">
               {locationId && <p>Location: {locationId}</p>}
               {connectedAt && (
                 <p>

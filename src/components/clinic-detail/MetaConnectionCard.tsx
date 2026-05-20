@@ -92,7 +92,7 @@ export function MetaConnectionCard({
               <XCircle className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground text-sm">Not connected</span>
             </div>
-            <div className="rounded-lg border border-border/60 bg-muted/30 p-3 text-xs space-y-1.5">
+            <div className="rounded-xl border border-border/60 bg-muted/30 p-3 text-xs space-y-1.5">
               <p className="font-semibold text-foreground">Setup requirements (Dev Mode)</p>
               <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
                 <li>App must be in <strong>Development Mode</strong> (Live toggle OFF)</li>
