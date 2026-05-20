@@ -335,7 +335,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                   <SelectContent>
                     {sortedGens.map((g) => (
                       <SelectItem key={g.id} value={g.id}>
-                        {format(new Date(g.month_year + "-01"), "MMMM yyyy")}
+                        {format(new Date(g.month_year + "-01T00:00:00"), "MMMM yyyy")}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -368,7 +368,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
             <div className="py-10 text-center space-y-2">
               <RefreshCw className="h-6 w-6 mx-auto text-primary animate-spin" />
               <p className="text-sm font-medium">
-                Pipeline running for {format(new Date(selectedGen.month_year + "-01"), "MMMM yyyy")}
+                Pipeline running for {format(new Date(selectedGen.month_year + "-01T00:00:00"), "MMMM yyyy")}
               </p>
               <p className="text-xs text-muted-foreground">
                 The calendar will appear automatically once generation completes.
@@ -457,7 +457,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                       </div>
                       <div>
                         <p className="text-sm font-medium">
-                          {format(new Date(gen.month_year + "-01"), "MMMM yyyy")}
+                          {format(new Date(gen.month_year + "-01T00:00:00"), "MMMM yyyy")}
                         </p>
                         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                           <Badge variant={gen.generation_confidence_score >= 90 ? "default" : gen.generation_confidence_score >= 70 ? "secondary" : "destructive"} className="text-[10px]">
