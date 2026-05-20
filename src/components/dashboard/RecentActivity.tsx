@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   CheckCircle2, Send, Sparkles, Ticket, FileText, Clock, MessageSquare,
-  MessagesSquare, BookOpen, Tag, Globe, Building2, Image as ImageIcon,
+  MessagesSquare, BookOpen, Tag, Globe, Building2, Image as ImageIcon, ClipboardList,
 } from "lucide-react";
 import type { DashboardFilter } from "./AdminDashboard";
 import { Card, CardContent } from "@/components/ui/card";
