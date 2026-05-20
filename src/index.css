@@ -237,11 +237,11 @@
   }
   .tabs-scroll::-webkit-scrollbar { display: none; }
 
-  /* Department left-border accent */
-  .dept-border-website { border-left: 3px solid hsl(var(--dept-website)); }
-  .dept-border-seo { border-left: 3px solid hsl(var(--dept-seo)); }
-  .dept-border-ads { border-left: 3px solid hsl(var(--dept-ads)); }
-  .dept-border-social { border-left: 3px solid hsl(var(--dept-social)); }
+  /* Department left-border accent — softer iOS feel */
+  .dept-border-website { border-left: 2px solid hsl(var(--dept-website) / 0.7); }
+  .dept-border-seo { border-left: 2px solid hsl(var(--dept-seo) / 0.7); }
+  .dept-border-ads { border-left: 2px solid hsl(var(--dept-ads) / 0.7); }
+  .dept-border-social { border-left: 2px solid hsl(var(--dept-social) / 0.7); }
 
   /* Department page background tints + top glow + corner accent + watermark */
   .dept-tint-website,
