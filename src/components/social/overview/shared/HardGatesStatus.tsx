@@ -29,7 +29,7 @@ export function HardGatesStatus({ gates, variant = "pills" }: HardGatesStatusPro
         {failing.map((g) => (
           <div
             key={g.key}
-            className="flex items-center justify-between p-2.5 rounded-lg border border-destructive/30 bg-destructive/5"
+            className="flex items-center justify-between p-2.5 rounded-xl border border-destructive/30 bg-destructive/5"
           >
             <div className="flex items-center gap-2 min-w-0">
               <ShieldAlert className="h-4 w-4 text-destructive shrink-0" />
@@ -58,7 +58,7 @@ export function HardGatesStatus({ gates, variant = "pills" }: HardGatesStatusPro
         return (
           <div
             key={g.key}
-            className={cn("flex flex-col items-start gap-1 p-2.5 rounded-lg border min-w-0", tone)}
+            className={cn("flex flex-col items-start gap-1 p-2.5 rounded-xl border min-w-0", tone)}
           >
             <div className="flex items-center gap-1.5 w-full min-w-0">
               <Shield className="h-3 w-3 shrink-0" />

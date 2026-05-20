@@ -226,7 +226,7 @@ export default function ContentThemeSliders({ clinicId }: Props) {
           </CardHeader>
           <CardContent className="space-y-4">
             {HARD_GATES.map((gate) => (
-              <div key={gate.key} className="flex items-center justify-between p-3 rounded-lg border bg-muted/20">
+              <div key={gate.key} className="flex items-center justify-between p-3 rounded-xl border bg-muted/20">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <Label className="text-sm font-medium">{gate.label}</Label>
@@ -248,7 +248,7 @@ export default function ContentThemeSliders({ clinicId }: Props) {
 
             {/* Pricing in Posts - only if pricing_on_website is true */}
             {gateValues.pricing_on_website && (
-              <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/20">
+              <div className="flex items-center justify-between p-3 rounded-xl border bg-muted/20">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <Label className="text-sm font-medium">Include Pricing in Posts</Label>

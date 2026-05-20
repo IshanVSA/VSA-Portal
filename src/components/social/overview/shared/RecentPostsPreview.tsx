@@ -57,7 +57,7 @@ export function RecentPostsPreview({ clinicId }: RecentPostsPreviewProps) {
         {loading ? (
           <div className="space-y-2">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-12 rounded-lg bg-muted/40 animate-pulse" />
+              <div key={i} className="h-12 rounded-xl bg-muted/40 animate-pulse" />
             ))}
           </div>
         ) : posts.length === 0 ? (
@@ -70,9 +70,9 @@ export function RecentPostsPreview({ clinicId }: RecentPostsPreviewProps) {
               <button
                 key={p.id}
                 onClick={() => setPreviewing(p)}
-                className="w-full flex items-center gap-3 p-2.5 rounded-lg border border-border/50 bg-card hover:border-primary/30 hover:bg-muted/30 transition-all text-left group"
+                className="w-full flex items-center gap-3 p-2.5 rounded-xl border border-border/50 bg-card hover:border-primary/30 hover:bg-muted/30 transition-all text-left group"
               >
-                <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                   <FileText className="h-4 w-4 text-primary" />
                 </div>
                 <div className="min-w-0 flex-1">

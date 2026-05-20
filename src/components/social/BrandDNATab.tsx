@@ -292,7 +292,7 @@ export default function BrandDNATab({ clinicId }: Props) {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="h-9 w-9 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
+          <div className="h-9 w-9 shrink-0 rounded-xl bg-primary/10 flex items-center justify-center">
             <Dna className="h-5 w-5 text-primary" />
           </div>
           <div className="min-w-0">
@@ -313,7 +313,7 @@ export default function BrandDNATab({ clinicId }: Props) {
         <select
           value={activeLayer}
           onChange={(e) => setActiveLayer(e.target.value as LayerKey)}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
         >
           {layers.map((l) => (
             <option key={l.key} value={l.key}>
@@ -336,7 +336,7 @@ export default function BrandDNATab({ clinicId }: Props) {
                   <button
                     key={l.key}
                     onClick={() => setActiveLayer(l.key)}
-                    className={`group flex items-center justify-between gap-2 rounded-md px-3 py-2 text-sm transition-colors text-left whitespace-nowrap ${
+                    className={`group flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm transition-colors text-left whitespace-nowrap ${
                       active
                         ? "bg-primary/10 text-foreground"
                         : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
@@ -527,7 +527,7 @@ function ImproveScoreChecklist({ profile }: { profile: Record<string, any> }) {
   };
 
   return (
-    <div className="rounded-lg border border-amber-300/40 bg-amber-50/20 p-4 space-y-3">
+    <div className="rounded-xl border border-amber-300/40 bg-amber-50/20 p-4 space-y-3">
       <div className="flex items-center gap-2">
         <TrendingUp className="h-4 w-4 text-amber-600" />
         <p className="text-sm font-semibold text-amber-800">Improve Your Score - Top Actions</p>
@@ -613,7 +613,7 @@ function SynthesizedProfileCard({ profile, clinicId, canEdit }: { profile: Recor
             <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
               <BookOpen className="h-3 w-3" /> Narrative Anchor
             </p>
-            <p className="text-sm italic text-foreground bg-violet-500/5 rounded-lg p-3 border border-violet-200/30">
+            <p className="text-sm italic text-foreground bg-violet-500/5 rounded-xl p-3 border border-violet-200/30">
               "{profile.narrative_anchor}"
             </p>
           </div>
@@ -749,7 +749,7 @@ function SynthesizedProfileCard({ profile, clinicId, canEdit }: { profile: Recor
             </p>
             <div className="space-y-2">
               {profile.confidence_flags.map((flag: any, i: number) => (
-                <div key={i} className="rounded-lg border border-amber-200/50 bg-amber-50/30 p-3 text-sm">
+                <div key={i} className="rounded-xl border border-amber-200/50 bg-amber-50/30 p-3 text-sm">
                   <div className="flex items-center gap-2 mb-1">
                     <Badge variant={flag.severity === "high" ? "destructive" : flag.severity === "medium" ? "secondary" : "outline"} className="text-[10px]">
                       {flag.severity || "medium"}
@@ -1006,7 +1006,7 @@ function ReviewMiningCard({ data, clinicId, canEdit }: { data: Record<string, an
             </p>
             <div className="grid gap-3 md:grid-cols-3">
               {data.top_themes.map((theme: any, i: number) => (
-                <div key={i} className="rounded-lg border border-border/60 p-3 space-y-2">
+                <div key={i} className="rounded-xl border border-border/60 p-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium">{theme.theme}</p>
                     <Badge variant="secondary" className="text-xs">{theme.frequency}</Badge>
@@ -1042,7 +1042,7 @@ function ReviewMiningCard({ data, clinicId, canEdit }: { data: Record<string, an
             </p>
             <div className="grid gap-2 md:grid-cols-2">
               {data.differentiator_signals.map((sig: any, i: number) => (
-                <div key={i} className="rounded-lg border border-border/60 p-3">
+                <div key={i} className="rounded-xl border border-border/60 p-3">
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-sm font-medium">{sig.signal}</p>
                     <Badge variant="secondary" className="text-xs">{sig.evidence_count} reviews</Badge>

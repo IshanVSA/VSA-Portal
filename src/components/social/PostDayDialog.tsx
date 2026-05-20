@@ -55,7 +55,7 @@ export default function PostDayDialog({ open, onClose, date, generationId, isCli
           <DialogTitle>{label}</DialogTitle>
         </DialogHeader>
         {showLockBanner && (
-          <div className="flex items-start gap-2.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs">
+          <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs">
             <Lock className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold text-amber-700 dark:text-amber-400">
@@ -122,7 +122,7 @@ function SectionToggle({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <Collapsible open={open} onOpenChange={setOpen} className="border rounded-md">
+    <Collapsible open={open} onOpenChange={setOpen} className="border rounded-xl">
       <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wide hover:bg-muted/50 transition-colors">
         <span className="flex items-center gap-2">
           {icon}
@@ -214,12 +214,12 @@ function PostCard({
         <div className="space-y-2">
           {imageUrls.length === 0 ? (
             isClient ? (
-              <div className="w-full aspect-square rounded-lg border border-dashed flex items-center justify-center text-xs text-muted-foreground">
+              <div className="w-full aspect-square rounded-xl border border-dashed flex items-center justify-center text-xs text-muted-foreground">
                 No image
               </div>
             ) : uploadDisabled ? (
               <div
-                className="w-full aspect-square rounded-lg border-2 border-dashed border-amber-500/40 bg-amber-500/5 flex flex-col items-center justify-center gap-1.5 text-xs px-3 text-center"
+                className="w-full aspect-square rounded-xl border-2 border-dashed border-amber-500/40 bg-amber-500/5 flex flex-col items-center justify-center gap-1.5 text-xs px-3 text-center"
                 title="Image uploads unlock after the client approves the copy"
               >
                 <Lock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
@@ -242,7 +242,7 @@ function PostCard({
                   setDragOver(false);
                   if (e.dataTransfer.files?.length) handleFiles(e.dataTransfer.files);
                 }}
-                className={`w-full aspect-square rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-1 text-xs transition-colors ${
+                className={`w-full aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 text-xs transition-colors ${
                   dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
                 }`}
                 disabled={uploading}
@@ -258,14 +258,14 @@ function PostCard({
                 <img
                   src={imageUrls[0].url}
                   alt="Cover"
-                  className="w-full aspect-square object-cover rounded-lg border cursor-zoom-in"
+                  className="w-full aspect-square object-cover rounded-xl border cursor-zoom-in"
                   onClick={() => setViewerIndex(0)}
                 />
                 <Badge className="absolute top-1.5 left-1.5 text-[9px] py-0 px-1.5">Cover</Badge>
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); setViewerIndex(0); }}
-                  className="absolute bottom-1.5 right-1.5 h-7 px-2 rounded-md bg-background/90 backdrop-blur border text-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] font-medium"
+                  className="absolute bottom-1.5 right-1.5 h-7 px-2 rounded-xl bg-background/90 backdrop-blur border text-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] font-medium"
                   title="View image"
                 >
                   <Eye className="h-3 w-3" />
@@ -275,7 +275,7 @@ function PostCard({
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); onRemoveImage(imageUrls[0].path); }}
-                    className="absolute top-1.5 right-1.5 h-6 w-6 rounded-md bg-destructive/90 text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                    className="absolute top-1.5 right-1.5 h-6 w-6 rounded-xl bg-destructive/90 text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                     title="Remove image"
                   >
                     <Trash2 className="h-3 w-3" />
@@ -398,7 +398,7 @@ function PostCard({
 
           {/* Hooks */}
           {(post.hook || post.hook_b) && (
-            <div className="space-y-1.5 rounded-md bg-muted/40 p-2.5 border">
+            <div className="space-y-1.5 rounded-xl bg-muted/40 p-2.5 border">
               {post.hook && (
                 <div>
                   <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Hook A</p>
@@ -565,7 +565,7 @@ function PostCard({
           {/* Meta Ads selection */}
           <div
             className={cn(
-              "mt-2 flex items-start gap-2 rounded-md border px-3 py-2.5 transition-colors",
+              "mt-2 flex items-start gap-2 rounded-xl border px-3 py-2.5 transition-colors",
               post.run_meta_ad
                 ? "border-[hsl(var(--dept-social))]/40 bg-[hsl(var(--dept-social))]/10"
                 : "border-border bg-muted/30",
@@ -671,7 +671,7 @@ function ImageLightbox({
       <img
         src={current.url}
         alt="Preview"
-        className="max-h-[95vh] max-w-[95vw] w-auto h-auto object-contain rounded-lg shadow-2xl"
+        className="max-h-[95vh] max-w-[95vw] w-auto h-auto object-contain rounded-xl shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       />
 

@@ -108,7 +108,7 @@ export default function PostingSchedule({ clinicId }: Props) {
             return (
               <div
                 key={i}
-                className={`rounded-lg border p-2.5 flex items-center justify-between ${
+                className={`rounded-xl border p-2.5 flex items-center justify-between ${
                   isPast ? "opacity-50 bg-muted/30" : "bg-card"
                 }`}
               >

@@ -116,7 +116,7 @@ export function GoogleAdsConnectionCard({
               <Badge variant="secondary" className="text-xs">Connected</Badge>
             </div>
 
-            <div className="rounded-lg bg-muted/50 p-3 space-y-2 text-xs">
+            <div className="rounded-xl bg-muted/50 p-3 space-y-2 text-xs">
               {customerId && (
                 <p className="text-muted-foreground">Customer ID: {customerId}</p>
               )}
