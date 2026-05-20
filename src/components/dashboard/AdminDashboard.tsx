@@ -655,6 +655,64 @@ export default function AdminDashboard() {
             )}
           </div>
         </section>
+
+        {/* Tasks by Department */}
+        <section className="rounded-2xl border border-border/60 bg-card">
+          <header className="flex items-center justify-between border-b border-border/50 px-5 py-4">
+            <div>
+              <h3 className="text-sm font-bold tracking-tight text-foreground">Tasks by Department</h3>
+              <p className="text-[11px] text-muted-foreground">Click a row to open department tasks</p>
+            </div>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+              {openTasks} active
+            </span>
+          </header>
+          <div className="p-2">
+            {taskSummary.length === 0 ? (
+              <div className="py-10 text-center">
+                <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-success/10">
+                  <ClipboardList className="h-4 w-4 text-success" />
+                </div>
+                <p className="text-sm text-muted-foreground">No open tasks</p>
+              </div>
+            ) : (
+              <ul className="space-y-1">
+                {taskSummary.map((dept) => {
+                  const cfg = deptConfig[dept.department] || {
+                    icon: ClipboardList,
+                    label: dept.department,
+                    path: "/",
+                    ring: "bg-muted text-muted-foreground",
+                    text: "text-muted-foreground",
+                  };
+                  const Icon = cfg.icon;
+                  const tasksPath = cfg.path.replace(/tab=tickets/, "tab=tasks");
+                  return (
+                    <li key={dept.department}>
+                      <Link
+                        to={tasksPath}
+                        className="group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-muted/50"
+                      >
+                        <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl", cfg.ring)}>
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-foreground">{cfg.label}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {dept.todo} to do · {dept.in_progress} in progress
+                          </p>
+                        </div>
+                        <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-bold tabular-nums text-foreground">
+                          {dept.total}
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </section>
       </div>
 
       {/* ROW: Pipeline & Trend */}
