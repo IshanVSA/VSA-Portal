@@ -180,15 +180,10 @@ export default function Employees() {
     <>
       <div className="space-y-6">
         {/* Hero */}
-        <div className="hero-section">
-          <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <Users className="h-5 w-5 text-primary" />
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Manage</span>
-              </div>
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Team Members</h1>
-              <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">Manage your agency team</p>
+              <h1 className="text-[28px] sm:text-[34px] font-bold text-foreground tracking-tight leading-tight">Team Members</h1>
+              <p className="text-muted-foreground mt-1 text-sm">Manage your agency team</p>
             </div>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
@@ -247,8 +242,8 @@ export default function Employees() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          </div>
         </div>
+
 
         <Tabs defaultValue="members" className="space-y-4">
           <TabsList>

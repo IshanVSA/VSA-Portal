@@ -567,15 +567,10 @@ export default function Clinics() {
     <>
       <div className="space-y-4 sm:space-y-6">
         {/* Hero */}
-        <div className="hero-section">
-          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Building2 className="h-5 w-5 text-primary" />
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Manage</span>
-              </div>
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Clinics</h1>
-              <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">{clinics.length} total clinics registered</p>
+              <h1 className="text-[28px] sm:text-[34px] font-bold text-foreground tracking-tight leading-tight">Clinics</h1>
+              <p className="text-muted-foreground mt-1 text-sm">{clinics.length} total clinics registered</p>
             </div>
             {role === "admin" && (
               <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetAddForm(); }}>
@@ -647,8 +642,8 @@ export default function Clinics() {
                 </DialogContent>
               </Dialog>
             )}
-          </div>
         </div>
+
 
         {/* Search */}
         <div className="relative">
