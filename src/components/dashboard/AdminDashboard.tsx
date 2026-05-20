@@ -838,6 +838,7 @@ export default function AdminDashboard() {
       </div>
 
       <OpenTicketsList open={ticketsOpen} onOpenChange={setTicketsOpen} />
+      <OpenTasksList open={tasksOpen} onOpenChange={setTasksOpen} />
 
       {/* ROW: Team Activity */}
       <TeamActivityCard />
