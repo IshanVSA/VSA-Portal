@@ -38,7 +38,7 @@
 
     --radius: 1rem;                    /* iOS rounded-2xl */
 
-    --sidebar-background: 240 6% 98%;
+    --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 0 0% 7%;
     --sidebar-primary: 211 100% 50%;
     --sidebar-primary-foreground: 0 0% 100%;

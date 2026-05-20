@@ -15,10 +15,10 @@ interface KPICardProps {
 }
 
 const iconBgMap = {
-  blue: "bg-primary/8",
-  green: "bg-success/8",
-  amber: "bg-warning/8",
-  purple: "bg-[hsl(280,65%,60%)]/8",
+  blue: "bg-primary/12",
+  green: "bg-success/12",
+  amber: "bg-warning/12",
+  purple: "bg-[hsl(280,65%,60%)]/12",
 };
 
 const iconColorMap = {
@@ -28,46 +28,38 @@ const iconColorMap = {
   purple: "text-[hsl(280,65%,60%)]",
 };
 
-const accentMap = {
-  blue: "border-l-primary",
-  green: "border-l-success",
-  amber: "border-l-warning",
-  purple: "border-l-[hsl(280,65%,60%)]",
-};
-
 export default function KPICard({ label, value, change, changeType = "neutral", icon: Icon, index = 0, gradient = "blue", href }: KPICardProps) {
   const content = (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.08, ease: [0.16, 1, 0.3, 1] }}
-      whileHover={href ? { y: -3, transition: { duration: 0.2 } } : undefined}
+      transition={{ duration: 0.4, delay: index * 0.06, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={href ? { y: -2, transition: { duration: 0.2 } } : undefined}
       className={cn(
-        "relative bg-card rounded-xl border border-border/50 border-l-[3px] p-5 transition-shadow duration-200 group",
-        accentMap[gradient],
+        "relative bg-card rounded-2xl border border-border/60 p-5 transition-shadow duration-200 group",
         href && "cursor-pointer"
       )}
       style={{ boxShadow: "var(--shadow-sm)" }}
-      onMouseEnter={(e) => { if (href) (e.currentTarget as HTMLElement).style.boxShadow = "var(--shadow-lg)"; }}
+      onMouseEnter={(e) => { if (href) (e.currentTarget as HTMLElement).style.boxShadow = "var(--shadow-md)"; }}
       onMouseLeave={(e) => { if (href) (e.currentTarget as HTMLElement).style.boxShadow = "var(--shadow-sm)"; }}
     >
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-[11px] text-muted-foreground font-medium tracking-wide uppercase">{label}</p>
-        <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center", iconBgMap[gradient])}>
-          <Icon className={cn("h-4 w-4", iconColorMap[gradient])} />
+      <div className="flex items-center justify-between mb-4">
+        <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center", iconBgMap[gradient])}>
+          <Icon className={cn("h-[18px] w-[18px]", iconColorMap[gradient])} />
         </div>
+        {change && (
+          <span className={cn(
+            "text-[11px] font-semibold px-2 py-0.5 rounded-full",
+            changeType === "positive" && "bg-success/12 text-success",
+            changeType === "negative" && "bg-destructive/12 text-destructive",
+            changeType === "neutral" && "bg-muted text-muted-foreground"
+          )}>
+            {change}
+          </span>
+        )}
       </div>
-      <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight tabular-nums leading-none">{value}</p>
-      {change && (
-        <p className={cn(
-          "text-xs font-medium mt-2",
-          changeType === "positive" && "text-success",
-          changeType === "negative" && "text-destructive",
-          changeType === "neutral" && "text-muted-foreground"
-        )}>
-          {change}
-        </p>
-      )}
+      <p className="text-[13px] text-muted-foreground font-medium mb-1">{label}</p>
+      <p className="text-[28px] sm:text-[32px] font-bold text-foreground tracking-tight tabular-nums leading-none">{value}</p>
     </motion.div>
   );
 
