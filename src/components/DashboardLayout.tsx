@@ -6,9 +6,12 @@ import { usePendingCounts } from "@/hooks/usePendingCounts";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Building2, Users, BarChart3, Settings, LogOut, Menu, X, ChevronRight,
-  ShieldCheck, LayoutDashboard, UserCheck, CalendarCheck,
-  Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone, Globe, Sparkles, Plus, FileText, SearchCode, Lock, Activity,
+  ShieldCheck, LayoutGrid, UserRound, CalendarCheck,
+  Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone, Globe, Sparkles, Plus, FileText, LineChart, Lock, Activity, UsersRound,
 } from "lucide-react";
+const LayoutDashboard = LayoutGrid;
+const UserCheck = UserRound;
+const SearchCode = LineChart;
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import vsaLogo from "@/assets/vsa-logo.jpg";
@@ -80,7 +83,7 @@ const adminSections: NavSection[] = [
   ]},
   { title: "WORKSPACE", items: [
     { label: "Clinics", icon: Building2, path: "/clinics" },
-    { label: "Team", icon: Users, path: "/employees" },
+    { label: "Team", icon: UsersRound, path: "/employees" },
     { label: "Clients", icon: UserCheck, path: "/clients" },
   ]},
   { title: "ADMIN", items: [
@@ -280,7 +283,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
       { label: "Social Media", icon: Share2, path: "/social" },
     ]},
     { title: "ACCOUNT", items: [
-      ...(role === "client" && !isSubAccount ? [{ label: "Sub Accounts", icon: Users, path: "/sub-accounts" }] : []),
+      ...(role === "client" && !isSubAccount ? [{ label: "Sub Accounts", icon: UsersRound, path: "/sub-accounts" }] : []),
       { label: "Settings", icon: Settings, path: "/settings" },
     ] },
   ];
@@ -435,8 +438,8 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
                         />
                       )}
                       <div className="relative shrink-0">
-                        <item.icon className={cn(
-                          "h-[18px] w-[18px] transition-colors duration-200",
+                        <item.icon strokeWidth={1.5} className={cn(
+                          "h-[19px] w-[19px] transition-colors duration-200",
                           active ? "text-[hsl(var(--sidebar-primary))]" : "group-hover:text-[hsl(var(--sidebar-foreground))]"
                         )} />
                         {collapsed && (

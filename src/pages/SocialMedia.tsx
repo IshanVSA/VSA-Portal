@@ -5,7 +5,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Share2, LayoutDashboard, BarChart3, Ticket, Upload, MessageSquare, Dna, Sparkles, Eye, SlidersHorizontal, MapPin, Tag, Megaphone, FileText, ClipboardList } from "lucide-react";
+import { Share2, LayoutGrid, ChartColumn, Ticket, Upload, MessageCircle, Dna, Sparkles, Eye, SlidersHorizontal, MapPin, Tag, Megaphone, FileText, ListChecks } from "lucide-react";
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { ComingSoonTab } from "@/components/department/ComingSoonTab";
 import { GBPPostsTab } from "@/components/seo/gbp/GBPPostsTab";
@@ -47,16 +47,16 @@ const TabFallback = () => (
 const socialServices = ["Content Creation", "Post Scheduling", "Engagement Management", "Analytics Review", "Campaign Strategy", "Others"];
 
 const baseTabs = [
-  { value: "overview", label: "Overview", icon: LayoutDashboard },
+  { value: "overview", label: "Overview", icon: LayoutGrid },
   
   { value: "tickets", label: "Tickets", icon: Ticket },
   { value: "promotions", label: "Active Promotions", icon: Tag },
   
-  { value: "analytics", label: "Analytics", icon: BarChart3 },
+  { value: "analytics", label: "Analytics", icon: ChartColumn },
   { value: "uploads", label: "Files", icon: Upload },
 ];
-const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
-const tasksTabDef = { value: "tasks", label: "Tasks", icon: ClipboardList };
+const chatTab = { value: "chat", label: "Team Chat", icon: MessageCircle };
+const tasksTabDef = { value: "tasks", label: "Tasks", icon: ListChecks };
 const dnaTab = { value: "brand-dna", label: "Brand DNA", icon: Dna };
 const generationTab = { value: "generation", label: "Generate", icon: Sparkles };
 const gbpPostsTab = { value: "gbp-posts", label: "GBP Posts", icon: MapPin };

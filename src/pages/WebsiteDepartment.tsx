@@ -3,7 +3,7 @@ import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Eye, TrendingUp, Clock, Layers, HeartPulse, MessageSquare, ClipboardList } from "lucide-react";
+import { Globe, LayoutGrid, Ticket, ChartColumn, FileText, Upload, Eye, TrendingUp, Clock, Layers, ShieldCheck, MessageCircle, ListChecks } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { WebsiteAnalyticsTab } from "@/components/department/WebsiteAnalyticsTab";
@@ -23,16 +23,16 @@ import { TasksTab } from "@/components/department/tasks/TasksTab";
 import { useMyOpenTaskCount } from "@/hooks/useDepartmentTasks";
 
 const baseTabs = [
-  { value: "overview", label: "Overview", icon: LayoutDashboard },
+  { value: "overview", label: "Overview", icon: LayoutGrid },
   { value: "tickets", label: "Tickets", icon: Ticket },
-  { value: "analytics", label: "Analytics", icon: BarChart3 },
+  { value: "analytics", label: "Analytics", icon: ChartColumn },
   { value: "reports", label: "Reports", icon: FileText },
   { value: "uploads", label: "Files", icon: Upload },
 ];
 
-const healthTab = { value: "health", label: "Health", icon: HeartPulse };
-const tasksTabDef = { value: "tasks", label: "Tasks", icon: ClipboardList };
-const chatTab = { value: "chat", label: "Team Chat", icon: MessageSquare };
+const healthTab = { value: "health", label: "Health", icon: ShieldCheck };
+const tasksTabDef = { value: "tasks", label: "Tasks", icon: ListChecks };
+const chatTab = { value: "chat", label: "Team Chat", icon: MessageCircle };
 
 const services = [
   "Time Changes", "Pop-up Offers", "Third Party Integrations",
@@ -124,7 +124,7 @@ export default function WebsiteDepartment() {
                 <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto flex-nowrap tabs-scroll">
                   {tabs.map(tab => (
                     <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm relative">
-                      <tab.icon className="h-3.5 w-3.5" />
+                      <tab.icon strokeWidth={1.5} className="h-4 w-4" />
                       <span className="hidden sm:inline">{tab.label}</span>
                       {tab.value === "chat" && unreadCount > 0 && currentTab !== "chat" && (
                         <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
