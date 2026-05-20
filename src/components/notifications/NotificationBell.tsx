@@ -113,6 +113,22 @@ function buildTicketLink(
   return `${base}?${params.toString()}`;
 }
 
+function buildTaskLink(
+  department: string | null | undefined,
+  clinicId: string | null | undefined,
+  taskId: string,
+  allowedDepartments?: DepartmentType[] | null,
+): string {
+  let dept = department || "";
+  if (allowedDepartments && allowedDepartments.length > 0 && !allowedDepartments.includes(dept as DepartmentType)) {
+    dept = allowedDepartments[0];
+  }
+  const base = DEPARTMENT_ROUTE[dept] || "/";
+  const params = new URLSearchParams({ tab: "tasks", task: taskId });
+  if (clinicId) params.set("clinic", clinicId);
+  return `${base}?${params.toString()}`;
+}
+
 function buildSM2Link(clinicId: string | null | undefined, role: string | null, status: string): string {
   const params = new URLSearchParams();
   if (clinicId) params.set("clinic", clinicId);
