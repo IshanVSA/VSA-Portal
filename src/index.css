@@ -168,14 +168,14 @@
 }
 
 @layer utilities {
-  /* Clean card system */
+  /* iOS grouped-cell card system */
   .glass-card {
-    @apply bg-card border border-border/50 rounded-xl;
+    @apply bg-card border border-border/60 rounded-2xl;
     box-shadow: var(--shadow-sm);
   }
 
   .glass-card-elevated {
-    @apply bg-card border border-border/40 rounded-xl;
+    @apply bg-card border border-border/50 rounded-2xl;
     box-shadow: var(--shadow-md);
   }
 
