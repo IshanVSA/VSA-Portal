@@ -1,43 +1,65 @@
-## Goal
-Make sub-accounts receive every email the parent client receives.
+## Why the rest of the app still feels different
 
-## Current state (audit)
-I checked every email-sending edge function:
+The previous passes only updated radii, borders, and component primitives. The **New Task** modal in your screenshot is iOS-feeling for three structural reasons that the rest of the app doesn't share yet:
 
-| Edge function | Sends to client? | Includes sub-accounts? |
-|---|---|---|
-| `notify-content-approval` (monthly calendar review) | Yes | ✅ Already — filtered by `sub_account_clinics` for that clinic |
-| `notify-ticket-completed` | Yes | ✅ Already — filtered by `sub_account_clinics` for that clinic |
-| `notify-ticket-created` | No — internal staff only | n/a |
-| `notify-terms-decline` | No — alerts admins | n/a |
-| `request-password-reset` | Per-email user only | n/a (each user uses their own) |
-| `resend-welcome-email` | Sends client welcome | ❌ Admin-triggered; not called for sub-accounts |
-| `create-sub-account` | — | ❌ **No welcome email sent at all** |
+1. **Grouped inset list layout** — content lives in `rounded-2xl` white groups stacked on a gray canvas, with hairline dividers between rows.
+2. **Colored icon tiles** — each row leads with a 28×28 rounded-square tile in a saturated color (orange Flag, red Calendar, blue Person, purple Mic, green Paperclip) and a white glyph.
+3. **iOS modal header** — Cancel (left, blue regular) / Title (center, semibold) / Action (right, blue bold), no border.
 
-So the only real gap is the **welcome email**: when a parent client creates a sub-account, the sub-account never gets a "set your password / welcome" email.
+None of those patterns exist outside `TasksTab.tsx`. Tokens are already correct (`--background` is iOS gray light / true black dark, `--card` is the grouped cell). The fix is structural, not chromatic.
 
 ## Plan
 
-### 1. Send a welcome email automatically from `create-sub-account`
-After the sub-account row + clinic assignments are inserted successfully, send a branded welcome email using the same Zoho + `generateLink('recovery')` pattern as `resend-welcome-email`, but with sub-account-appropriate copy:
+### 1. Build two reusable primitives
 
-- Subject: `"You've been invited to VSA Vet Media"`
-- Body mentions which parent clinic/client invited them and lists the clinics they were given access to
-- Includes a "Set your password" button (recovery link, 60-min TTL) + "Go to sign in" link
-- Skips the long "beta access" marketing paragraph used for primary clients — sub-accounts are operational logins, not new client onboarding
-- Failure to send the email does **not** roll back the sub-account creation (just log + return a non-fatal warning in the response, same pattern used elsewhere)
+`src/components/ui/ios-list.tsx`
 
-### 2. No changes needed to existing client notifications
-`notify-content-approval` and `notify-ticket-completed` already loop sub-accounts via `sub_account_clinics` for the relevant clinic, so they will automatically deliver to sub-accounts whenever the parent gets the email. I'll leave them alone.
+- `<IOSGroup>` — `rounded-2xl bg-card border border-border/40 overflow-hidden divide-y divide-border/40 shadow-sm`. Optional `footer` / `header` slots for the small all-caps captions iOS uses above and below groups.
+- `<IOSRow>` — flex row with: `icon` (renders inside a `rounded-xl` 28×28 colored tile), `label`, optional right-aligned `value`, optional `chevron`, optional `to` / `onClick` to make the whole row tappable with `hover:bg-accent/30`.
+- `<IOSIconTile tone="orange|red|blue|purple|green|indigo|pink|teal|yellow|gray">` — encapsulates the colored tile so colors stay consistent everywhere.
 
-### 3. Optional admin-side "Resend welcome" for sub-accounts (ask)
-Currently `resend-welcome-email` is admin-only and targets primary clients. If you want admins (or the parent client) to be able to re-send the sub-account welcome from the Sub Accounts page, I can extend that — but it's not required to fulfill "sub accounts receive the same emails."
+These take ~80 lines and replace ad-hoc markup across the project.
+
+### 2. Add semantic icon-tile color tokens
+
+In `src/index.css` add `--ios-orange`, `--ios-red`, `--ios-blue`, `--ios-green`, `--ios-purple`, `--ios-indigo`, `--ios-pink`, `--ios-teal`, `--ios-yellow`, `--ios-gray` (HSL, both light and dark) so tiles aren't hard-coded Tailwind colors.
+
+### 3. Standardize the modal header pattern
+
+Create `<IOSDialogHeader cancelLabel actionLabel onCancel onAction title disabled />` matching the New Task header. Apply to: `NewTicketDialog`, `TicketEditDialog`, `UpdateSeoAnalyticsDialog`, `BulkUploadsDialog`, `PartnershipsDialog`, `PageSelectionDialog`, `GBPLocationSelectionDialog`, `GoogleAccountSelectionDialog`, `FilePreviewDialog`, `OpenTicketsList`, `OpenTasksList`.
+
+### 4. Refactor pages page-by-page to use the grouped pattern
+
+Highest-impact first; each page becomes stacked `<IOSGroup>`s on the existing gray canvas instead of large `<Card>` slabs:
+
+- **Settings** — already close. Convert Profile / Password / Notifications / Theme / Logout sections into `IOSGroup`s of `IOSRow`s with the existing colored tile glyphs.
+- **Clinic Detail** — Connection cards (Meta, GBP, Google Ads, Tracking Setup) become a single connections group of rows with status pills on the right. Team picker and tabs gain the same treatment.
+- **Reports** — date filter + per-department rows in one group; downloads as right-side action.
+- **Clients / Employees / Sub Accounts / Clinics list** — each row becomes an `IOSRow` (avatar tile + name + meta on right + chevron) inside per-letter or per-status groups; the existing A–Z list already maps to iOS section headers.
+- **Department pages** (Website / SEO / AI SEO / Google Ads / Social) — convert the in-tab section panels (Health, Analytics summary, Reports, GBP) to grouped lists. Ticket grid stays card-based (already good).
+- **Dashboards** (Admin / Concierge / Client) — KPI strip stays; the side panels (OpenTicketsList, OpenTasksList, TeamActivity, RecentActivity, UpcomingPosts) become grouped lists with colored tiles per category.
+- **Login / Reset Password / Book Meeting** — wrap form fields in one `IOSGroup` with row-style inputs (borderless, divider between fields), matching the Title/Notes group in the screenshot.
+
+### 5. Make Tabs feel like iOS segmented control
+
+Update `src/components/ui/tabs.tsx` so `TabsList` is a `bg-muted rounded-full p-1` pill and `TabsTrigger[data-state=active]` is a white pill with subtle shadow. This single change retunes every tabbed surface (department tabs, clinic detail tabs, social tabs).
+
+### 6. Polish details
+
+- Replace heavy section H2s with the iOS pattern: small all-caps muted caption ABOVE each `IOSGroup`.
+- Right-align values, use `text-primary` for tappable values (like "Medium ▾" in the screenshot).
+- Add `chevron-right` to navigational rows.
+- Soft global page padding bumped to `px-4 sm:px-6 py-6` to give iOS-style breathing room.
 
 ## Technical notes
-- Reuse `_shared/zoho-mail.ts` (`sendZohoEmail`, `brandedEmailWrapper`) and `_shared/password-reset-link.ts` (`getResetPasswordUrl`, `withCanonicalRedirect`)
-- Look up parent clinic names from the `clinic_ids` already in scope to personalize the email
-- No DB schema changes
-- No frontend changes (the UI in `src/pages/SubAccounts.tsx` keeps working as-is)
 
-## Question for you
-Do you also want a **"Resend welcome email" button** on the Sub Accounts page (item 3), or just the automatic send on creation (items 1–2)?
+- No business logic touched. Pure structural/presentational refactor.
+- Existing `Card`, `Button`, `Input`, `Select` primitives keep working — `IOSGroup` and `IOSRow` are additive and used where the grouped pattern fits.
+- Department accent colors and brand identity preserved; only the chrome around them changes.
+- Scope is large — I'll work in passes (primitives + Settings + Clinic Detail first, then dashboards, then department pages, then the remaining list pages), and check in between so you can steer.
+
+## Out of scope
+
+- Calendar / Content Calendar grid (already custom, mobile-first design)
+- Ticket cards (already revamped last pass)
+- Login visual identity beyond field grouping

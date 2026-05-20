@@ -196,23 +196,14 @@ export default function AdminReview() {
 
   return (
     <>
-      <div className="min-h-full dot-grid rounded-xl p-4 sm:p-6 md:p-8">
-        <div className="space-y-4 sm:space-y-6">
-          {/* Hero Header */}
-          <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-[hsl(280,65%,60%)] p-5 sm:p-8 text-primary-foreground shadow-lg">
-            <div className="absolute inset-0 dot-grid opacity-10" />
-            <div className="relative z-10">
-              <div className="flex items-center gap-2.5 sm:gap-3 mb-2">
-                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center shrink-0">
-                  <ShieldCheck className="h-4 w-4 sm:h-5 sm:w-5" />
-                </div>
-                <h1 className="text-xl sm:text-2xl font-bold">Admin Review</h1>
-              </div>
-              <p className="text-primary-foreground/80 text-xs sm:text-sm max-w-lg">
-                Final review of client-selected content before publishing to the Content Calendar.
-              </p>
-            </div>
-          </div>
+      <div className="min-h-full px-4 sm:px-6 py-6">
+        <div className="space-y-6">
+          <header className="px-1">
+            <h1 className="text-[28px] font-bold tracking-tight">Admin Review</h1>
+            <p className="text-[13px] text-muted-foreground mt-1 max-w-lg">
+              Final review of client-selected content before publishing to the Content Calendar.
+            </p>
+          </header>
 
           {/* Refresh */}
           {!loading && requests.length > 0 && (

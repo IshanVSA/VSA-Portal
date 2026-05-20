@@ -1,37 +1,26 @@
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { UnifiedReportTab } from "@/components/department/UnifiedReportTab";
-import { FileText } from "lucide-react";
 
 export default function Reports() {
-  const { selectedClinicId, setSelectedClinicId, clinics, loading: clinicsLoading } = useClinicSelector();
+  const { selectedClinicId } = useClinicSelector();
 
   return (
-    <>
-      <div className="space-y-4 sm:space-y-6">
-        {/* Hero Header */}
-        <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-[hsl(280,65%,55%)] p-5 sm:p-8 text-primary-foreground shadow-lg">
-          <div className="absolute inset-0 dot-grid opacity-10" />
-          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center shrink-0">
-                <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
-              </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold">Unified Reports</h1>
-                <p className="text-primary-foreground/70 text-xs sm:text-sm font-medium -mt-0.5">
-                  Combined performance reports across all departments
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div className="px-4 sm:px-6 py-6 space-y-6">
+      <header className="px-1">
+        <h1 className="text-[28px] font-bold tracking-tight">Reports</h1>
+        <p className="text-[13px] text-muted-foreground mt-1">
+          Combined performance reports across all departments.
+        </p>
+      </header>
 
-        {selectedClinicId ? (
-          <UnifiedReportTab clinicId={selectedClinicId} />
-        ) : (
-          <p className="text-muted-foreground text-sm text-center py-12">Select a clinic to generate a unified report.</p>
-        )}
-      </div>
-    </>
+      {selectedClinicId ? (
+        <UnifiedReportTab clinicId={selectedClinicId} />
+      ) : (
+        <div className="rounded-2xl bg-card border border-border/40 shadow-sm p-8 text-center text-[13px] text-muted-foreground">
+          Select a clinic to generate a unified report.
+        </div>
+      )}
+    </div>
   );
 }
+
