@@ -23,6 +23,8 @@ export interface DepartmentTask {
   updated_at: string;
   assignee_name?: string | null;
   creator_name?: string | null;
+  is_pool?: boolean;
+  pool_candidate_count?: number;
 }
 
 export interface TaskAttachment {
