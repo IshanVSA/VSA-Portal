@@ -330,7 +330,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
       case "Campaign Adjustments":
         return <CampaignAdjustmentsForm onChange={handleCustomFormChange} />;
       case "Content Request":
-        return <ContentRequestForm onChange={handleCustomFormChange} />;
+        return <ContentRequestForm onChange={handleCustomFormChange} clinicId={clinicId} />;
       case "Client Visit":
         return <ClientVisitForm onChange={handleCustomFormChange} />;
       case "Special Promotion":
