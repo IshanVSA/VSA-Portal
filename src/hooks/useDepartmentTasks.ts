@@ -80,6 +80,7 @@ export function useDepartmentTasks(department: DepartmentType, clinicId: string 
           r.assignee_name = r.assigned_to ? nameMap.get(r.assigned_to) ?? null : null;
           r.creator_name = nameMap.get(r.created_by) ?? null;
         });
+      }
       // Attach pool / candidate info
       const unclaimedIds = rows.filter(r => !r.assigned_to).map(r => r.id);
       if (unclaimedIds.length) {
