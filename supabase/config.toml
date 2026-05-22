@@ -110,3 +110,6 @@ verify_jwt = false
 
 [functions.generate-content-preview]
 verify_jwt = false
+
+[functions.auto-create-upload-tasks]
+verify_jwt = false
