@@ -80,6 +80,23 @@ export function useDepartmentTasks(department: DepartmentType, clinicId: string 
           r.assignee_name = r.assigned_to ? nameMap.get(r.assigned_to) ?? null : null;
           r.creator_name = nameMap.get(r.created_by) ?? null;
         });
+      // Attach pool / candidate info
+      const unclaimedIds = rows.filter(r => !r.assigned_to).map(r => r.id);
+      if (unclaimedIds.length) {
+        const { data: cands } = await supabase
+          .from("department_task_candidates" as any)
+          .select("task_id, user_id")
+          .in("task_id", unclaimedIds);
+        const counts = new Map<string, number>();
+        ((cands ?? []) as unknown as { task_id: string; user_id: string }[]).forEach(c => {
+          counts.set(c.task_id, (counts.get(c.task_id) ?? 0) + 1);
+        });
+        rows.forEach(r => {
+          if (!r.assigned_to && counts.has(r.id)) {
+            r.is_pool = true;
+            r.pool_candidate_count = counts.get(r.id) ?? 0;
+          }
+        });
       }
       return rows;
     },
