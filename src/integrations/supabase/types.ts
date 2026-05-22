@@ -1501,6 +1501,32 @@ export type Database = {
           },
         ]
       }
+      department_task_candidates: {
+        Row: {
+          created_at: string
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_task_candidates_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "department_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       department_task_comments: {
         Row: {
           body: string
