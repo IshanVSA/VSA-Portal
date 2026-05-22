@@ -57,18 +57,18 @@ Deno.serve(async (req) => {
   try {
     const today = new Date().toISOString().slice(0, 10);
 
-    // 1. Gather today's scheduled posts from both sources
+    // 1. Gather today's FINAL APPROVED posts only (copy + image+text both approved)
     const sm2Res = await supabase
       .from("sm2_posts")
       .select("clinic_id, platform, caption")
       .eq("scheduled_date", today)
-      .in("status", ["approved", "ready", "scheduled", "final_approved"]);
+      .eq("status", "final_approved");
 
     const cpRes = await supabase
       .from("content_posts")
       .select("clinic_id, platform, content, caption")
       .eq("scheduled_date", today)
-      .eq("status", "scheduled");
+      .eq("status", "final_approved");
 
     const rows: PostRow[] = [
       ...((sm2Res.data ?? []) as any[]).map(r => ({ ...r, source: "sm2" as const })),
