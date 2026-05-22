@@ -213,6 +213,11 @@ export function TasksTab({ department, clinicId }: Props) {
                     <Badge variant="outline" className={`text-[10px] ${priorityStyles[t.priority]}`}>
                       {t.priority}
                     </Badge>
+                    {t.is_pool && (
+                      <Badge variant="outline" className="text-[10px] bg-purple-500/15 text-purple-600 border-purple-500/30">
+                        Pool · auto-claims
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
                     <span>{statusLabel[t.status]}</span>
