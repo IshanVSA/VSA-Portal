@@ -11,13 +11,13 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID")!;
 const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET")!;
 
-const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/ga4-oauth?action=callback`;
+const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/ga4-oauth/callback`;
 const FRONTEND_URL = Deno.env.get("SITE_URL") || "https://portal.vsavetmedia.com";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const url = new URL(req.url);
-  const action = url.searchParams.get("action");
+  const action = url.pathname.endsWith("/callback") ? "callback" : url.searchParams.get("action");
 
   try {
     // ── AUTHORIZE ──
