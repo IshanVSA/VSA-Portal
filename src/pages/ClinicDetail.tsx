@@ -28,6 +28,8 @@ import { GoogleAdsConnectionCard } from "@/components/clinic-detail/GoogleAdsCon
 import { GoogleAccountSelectionDialog } from "@/components/clinic-detail/GoogleAccountSelectionDialog";
 import { GBPConnectionCard } from "@/components/clinic-detail/GBPConnectionCard";
 import { GBPLocationSelectionDialog } from "@/components/clinic-detail/GBPLocationSelectionDialog";
+import { GA4ConnectionCard } from "@/components/clinic-detail/GA4ConnectionCard";
+import { GA4PropertySelectionDialog, type GA4Property } from "@/components/clinic-detail/GA4PropertySelectionDialog";
 import { TrackingSetupCard } from "@/components/clinic-detail/TrackingSetupCard";
 import { ClinicLogoUploader } from "@/components/clinic-detail/ClinicLogoUploader";
 import { COMMON_TIMEZONES, DEFAULT_CLINIC_TIMEZONE, getSafeTimeZone } from "@/lib/website-analytics";
@@ -198,10 +200,11 @@ export default function ClinicDetail() {
   const [googleAdsData, setGoogleAdsData] = useState<any[]>([]);
   const [metaPages, setMetaPages] = useState<any[] | null>(null);
   const [googleAccounts, setGoogleAccounts] = useState<{ accounts: any[]; refresh_token: string } | null>(null);
+  const [ga4Picker, setGa4Picker] = useState<{ properties: GA4Property[]; refresh_token: string } | null>(null);
   const [teamMembers, setTeamMembers] = useState<{ full_name: string | null; team_role: string | null }[]>([]);
 
   // Determine initial tab based on OAuth URL params
-  const hasOAuthParams = searchParams.has("google") || searchParams.has("meta") || searchParams.has("google_token_ref") || searchParams.has("meta_token_ref") || searchParams.has("gbp_token_ref");
+  const hasOAuthParams = searchParams.has("google") || searchParams.has("meta") || searchParams.has("google_token_ref") || searchParams.has("meta_token_ref") || searchParams.has("gbp_token_ref") || searchParams.has("ga4_token_ref");
   const [activeTab, setActiveTab] = useState(hasOAuthParams ? "connections" : "instagram");
 
   // Snap back to a permitted tab if user lands on a hidden one (e.g. concierge)
@@ -320,6 +323,20 @@ export default function ClinicDetail() {
       fetchOAuthData(gbpTokenRef).then((result) => {
         if (result?.payload) {
           setGbpLocations(result.payload);
+        }
+      });
+    }
+
+    // Check for ga4_token_ref URL parameter
+    const ga4TokenRef = searchParams.get("ga4_token_ref");
+    if (ga4TokenRef) {
+      setActiveTab("connections");
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("ga4_token_ref");
+      setSearchParams(newParams, { replace: true });
+      fetchOAuthData(ga4TokenRef).then((result) => {
+        if (result?.payload?.properties) {
+          setGa4Picker({ properties: result.payload.properties, refresh_token: result.payload.refresh_token });
         }
       });
     }
@@ -792,6 +809,7 @@ export default function ClinicDetail() {
                 connectedAt={creds.gbp_connected_at}
                 onRefresh={() => { fetchCredentials(); }}
               />
+              <GA4ConnectionCard clinicId={id!} />
               {(role === "admin" || isDebraj) && <TrackingSetupCard clinicId={id!} />}
 
               {/* Website URL Card */}
@@ -913,6 +931,18 @@ export default function ClinicDetail() {
               setSearchParams({}, { replace: true });
               fetchCredentials();
             }}
+          />
+        )}
+
+        {ga4Picker && id && (
+          <GA4PropertySelectionDialog
+            open={!!ga4Picker}
+            properties={ga4Picker.properties}
+            refreshToken={ga4Picker.refresh_token}
+            clinicId={id}
+            clinicName={clinic?.clinic_name || ""}
+            onClose={() => { setGa4Picker(null); setSearchParams({}, { replace: true }); }}
+            onConnected={() => { setGa4Picker(null); setSearchParams({}, { replace: true }); }}
           />
         )}
       </div>
