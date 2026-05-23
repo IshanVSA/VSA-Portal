@@ -1,54 +1,63 @@
-# Auto-Task on Scheduled Post Day (Social Media)
+# GA4 Traffic Acquisition in SEO Department
 
-When a social-media post is scheduled to go live today, automatically create a shared "Upload post" task for that clinic's **Social & Concierge** team members. The task uses the same first-to-act-claims-it pool model as social media tickets.
+Add a new "Traffic" tab under SEO showing the same data as GA4 → Acquisition → Traffic acquisition: KPI cards, sessions-over-time chart split by channel, and a channel breakdown table (Sessions, Engaged sessions, Engagement rate, Avg. engagement time, Events per session). Visible to clients and staff.
 
-## Behavior
+Pattern mirrors the existing Google Ads connection (`GoogleAdsConnectionCard` + `sync-google-ads` + `google-ads-cron`).
 
-- Trigger: every morning at **06:00 UTC** (and on-demand for backfill).
-- Source posts (both, deduped per clinic+date):
-  - `sm2_posts` where `scheduled_date = today` AND status is approved/ready (not draft/rejected).
-  - `content_posts` where `scheduled_date = today` AND `status = 'scheduled'`.
-- Candidate users: `clinic_team_members` for that clinic whose `profiles.team_role = 'Social & Concierge'`. Meta Ads Specialist excluded. If zero candidates, skip silently.
-- One task per `(clinic_id, scheduled_date)` — never duplicates if cron re-runs or both sources exist.
-- Task fields:
-  - `department = 'social_media'`
-  - `title = "Upload today's post — {ClinicName}"`
-  - `description` lists each post (platform · caption preview · source).
-  - `priority = 'high'`, `status = 'todo'`
-  - `due_date = today + 1 day` (24-hour deadline).
-  - `assigned_to = NULL` (pool); `created_by` = a system/service id (use first admin as fallback so RLS is satisfied).
+## Step 1 — Secrets & OAuth scope
 
-## Pool / claim model
+Reuse existing `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_TOKEN_ENC_KEY` (already present for Ads/GBP). Add Analytics scope to a new OAuth edge function (kept separate from `google-oauth` which is Ads-only, to avoid breaking the verified Ads scope).
 
-Add a lightweight candidate table mirroring `ticket_assignees`:
+New scope requested: `https://www.googleapis.com/auth/analytics.readonly`.
 
-- `department_task_candidates(task_id, user_id)` — populated at task creation with every concierge.
-- DB trigger `claim_task_on_status_change`: when `department_tasks.status` moves from `todo` to anything else AND `assigned_to IS NULL` AND `auth.uid()` is a candidate (or admin), set `assigned_to = auth.uid()` and delete the other candidates. Mirrors `claim_ticket_on_status_change` + `prune_pool_on_claim`.
-- RLS update on `department_tasks`: candidate users get SELECT + UPDATE while assignee is NULL, in addition to existing assignee/creator/admin policies.
+In the Google Cloud Console (VSA Vet Media project) you'll need to:
+- Enable **Google Analytics Data API (GA4)** and **Google Analytics Admin API**
+- Add `analytics.readonly` to the OAuth consent screen scopes (sensitive; usually approved alongside existing Ads/GBP scopes since you're already verified)
 
-## Files
+## Step 2 — Database
 
-**Migration**
-- New table `department_task_candidates` (task_id, user_id, created_at, PK).
-- RLS: admin/concierge full; candidate self-select.
-- Trigger functions `claim_task_on_status_change`, `prune_task_pool_on_claim` on `department_tasks`.
-- Extend `department_tasks` SELECT/UPDATE policies so pool members see/update unclaimed tasks.
+New tables (created via migration):
 
-**New edge function** `supabase/functions/auto-create-upload-tasks/index.ts`
-- CORS + `CRON_SECRET` auth (matches `gbp-publish-cron`).
-- Service-role client. Queries today's `sm2_posts` + `content_posts`, groups by clinic, resolves concierges via `clinic_team_members` + `profiles.team_role`, upserts task + candidates idempotently (skip if a task with same title+clinic+due_date already exists today).
-- Registered in `supabase/config.toml` with `verify_jwt = false`.
+- `clinic_ga4_credentials` — one row per clinic. Columns: `clinic_id` (FK, unique), `ga4_property_id`, `ga4_property_display_name`, `access_token_enc`, `refresh_token_enc`, `token_expires_at`, `connected_by`, timestamps.
+- `clinic_ga4_traffic_daily` — `clinic_id`, `date`, `channel_group` (Organic Search / Paid Search / Direct / Cross-network / Organic Social / Referral / Unassigned / Other), `sessions`, `engaged_sessions`, `engagement_rate`, `avg_engagement_time_seconds`, `events_per_session`. Unique `(clinic_id, date, channel_group)`.
 
-**pg_cron** (via insert tool, not migration):
-- Daily 06:00 UTC `select net.http_post(...)` to the new function with `Authorization: Bearer <CRON_SECRET>`.
+RLS:
+- Credentials: admin/concierge full access, clients none.
+- Traffic data: admin/concierge full access; clients SELECT on rows for their own clinic (via existing `clinic_users` mapping pattern).
 
-**Frontend** (`src/components/department/tasks/TasksTab.tsx` + `useDepartmentTasks.ts`)
-- Tasks query: include rows where current user is in `department_task_candidates` (unclaimed pool) in addition to existing filter.
-- Show a small "Pool · auto-claims on status change" chip when `assigned_to` is null and current user is a candidate.
-- Status change of a pool task triggers the DB-side claim automatically; UI just optimistically refetches.
+## Step 3 — Edge functions
+
+1. `ga4-oauth` — initiates OAuth (state = clinic_id), handles callback, lists GA4 properties via Admin API (`accountSummaries.list`), encrypts tokens, upserts `clinic_ga4_credentials`.
+2. `ga4-list-properties` — re-list properties for the property-selection dialog.
+3. `ga4-save-property` — store the chosen `ga4_property_id`.
+4. `sync-ga4-analytics` — refresh access token if expired; call GA4 Data API `runReport` for the chosen property, dimensions `[date, sessionDefaultChannelGroup]`, metrics `[sessions, engagedSessions, engagementRate, userEngagementDuration, eventCount]`, range = last 30 days, then upsert into `clinic_ga4_traffic_daily`.
+5. `ga4-analytics-cron` — daily 07:30 UTC; iterates connected clinics and invokes `sync-ga4-analytics` (mirrors `google-ads-cron`).
+
+All use `CRON_SECRET` + admin auth fallback, AES-256-GCM token encryption (`enc:` prefix) per existing convention.
+
+## Step 4 — Frontend
+
+- `src/components/clinic-detail/GA4ConnectionCard.tsx` — Connect / Select Property / Disconnect, shown in Clinic Detail → Connections tab next to Meta / Google Ads / GBP cards.
+- `src/components/clinic-detail/GA4PropertySelectionDialog.tsx` — same UX as `GoogleAccountSelectionDialog`.
+- `src/hooks/useGa4Traffic.ts` — React Query hook (clinic_id, dateRange) returning aggregated KPIs, daily series by channel, and channel-table rows.
+- `src/components/department/SeoTrafficTab.tsx` — KPI cards (Total Sessions, Engaged Sessions, Engagement Rate, Avg. Engagement Time, Events/session), Recharts multi-line chart of sessions by channel, channel breakdown table identical in columns to the screenshot. Uses shared `DateRangeFilter` (7/14/30/90d).
+- `src/pages/SeoDepartment.tsx` — register new tab `{ value: "traffic", label: "Traffic", icon: TrendingUp }`, placed after Analytics. Visible to both staff and clients. Shows an empty "Connect Google Analytics" state (admin only sees connect CTA → deep-links to Clinic Detail Connections tab).
+
+## Step 5 — Verification
+
+- Connect a test clinic, run `sync-ga4-analytics` manually via `curl_edge_functions`, confirm rows in `clinic_ga4_traffic_daily`, and check the Traffic tab renders matching the screenshot.
+
+## Technical notes
+
+- GA4 channel grouping uses `sessionDefaultChannelGroup` (matches the screenshot exactly).
+- Engagement rate = engagedSessions / sessions (do client-side to avoid GA4 API rounding).
+- Avg. engagement time = userEngagementDuration / sessions formatted as `Xm Ys`.
+- Use `runReport` (not `batchRunReports`) — single query is enough.
+- 30-day default range; tab respects the date-range filter via additional `runReport` calls (cached by React Query).
+- Reset state to zero on fetch start (project rule).
 
 ## Out of scope
 
-- Notifications/emails on task creation (can be added later by reusing existing notify functions).
-- GBP posts, blog posts, other departments.
-- Changing how posts are scheduled or published.
+- Per-page / landing-page tables (can be a follow-up).
+- Realtime overview.
+- The "VetMatrix Leads" screenshot (second image) is not part of this — confirm if you want that surfaced too.
