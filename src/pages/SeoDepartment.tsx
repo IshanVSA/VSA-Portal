@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { SearchCode, LayoutGrid, ChartColumn, FileText, Upload, Globe, Link2, Hash, TrendingUp, MessageCircle, BookOpen, ListChecks } from "lucide-react";
+import { SearchCode, LayoutGrid, ChartColumn, FileText, Upload, Globe, Link2, Hash, TrendingUp, MessageCircle, BookOpen, ListChecks, BarChart3 } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { SeoAnalyticsTab } from "@/components/department/SeoAnalyticsTab";
 import { SeoReportsTab } from "@/components/department/SeoReportsTab";
@@ -29,15 +29,17 @@ import { useDepartmentChatUnread } from "@/hooks/useDepartmentChatUnread";
 import { BlogTab } from "@/components/seo/blog/BlogTab";
 import { TasksTab } from "@/components/department/tasks/TasksTab";
 import { useMyOpenTaskCount } from "@/hooks/useDepartmentTasks";
+import { SeoTrafficTab } from "@/components/department/SeoTrafficTab";
 
 
 
 
 const commonTabs = [
   { value: "overview", label: "Overview", icon: LayoutGrid },
+  { value: "traffic", label: "Traffic", icon: BarChart3 },
   { value: "analytics", label: "Analytics", icon: ChartColumn },
   { value: "reports", label: "Reports", icon: FileText },
-  
+
   { value: "uploads", label: "Files", icon: Upload },
 ];
 const chatTab = { value: "chat", label: "Team Chat", icon: MessageCircle };
@@ -207,6 +209,7 @@ export default function SeoDepartment() {
                 <TabsContent value="overview" className="mt-4">
                   <DepartmentOverview kpis={kpis} trafficData={trafficData.length > 0 ? trafficData : [{ label: "No data", value: 0 }]} trafficLabel="Organic Traffic Trend" team={team} department="seo" accentColor="hsl(var(--dept-seo))" extraSection={<TopKeywordsCard keywords={topKeywords} />} clinicId={selectedClinicId} hideQuickActions />
                 </TabsContent>
+                <TabsContent value="traffic" className="mt-4"><SeoTrafficTab clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="analytics" className="mt-4"><SeoAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="reports" className="mt-4"><SeoReportsTab clinicId={selectedClinicId} /></TabsContent>
                 

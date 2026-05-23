@@ -652,6 +652,112 @@ export type Database = {
           },
         ]
       }
+      clinic_ga4_credentials: {
+        Row: {
+          clinic_id: string
+          connected_by: string | null
+          created_at: string
+          ga4_account_display_name: string | null
+          ga4_property_display_name: string | null
+          ga4_property_id: string | null
+          id: string
+          last_sync_at: string | null
+          last_sync_error: string | null
+          last_sync_status: string | null
+          refresh_token_enc: string | null
+          updated_at: string
+        }
+        Insert: {
+          clinic_id: string
+          connected_by?: string | null
+          created_at?: string
+          ga4_account_display_name?: string | null
+          ga4_property_display_name?: string | null
+          ga4_property_id?: string | null
+          id?: string
+          last_sync_at?: string | null
+          last_sync_error?: string | null
+          last_sync_status?: string | null
+          refresh_token_enc?: string | null
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string
+          connected_by?: string | null
+          created_at?: string
+          ga4_account_display_name?: string | null
+          ga4_property_display_name?: string | null
+          ga4_property_id?: string | null
+          id?: string
+          last_sync_at?: string | null
+          last_sync_error?: string | null
+          last_sync_status?: string | null
+          refresh_token_enc?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_ga4_credentials_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: true
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinic_ga4_traffic_daily: {
+        Row: {
+          avg_engagement_time_seconds: number
+          channel_group: string
+          clinic_id: string
+          created_at: string
+          date: string
+          engaged_sessions: number
+          engagement_rate: number
+          event_count: number
+          events_per_session: number
+          id: string
+          sessions: number
+          updated_at: string
+        }
+        Insert: {
+          avg_engagement_time_seconds?: number
+          channel_group: string
+          clinic_id: string
+          created_at?: string
+          date: string
+          engaged_sessions?: number
+          engagement_rate?: number
+          event_count?: number
+          events_per_session?: number
+          id?: string
+          sessions?: number
+          updated_at?: string
+        }
+        Update: {
+          avg_engagement_time_seconds?: number
+          channel_group?: string
+          clinic_id?: string
+          created_at?: string
+          date?: string
+          engaged_sessions?: number
+          engagement_rate?: number
+          event_count?: number
+          events_per_session?: number
+          id?: string
+          sessions?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_ga4_traffic_daily_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_gbp_config: {
         Row: {
           accreditations: string[] | null
