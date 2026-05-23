@@ -113,3 +113,15 @@ verify_jwt = false
 
 [functions.auto-create-upload-tasks]
 verify_jwt = false
+
+[functions.ga4-oauth]
+verify_jwt = false
+
+[functions.ga4-save-property]
+verify_jwt = false
+
+[functions.sync-ga4-traffic]
+verify_jwt = false
+
+[functions.ga4-cron]
+verify_jwt = false
