@@ -265,6 +265,21 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
           ) : null
         )}
 
+        {ticket.ticket_type === "Content Request" && ticket.status === "completed" && (
+          <ContentApprovalPanel
+            ticketId={ticket.id}
+            clinicId={ticket.clinic_id}
+            contentPreview={contentApproval.preview}
+            deliverableFiles={contentApproval.files}
+            approvalStatus={contentApproval.status}
+            approvedAt={contentApproval.approvedAt}
+            changeNotes={contentApproval.changeNotes}
+            readyForReviewAt={contentApproval.readyAt}
+            onChanged={() => { setContentRefreshKey((k) => k + 1); onUpdated(); }}
+          />
+        )}
+
+
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="ticket-title">Title</Label>
