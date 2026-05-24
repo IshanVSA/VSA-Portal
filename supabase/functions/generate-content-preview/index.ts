@@ -169,7 +169,7 @@ Deno.serve(async (req) => {
 
     const aiJson = await aiRes.json();
     const toolCall = aiJson?.choices?.[0]?.message?.tool_calls?.[0];
-    let preview: { title: string; description: string; caption: string; cta: string } | null = null;
+    let preview: { title: string; description: string; caption: string; cta: string; hashtags?: string; visual_direction?: string; concierge_brief?: string } | null = null;
     if (toolCall?.function?.arguments) {
       try { preview = JSON.parse(toolCall.function.arguments); } catch { /* ignore */ }
     }
