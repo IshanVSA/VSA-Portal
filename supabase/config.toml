@@ -125,3 +125,21 @@ verify_jwt = false
 
 [functions.ga4-cron]
 verify_jwt = false
+
+[functions.gsc-oauth]
+verify_jwt = false
+
+[functions.gsc-save-site]
+verify_jwt = false
+
+[functions.sync-gsc]
+verify_jwt = false
+
+[functions.gsc-cron]
+verify_jwt = false
+
+[functions.sync-gbp-performance]
+verify_jwt = false
+
+[functions.gbp-performance-cron]
+verify_jwt = false
