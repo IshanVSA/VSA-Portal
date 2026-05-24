@@ -270,10 +270,10 @@ export default function ClinicDetail() {
         list_sites: "Could not retrieve Search Console sites. Enable the Google Search Console API in Google Cloud, wait a few minutes, then reconnect.",
         no_accounts: "No Google Ads accounts found for this Google account.",
         no_properties: "No GA4 properties found for this Google account.",
-        no_sites: "No verified Search Console properties were found for this Google account.",
+        no_sites: "Google connected, but this account has no verified Search Console properties. Add the clinic website in Google Search Console or reconnect with an account that already has access.",
         token_store: "Failed to store OAuth data. Please try again.",
       };
-      toast.error(errorMessages[googleError] || `Google Ads connection failed: ${googleError}`);
+      toast.error(errorMessages[googleError] || `Google connection failed: ${googleError}`);
       const newParams = new URLSearchParams(searchParams);
       newParams.delete("error");
       setSearchParams(newParams, { replace: true });
