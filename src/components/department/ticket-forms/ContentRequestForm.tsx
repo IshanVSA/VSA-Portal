@@ -32,6 +32,9 @@ export function ContentRequestForm({ onChange, clinicId, onPreviewChange }: Cont
   const [description, setDescription] = useState("");
   const [caption, setCaption] = useState("");
   const [cta, setCta] = useState("");
+  const [hashtags, setHashtags] = useState("");
+  const [visualDirection, setVisualDirection] = useState("");
+  const [conciergeBrief, setConciergeBrief] = useState("");
   const [generating, setGenerating] = useState(false);
   const [hasPreview, setHasPreview] = useState(false);
   const [showRegen, setShowRegen] = useState(false);
