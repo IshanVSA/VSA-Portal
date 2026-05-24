@@ -161,6 +161,76 @@ Deno.serve(async (req) => {
         });
       }
 
+      if (provider === "ga4") {
+        const sumRes = await fetch("https://analyticsadmin.googleapis.com/v1beta/accountSummaries?pageSize=200", {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        const sumText = await sumRes.text();
+        if (!sumRes.ok) {
+          console.error("GA4 accountSummaries failed:", sumRes.status, sumText.substring(0, 500));
+          return new Response(null, {
+            status: 302,
+            headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=list_properties` },
+          });
+        }
+
+        let sumData: any;
+        try {
+          sumData = JSON.parse(sumText);
+        } catch {
+          return new Response(null, {
+            status: 302,
+            headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=list_properties` },
+          });
+        }
+
+        const properties: Array<{ property: string; property_id: string; display_name: string; account_name: string }> = [];
+        for (const account of sumData.accountSummaries || []) {
+          const accountName = account.displayName || account.account || "GA4 Account";
+          for (const property of account.propertySummaries || []) {
+            const propertyResource = property.property as string;
+            const propertyId = propertyResource.replace("properties/", "");
+            properties.push({
+              property: propertyResource,
+              property_id: propertyId,
+              display_name: property.displayName || propertyId,
+              account_name: accountName,
+            });
+          }
+        }
+
+        if (properties.length === 0) {
+          return new Response(null, {
+            status: 302,
+            headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=no_properties` },
+          });
+        }
+
+        const supabaseStore = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        const { data: tempToken, error: storeError } = await supabaseStore
+          .from("oauth_temp_tokens")
+          .insert({
+            clinic_id,
+            provider: "ga4",
+            payload: { properties, refresh_token: refreshToken },
+          })
+          .select("id")
+          .single();
+
+        if (storeError || !tempToken) {
+          console.error("Failed to store GA4 OAuth temp token:", storeError);
+          return new Response(null, {
+            status: 302,
+            headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=token_store` },
+          });
+        }
+
+        return new Response(null, {
+          status: 302,
+          headers: { Location: `${redirectBase}/clinics/${clinic_id}?ga4_token_ref=${tempToken.id}` },
+        });
+      }
+
       // List accessible customer accounts
       const customersRes = await fetch(
         "https://googleads.googleapis.com/v23/customers:listAccessibleCustomers",
