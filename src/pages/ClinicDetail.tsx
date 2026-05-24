@@ -203,6 +203,7 @@ export default function ClinicDetail() {
   const [metaPages, setMetaPages] = useState<any[] | null>(null);
   const [googleAccounts, setGoogleAccounts] = useState<{ accounts: any[]; refresh_token: string } | null>(null);
   const [ga4Picker, setGa4Picker] = useState<{ properties: GA4Property[]; refresh_token: string } | null>(null);
+  const [gscPicker, setGscPicker] = useState<{ sites: GscSite[]; refresh_token: string } | null>(null);
   const [teamMembers, setTeamMembers] = useState<{ full_name: string | null; team_role: string | null }[]>([]);
 
   // Determine initial tab based on OAuth URL params
