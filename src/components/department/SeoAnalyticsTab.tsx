@@ -165,8 +165,12 @@ export function SeoAnalyticsTab({ clinicId }: Props) {
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
+      </div>
+
       {/* GSC + GBP Performance + Leads */}
-      <SeoMultiSourcePanel clinicId={clinicId} />
+      <SeoMultiSourcePanel clinicId={clinicId} range={dateRange} />
 
       {/* Header */}
       <div className="flex items-center justify-between">
