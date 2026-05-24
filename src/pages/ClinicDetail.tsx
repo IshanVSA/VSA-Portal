@@ -204,6 +204,7 @@ export default function ClinicDetail() {
   const [googleAccounts, setGoogleAccounts] = useState<{ accounts: any[]; refresh_token: string } | null>(null);
   const [ga4Picker, setGa4Picker] = useState<{ properties: GA4Property[]; refresh_token: string } | null>(null);
   const [gscPicker, setGscPicker] = useState<{ sites: GscSite[]; refresh_token: string } | null>(null);
+  const [gscRefreshKey, setGscRefreshKey] = useState(0);
   const [teamMembers, setTeamMembers] = useState<{ full_name: string | null; team_role: string | null }[]>([]);
 
   // Determine initial tab based on OAuth URL params
@@ -266,8 +267,10 @@ export default function ClinicDetail() {
         no_refresh_token: "Google did not provide a refresh token. Please revoke access at myaccount.google.com/permissions and try again.",
         list_customers: "Could not retrieve your Google Ads accounts. Ensure your account has active Google Ads access.",
         list_properties: "Could not retrieve your GA4 properties. Make sure the Google account has access to a GA4 property.",
+        list_sites: "Could not retrieve Search Console sites. Enable the Google Search Console API in Google Cloud, wait a few minutes, then reconnect.",
         no_accounts: "No Google Ads accounts found for this Google account.",
         no_properties: "No GA4 properties found for this Google account.",
+        no_sites: "No verified Search Console properties were found for this Google account.",
         token_store: "Failed to store OAuth data. Please try again.",
       };
       toast.error(errorMessages[googleError] || `Google Ads connection failed: ${googleError}`);
