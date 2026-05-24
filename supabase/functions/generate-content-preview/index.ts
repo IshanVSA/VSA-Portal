@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
       `Clinic / Hospital name: ${clinicName}`,
       `Campaign or promotion: ${campaign}`,
       notes && `Additional notes: ${notes}`,
-      previous && `Previous preview (revise it):\nTitle: ${previous.title}\nDescription: ${previous.description}\nCaption: ${previous.caption}\nCTA: ${previous.cta}`,
+      previous && `Previous preview (revise it):\nTitle: ${previous.title}\nDescription: ${previous.description}\nCaption: ${previous.caption}\nCTA: ${previous.cta}\nHashtags: ${previous.hashtags || ""}\nVisual direction: ${previous.visual_direction || ""}\nConcierge brief: ${previous.concierge_brief || ""}`,
       change_notes && `Requested changes from the client:\n${change_notes}\n\nApply these changes while keeping the same structure.`,
     ].filter(Boolean).join("\n");
 
