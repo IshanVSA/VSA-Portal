@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      const { clinic_id, origin } = JSON.parse(atob(stateParam));
+      const { clinic_id, origin, provider } = JSON.parse(atob(stateParam));
       const redirectBase = origin || FRONTEND_URL;
 
       // Exchange code for tokens
@@ -108,6 +108,56 @@ Deno.serve(async (req) => {
         return new Response(null, {
           status: 302,
           headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=no_refresh_token` },
+        });
+      }
+
+      if (provider === "gsc") {
+        const sitesRes = await fetch("https://www.googleapis.com/webmasters/v3/sites", {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        const sitesText = await sitesRes.text();
+        if (!sitesRes.ok) {
+          console.error("GSC sites.list failed:", sitesRes.status, sitesText.substring(0, 500));
+          return new Response(null, {
+            status: 302,
+            headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=list_sites` },
+          });
+        }
+
+        const sitesData = JSON.parse(sitesText);
+        const sites: Array<{ site_url: string; permission_level: string }> = (sitesData.siteEntry || [])
+          .filter((site: any) => site.permissionLevel !== "siteUnverifiedUser")
+          .map((site: any) => ({ site_url: site.siteUrl, permission_level: site.permissionLevel }));
+
+        if (sites.length === 0) {
+          return new Response(null, {
+            status: 302,
+            headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=no_sites` },
+          });
+        }
+
+        const supabaseStore = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        const { data: tempToken, error: storeError } = await supabaseStore
+          .from("oauth_temp_tokens")
+          .insert({
+            clinic_id,
+            provider: "gsc",
+            payload: { sites, refresh_token: refreshToken },
+          })
+          .select("id")
+          .single();
+
+        if (storeError || !tempToken) {
+          console.error("Failed to store GSC OAuth temp token:", storeError);
+          return new Response(null, {
+            status: 302,
+            headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=token_store` },
+          });
+        }
+
+        return new Response(null, {
+          status: 302,
+          headers: { Location: `${redirectBase}/clinics/${clinic_id}?gsc_token_ref=${tempToken.id}` },
         });
       }
 
