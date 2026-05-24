@@ -14,6 +14,9 @@ export interface ContentPreviewData {
   description: string;
   caption: string;
   cta: string;
+  hashtags?: string;
+  visual_direction?: string;
+  concierge_brief?: string;
 }
 
 interface ContentRequestFormProps {
