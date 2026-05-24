@@ -95,6 +95,7 @@ function SectionTitle({ icon: Icon, title, badge }: { icon: React.ElementType; t
 export function SeoAnalyticsTab({ clinicId }: Props) {
   const { rows, isLoading } = useSeoAnalytics(clinicId);
   const [selectedMonth, setSelectedMonth] = useState<string>("");
+  const [dateRange, setDateRange] = useState<DateRange>({ from: subDays(new Date(), 29), to: new Date() });
 
   const months = useMemo(() => rows.map(r => r.month).sort().reverse(), [rows]);
   const activeMonth = selectedMonth || months[0] || "";
