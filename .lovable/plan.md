@@ -1,116 +1,80 @@
+## Goal
 
-# Expand SEO → Analytics tab into a multi-source dashboard
+Rework the **Content Request** ticket type (Social Media department) into a 3-stage flow:
 
-Per your answers: **Google Search Console + Google Business Profile Performance + Form leads from existing tickets**. Rank tracking (DataForSEO) is skipped for now — easy to add later as a 4th block.
+1. **Pre-ticket** — client fills details, generates an AI preview, optionally regenerates with change notes, then creates the ticket.
+2. **In-progress** — ticket goes through normal concierge workflow.
+3. **On completion** — the saved AI preview + a concierge-uploaded graphic surface inside the ticket for client approval, with **auto-approval after 24h**.
 
-The Analytics tab becomes a stacked dashboard with four blocks, all clinic-scoped via `?clinic=`, all visible to clients.
+This only affects `ticket_type = "Content Request"` in the Social Media department. All other ticket types are untouched.
 
-```text
-┌─ SEO → Analytics tab ───────────────────────────────────────┐
-│ [Date range: 7d / 14d / 30d / 90d]                          │
-│                                                             │
-│ ① Search Console               (new — GSC API)              │
-│   KPIs: Clicks · Impressions · CTR · Avg. position          │
-│   Line chart (clicks + impressions over time)               │
-│   Top queries table · Top pages table                       │
-│                                                             │
-│ ② Google Business Profile      (new — GBP Performance API)  │
-│   KPIs: Calls · Direction requests · Website clicks ·       │
-│         Business profile views (search + maps split)        │
-│   Line chart by metric                                      │
-│                                                             │
-│ ③ Leads overview               (new — derived from tickets) │
-│   KPIs: Total leads · Form leads · (Call leads placeholder) │
-│   Source breakdown (ticket type) · Recent leads list        │
-│                                                             │
-│ ④ Existing SEO snapshot card   (kept — DA / backlinks /     │
-│                                 keywords top-10 from         │
-│                                 uploaded reports)            │
-└─────────────────────────────────────────────────────────────┘
-```
+---
 
-## Step 1 — Google Search Console
+## Stage 1 — New Ticket Dialog (Content Request only)
 
-**OAuth.** New scope `https://www.googleapis.com/auth/webmasters.readonly`. Mirror the GA4 pattern — separate edge function so it doesn't break the verified Ads/GBP scopes.
+Edit `ContentRequestForm.tsx` and `NewTicketDialog.tsx`:
 
-Reuses existing `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_TOKEN_ENC_KEY`. New redirect URI to add in Google Cloud Console:
-```
-https://yuyossgquiyuoqbeenri.supabase.co/functions/v1/gsc-oauth/callback
-```
+- Hide the global **Create Ticket** footer button when `ticketType === "Content Request"` and no preview has been generated yet.
+- In `ContentRequestForm`, when the user fills Campaign details and clicks **Generate AI preview** (already exists), keep current behavior.
+- After preview is generated, show:
+  - The editable preview block (already exists).
+  - A new **Regenerate with changes** action: clicking it reveals a textarea ("What would you like to change?"). Submitting calls `generate-content-preview` again with the change notes appended.
+  - The **Create Ticket** button (re-enabled via a `previewReady` callback the form raises up to `NewTicketDialog`).
+- Persist the final preview JSON (`title / description / caption / cta`) onto the ticket at creation time in a new column `content_preview` (JSONB).
 
-**Tables**
-- `clinic_gsc_credentials` — `clinic_id` (unique), `site_url`, `site_display_name`, `access_token_enc`, `refresh_token_enc`, `token_expires_at`, `connected_by`, timestamps.
-- `clinic_gsc_daily` — `clinic_id`, `date`, `clicks`, `impressions`, `ctr`, `position`. Unique `(clinic_id, date)`.
-- `clinic_gsc_queries` — `clinic_id`, `date_bucket_start`, `date_bucket_end`, `query`, `clicks`, `impressions`, `ctr`, `position`. Top 50 per sync.
-- `clinic_gsc_pages` — same shape as queries, keyed by `page` URL.
+Validation: cannot submit a Content Request ticket without `previewReady === true`.
 
-RLS: admin/concierge full; clients SELECT for their own clinic.
+---
 
-**Edge functions**
-- `gsc-oauth` — initiate + callback, list verified sites via `sites.list`, encrypt tokens.
-- `gsc-save-site` — store chosen `site_url`.
-- `sync-gsc` — refresh token; 3 `searchAnalytics.query` calls (by `date`, by `query`, by `page`) for last 90 days; upsert.
-- `gsc-cron` — daily 07:45 UTC.
+## Stage 2 — Ticket lifecycle (unchanged until completion)
 
-**UI**
-- `GSCConnectionCard` in Clinic Detail → Connections.
-- `GSCSiteSelectionDialog`.
-- `SeoGscPanel` rendered inside Analytics tab.
+No changes. Ticket flows open → in_progress → completed exactly as today.
 
-## Step 2 — Google Business Profile Performance
+---
 
-GBP OAuth already exists (`gbp-oauth`) with `business.manage` scope, which covers Performance API reads. We only need to add **read + sync + render**, no new OAuth flow.
+## Stage 3 — Completion approval panel
 
-**Tables**
-- `clinic_gbp_performance_daily` — `clinic_id`, `location_id`, `date`, `business_impressions_desktop_maps`, `business_impressions_desktop_search`, `business_impressions_mobile_maps`, `business_impressions_mobile_search`, `call_clicks`, `website_clicks`, `business_direction_requests`, `business_bookings`. Unique `(clinic_id, location_id, date)`.
+When a Content Request ticket's status becomes `completed`, render a new **Content Approval** panel inside the ticket detail view (`TicketEditDialog.tsx` / `TicketCard`):
 
-**Edge functions**
-- `sync-gbp-performance` — calls `businessprofileperformance.googleapis.com/v1/locations/{location}:fetchMultiDailyMetricsTimeSeries` for last 90 days using existing encrypted GBP token; upserts.
-- `gbp-performance-cron` — daily 07:50 UTC.
+- **AI Preview card** — read-only display of the stored `content_preview`.
+- **Concierge graphic upload** — file uploader (images/PDF), stored in the existing `department-files` Supabase bucket, paths saved on the ticket in a new `content_deliverable_files` (text[]) column. Only admin/concierge can upload.
+- **Client actions**:
+  - **Approve** button → sets `content_approval_status = 'approved'`, records `content_approved_at`.
+  - **Request changes** button → opens a notes textarea; on submit sets `content_approval_status = 'changes_requested'` + stores `content_change_notes`. This reopens the ticket (status back to `in_progress`) so concierge can iterate.
+- **Auto-approval after 24h**: when the panel renders, show a countdown ("Auto-approves in 23h 12m"). A cron edge function (`auto-approve-content-requests`, runs every 15 min) flips any pending Content Request ticket whose `content_ready_for_review_at` is older than 24h to `content_approval_status = 'auto_approved'`.
 
-**UI**
-- `SeoGbpPerformancePanel` in Analytics tab. KPI cards + Recharts multi-line chart with metric toggles.
+`content_ready_for_review_at` is set the moment the concierge uploads the deliverable AND the ticket is `completed`. Until a graphic is attached, the panel shows "Waiting on concierge to upload the deliverable" and the 24h timer does not start.
 
-## Step 3 — Leads (from existing tickets)
+---
 
-No new integration. Treat tickets matching configured types as leads.
+## Technical changes
 
-- `useClinicLeads(clinicId, dateRange)` hook → queries `tickets` filtered by `clinic_id`, `ticket_type IN ('website_form_submission', 'lead_inquiry', ...)` (configurable list in `src/lib/lead-ticket-types.ts`), and `created_at` in range.
-- KPIs: total leads, form leads, (call leads = 0 with "Connect call tracking" CTA placeholder).
-- Source breakdown by ticket type.
-- "Recent leads" list — last 10, click-through deep-links to existing ticket detail.
+**Database migration** (new columns on `department_tickets`, plus cron):
+- `content_preview jsonb`
+- `content_deliverable_files text[] default '{}'`
+- `content_change_notes text`
+- `content_approval_status text` (`pending | approved | changes_requested | auto_approved`)
+- `content_approved_at timestamptz`
+- `content_ready_for_review_at timestamptz`
+- pg_cron job hitting the new edge function every 15 min.
 
-UI: `SeoLeadsPanel` inside Analytics tab.
+**Edge functions**:
+- `generate-content-preview` — extend to accept an optional `change_notes` arg for regeneration.
+- `auto-approve-content-requests` — new cron-triggered function (uses `CRON_SECRET`) that flips eligible tickets to `auto_approved` and notifies the clinic via `sendZohoEmail`.
 
-## Step 4 — Wire into Analytics tab
+**Frontend files touched**:
+- `src/components/department/ticket-forms/ContentRequestForm.tsx` — add regenerate-with-notes UI, raise `previewReady` + `previewData` to parent.
+- `src/components/department/NewTicketDialog.tsx` — gate the submit button for Content Request; pass `content_preview` into the insert.
+- `src/components/department/TicketEditDialog.tsx` (or `TicketCard.tsx` detail view) — render the Content Approval panel when `ticket_type === "Content Request"` and `status === "completed"`.
+- New `src/components/department/ticket-forms/ContentApprovalPanel.tsx` — preview card + uploader + approve / request-changes actions + countdown.
+- `src/integrations/supabase/types.ts` — regenerated by migration.
 
-`src/components/department/SeoAnalyticsTab.tsx`:
-- Keep existing snapshot card at the bottom.
-- Add shared `<DateRangeFilter>` at the top.
-- Stack: GSC panel → GBP Performance panel → Leads panel → existing snapshot.
-- Each panel handles its own empty/connect/locked state independently.
+**RLS**: existing `department_tickets` policies cover reads/writes; add a policy allowing the ticket's clinic owner + sub-accounts to UPDATE only the `content_approval_status` / `content_change_notes` columns (via a SECURITY DEFINER function `client_set_content_approval(ticket_id, status, notes)` to keep the policy surface small).
 
-Both new connect cards land in Clinic Detail → Connections, matching Meta / Ads / GBP / GA4 styling.
+---
 
-## Step 5 — Verification
+## Out of scope
 
-- Connect a test clinic to GSC, run `sync-gsc` via `curl_edge_functions`, confirm rows.
-- Trigger `sync-gbp-performance` for a clinic already connected to GBP, confirm rows.
-- Open `/seo?clinic=...&tab=analytics` and confirm all 3 panels render + respect date filter + client role can view.
-
-## Out of scope (for now, easy follow-ups)
-
-- DataForSEO rank tracking (skipped per your answer; would slot in as panel ⑤).
-- CallRail / Twilio call leads (would convert the call-leads placeholder into real data).
-- Cross-clinic admin roll-up page (Analytics tab is per-clinic).
-- Form-webhook endpoint (using existing tickets instead).
-
-## Technical notes
-
-- GSC API is free, quota generous. Daily sync of 90 days is well under limits.
-- GBP Performance API uses the existing `gbp-` OAuth token; no Google Cloud Console change required.
-- All token storage uses AES-256-GCM `enc:` prefix per existing convention.
-- Reset state to zero on fetch start (project rule).
-- Use shared `DateRangeFilter` (7/14/30/90d).
-
-**This will land in ~5 edge functions, 4 new tables, 2 new connection cards, and 3 new panels in the Analytics tab.** Want me to start with the GSC slice (OAuth + connect card + panel) and then layer GBP Performance + Leads in the same loop?
+- Changing other ticket types' flows.
+- Reworking the existing Social Media SM2 content pipeline (this remains a one-off ad-hoc request flow, not part of the monthly batch).
+- Push/SMS notifications (email only).
