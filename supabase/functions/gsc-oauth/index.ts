@@ -11,7 +11,9 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID")!;
 const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET")!;
 
-const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/gsc-oauth/callback`;
+// Reuse the Google OAuth callback URI already authorized in Google Cloud Console.
+// The callback handler in google-oauth routes provider="gsc" back into the GSC picker flow.
+const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/google-oauth?action=callback`;
 const FRONTEND_URL = Deno.env.get("SITE_URL") || "https://portal.vsavetmedia.com";
 
 Deno.serve(async (req) => {
@@ -28,7 +30,7 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const state = btoa(JSON.stringify({ clinic_id: clinicId, origin: originUrl }));
+      const state = btoa(JSON.stringify({ clinic_id: clinicId, origin: originUrl, provider: "gsc" }));
       const authUrl =
         `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${encodeURIComponent(GOOGLE_CLIENT_ID)}` +
