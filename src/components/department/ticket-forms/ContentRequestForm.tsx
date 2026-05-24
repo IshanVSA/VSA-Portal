@@ -54,18 +54,25 @@ export function ContentRequestForm({ onChange, clinicId, onPreviewChange }: Cont
         `Description: ${description}`,
         `Caption: ${caption}`,
         `CTA: ${cta}`,
+        `Hashtags: ${hashtags}`,
+        "",
+        "--- Visual Direction ---",
+        visualDirection,
+        "",
+        "--- Concierge Production Brief ---",
+        conciergeBrief,
       );
     }
     onChange(lines.join("\n"));
-  }, [campaign, notes, title, description, caption, cta, hasPreview, onChange]);
+  }, [campaign, notes, title, description, caption, cta, hashtags, visualDirection, conciergeBrief, hasPreview, onChange]);
 
   useEffect(() => {
     if (hasPreview) {
-      onPreviewChange?.({ title, description, caption, cta });
+      onPreviewChange?.({ title, description, caption, cta, hashtags, visual_direction: visualDirection, concierge_brief: conciergeBrief });
     } else {
       onPreviewChange?.(null);
     }
-  }, [hasPreview, title, description, caption, cta, onPreviewChange]);
+  }, [hasPreview, title, description, caption, cta, hashtags, visualDirection, conciergeBrief, onPreviewChange]);
 
   const runGenerate = async (withChangeNotes?: string) => {
     if (!campaign.trim()) {
