@@ -269,6 +269,9 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
       notes: notes.trim() || null,
       created_by: user.id,
       ...(effectiveClinicId ? { clinic_id: effectiveClinicId } : {}),
+      ...(ticketType === "Content Request" && contentPreview
+        ? { content_preview: contentPreview, content_approval_status: "pending" }
+        : {}),
     } as any).select("id").single();
 
     if (error || !ticket) {
