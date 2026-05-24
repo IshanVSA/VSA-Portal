@@ -111,7 +111,7 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
     (async () => {
       const { data, error } = await supabase
         .from("department_tickets" as any)
-        .select("attachments, notes, completion_email_sent_at, completion_email_recipients, completion_email_error")
+        .select("attachments, notes, completion_email_sent_at, completion_email_recipients, completion_email_error, content_preview, content_deliverable_files, content_approval_status, content_approved_at, content_change_notes, content_ready_for_review_at")
         .eq("id", ticket.id)
         .single();
       if (cancelled) return;
@@ -129,9 +129,17 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
         recipients: (data as any).completion_email_recipients ?? null,
         error: (data as any).completion_email_error ?? null,
       });
+      setContentApproval({
+        preview: (data as any).content_preview ?? null,
+        files: Array.isArray((data as any).content_deliverable_files) ? (data as any).content_deliverable_files : [],
+        status: (data as any).content_approval_status ?? null,
+        approvedAt: (data as any).content_approved_at ?? null,
+        changeNotes: (data as any).content_change_notes ?? null,
+        readyAt: (data as any).content_ready_for_review_at ?? null,
+      });
     })();
     return () => { cancelled = true; };
-  }, [ticket, open]);
+  }, [ticket, open, contentRefreshKey]);
 
   const handleDownload = async (att: TicketAttachmentItem) => {
     try {
