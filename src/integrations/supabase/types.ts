@@ -530,6 +530,9 @@ export type Database = {
           gbp_connected_at: string | null
           gbp_location_id: string | null
           gbp_location_name: string | null
+          gbp_perf_last_sync_at: string | null
+          gbp_perf_last_sync_error: string | null
+          gbp_perf_last_sync_status: string | null
           gbp_refresh_token: string | null
           google_ads_account_name: string | null
           google_ads_customer_id: string | null
@@ -552,6 +555,9 @@ export type Database = {
           gbp_connected_at?: string | null
           gbp_location_id?: string | null
           gbp_location_name?: string | null
+          gbp_perf_last_sync_at?: string | null
+          gbp_perf_last_sync_error?: string | null
+          gbp_perf_last_sync_status?: string | null
           gbp_refresh_token?: string | null
           google_ads_account_name?: string | null
           google_ads_customer_id?: string | null
@@ -574,6 +580,9 @@ export type Database = {
           gbp_connected_at?: string | null
           gbp_location_id?: string | null
           gbp_location_name?: string | null
+          gbp_perf_last_sync_at?: string | null
+          gbp_perf_last_sync_error?: string | null
+          gbp_perf_last_sync_status?: string | null
           gbp_refresh_token?: string | null
           google_ads_account_name?: string | null
           google_ads_customer_id?: string | null
@@ -878,6 +887,250 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "geo_clusters"
             referencedColumns: ["cluster_id"]
+          },
+        ]
+      }
+      clinic_gbp_performance_daily: {
+        Row: {
+          business_bookings: number
+          business_conversations: number
+          business_direction_requests: number
+          business_impressions_desktop_maps: number
+          business_impressions_desktop_search: number
+          business_impressions_mobile_maps: number
+          business_impressions_mobile_search: number
+          call_clicks: number
+          clinic_id: string
+          created_at: string
+          date: string
+          id: string
+          location_id: string
+          website_clicks: number
+        }
+        Insert: {
+          business_bookings?: number
+          business_conversations?: number
+          business_direction_requests?: number
+          business_impressions_desktop_maps?: number
+          business_impressions_desktop_search?: number
+          business_impressions_mobile_maps?: number
+          business_impressions_mobile_search?: number
+          call_clicks?: number
+          clinic_id: string
+          created_at?: string
+          date: string
+          id?: string
+          location_id: string
+          website_clicks?: number
+        }
+        Update: {
+          business_bookings?: number
+          business_conversations?: number
+          business_direction_requests?: number
+          business_impressions_desktop_maps?: number
+          business_impressions_desktop_search?: number
+          business_impressions_mobile_maps?: number
+          business_impressions_mobile_search?: number
+          call_clicks?: number
+          clinic_id?: string
+          created_at?: string
+          date?: string
+          id?: string
+          location_id?: string
+          website_clicks?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_gbp_performance_daily_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinic_gsc_credentials: {
+        Row: {
+          clinic_id: string
+          connected_by: string | null
+          created_at: string
+          id: string
+          last_sync_at: string | null
+          last_sync_error: string | null
+          last_sync_status: string | null
+          refresh_token_enc: string | null
+          site_display_name: string | null
+          site_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          clinic_id: string
+          connected_by?: string | null
+          created_at?: string
+          id?: string
+          last_sync_at?: string | null
+          last_sync_error?: string | null
+          last_sync_status?: string | null
+          refresh_token_enc?: string | null
+          site_display_name?: string | null
+          site_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string
+          connected_by?: string | null
+          created_at?: string
+          id?: string
+          last_sync_at?: string | null
+          last_sync_error?: string | null
+          last_sync_status?: string | null
+          refresh_token_enc?: string | null
+          site_display_name?: string | null
+          site_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_gsc_credentials_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: true
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinic_gsc_daily: {
+        Row: {
+          clicks: number
+          clinic_id: string
+          created_at: string
+          ctr: number
+          date: string
+          id: string
+          impressions: number
+          position: number
+        }
+        Insert: {
+          clicks?: number
+          clinic_id: string
+          created_at?: string
+          ctr?: number
+          date: string
+          id?: string
+          impressions?: number
+          position?: number
+        }
+        Update: {
+          clicks?: number
+          clinic_id?: string
+          created_at?: string
+          ctr?: number
+          date?: string
+          id?: string
+          impressions?: number
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_gsc_daily_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinic_gsc_pages: {
+        Row: {
+          clicks: number
+          clinic_id: string
+          created_at: string
+          ctr: number
+          id: string
+          impressions: number
+          page: string
+          position: number
+          window_end: string
+          window_start: string
+        }
+        Insert: {
+          clicks?: number
+          clinic_id: string
+          created_at?: string
+          ctr?: number
+          id?: string
+          impressions?: number
+          page: string
+          position?: number
+          window_end: string
+          window_start: string
+        }
+        Update: {
+          clicks?: number
+          clinic_id?: string
+          created_at?: string
+          ctr?: number
+          id?: string
+          impressions?: number
+          page?: string
+          position?: number
+          window_end?: string
+          window_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_gsc_pages_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinic_gsc_queries: {
+        Row: {
+          clicks: number
+          clinic_id: string
+          created_at: string
+          ctr: number
+          id: string
+          impressions: number
+          position: number
+          query: string
+          window_end: string
+          window_start: string
+        }
+        Insert: {
+          clicks?: number
+          clinic_id: string
+          created_at?: string
+          ctr?: number
+          id?: string
+          impressions?: number
+          position?: number
+          query: string
+          window_end: string
+          window_start: string
+        }
+        Update: {
+          clicks?: number
+          clinic_id?: string
+          created_at?: string
+          ctr?: number
+          id?: string
+          impressions?: number
+          position?: number
+          query?: string
+          window_end?: string
+          window_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_gsc_queries_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
           },
         ]
       }
