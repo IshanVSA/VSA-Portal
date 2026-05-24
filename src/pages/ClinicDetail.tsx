@@ -964,6 +964,18 @@ export default function ClinicDetail() {
             onConnected={() => { setGa4Picker(null); setSearchParams({}, { replace: true }); }}
           />
         )}
+
+        {gscPicker && id && (
+          <GSCSiteSelectionDialog
+            open={!!gscPicker}
+            sites={gscPicker.sites}
+            refreshToken={gscPicker.refresh_token}
+            clinicId={id}
+            clinicWebsite={clinic?.website || ""}
+            onClose={() => { setGscPicker(null); setSearchParams({}, { replace: true }); }}
+            onConnected={() => { setGscPicker(null); setSearchParams({}, { replace: true }); }}
+          />
+        )}
       </div>
     </>
   );
