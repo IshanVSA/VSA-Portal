@@ -14,6 +14,9 @@ export interface ContentPreviewData {
   description: string;
   caption: string;
   cta: string;
+  hashtags?: string;
+  visual_direction?: string;
+  concierge_brief?: string;
 }
 
 interface ContentRequestFormProps {
@@ -29,6 +32,9 @@ export function ContentRequestForm({ onChange, clinicId, onPreviewChange }: Cont
   const [description, setDescription] = useState("");
   const [caption, setCaption] = useState("");
   const [cta, setCta] = useState("");
+  const [hashtags, setHashtags] = useState("");
+  const [visualDirection, setVisualDirection] = useState("");
+  const [conciergeBrief, setConciergeBrief] = useState("");
   const [generating, setGenerating] = useState(false);
   const [hasPreview, setHasPreview] = useState(false);
   const [showRegen, setShowRegen] = useState(false);
@@ -48,18 +54,25 @@ export function ContentRequestForm({ onChange, clinicId, onPreviewChange }: Cont
         `Description: ${description}`,
         `Caption: ${caption}`,
         `CTA: ${cta}`,
+        `Hashtags: ${hashtags}`,
+        "",
+        "--- Visual Direction ---",
+        visualDirection,
+        "",
+        "--- Concierge Production Brief ---",
+        conciergeBrief,
       );
     }
     onChange(lines.join("\n"));
-  }, [campaign, notes, title, description, caption, cta, hasPreview, onChange]);
+  }, [campaign, notes, title, description, caption, cta, hashtags, visualDirection, conciergeBrief, hasPreview, onChange]);
 
   useEffect(() => {
     if (hasPreview) {
-      onPreviewChange?.({ title, description, caption, cta });
+      onPreviewChange?.({ title, description, caption, cta, hashtags, visual_direction: visualDirection, concierge_brief: conciergeBrief });
     } else {
       onPreviewChange?.(null);
     }
-  }, [hasPreview, title, description, caption, cta, onPreviewChange]);
+  }, [hasPreview, title, description, caption, cta, hashtags, visualDirection, conciergeBrief, onPreviewChange]);
 
   const runGenerate = async (withChangeNotes?: string) => {
     if (!campaign.trim()) {
@@ -74,7 +87,7 @@ export function ContentRequestForm({ onChange, clinicId, onPreviewChange }: Cont
           campaign: campaign.trim(),
           notes: notes.trim(),
           change_notes: withChangeNotes?.trim() || undefined,
-          previous: hasPreview && withChangeNotes ? { title, description, caption, cta } : undefined,
+          previous: hasPreview && withChangeNotes ? { title, description, caption, cta, hashtags, visual_direction: visualDirection, concierge_brief: conciergeBrief } : undefined,
         },
       });
       if (error) throw error;
@@ -84,6 +97,9 @@ export function ContentRequestForm({ onChange, clinicId, onPreviewChange }: Cont
       setDescription(p.description || "");
       setCaption(p.caption || "");
       setCta(p.cta || "");
+      setHashtags(p.hashtags || "");
+      setVisualDirection(p.visual_direction || "");
+      setConciergeBrief(p.concierge_brief || "");
       setHasPreview(true);
       if (withChangeNotes) {
         setShowRegen(false);
@@ -167,6 +183,27 @@ export function ContentRequestForm({ onChange, clinicId, onPreviewChange }: Cont
           <div className="space-y-1.5">
             <Label>CTA</Label>
             <Input value={cta} onChange={(e) => setCta(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Hashtags</Label>
+            <Textarea value={hashtags} onChange={(e) => setHashtags(e.target.value)} rows={2} placeholder="#VetCare #PetHealth ..." />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Visual direction</Label>
+            <Textarea value={visualDirection} onChange={(e) => setVisualDirection(e.target.value)} rows={4} placeholder="Subject, mood, palette, composition, on-image text..." />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Concierge production brief</Label>
+            <Textarea
+              value={conciergeBrief}
+              onChange={(e) => setConciergeBrief(e.target.value)}
+              rows={10}
+              placeholder="Step-by-step checklist for the designer / concierge team."
+              className="font-mono text-xs leading-relaxed"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Step-by-step guide the internal team will use to build this post (objective, audience, platforms, format, visuals, compliance, posting time).
+            </p>
           </div>
 
           {!showRegen ? (
