@@ -87,7 +87,7 @@ export function ContentRequestForm({ onChange, clinicId, onPreviewChange }: Cont
           campaign: campaign.trim(),
           notes: notes.trim(),
           change_notes: withChangeNotes?.trim() || undefined,
-          previous: hasPreview && withChangeNotes ? { title, description, caption, cta } : undefined,
+          previous: hasPreview && withChangeNotes ? { title, description, caption, cta, hashtags, visual_direction: visualDirection, concierge_brief: conciergeBrief } : undefined,
         },
       });
       if (error) throw error;
@@ -97,6 +97,9 @@ export function ContentRequestForm({ onChange, clinicId, onPreviewChange }: Cont
       setDescription(p.description || "");
       setCaption(p.caption || "");
       setCta(p.cta || "");
+      setHashtags(p.hashtags || "");
+      setVisualDirection(p.visual_direction || "");
+      setConciergeBrief(p.concierge_brief || "");
       setHasPreview(true);
       if (withChangeNotes) {
         setShowRegen(false);
