@@ -831,7 +831,7 @@ export default function ClinicDetail() {
                 onRefresh={() => { fetchCredentials(); }}
               />
               <GA4ConnectionCard clinicId={id!} />
-              <GSCConnectionCard clinicId={id!} />
+              <GSCConnectionCard key={gscRefreshKey} clinicId={id!} />
               {(role === "admin" || isDebraj) && <TrackingSetupCard clinicId={id!} />}
 
               {/* Website URL Card */}
@@ -976,7 +976,11 @@ export default function ClinicDetail() {
             clinicId={id}
             clinicWebsite={clinic?.website || ""}
             onClose={() => { setGscPicker(null); setSearchParams({}, { replace: true }); }}
-            onConnected={() => { setGscPicker(null); setSearchParams({}, { replace: true }); }}
+            onConnected={() => {
+              setGscPicker(null);
+              setSearchParams({}, { replace: true });
+              setGscRefreshKey((key) => key + 1);
+            }}
           />
         )}
       </div>
