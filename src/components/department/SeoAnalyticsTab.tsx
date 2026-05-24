@@ -12,6 +12,7 @@ import {
 import { useSeoAnalytics, type SeoAnalyticsRow, type SeoKeyword, type SeoExtendedData } from "@/hooks/useSeoAnalytics";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell, Line } from "recharts";
 import { cn } from "@/lib/utils";
+import { SeoMultiSourcePanel } from "@/components/department/analytics/SeoMultiSourcePanel";
 
 interface Props {
   clinicId: string;
