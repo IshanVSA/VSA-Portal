@@ -30,6 +30,8 @@ import { GBPConnectionCard } from "@/components/clinic-detail/GBPConnectionCard"
 import { GBPLocationSelectionDialog } from "@/components/clinic-detail/GBPLocationSelectionDialog";
 import { GA4ConnectionCard } from "@/components/clinic-detail/GA4ConnectionCard";
 import { GA4PropertySelectionDialog, type GA4Property } from "@/components/clinic-detail/GA4PropertySelectionDialog";
+import { GSCConnectionCard } from "@/components/clinic-detail/GSCConnectionCard";
+import { GSCSiteSelectionDialog, type GscSite } from "@/components/clinic-detail/GSCSiteSelectionDialog";
 import { TrackingSetupCard } from "@/components/clinic-detail/TrackingSetupCard";
 import { ClinicLogoUploader } from "@/components/clinic-detail/ClinicLogoUploader";
 import { COMMON_TIMEZONES, DEFAULT_CLINIC_TIMEZONE, getSafeTimeZone } from "@/lib/website-analytics";
