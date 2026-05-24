@@ -47,7 +47,17 @@ export function ClinicSelector({ clinics, selectedClinicId, onSelect, loading }:
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[var(--radix-popover-trigger-width)] sm:w-[280px] p-0" align="start">
-          <Command>
+          <Command
+            filter={(value, search) => {
+              if (!search) return 1;
+              const v = value.toLowerCase();
+              const s = search.toLowerCase();
+              const idx = v.indexOf(s);
+              if (idx === -1) return 0;
+              // Earlier matches rank higher; prefix match ranks highest.
+              return idx === 0 ? 1 : 1 / (idx + 2);
+            }}
+          >
             <CommandInput placeholder="Search clinics..." />
             <CommandList>
               <CommandEmpty>No clinic found.</CommandEmpty>
