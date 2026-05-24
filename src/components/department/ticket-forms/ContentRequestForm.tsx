@@ -184,6 +184,27 @@ export function ContentRequestForm({ onChange, clinicId, onPreviewChange }: Cont
             <Label>CTA</Label>
             <Input value={cta} onChange={(e) => setCta(e.target.value)} />
           </div>
+          <div className="space-y-1.5">
+            <Label>Hashtags</Label>
+            <Textarea value={hashtags} onChange={(e) => setHashtags(e.target.value)} rows={2} placeholder="#VetCare #PetHealth ..." />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Visual direction</Label>
+            <Textarea value={visualDirection} onChange={(e) => setVisualDirection(e.target.value)} rows={4} placeholder="Subject, mood, palette, composition, on-image text..." />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Concierge production brief</Label>
+            <Textarea
+              value={conciergeBrief}
+              onChange={(e) => setConciergeBrief(e.target.value)}
+              rows={10}
+              placeholder="Step-by-step checklist for the designer / concierge team."
+              className="font-mono text-xs leading-relaxed"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Step-by-step guide the internal team will use to build this post (objective, audience, platforms, format, visuals, compliance, posting time).
+            </p>
+          </div>
 
           {!showRegen ? (
             <Button
