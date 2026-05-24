@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { subDays } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,6 +14,7 @@ import { useSeoAnalytics, type SeoAnalyticsRow, type SeoKeyword, type SeoExtende
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell, Line } from "recharts";
 import { cn } from "@/lib/utils";
 import { SeoMultiSourcePanel } from "@/components/department/analytics/SeoMultiSourcePanel";
+import { DateRangeFilter, type DateRange } from "@/components/department/DateRangeFilter";
 
 interface Props {
   clinicId: string;
