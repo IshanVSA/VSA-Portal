@@ -3,18 +3,26 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Loader2, RefreshCw } from "lucide-react";
+import { Sparkles, Loader2, RefreshCw, Wand2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 import { VoiceDictation } from "./VoiceDictation";
 
+export interface ContentPreviewData {
+  title: string;
+  description: string;
+  caption: string;
+  cta: string;
+}
+
 interface ContentRequestFormProps {
   onChange: (description: string) => void;
   clinicId?: string;
+  onPreviewChange?: (preview: ContentPreviewData | null) => void;
 }
 
-export function ContentRequestForm({ onChange, clinicId }: ContentRequestFormProps) {
+export function ContentRequestForm({ onChange, clinicId, onPreviewChange }: ContentRequestFormProps) {
   const [campaign, setCampaign] = useState("");
   const [notes, setNotes] = useState("");
   const [title, setTitle] = useState("");
@@ -23,6 +31,8 @@ export function ContentRequestForm({ onChange, clinicId }: ContentRequestFormPro
   const [cta, setCta] = useState("");
   const [generating, setGenerating] = useState(false);
   const [hasPreview, setHasPreview] = useState(false);
+  const [showRegen, setShowRegen] = useState(false);
+  const [changeNotes, setChangeNotes] = useState("");
 
   useEffect(() => {
     const lines = [
@@ -43,7 +53,15 @@ export function ContentRequestForm({ onChange, clinicId }: ContentRequestFormPro
     onChange(lines.join("\n"));
   }, [campaign, notes, title, description, caption, cta, hasPreview, onChange]);
 
-  const handleGenerate = async () => {
+  useEffect(() => {
+    if (hasPreview) {
+      onPreviewChange?.({ title, description, caption, cta });
+    } else {
+      onPreviewChange?.(null);
+    }
+  }, [hasPreview, title, description, caption, cta, onPreviewChange]);
+
+  const runGenerate = async (withChangeNotes?: string) => {
     if (!campaign.trim()) {
       toast.error("Please enter your campaign or promotion details first.");
       return;
@@ -51,7 +69,13 @@ export function ContentRequestForm({ onChange, clinicId }: ContentRequestFormPro
     setGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-content-preview", {
-        body: { clinic_id: clinicId, campaign: campaign.trim(), notes: notes.trim() },
+        body: {
+          clinic_id: clinicId,
+          campaign: campaign.trim(),
+          notes: notes.trim(),
+          change_notes: withChangeNotes?.trim() || undefined,
+          previous: hasPreview && withChangeNotes ? { title, description, caption, cta } : undefined,
+        },
       });
       if (error) throw error;
       const p = (data as any)?.preview;
@@ -61,6 +85,10 @@ export function ContentRequestForm({ onChange, clinicId }: ContentRequestFormPro
       setCaption(p.caption || "");
       setCta(p.cta || "");
       setHasPreview(true);
+      if (withChangeNotes) {
+        setShowRegen(false);
+        setChangeNotes("");
+      }
     } catch (err) {
       const msg = await extractEdgeFunctionError(err, "Failed to generate preview");
       toast.error(msg);
@@ -72,7 +100,7 @@ export function ContentRequestForm({ onChange, clinicId }: ContentRequestFormPro
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
-        This request will be created as a <strong className="text-foreground">social media post</strong> for your clinic. Just describe your promotion or campaign and our AI will draft a preview for you to review.
+        This request will be created as a <strong className="text-foreground">social media post</strong> for your clinic. Generate an AI preview first, tweak it if you want, then create the ticket. After the team uploads the finished graphic you'll be asked to approve it.
       </div>
 
       <VoiceDictation
@@ -104,20 +132,20 @@ export function ContentRequestForm({ onChange, clinicId }: ContentRequestFormPro
         />
       </div>
 
-      <Button
-        type="button"
-        onClick={handleGenerate}
-        disabled={generating || !campaign.trim()}
-        className="w-full"
-      >
-        {generating ? (
-          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating preview...</>
-        ) : hasPreview ? (
-          <><RefreshCw className="h-4 w-4 mr-2" /> Regenerate preview</>
-        ) : (
-          <><Sparkles className="h-4 w-4 mr-2" /> Generate AI preview</>
-        )}
-      </Button>
+      {!hasPreview && (
+        <Button
+          type="button"
+          onClick={() => runGenerate()}
+          disabled={generating || !campaign.trim()}
+          className="w-full"
+        >
+          {generating ? (
+            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating preview...</>
+          ) : (
+            <><Sparkles className="h-4 w-4 mr-2" /> Generate AI preview</>
+          )}
+        </Button>
+      )}
 
       {hasPreview && (
         <div className="space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
@@ -140,8 +168,55 @@ export function ContentRequestForm({ onChange, clinicId }: ContentRequestFormPro
             <Label>CTA</Label>
             <Input value={cta} onChange={(e) => setCta(e.target.value)} />
           </div>
+
+          {!showRegen ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowRegen(true)}
+              className="w-full"
+            >
+              <RefreshCw className="h-3.5 w-3.5 mr-2" /> Regenerate with changes
+            </Button>
+          ) : (
+            <div className="space-y-2 rounded-lg border border-border/60 bg-background/50 p-3">
+              <Label className="text-xs">What would you like to change?</Label>
+              <Textarea
+                value={changeNotes}
+                onChange={(e) => setChangeNotes(e.target.value)}
+                placeholder="e.g. make the tone more playful, mention 20% off, shorter caption"
+                rows={3}
+              />
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => runGenerate(changeNotes)}
+                  disabled={generating || !changeNotes.trim()}
+                  className="flex-1"
+                >
+                  {generating ? (
+                    <><Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> Regenerating…</>
+                  ) : (
+                    <><Wand2 className="h-3.5 w-3.5 mr-2" /> Regenerate</>
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => { setShowRegen(false); setChangeNotes(""); }}
+                  disabled={generating}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+
           <p className="text-xs text-muted-foreground">
-            Feel free to tweak any field before submitting. This is a draft direction for our team.
+            Tweak any field directly, or describe the changes and regenerate. When you're happy, click <strong className="text-foreground">Create Ticket</strong>.
           </p>
         </div>
       )}

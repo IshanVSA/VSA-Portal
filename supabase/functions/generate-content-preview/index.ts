@@ -52,6 +52,8 @@ Deno.serve(async (req) => {
     const clinic_id = typeof body.clinic_id === "string" ? body.clinic_id.trim() : "";
     const campaign = typeof body.campaign === "string" ? body.campaign.trim() : "";
     const notes = typeof body.notes === "string" ? body.notes.trim() : "";
+    const change_notes = typeof body.change_notes === "string" ? body.change_notes.trim() : "";
+    const previous = body.previous && typeof body.previous === "object" ? body.previous : null;
 
     if (!campaign) {
       return new Response(JSON.stringify({ error: "Campaign details are required" }), {
@@ -71,6 +73,8 @@ Deno.serve(async (req) => {
       `Clinic / Hospital name: ${clinicName}`,
       `Campaign or promotion: ${campaign}`,
       notes && `Additional notes: ${notes}`,
+      previous && `Previous preview (revise it):\nTitle: ${previous.title}\nDescription: ${previous.description}\nCaption: ${previous.caption}\nCTA: ${previous.cta}`,
+      change_notes && `Requested changes from the client:\n${change_notes}\n\nApply these changes while keeping the same structure.`,
     ].filter(Boolean).join("\n");
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");

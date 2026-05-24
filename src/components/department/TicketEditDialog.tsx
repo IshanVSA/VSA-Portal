@@ -13,6 +13,7 @@ import { formatDistanceToNow } from "date-fns";
 import { syncSpecialPromotionFromTicket } from "@/lib/special-promotion-sync";
 import { FileIcon, Image as ImageIcon, Eye, Download, Paperclip, MailCheck, MailWarning } from "lucide-react";
 import { FilePreviewDialog } from "@/components/FilePreviewDialog";
+import { ContentApprovalPanel } from "./ContentApprovalPanel";
 
 const ATTACHMENT_BUCKET = "department-files";
 
@@ -85,6 +86,10 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
   const [attachments, setAttachments] = useState<TicketAttachmentItem[]>([]);
   const [previewAtt, setPreviewAtt] = useState<TicketAttachmentItem | null>(null);
   const [completionEmail, setCompletionEmail] = useState<{ sentAt: string | null; recipients: number | null; error: string | null }>({ sentAt: null, recipients: null, error: null });
+  const [contentApproval, setContentApproval] = useState<{
+    preview: any; files: string[]; status: string | null; approvedAt: string | null; changeNotes: string | null; readyAt: string | null;
+  }>({ preview: null, files: [], status: null, approvedAt: null, changeNotes: null, readyAt: null });
+  const [contentRefreshKey, setContentRefreshKey] = useState(0);
 
   useEffect(() => {
     if (ticket) {
@@ -106,7 +111,7 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
     (async () => {
       const { data, error } = await supabase
         .from("department_tickets" as any)
-        .select("attachments, notes, completion_email_sent_at, completion_email_recipients, completion_email_error")
+        .select("attachments, notes, completion_email_sent_at, completion_email_recipients, completion_email_error, content_preview, content_deliverable_files, content_approval_status, content_approved_at, content_change_notes, content_ready_for_review_at")
         .eq("id", ticket.id)
         .single();
       if (cancelled) return;
@@ -124,9 +129,17 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
         recipients: (data as any).completion_email_recipients ?? null,
         error: (data as any).completion_email_error ?? null,
       });
+      setContentApproval({
+        preview: (data as any).content_preview ?? null,
+        files: Array.isArray((data as any).content_deliverable_files) ? (data as any).content_deliverable_files : [],
+        status: (data as any).content_approval_status ?? null,
+        approvedAt: (data as any).content_approved_at ?? null,
+        changeNotes: (data as any).content_change_notes ?? null,
+        readyAt: (data as any).content_ready_for_review_at ?? null,
+      });
     })();
     return () => { cancelled = true; };
-  }, [ticket, open]);
+  }, [ticket, open, contentRefreshKey]);
 
   const handleDownload = async (att: TicketAttachmentItem) => {
     try {
@@ -251,6 +264,21 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
             </div>
           ) : null
         )}
+
+        {ticket.ticket_type === "Content Request" && ticket.status === "completed" && (
+          <ContentApprovalPanel
+            ticketId={ticket.id}
+            clinicId={ticket.clinic_id}
+            contentPreview={contentApproval.preview}
+            deliverableFiles={contentApproval.files}
+            approvalStatus={contentApproval.status}
+            approvedAt={contentApproval.approvedAt}
+            changeNotes={contentApproval.changeNotes}
+            readyForReviewAt={contentApproval.readyAt}
+            onChanged={() => { setContentRefreshKey((k) => k + 1); onUpdated(); }}
+          />
+        )}
+
 
         <div className="space-y-4">
           <div className="space-y-1.5">

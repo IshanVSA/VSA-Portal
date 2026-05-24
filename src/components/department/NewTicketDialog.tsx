@@ -27,7 +27,7 @@ import { MonthlyReportForm } from "./ticket-forms/MonthlyReportForm";
 import { CallVolumeIssuesForm } from "./ticket-forms/CallVolumeIssuesForm";
 import { WrongCallTrackingForm } from "./ticket-forms/WrongCallTrackingForm";
 import { CampaignAdjustmentsForm } from "./ticket-forms/CampaignAdjustmentsForm";
-import { ContentRequestForm } from "./ticket-forms/ContentRequestForm";
+import { ContentRequestForm, type ContentPreviewData } from "./ticket-forms/ContentRequestForm";
 import { ClientVisitForm } from "./ticket-forms/ClientVisitForm";
 import { SpecialPromotionForm } from "./ticket-forms/SpecialPromotionForm";
 import { BoostForm } from "./ticket-forms/BoostForm";
@@ -96,6 +96,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
   const [uploading, setUploading] = useState(false);
   const [popupConsented, setPopupConsented] = useState(false);
   const [promoteSocial, setPromoteSocial] = useState(false);
+  const [contentPreview, setContentPreview] = useState<ContentPreviewData | null>(null);
 
   const serviceOptions = getServiceOptions(services);
 
@@ -172,6 +173,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     setFiles([]);
     setPopupConsented(false);
     setPromoteSocial(false);
+    setContentPreview(null);
     setSubmitted(false);
     setSelectedClinicId("");
   };
@@ -235,6 +237,10 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
       toast.error("Issue type and description are required for emergency tickets");
       return;
     }
+    if (ticketType === "Content Request" && !contentPreview) {
+      toast.error("Please generate the AI preview before creating the ticket");
+      return;
+    }
     if (!user) return;
 
     let finalDescription = isCustomForm ? customDescription : (genericDescription.trim() || null);
@@ -263,6 +269,9 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
       notes: notes.trim() || null,
       created_by: user.id,
       ...(effectiveClinicId ? { clinic_id: effectiveClinicId } : {}),
+      ...(ticketType === "Content Request" && contentPreview
+        ? { content_preview: contentPreview, content_approval_status: "pending" }
+        : {}),
     } as any).select("id").single();
 
     if (error || !ticket) {
@@ -330,7 +339,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
       case "Campaign Adjustments":
         return <CampaignAdjustmentsForm onChange={handleCustomFormChange} />;
       case "Content Request":
-        return <ContentRequestForm onChange={handleCustomFormChange} clinicId={clinicId} />;
+        return <ContentRequestForm onChange={handleCustomFormChange} clinicId={effectiveClinicId} onPreviewChange={setContentPreview} />;
       case "Client Visit":
         return <ClientVisitForm onChange={handleCustomFormChange} />;
       case "Special Promotion":
@@ -479,11 +488,13 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
 
             <DialogFooter>
               <Button variant="outline" onClick={handleClose}>Cancel</Button>
-              <Button onClick={handleSubmit} disabled={loading || uploading || (ticketType === "Pop-up Offers" && !popupConsented) || (ticketType === "Add/Remove Team Members" && !teamFormValid)}>
-                {uploading ? (
-                  <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Uploading…</>
-                ) : loading ? "Creating…" : "Create Ticket"}
-              </Button>
+              {!(ticketType === "Content Request" && !contentPreview) && (
+                <Button onClick={handleSubmit} disabled={loading || uploading || (ticketType === "Pop-up Offers" && !popupConsented) || (ticketType === "Add/Remove Team Members" && !teamFormValid)}>
+                  {uploading ? (
+                    <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Uploading…</>
+                  ) : loading ? "Creating…" : "Create Ticket"}
+                </Button>
+              )}
             </DialogFooter>
           </>
         )}

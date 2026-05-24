@@ -2062,6 +2062,12 @@ export type Database = {
           completion_email_error: string | null
           completion_email_recipients: number | null
           completion_email_sent_at: string | null
+          content_approval_status: string | null
+          content_approved_at: string | null
+          content_change_notes: string | null
+          content_deliverable_files: string[]
+          content_preview: Json | null
+          content_ready_for_review_at: string | null
           created_at: string
           created_by: string | null
           department: Database["public"]["Enums"]["department_type"]
@@ -2084,6 +2090,12 @@ export type Database = {
           completion_email_error?: string | null
           completion_email_recipients?: number | null
           completion_email_sent_at?: string | null
+          content_approval_status?: string | null
+          content_approved_at?: string | null
+          content_change_notes?: string | null
+          content_deliverable_files?: string[]
+          content_preview?: Json | null
+          content_ready_for_review_at?: string | null
           created_at?: string
           created_by?: string | null
           department: Database["public"]["Enums"]["department_type"]
@@ -2106,6 +2118,12 @@ export type Database = {
           completion_email_error?: string | null
           completion_email_recipients?: number | null
           completion_email_sent_at?: string | null
+          content_approval_status?: string | null
+          content_approved_at?: string | null
+          content_change_notes?: string | null
+          content_deliverable_files?: string[]
+          content_preview?: Json | null
+          content_ready_for_review_at?: string | null
           created_at?: string
           created_by?: string | null
           department?: Database["public"]["Enums"]["department_type"]
@@ -3345,6 +3363,10 @@ export type Database = {
       can_manage_clinic_logo: {
         Args: { _clinic_id: string; _user_id: string }
         Returns: boolean
+      }
+      client_set_content_approval: {
+        Args: { _notes?: string; _status: string; _ticket_id: string }
+        Returns: undefined
       }
       compute_ticket_rollup_status: {
         Args: { _ticket_id: string }
