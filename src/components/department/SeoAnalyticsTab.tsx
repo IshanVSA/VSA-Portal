@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { subDays } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,6 +13,8 @@ import {
 import { useSeoAnalytics, type SeoAnalyticsRow, type SeoKeyword, type SeoExtendedData } from "@/hooks/useSeoAnalytics";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell, Line } from "recharts";
 import { cn } from "@/lib/utils";
+import { SeoMultiSourcePanel } from "@/components/department/analytics/SeoMultiSourcePanel";
+import { DateRangeFilter, type DateRange } from "@/components/department/DateRangeFilter";
 
 interface Props {
   clinicId: string;
@@ -92,6 +95,7 @@ function SectionTitle({ icon: Icon, title, badge }: { icon: React.ElementType; t
 export function SeoAnalyticsTab({ clinicId }: Props) {
   const { rows, isLoading } = useSeoAnalytics(clinicId);
   const [selectedMonth, setSelectedMonth] = useState<string>("");
+  const [dateRange, setDateRange] = useState<DateRange>({ from: subDays(new Date(), 29), to: new Date() });
 
   const months = useMemo(() => rows.map(r => r.month).sort().reverse(), [rows]);
   const activeMonth = selectedMonth || months[0] || "";
@@ -161,6 +165,13 @@ export function SeoAnalyticsTab({ clinicId }: Props) {
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
+      </div>
+
+      {/* GSC + GBP Performance + Leads */}
+      <SeoMultiSourcePanel clinicId={clinicId} range={dateRange} />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
