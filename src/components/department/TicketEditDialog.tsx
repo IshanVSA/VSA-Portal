@@ -13,6 +13,7 @@ import { formatDistanceToNow } from "date-fns";
 import { syncSpecialPromotionFromTicket } from "@/lib/special-promotion-sync";
 import { FileIcon, Image as ImageIcon, Eye, Download, Paperclip, MailCheck, MailWarning } from "lucide-react";
 import { FilePreviewDialog } from "@/components/FilePreviewDialog";
+import { ContentApprovalPanel } from "./ContentApprovalPanel";
 
 const ATTACHMENT_BUCKET = "department-files";
 
