@@ -44,7 +44,7 @@ export function ContentApprovalPanel({
   approvedAt, changeNotes, readyForReviewAt, onChanged,
 }: Props) {
   const { role } = useUserRole();
-  const isClient = role === "client" || role === "sub_client";
+  const isClient = role === "client";
   const isStaff = role === "admin" || role === "concierge";
 
   const [uploading, setUploading] = useState(false);
