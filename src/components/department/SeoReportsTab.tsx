@@ -53,6 +53,7 @@ export function SeoReportsTab({ clinicId }: Props) {
     return { from, to };
   }, [activeMonth]);
   const { data: ga4 } = useGa4Traffic(clinicId, monthRange || { from: new Date(), to: new Date() });
+  const { data: ctaData } = useGa4Cta(clinicId, monthRange || { from: new Date(), to: new Date() });
 
 
   const [clinicName, setClinicName] = useState("");
