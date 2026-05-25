@@ -309,7 +309,7 @@ export default function AdminDashboard() {
         supabase.from("user_roles").select("user_id, role"),
         supabase.from("content_posts").select("id, status, scheduled_date, clinic_id"),
         supabase.from("department_tickets").select("id, priority, clinic_id"),
-        supabase.from("content_requests").select("id, status, clinic_id"),
+        supabase.from("sm2_generations").select("id, approval_status, sent_to_client_at, clinic_id"),
         supabase.rpc("get_client_login_summary" as never),
         supabase.from("department_tasks" as never).select("id, department, status, clinic_id").in("status", ["todo", "in_progress"] as never),
       ]);
