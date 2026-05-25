@@ -44,6 +44,7 @@ export function SeoTrafficTab({ clinicId }: Props) {
   const today = new Date();
   const [dateRange, setDateRange] = useState<DateRange>({ from: subDays(today, 29), to: today });
   const { data, isLoading } = useGa4Traffic(clinicId, dateRange);
+  const { data: ctaData } = useGa4Cta(clinicId, dateRange);
 
   const channelColorMap = useMemo(() => {
     const map: Record<string, string> = {};
