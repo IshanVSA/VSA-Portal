@@ -21,14 +21,25 @@ export function SeoReportsTab({ clinicId }: Props) {
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [generating, setGenerating] = useState(false);
 
-  const months = useMemo(() => rows.map(r => r.month).sort().reverse(), [rows]);
+  // Always offer the last 24 months as selectable options, regardless of stored SEO rows
+  const months = useMemo(() => {
+    const out: string[] = [];
+    const now = new Date();
+    for (let i = 0; i < 24; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      out.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    }
+    return out;
+  }, []);
   const activeMonth = selectedMonth || months[0] || "";
   const current = useMemo(() => rows.find(r => r.month === activeMonth) || null, [rows, activeMonth]);
+  const sortedDataMonths = useMemo(() => rows.map(r => r.month).sort().reverse(), [rows]);
   const prevMonth = useMemo(() => {
-    if (!activeMonth || months.length < 2) return null;
-    const idx = months.indexOf(activeMonth);
-    return idx < months.length - 1 ? rows.find(r => r.month === months[idx + 1]) || null : null;
-  }, [rows, months, activeMonth]);
+    if (!activeMonth || sortedDataMonths.length < 2) return null;
+    const idx = sortedDataMonths.indexOf(activeMonth);
+    if (idx === -1) return rows.find(r => r.month === sortedDataMonths[0]) || null;
+    return idx < sortedDataMonths.length - 1 ? rows.find(r => r.month === sortedDataMonths[idx + 1]) || null : null;
+  }, [rows, sortedDataMonths, activeMonth]);
 
   // GA4 traffic for the selected month
   const monthRange = useMemo(() => {
