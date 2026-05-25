@@ -83,16 +83,16 @@ export function SeoReportsTab({ clinicId }: Props) {
   }
 
   const generatePDF = useCallback(async () => {
-    if (!current) return;
+    if (!activeMonth) return;
     setGenerating(true);
     try {
       const doc = new jsPDF();
-      const ext: SeoExtendedData = current.extended_data || {};
+      const ext: SeoExtendedData = current?.extended_data || {};
 
       // ── Header ──
       const subtitle = ext.report_period
         ? `Report Period: ${ext.report_period}`
-        : prevMonth ? `Month: ${current.month} vs ${prevMonth.month}` : `Month: ${current.month}`;
+        : current && prevMonth ? `Month: ${current.month} vs ${prevMonth.month}` : `Month: ${activeMonth}`;
       let y = renderPDFHeader(doc, "SEO Performance Report", clinicName, subtitle, PDF_COLORS.seo);
 
       // Website URL
