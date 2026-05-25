@@ -374,7 +374,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                 </Button>
               </div>
               <p className="text-[11px] text-muted-foreground">
-                Viewing {sortedGens.length} generation{sortedGens.length === 1 ? "" : "s"}
+                Viewing {sortedGens.length} month{sortedGens.length === 1 ? "" : "s"}
               </p>
             </div>
           )}
