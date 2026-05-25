@@ -437,7 +437,7 @@ export default function AdminDashboard() {
     return [
       { label: "Generated", status: "generated", count: sc["generated"] || 0, tone: "muted" },
       { label: "Sent for Review", status: "sent_to_client", count: sc["sent_to_client"] || 0, tone: "warning" },
-      { label: "Copy Approved", status: "copy_approved", count: sc["copy_approved"] || 0, tone: "info" },
+      { label: "Copy Approved", status: "copy_approved", count: sc["copy_approved"] || 0, tone: "primary" },
       { label: "Final Approved", status: "final_approved", count: sc["final_approved"] || 0, tone: "success" },
     ];
   }, [filteredRequests]);
