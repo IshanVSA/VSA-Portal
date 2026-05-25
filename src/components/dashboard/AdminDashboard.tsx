@@ -81,7 +81,7 @@ interface PostRow {
 
 interface RequestRow {
   id: string;
-  status: string;
+  status: string; // bucketed: "generated" | "sent_to_client" | "final_approved" | other
   clinic_id: string | null;
 }
 
@@ -309,7 +309,7 @@ export default function AdminDashboard() {
         supabase.from("user_roles").select("user_id, role"),
         supabase.from("content_posts").select("id, status, scheduled_date, clinic_id"),
         supabase.from("department_tickets").select("id, priority, clinic_id"),
-        supabase.from("content_requests").select("id, status, clinic_id"),
+        supabase.from("sm2_generations").select("id, approval_status, sent_to_client_at, clinic_id"),
         supabase.rpc("get_client_login_summary" as never),
         supabase.from("department_tasks" as never).select("id, department, status, clinic_id").in("status", ["todo", "in_progress"] as never),
       ]);
@@ -343,7 +343,15 @@ export default function AdminDashboard() {
         setTickets([]);
       }
       setPosts((postsRes.data || []) as PostRow[]);
-      setContentRequests((contentReqRes.data || []) as RequestRow[]);
+      const sm2Rows = (contentReqRes.data || []) as Array<{ id: string; approval_status: string | null; sent_to_client_at: string | null; clinic_id: string | null }>;
+      setContentRequests(sm2Rows.map((r) => {
+        const s = r.approval_status || "";
+        let bucket = "other";
+        if (s === "approved_client" || s === "copy_approved") bucket = "final_approved";
+        else if (r.sent_to_client_at && (s === "sent_for_copy_review" || s === "sent_for_final_review")) bucket = "sent_to_client";
+        else if (s === "pending" && !r.sent_to_client_at) bucket = "generated";
+        return { id: r.id, status: bucket, clinic_id: r.clinic_id };
+      }));
       setTasks(((tasksRes as { data: TaskRow[] | null }).data || []) as TaskRow[]);
 
       // Count clients active in the last 30 days based on portal logins
