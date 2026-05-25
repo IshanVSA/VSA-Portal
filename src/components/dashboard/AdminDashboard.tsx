@@ -347,7 +347,8 @@ export default function AdminDashboard() {
       setContentRequests(sm2Rows.map((r) => {
         const s = r.approval_status || "";
         let bucket = "other";
-        if (s === "approved_client" || s === "copy_approved") bucket = "final_approved";
+        if (s === "approved_client") bucket = "final_approved";
+        else if (s === "copy_approved") bucket = "copy_approved";
         else if (r.sent_to_client_at && (s === "sent_for_copy_review" || s === "sent_for_final_review")) bucket = "sent_to_client";
         else if (s === "pending" && !r.sent_to_client_at) bucket = "generated";
         return { id: r.id, status: bucket, clinic_id: r.clinic_id };
@@ -436,6 +437,7 @@ export default function AdminDashboard() {
     return [
       { label: "Generated", status: "generated", count: sc["generated"] || 0, tone: "muted" },
       { label: "Sent for Review", status: "sent_to_client", count: sc["sent_to_client"] || 0, tone: "warning" },
+      { label: "Copy Approved", status: "copy_approved", count: sc["copy_approved"] || 0, tone: "primary" },
       { label: "Final Approved", status: "final_approved", count: sc["final_approved"] || 0, tone: "success" },
     ];
   }, [filteredRequests]);
