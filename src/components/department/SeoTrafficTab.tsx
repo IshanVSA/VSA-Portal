@@ -6,6 +6,8 @@ import { Loader2, BarChart3, TrendingUp, Clock, Sparkles, Activity, Link as Link
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { DateRangeFilter, type DateRange } from "@/components/department/DateRangeFilter";
 import { useGa4Traffic } from "@/hooks/useGa4Traffic";
+import { useGa4Cta, CTA_LABELS, CTA_ORDER, type CtaType } from "@/hooks/useGa4Cta";
+import { CalendarCheck, MapPin, Phone, UserPlus } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
