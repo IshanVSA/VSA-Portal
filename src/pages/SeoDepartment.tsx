@@ -4,12 +4,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { SearchCode, LayoutGrid, ChartColumn, FileText, Upload, Globe, Link2, Hash, TrendingUp, MessageCircle, BookOpen, ListChecks, BarChart3 } from "lucide-react";
+import { SearchCode, LayoutGrid, FileText, Upload, Globe, Link2, Hash, TrendingUp, MessageCircle, BookOpen, ListChecks, BarChart3 } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
-import { SeoAnalyticsTab } from "@/components/department/SeoAnalyticsTab";
 import { SeoReportsTab } from "@/components/department/SeoReportsTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
-import { UpdateSeoAnalyticsDialog } from "@/components/department/UpdateSeoAnalyticsDialog";
 import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { useSeoAnalytics } from "@/hooks/useSeoAnalytics";
@@ -19,7 +17,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import type { SeoKeyword } from "@/hooks/useSeoAnalytics";
 import { useClinicServiceAccess } from "@/hooks/useClinicServiceAccess";
 import { DepartmentAccessLocked } from "@/components/department/DepartmentAccessLocked";
@@ -37,7 +34,6 @@ import { SeoTrafficTab } from "@/components/department/SeoTrafficTab";
 const commonTabs = [
   { value: "overview", label: "Overview", icon: LayoutGrid },
   { value: "traffic", label: "Traffic", icon: BarChart3 },
-  { value: "analytics", label: "Analytics", icon: ChartColumn },
   { value: "reports", label: "Reports", icon: FileText },
 
   { value: "uploads", label: "Files", icon: Upload },
