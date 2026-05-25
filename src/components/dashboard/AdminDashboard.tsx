@@ -755,7 +755,7 @@ export default function AdminDashboard() {
                 <button
                   key={stage.status}
                   type="button"
-                  onClick={() => toggleStatus(stage.status, stage.label)}
+                  onClick={() => setPipelineDialogStage(stage)}
                   className={cn(
                     "block w-full rounded-lg px-2 py-1.5 text-left transition-colors",
                     isActive ? "bg-primary/10 ring-1 ring-primary/30" : "hover:bg-muted/40"
