@@ -85,13 +85,35 @@ export default function ContentGenerationTab({ clinicId }: Props) {
   const [contentSettings, setContentSettings] = useState<ContentSettings>(DEFAULT_SETTINGS);
   const calendarRef = useRef<HTMLDivElement | null>(null);
 
-  // One generation per month — keep the most recently created if duplicates exist
+  // One generation per month — prioritize the one furthest along the client workflow
+  // (approved > sent for review > copy approved > ...) over merely newest.
   const sortedGens = useMemo(() => {
+    // Higher = further along the client-facing workflow → preferred for display.
+    const statusPriority = (s: string | null | undefined): number => {
+      switch (s) {
+        case "approved_client":
+        case "approved_auto": return 100;
+        case "sent_for_final_review": return 90;
+        case "final_changes_requested": return 85;
+        case "copy_approved": return 80;
+        case "sent_for_copy_review": return 70;
+        case "copy_changes_requested": return 65;
+        case "pending": return 50;
+        case "processing":
+        case "retrying":
+        case "queued": return 30;
+        case "generation_failed": return 10;
+        default: return 40;
+      }
+    };
     const all = (generations || []).slice().sort((a, b) => {
-      // newest created_at first within same month
+      if (a.month_year !== b.month_year) return a.month_year < b.month_year ? 1 : -1;
+      // Within same month: prefer higher workflow priority, then newest created_at
+      const pa = statusPriority(a.approval_status);
+      const pb = statusPriority(b.approval_status);
+      if (pa !== pb) return pb - pa;
       const ca = new Date((a as any).created_at || 0).getTime();
       const cb = new Date((b as any).created_at || 0).getTime();
-      if (a.month_year !== b.month_year) return a.month_year < b.month_year ? 1 : -1;
       return cb - ca;
     });
     const seen = new Set<string>();
