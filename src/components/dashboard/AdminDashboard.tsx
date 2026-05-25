@@ -32,6 +32,7 @@ import RecentActivity from "./RecentActivity";
 import OpenTicketsList from "./OpenTicketsList";
 import OpenTasksList from "./OpenTasksList";
 import TeamActivityCard from "./TeamActivityCard";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 import { cn } from "@/lib/utils";
 
@@ -426,10 +427,25 @@ export default function AdminDashboard() {
     filteredRequests.forEach(r => { sc[r.status] = (sc[r.status] || 0) + 1; });
     return [
       { label: "Generated", status: "generated", count: sc["generated"] || 0, tone: "muted" },
-      { label: "Client Selected", status: "client_selected", count: sc["client_selected"] || 0, tone: "success" },
-      { label: "Finalized", status: "final_approved", count: sc["final_approved"] || 0, tone: "success" },
+      { label: "Sent for Review", status: "sent_to_client", count: sc["sent_to_client"] || 0, tone: "warning" },
+      { label: "Final Approved", status: "final_approved", count: sc["final_approved"] || 0, tone: "success" },
     ];
   }, [filteredRequests]);
+
+  const [pipelineDialogStage, setPipelineDialogStage] = useState<PipelineStage | null>(null);
+  const pipelineDialogClinics = useMemo(() => {
+    if (!pipelineDialogStage) return [] as Array<{ clinicId: string; clinicName: string; count: number }>;
+    const counts: Record<string, number> = {};
+    contentRequests.forEach(r => {
+      if (r.status !== pipelineDialogStage.status) return;
+      if (!r.clinic_id) return;
+      counts[r.clinic_id] = (counts[r.clinic_id] || 0) + 1;
+    });
+    const clinicMap = new Map(clinics.map(c => [c.id, c.clinic_name] as const));
+    return Object.entries(counts)
+      .map(([clinicId, count]) => ({ clinicId, clinicName: clinicMap.get(clinicId) || "Unknown clinic", count }))
+      .sort((a, b) => b.count - a.count || a.clinicName.localeCompare(b.clinicName));
+  }, [pipelineDialogStage, contentRequests, clinics]);
 
   const pendingRequests =
     (filteredRequests.filter(r => r.status === "client_selected").length);
@@ -739,7 +755,7 @@ export default function AdminDashboard() {
                 <button
                   key={stage.status}
                   type="button"
-                  onClick={() => toggleStatus(stage.status, stage.label)}
+                  onClick={() => setPipelineDialogStage(stage)}
                   className={cn(
                     "block w-full rounded-lg px-2 py-1.5 text-left transition-colors",
                     isActive ? "bg-primary/10 ring-1 ring-primary/30" : "hover:bg-muted/40"
@@ -839,6 +855,42 @@ export default function AdminDashboard() {
 
       <OpenTicketsList open={ticketsOpen} onOpenChange={setTicketsOpen} />
       <OpenTasksList open={tasksOpen} onOpenChange={setTasksOpen} />
+
+      <Dialog open={!!pipelineDialogStage} onOpenChange={(o) => { if (!o) setPipelineDialogStage(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{pipelineDialogStage?.label} · Content Requests</DialogTitle>
+            <DialogDescription>
+              {pipelineDialogClinics.length === 0
+                ? "No clinics in this stage yet."
+                : `${pipelineDialogClinics.reduce((s, c) => s + c.count, 0)} request${pipelineDialogClinics.reduce((s, c) => s + c.count, 0) === 1 ? "" : "s"} across ${pipelineDialogClinics.length} clinic${pipelineDialogClinics.length === 1 ? "" : "s"}.`}
+            </DialogDescription>
+          </DialogHeader>
+          {pipelineDialogClinics.length > 0 && (
+            <ul className="max-h-[60vh] divide-y divide-border/60 overflow-y-auto rounded-lg border border-border/60">
+              {pipelineDialogClinics.map((row) => (
+                <li key={row.clinicId}>
+                  <Link
+                    to={`/social?clinic=${row.clinicId}`}
+                    onClick={() => setPipelineDialogStage(null)}
+                    className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <Building2 className="h-4 w-4" />
+                      </div>
+                      <span className="truncate text-sm font-medium text-foreground">{row.clinicName}</span>
+                    </div>
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold tabular-nums text-foreground">
+                      {row.count}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* ROW: Team Activity */}
       <TeamActivityCard />
