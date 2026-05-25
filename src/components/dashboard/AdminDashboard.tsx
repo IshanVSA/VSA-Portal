@@ -344,7 +344,7 @@ export default function AdminDashboard() {
         setTickets([]);
       }
       setPosts((postsRes.data || []) as PostRow[]);
-      const sm2Rows = (contentReqRes.data || []) as Array<{ id: string; approval_status: string | null; sent_to_client_at: string | null; clinic_id: string | null }>;
+      const sm2Rows = (contentReqRes.data || []) as Array<{ id: string; approval_status: string | null; sent_to_client_at: string | null; clinic_id: string | null; month_year: string | null }>;
       setContentRequests(sm2Rows.map((r) => {
         const s = r.approval_status || "";
         let bucket = "other";
@@ -352,7 +352,7 @@ export default function AdminDashboard() {
         else if (s === "copy_approved") bucket = "copy_approved";
         else if (r.sent_to_client_at && (s === "sent_for_copy_review" || s === "sent_for_final_review")) bucket = "sent_to_client";
         else if (s === "pending" && !r.sent_to_client_at) bucket = "generated";
-        return { id: r.id, status: bucket, clinic_id: r.clinic_id };
+        return { id: r.id, status: bucket, clinic_id: r.clinic_id, month_year: r.month_year };
       }));
       setTasks(((tasksRes as { data: TaskRow[] | null }).data || []) as TaskRow[]);
 
