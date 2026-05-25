@@ -529,7 +529,25 @@ export function SeoReportsTab({ clinicId }: Props) {
           });
           y = (doc as any).lastAutoTable?.finalY || y + 50;
           y += 4;
-        }
+      }
+
+      // ── CTA Performance ──
+      if (ctaData && ctaData.grandTotal > 0) {
+        const fmtNum = (n: number) => new Intl.NumberFormat("en-US").format(Math.round(n));
+        y = ensureSpace(doc, y, 60);
+        y = renderSectionHeader(doc, "Call-to-Action Performance", y, PDF_COLORS.seo, `Source: Google Analytics 4 (${activeMonth})`);
+
+        autoTable(doc, {
+          startY: y,
+          head: [["Call-to-Action", "Clicks"]],
+          body: CTA_ORDER.map((k) => [CTA_LABELS[k], fmtNum(ctaData.totals[k])])
+            .concat([["Total", fmtNum(ctaData.grandTotal)]]),
+          ...getTableStyles(PDF_COLORS.seo),
+        });
+        y = (doc as any).lastAutoTable?.finalY || y + 50;
+        y += 4;
+      }
+
       }
 
       // ── Historical Traffic Trend ──
