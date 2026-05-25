@@ -856,6 +856,42 @@ export default function AdminDashboard() {
       <OpenTicketsList open={ticketsOpen} onOpenChange={setTicketsOpen} />
       <OpenTasksList open={tasksOpen} onOpenChange={setTasksOpen} />
 
+      <Dialog open={!!pipelineDialogStage} onOpenChange={(o) => { if (!o) setPipelineDialogStage(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{pipelineDialogStage?.label} · Content Requests</DialogTitle>
+            <DialogDescription>
+              {pipelineDialogClinics.length === 0
+                ? "No clinics in this stage yet."
+                : `${pipelineDialogClinics.reduce((s, c) => s + c.count, 0)} request${pipelineDialogClinics.reduce((s, c) => s + c.count, 0) === 1 ? "" : "s"} across ${pipelineDialogClinics.length} clinic${pipelineDialogClinics.length === 1 ? "" : "s"}.`}
+            </DialogDescription>
+          </DialogHeader>
+          {pipelineDialogClinics.length > 0 && (
+            <ul className="max-h-[60vh] divide-y divide-border/60 overflow-y-auto rounded-lg border border-border/60">
+              {pipelineDialogClinics.map((row) => (
+                <li key={row.clinicId}>
+                  <Link
+                    to={`/social?clinic=${row.clinicId}`}
+                    onClick={() => setPipelineDialogStage(null)}
+                    className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <Building2 className="h-4 w-4" />
+                      </div>
+                      <span className="truncate text-sm font-medium text-foreground">{row.clinicName}</span>
+                    </div>
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold tabular-nums text-foreground">
+                      {row.count}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* ROW: Team Activity */}
       <TeamActivityCard />
 
