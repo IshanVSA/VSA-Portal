@@ -343,7 +343,15 @@ export default function AdminDashboard() {
         setTickets([]);
       }
       setPosts((postsRes.data || []) as PostRow[]);
-      setContentRequests((contentReqRes.data || []) as RequestRow[]);
+      const sm2Rows = (contentReqRes.data || []) as Array<{ id: string; approval_status: string | null; sent_to_client_at: string | null; clinic_id: string | null }>;
+      setContentRequests(sm2Rows.map((r) => {
+        const s = r.approval_status || "";
+        let bucket = "other";
+        if (s === "approved_client" || s === "copy_approved") bucket = "final_approved";
+        else if (r.sent_to_client_at && (s === "sent_for_copy_review" || s === "sent_for_final_review")) bucket = "sent_to_client";
+        else if (s === "pending" && !r.sent_to_client_at) bucket = "generated";
+        return { id: r.id, status: bucket, clinic_id: r.clinic_id };
+      }));
       setTasks(((tasksRes as { data: TaskRow[] | null }).data || []) as TaskRow[]);
 
       // Count clients active in the last 30 days based on portal logins
