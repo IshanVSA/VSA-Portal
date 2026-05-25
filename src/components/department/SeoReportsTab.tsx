@@ -475,6 +475,7 @@ export function SeoReportsTab({ clinicId }: Props) {
         y = (doc as any).lastAutoTable?.finalY || y + 50;
         y += 4;
       }
+      } // end if (current)
 
       // ── GA4 Traffic Acquisition (for the report month) ──
       if (ga4 && ga4.isConnected && ga4.totals.sessions > 0) {
@@ -487,7 +488,7 @@ export function SeoReportsTab({ clinicId }: Props) {
         };
 
         y = ensureSpace(doc, y, 60);
-        y = renderSectionHeader(doc, "Traffic Acquisition", y, PDF_COLORS.seo, `Source: Google Analytics 4 (${current.month})`);
+        y = renderSectionHeader(doc, "Traffic Acquisition", y, PDF_COLORS.seo, `Source: Google Analytics 4 (${activeMonth})`);
 
         autoTable(doc, {
           startY: y,
