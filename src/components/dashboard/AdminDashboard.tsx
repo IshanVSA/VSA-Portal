@@ -35,6 +35,7 @@ import TeamActivityCard from "./TeamActivityCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Clinic {
   id: string;
@@ -81,8 +82,9 @@ interface PostRow {
 
 interface RequestRow {
   id: string;
-  status: string; // bucketed: "generated" | "sent_to_client" | "final_approved" | other
+  status: string; // bucketed: "generated" | "sent_to_client" | "copy_approved" | "final_approved" | other
   clinic_id: string | null;
+  month_year: string | null; // YYYY-MM
 }
 
 interface RoleRow {
@@ -309,7 +311,7 @@ export default function AdminDashboard() {
         supabase.from("user_roles").select("user_id, role"),
         supabase.from("content_posts").select("id, status, scheduled_date, clinic_id"),
         supabase.from("department_tickets").select("id, priority, clinic_id"),
-        supabase.from("sm2_generations").select("id, approval_status, sent_to_client_at, clinic_id"),
+        supabase.from("sm2_generations").select("id, approval_status, sent_to_client_at, clinic_id, month_year"),
         supabase.rpc("get_client_login_summary" as never),
         supabase.from("department_tasks" as never).select("id, department, status, clinic_id").in("status", ["todo", "in_progress"] as never),
       ]);
@@ -343,7 +345,7 @@ export default function AdminDashboard() {
         setTickets([]);
       }
       setPosts((postsRes.data || []) as PostRow[]);
-      const sm2Rows = (contentReqRes.data || []) as Array<{ id: string; approval_status: string | null; sent_to_client_at: string | null; clinic_id: string | null }>;
+      const sm2Rows = (contentReqRes.data || []) as Array<{ id: string; approval_status: string | null; sent_to_client_at: string | null; clinic_id: string | null; month_year: string | null }>;
       setContentRequests(sm2Rows.map((r) => {
         const s = r.approval_status || "";
         let bucket = "other";
@@ -351,7 +353,7 @@ export default function AdminDashboard() {
         else if (s === "copy_approved") bucket = "copy_approved";
         else if (r.sent_to_client_at && (s === "sent_for_copy_review" || s === "sent_for_final_review")) bucket = "sent_to_client";
         else if (s === "pending" && !r.sent_to_client_at) bucket = "generated";
-        return { id: r.id, status: bucket, clinic_id: r.clinic_id };
+        return { id: r.id, status: bucket, clinic_id: r.clinic_id, month_year: r.month_year };
       }));
       setTasks(((tasksRes as { data: TaskRow[] | null }).data || []) as TaskRow[]);
 
@@ -386,12 +388,21 @@ export default function AdminDashboard() {
     });
   }, [posts, filter]);
 
+  const [pipelineMonth, setPipelineMonth] = useState<string>("all"); // "all" | "YYYY-MM"
+
   const filteredRequests = useMemo(() => {
     return contentRequests.filter(r => {
       if (filter.clinicId && r.clinic_id !== filter.clinicId) return false;
+      if (pipelineMonth !== "all" && r.month_year !== pipelineMonth) return false;
       return true;
     });
-  }, [contentRequests, filter]);
+  }, [contentRequests, filter, pipelineMonth]);
+
+  const pipelineMonthOptions = useMemo(() => {
+    const months = new Set<string>();
+    contentRequests.forEach(r => { if (r.month_year) months.add(r.month_year); });
+    return Array.from(months).sort().reverse();
+  }, [contentRequests]);
 
   // ----- Derived metrics under current filter -----
   const activeClinics = clinics.filter(c => c.status === "active").length;
@@ -747,14 +758,29 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         {/* Pipeline */}
         <section className="rounded-2xl border border-border/60 bg-card lg:col-span-2">
-          <header className="flex items-center justify-between border-b border-border/50 px-5 py-4">
-            <div>
+          <header className="flex items-center justify-between gap-2 border-b border-border/50 px-5 py-4">
+            <div className="min-w-0">
               <h3 className="text-sm font-bold tracking-tight text-foreground">Content Pipeline</h3>
               <p className="text-[11px] text-muted-foreground">Click a stage to filter</p>
             </div>
-            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-              {totalPipeline} total
-            </span>
+            <div className="flex items-center gap-2">
+              <Select value={pipelineMonth} onValueChange={setPipelineMonth}>
+                <SelectTrigger className="h-7 w-[140px] text-[11px]">
+                  <SelectValue placeholder="All months" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All months</SelectItem>
+                  {pipelineMonthOptions.map((m) => {
+                    const [y, mm] = m.split("-");
+                    const label = new Date(Number(y), Number(mm) - 1, 1).toLocaleString("en-US", { month: "short", year: "numeric" });
+                    return <SelectItem key={m} value={m}>{label}</SelectItem>;
+                  })}
+                </SelectContent>
+              </Select>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                {totalPipeline} total
+              </span>
+            </div>
           </header>
           <div className="space-y-2 px-3 py-3">
             {pipeline.map((stage) => {
