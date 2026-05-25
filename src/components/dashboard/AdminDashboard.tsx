@@ -426,10 +426,25 @@ export default function AdminDashboard() {
     filteredRequests.forEach(r => { sc[r.status] = (sc[r.status] || 0) + 1; });
     return [
       { label: "Generated", status: "generated", count: sc["generated"] || 0, tone: "muted" },
-      { label: "Client Selected", status: "client_selected", count: sc["client_selected"] || 0, tone: "success" },
-      { label: "Finalized", status: "final_approved", count: sc["final_approved"] || 0, tone: "success" },
+      { label: "Sent for Review", status: "sent_to_client", count: sc["sent_to_client"] || 0, tone: "warning" },
+      { label: "Final Approved", status: "final_approved", count: sc["final_approved"] || 0, tone: "success" },
     ];
   }, [filteredRequests]);
+
+  const [pipelineDialogStage, setPipelineDialogStage] = useState<PipelineStage | null>(null);
+  const pipelineDialogClinics = useMemo(() => {
+    if (!pipelineDialogStage) return [] as Array<{ clinicId: string; clinicName: string; count: number }>;
+    const counts: Record<string, number> = {};
+    contentRequests.forEach(r => {
+      if (r.status !== pipelineDialogStage.status) return;
+      if (!r.clinic_id) return;
+      counts[r.clinic_id] = (counts[r.clinic_id] || 0) + 1;
+    });
+    const clinicMap = new Map(clinics.map(c => [c.id, c.clinic_name] as const));
+    return Object.entries(counts)
+      .map(([clinicId, count]) => ({ clinicId, clinicName: clinicMap.get(clinicId) || "Unknown clinic", count }))
+      .sort((a, b) => b.count - a.count || a.clinicName.localeCompare(b.clinicName));
+  }, [pipelineDialogStage, contentRequests, clinics]);
 
   const pendingRequests =
     (filteredRequests.filter(r => r.status === "client_selected").length);
