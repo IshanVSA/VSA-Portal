@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
@@ -12,9 +11,6 @@ import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { useSeoAnalytics } from "@/hooks/useSeoAnalytics";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { SeoKeyword } from "@/hooks/useSeoAnalytics";
@@ -92,21 +88,6 @@ function TopKeywordsCard({ keywords }: { keywords: SeoKeyword[] }) {
   );
 }
 
-function useCanEditSeo() {
-  const { role } = useUserRole();
-  const { user } = useAuth();
-  const { data: profile } = useQuery({
-    queryKey: ["profile-team-role", user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data } = await supabase.from("profiles").select("team_role").eq("id", user.id).maybeSingle();
-      return data;
-    },
-    enabled: !!user,
-  });
-  return role === "admin" || profile?.team_role === "SEO Lead";
-}
-
 const fallbackKpis = [
   { label: "Domain Authority", value: 0, icon: Globe, gradient: "blue" as const },
   { label: "Backlinks", value: 0, icon: Link2, gradient: "green" as const },
@@ -116,11 +97,11 @@ const fallbackKpis = [
 
 export default function SeoDepartment() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentTab = searchParams.get("tab") || "overview";
+  const rawTab = searchParams.get("tab") || "overview";
+  const currentTab = rawTab === "analytics" ? "overview" : rawTab;
   const { clinics, selectedClinic, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
   const { team } = useDepartmentTeam("seo", selectedClinicId);
-  const { latest, trafficData, topKeywords, isLoading, upsertSeoAnalytics, isUpserting } = useSeoAnalytics(selectedClinicId);
-  const canEditSeo = useCanEditSeo();
+  const { latest, trafficData, topKeywords } = useSeoAnalytics(selectedClinicId);
   const { role } = useUserRole();
   const { isLocked, isAdminBypass, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "seo", clinicsLoading);
   const isClient = role === "client";
@@ -128,7 +109,6 @@ export default function SeoDepartment() {
   const { unreadCount, markAsRead } = useDepartmentChatUnread("seo", selectedClinicId);
   const myOpenTasks = useMyOpenTaskCount("seo", selectedClinicId);
   const tabs = isStaff ? [...commonTabs, blogTab, tasksTabDef, chatTab] : [...commonTabs, blogTab];
-  const [seoDialogOpen, setSeoDialogOpen] = useState(false);
 
   const selectedClinicName = selectedClinic?.clinic_name;
 
