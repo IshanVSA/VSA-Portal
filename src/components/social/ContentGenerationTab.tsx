@@ -85,21 +85,43 @@ export default function ContentGenerationTab({ clinicId }: Props) {
   const [contentSettings, setContentSettings] = useState<ContentSettings>(DEFAULT_SETTINGS);
   const calendarRef = useRef<HTMLDivElement | null>(null);
 
-  // Sorted list of generations newest-first for the month switcher
-  const sortedGens = useMemo(
-    () => (generations || []).slice().sort((a, b) => (a.month_year < b.month_year ? 1 : -1)),
-    [generations]
-  );
+  // One generation per month — keep the most recently created if duplicates exist
+  const sortedGens = useMemo(() => {
+    const all = (generations || []).slice().sort((a, b) => {
+      // newest created_at first within same month
+      const ca = new Date((a as any).created_at || 0).getTime();
+      const cb = new Date((b as any).created_at || 0).getTime();
+      if (a.month_year !== b.month_year) return a.month_year < b.month_year ? 1 : -1;
+      return cb - ca;
+    });
+    const seen = new Set<string>();
+    const deduped: typeof all = [];
+    for (const g of all) {
+      if (seen.has(g.month_year)) continue;
+      seen.add(g.month_year);
+      deduped.push(g);
+    }
+    return deduped;
+  }, [generations]);
 
   // Pick the generation whose calendar should display
   const selectedGen = useMemo(() => {
     if (viewingGenerationId) {
       const found = sortedGens.find((g) => g.id === viewingGenerationId);
       if (found) return found;
+      // viewingGenerationId may point to a superseded gen — fall back to same month
+      const fromAll = (generations || []).find((g) => g.id === viewingGenerationId);
+      if (fromAll) {
+        const sameMonth = sortedGens.find((g) => g.month_year === fromAll.month_year);
+        if (sameMonth) return sameMonth;
+      }
     }
-    if (currentGeneration) return currentGeneration;
+    if (currentGeneration) {
+      const sameMonth = sortedGens.find((g) => g.month_year === currentGeneration.month_year);
+      if (sameMonth) return sameMonth;
+    }
     return sortedGens[0] || null;
-  }, [viewingGenerationId, sortedGens, currentGeneration]);
+  }, [viewingGenerationId, sortedGens, currentGeneration, generations]);
 
   const selectedIndex = selectedGen ? sortedGens.findIndex((g) => g.id === selectedGen.id) : -1;
 
@@ -352,7 +374,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                 </Button>
               </div>
               <p className="text-[11px] text-muted-foreground">
-                Viewing {sortedGens.length} generation{sortedGens.length === 1 ? "" : "s"}
+                Viewing {sortedGens.length} month{sortedGens.length === 1 ? "" : "s"}
               </p>
             </div>
           )}
