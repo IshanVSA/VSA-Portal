@@ -100,8 +100,7 @@ export default function SeoDepartment() {
   const currentTab = searchParams.get("tab") || "overview";
   const { clinics, selectedClinic, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
   const { team } = useDepartmentTeam("seo", selectedClinicId);
-  const { latest, trafficData, topKeywords, isLoading, upsertSeoAnalytics, isUpserting } = useSeoAnalytics(selectedClinicId);
-  const canEditSeo = useCanEditSeo();
+  const { latest, trafficData, topKeywords } = useSeoAnalytics(selectedClinicId);
   const { role } = useUserRole();
   const { isLocked, isAdminBypass, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "seo", clinicsLoading);
   const isClient = role === "client";
@@ -109,7 +108,6 @@ export default function SeoDepartment() {
   const { unreadCount, markAsRead } = useDepartmentChatUnread("seo", selectedClinicId);
   const myOpenTasks = useMyOpenTaskCount("seo", selectedClinicId);
   const tabs = isStaff ? [...commonTabs, blogTab, tasksTabDef, chatTab] : [...commonTabs, blogTab];
-  const [seoDialogOpen, setSeoDialogOpen] = useState(false);
 
   const selectedClinicName = selectedClinic?.clinic_name;
 
