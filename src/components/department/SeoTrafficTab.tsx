@@ -6,6 +6,8 @@ import { Loader2, BarChart3, TrendingUp, Clock, Sparkles, Activity, Link as Link
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { DateRangeFilter, type DateRange } from "@/components/department/DateRangeFilter";
 import { useGa4Traffic } from "@/hooks/useGa4Traffic";
+import { useGa4Cta, CTA_LABELS, CTA_ORDER, type CtaType } from "@/hooks/useGa4Cta";
+import { CalendarCheck, MapPin, Phone, UserPlus } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
@@ -42,6 +44,7 @@ export function SeoTrafficTab({ clinicId }: Props) {
   const today = new Date();
   const [dateRange, setDateRange] = useState<DateRange>({ from: subDays(today, 29), to: today });
   const { data, isLoading } = useGa4Traffic(clinicId, dateRange);
+  const { data: ctaData } = useGa4Cta(clinicId, dateRange);
 
   const channelColorMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -234,6 +237,62 @@ export function SeoTrafficTab({ clinicId }: Props) {
           </Card>
         </>
       )}
+
+      {/* CTA Performance */}
+      <Card className="border-border/60">
+        <div className="px-4 py-3 border-b border-border/40">
+          <h3 className="text-sm font-bold text-foreground">Call-to-Action Performance</h3>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Tracks Book Appointment, Find Us (Maps), Call Us, and New Client Form clicks from the clinic website.
+          </p>
+        </div>
+        <CardContent className="p-4 space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+            {([
+              { key: "book_appointment" as CtaType, icon: CalendarCheck, color: "text-blue-500" },
+              { key: "find_us" as CtaType,          icon: MapPin,        color: "text-emerald-500" },
+              { key: "call_us" as CtaType,          icon: Phone,         color: "text-violet-500" },
+              { key: "new_client_form" as CtaType,  icon: UserPlus,      color: "text-amber-500" },
+            ]).map(({ key, icon: Icon, color }) => (
+              <Card key={key} className="border-border/60">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">{CTA_LABELS[key]}</span>
+                    <Icon className={`h-3.5 w-3.5 ${color}`} />
+                  </div>
+                  <div className="text-xl font-bold text-foreground tabular-nums">
+                    {formatNumber(ctaData?.totals[key] ?? 0)}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {(!ctaData || ctaData.grandTotal === 0) ? (
+            <div className="text-center text-xs text-muted-foreground py-6">
+              No CTA clicks tracked in this period. Make sure the gtag snippets are installed on the clinic site (event names: <code>book_appointment</code>, <code>find_us</code>, <code>call_us</code>, <code>new_client_form</code>).
+            </div>
+          ) : (
+            <div className="h-60">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={ctaData.daily} margin={{ top: 4, right: 12, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => format(new Date(v), "MMM d")} />
+                  <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} width={36} />
+                  <Tooltip
+                    contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                    labelFormatter={(v) => format(new Date(v), "MMM d, yyyy")}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 11 }} formatter={(v) => CTA_LABELS[v as CtaType] || v} />
+                  {CTA_ORDER.map((key, i) => (
+                    <Line key={key} type="monotone" dataKey={key} stroke={CHANNEL_COLORS[i]} strokeWidth={2} dot={false} isAnimationActive={false} />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

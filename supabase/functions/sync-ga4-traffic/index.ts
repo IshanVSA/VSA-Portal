@@ -152,6 +152,63 @@ export async function syncClinicGA4(clinicId: string): Promise<{ status: string;
     }
   }
 
+  // ------- CTA events (Book / Find Us / Call / New-client form) -------
+  const CTA_EVENT_NAMES = ["book_appointment", "find_us", "call_us", "new_client_form"];
+  try {
+    const ctaRes = await fetch(
+      `https://analyticsdata.googleapis.com/v1beta/properties/${cred.ga4_property_id}:runReport`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dateRanges: [{ startDate: fmt(start), endDate: fmt(today) }],
+          dimensions: [{ name: "date" }, { name: "eventName" }],
+          metrics: [{ name: "eventCount" }],
+          dimensionFilter: {
+            filter: {
+              fieldName: "eventName",
+              inListFilter: { values: CTA_EVENT_NAMES },
+            },
+          },
+          limit: 100000,
+        }),
+      }
+    );
+    if (ctaRes.ok) {
+      const ctaReport = await ctaRes.json();
+      const ctaRows = (ctaReport.rows || []).map((r: any) => {
+        const dimDate = r.dimensionValues?.[0]?.value || "";
+        const ctaType = r.dimensionValues?.[1]?.value || "";
+        const count = Number(r.metricValues?.[0]?.value || 0);
+        const isoDate = dimDate.length === 8
+          ? `${dimDate.slice(0,4)}-${dimDate.slice(4,6)}-${dimDate.slice(6,8)}`
+          : dimDate;
+        return { clinic_id: clinicId, date: isoDate, cta_type: ctaType, event_count: count };
+      }).filter((r: any) => r.date && r.date.length === 10 && CTA_EVENT_NAMES.includes(r.cta_type));
+
+      const fromDate = fmt(start);
+      const { error: ctaDelErr } = await supabase
+        .from("clinic_ga4_cta_daily")
+        .delete()
+        .eq("clinic_id", clinicId)
+        .gte("date", fromDate);
+      if (ctaDelErr) console.warn("CTA delete window failed:", ctaDelErr);
+
+      if (ctaRows.length > 0) {
+        for (let i = 0; i < ctaRows.length; i += 500) {
+          const { error: ctaInsErr } = await supabase
+            .from("clinic_ga4_cta_daily")
+            .insert(ctaRows.slice(i, i + 500));
+          if (ctaInsErr) console.error("CTA insert failed:", ctaInsErr);
+        }
+      }
+    } else {
+      console.warn("CTA runReport failed:", ctaRes.status, (await ctaRes.text()).slice(0, 400));
+    }
+  } catch (e) {
+    console.error("CTA sync exception:", e);
+  }
+
   await supabase.from("clinic_ga4_credentials").update({
     last_sync_at: new Date().toISOString(),
     last_sync_status: "ok",
