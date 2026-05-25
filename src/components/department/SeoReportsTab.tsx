@@ -546,11 +546,11 @@ export function SeoReportsTab({ clinicId }: Props) {
       }
 
       await finalizePDF(doc);
-      doc.save(`${clinicName.replace(/\s+/g, "_")}_SEO_Report_${current.month}.pdf`);
+      doc.save(`${clinicName.replace(/\s+/g, "_")}_SEO_Report_${activeMonth}.pdf`);
     } finally {
       setGenerating(false);
     }
-  }, [current, prevMonth, rows, clinicName, ga4]);
+  }, [activeMonth, current, prevMonth, rows, clinicName, ga4]);
 
   if (!clinicId) {
     return <p className="text-muted-foreground text-sm text-center py-12">Select a clinic to generate reports.</p>;
