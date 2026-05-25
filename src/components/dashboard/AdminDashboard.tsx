@@ -457,7 +457,7 @@ export default function AdminDashboard() {
   const pipelineDialogClinics = useMemo(() => {
     if (!pipelineDialogStage) return [] as Array<{ clinicId: string; clinicName: string; count: number }>;
     const counts: Record<string, number> = {};
-    contentRequests.forEach(r => {
+    filteredRequests.forEach(r => {
       if (r.status !== pipelineDialogStage.status) return;
       if (!r.clinic_id) return;
       counts[r.clinic_id] = (counts[r.clinic_id] || 0) + 1;
@@ -466,7 +466,7 @@ export default function AdminDashboard() {
     return Object.entries(counts)
       .map(([clinicId, count]) => ({ clinicId, clinicName: clinicMap.get(clinicId) || "Unknown clinic", count }))
       .sort((a, b) => b.count - a.count || a.clinicName.localeCompare(b.clinicName));
-  }, [pipelineDialogStage, contentRequests, clinics]);
+  }, [pipelineDialogStage, filteredRequests, clinics]);
 
   const pendingRequests =
     (filteredRequests.filter(r => r.status === "client_selected").length);
