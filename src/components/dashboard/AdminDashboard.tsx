@@ -758,14 +758,29 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         {/* Pipeline */}
         <section className="rounded-2xl border border-border/60 bg-card lg:col-span-2">
-          <header className="flex items-center justify-between border-b border-border/50 px-5 py-4">
-            <div>
+          <header className="flex items-center justify-between gap-2 border-b border-border/50 px-5 py-4">
+            <div className="min-w-0">
               <h3 className="text-sm font-bold tracking-tight text-foreground">Content Pipeline</h3>
               <p className="text-[11px] text-muted-foreground">Click a stage to filter</p>
             </div>
-            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-              {totalPipeline} total
-            </span>
+            <div className="flex items-center gap-2">
+              <Select value={pipelineMonth} onValueChange={setPipelineMonth}>
+                <SelectTrigger className="h-7 w-[140px] text-[11px]">
+                  <SelectValue placeholder="All months" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All months</SelectItem>
+                  {pipelineMonthOptions.map((m) => {
+                    const [y, mm] = m.split("-");
+                    const label = new Date(Number(y), Number(mm) - 1, 1).toLocaleString("en-US", { month: "short", year: "numeric" });
+                    return <SelectItem key={m} value={m}>{label}</SelectItem>;
+                  })}
+                </SelectContent>
+              </Select>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                {totalPipeline} total
+              </span>
+            </div>
           </header>
           <div className="space-y-2 px-3 py-3">
             {pipeline.map((stage) => {
