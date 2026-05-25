@@ -388,12 +388,21 @@ export default function AdminDashboard() {
     });
   }, [posts, filter]);
 
+  const [pipelineMonth, setPipelineMonth] = useState<string>("all"); // "all" | "YYYY-MM"
+
   const filteredRequests = useMemo(() => {
     return contentRequests.filter(r => {
       if (filter.clinicId && r.clinic_id !== filter.clinicId) return false;
+      if (pipelineMonth !== "all" && r.month_year !== pipelineMonth) return false;
       return true;
     });
-  }, [contentRequests, filter]);
+  }, [contentRequests, filter, pipelineMonth]);
+
+  const pipelineMonthOptions = useMemo(() => {
+    const months = new Set<string>();
+    contentRequests.forEach(r => { if (r.month_year) months.add(r.month_year); });
+    return Array.from(months).sort().reverse();
+  }, [contentRequests]);
 
   // ----- Derived metrics under current filter -----
   const activeClinics = clinics.filter(c => c.status === "active").length;
