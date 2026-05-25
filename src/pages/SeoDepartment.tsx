@@ -158,15 +158,8 @@ export default function SeoDepartment() {
               {selectedClinicName && <p className="text-xs text-muted-foreground -mt-0.5">{selectedClinicName}</p>}
             </div>
           </div>
-
-          <div className="flex items-center gap-2">
-            {canEditSeo && selectedClinicId && !isLocked && (
-              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => setSeoDialogOpen(true)}>
-                <Upload className="h-3 w-3" /> Upload SEO Report
-              </Button>
-            )}
-          </div>
         </div>
+
 
         <AnimatePresence mode="wait">
           {accessLoading ? (
