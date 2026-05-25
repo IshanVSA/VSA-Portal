@@ -88,21 +88,6 @@ function TopKeywordsCard({ keywords }: { keywords: SeoKeyword[] }) {
   );
 }
 
-function useCanEditSeo() {
-  const { role } = useUserRole();
-  const { user } = useAuth();
-  const { data: profile } = useQuery({
-    queryKey: ["profile-team-role", user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data } = await supabase.from("profiles").select("team_role").eq("id", user.id).maybeSingle();
-      return data;
-    },
-    enabled: !!user,
-  });
-  return role === "admin" || profile?.team_role === "SEO Lead";
-}
-
 const fallbackKpis = [
   { label: "Domain Authority", value: 0, icon: Globe, gradient: "blue" as const },
   { label: "Backlinks", value: 0, icon: Link2, gradient: "green" as const },
