@@ -4,12 +4,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { SearchCode, LayoutGrid, ChartColumn, FileText, Upload, Globe, Link2, Hash, TrendingUp, MessageCircle, BookOpen, ListChecks, BarChart3 } from "lucide-react";
+import { SearchCode, LayoutGrid, FileText, Upload, Globe, Link2, Hash, TrendingUp, MessageCircle, BookOpen, ListChecks, BarChart3 } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
-import { SeoAnalyticsTab } from "@/components/department/SeoAnalyticsTab";
 import { SeoReportsTab } from "@/components/department/SeoReportsTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
-import { UpdateSeoAnalyticsDialog } from "@/components/department/UpdateSeoAnalyticsDialog";
 import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { useSeoAnalytics } from "@/hooks/useSeoAnalytics";
@@ -19,7 +17,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import type { SeoKeyword } from "@/hooks/useSeoAnalytics";
 import { useClinicServiceAccess } from "@/hooks/useClinicServiceAccess";
 import { DepartmentAccessLocked } from "@/components/department/DepartmentAccessLocked";
@@ -37,7 +34,6 @@ import { SeoTrafficTab } from "@/components/department/SeoTrafficTab";
 const commonTabs = [
   { value: "overview", label: "Overview", icon: LayoutGrid },
   { value: "traffic", label: "Traffic", icon: BarChart3 },
-  { value: "analytics", label: "Analytics", icon: ChartColumn },
   { value: "reports", label: "Reports", icon: FileText },
 
   { value: "uploads", label: "Files", icon: Upload },
@@ -162,15 +158,8 @@ export default function SeoDepartment() {
               {selectedClinicName && <p className="text-xs text-muted-foreground -mt-0.5">{selectedClinicName}</p>}
             </div>
           </div>
-
-          <div className="flex items-center gap-2">
-            {canEditSeo && selectedClinicId && !isLocked && (
-              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => setSeoDialogOpen(true)}>
-                <Upload className="h-3 w-3" /> Upload SEO Report
-              </Button>
-            )}
-          </div>
         </div>
+
 
         <AnimatePresence mode="wait">
           {accessLoading ? (
@@ -210,7 +199,6 @@ export default function SeoDepartment() {
                   <DepartmentOverview kpis={kpis} trafficData={trafficData.length > 0 ? trafficData : [{ label: "No data", value: 0 }]} trafficLabel="Organic Traffic Trend" team={team} department="seo" accentColor="hsl(var(--dept-seo))" extraSection={<TopKeywordsCard keywords={topKeywords} />} clinicId={selectedClinicId} hideQuickActions />
                 </TabsContent>
                 <TabsContent value="traffic" className="mt-4"><SeoTrafficTab clinicId={selectedClinicId} /></TabsContent>
-                <TabsContent value="analytics" className="mt-4"><SeoAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="reports" className="mt-4"><SeoReportsTab clinicId={selectedClinicId} /></TabsContent>
                 
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="seo" clinicId={selectedClinicId} /></TabsContent>
@@ -222,13 +210,7 @@ export default function SeoDepartment() {
           )}
         </AnimatePresence>
       </div>
-
-      {selectedClinicId && (
-        <UpdateSeoAnalyticsDialog
-          open={seoDialogOpen} onOpenChange={setSeoDialogOpen} clinicId={selectedClinicId} onSubmit={upsertSeoAnalytics} isSubmitting={isUpserting}
-          defaults={latest ? { month: latest.month, domain_authority: latest.domain_authority, backlinks: latest.backlinks, keywords_top_10: latest.keywords_top_10, organic_traffic: latest.organic_traffic, top_keywords: latest.top_keywords, extended_data: latest.extended_data } : undefined}
-        />
-      )}
     </>
+
   );
 }
