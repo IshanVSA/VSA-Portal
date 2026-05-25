@@ -30,6 +30,19 @@ export function SeoReportsTab({ clinicId }: Props) {
     return idx < months.length - 1 ? rows.find(r => r.month === months[idx + 1]) || null : null;
   }, [rows, months, activeMonth]);
 
+  // GA4 traffic for the selected month
+  const monthRange = useMemo(() => {
+    if (!activeMonth) return null;
+    const [yStr, mStr] = activeMonth.split("-");
+    const yr = Number(yStr), mo = Number(mStr) - 1;
+    if (!isFinite(yr) || !isFinite(mo)) return null;
+    const from = new Date(yr, mo, 1);
+    const to = new Date(yr, mo + 1, 0);
+    return { from, to };
+  }, [activeMonth]);
+  const { data: ga4 } = useGa4Traffic(clinicId, monthRange || { from: new Date(), to: new Date() });
+
+
   const [clinicName, setClinicName] = useState("");
   useMemo(() => {
     if (!clinicId) return;
