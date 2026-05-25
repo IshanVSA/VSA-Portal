@@ -213,6 +213,65 @@ Deno.serve(async (req) => {
       console.log(`Auto-approved ${requestsApproved} content requests`);
     }
 
+    // ── Part 3: Auto-approve sm2_generations after 5 days ──
+    const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
+
+    // 3a. sent_for_copy_review → copy_approved (so concierge can upload visuals)
+    const { data: expiredCopyReview, error: copyErr } = await supabase
+      .from("sm2_generations")
+      .select("id, clinic_id")
+      .eq("approval_status", "sent_for_copy_review")
+      .not("sent_to_client_at", "is", null)
+      .lte("sent_to_client_at", fiveDaysAgo);
+
+    if (copyErr) console.error("Error fetching sm2 copy review:", copyErr);
+
+    if (expiredCopyReview && expiredCopyReview.length > 0) {
+      const ids = expiredCopyReview.map((g) => g.id);
+      const { error: upErr } = await supabase
+        .from("sm2_generations")
+        .update({
+          approval_status: "copy_approved",
+          auto_approved_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .in("id", ids);
+      if (upErr) console.error("Error auto-approving sm2 copy:", upErr);
+      else {
+        totalApproved += ids.length;
+        console.log(`Auto-approved ${ids.length} sm2_generations (copy review)`);
+      }
+    }
+
+    // 3b. sent_for_final_review → approved_client (fully approved)
+    const { data: expiredFinalReview, error: finalErr } = await supabase
+      .from("sm2_generations")
+      .select("id, clinic_id")
+      .eq("approval_status", "sent_for_final_review")
+      .not("sent_to_client_at", "is", null)
+      .lte("sent_to_client_at", fiveDaysAgo);
+
+    if (finalErr) console.error("Error fetching sm2 final review:", finalErr);
+
+    if (expiredFinalReview && expiredFinalReview.length > 0) {
+      const ids = expiredFinalReview.map((g) => g.id);
+      const nowIso = new Date().toISOString();
+      const { error: upErr } = await supabase
+        .from("sm2_generations")
+        .update({
+          approval_status: "approved_client",
+          auto_approved_at: nowIso,
+          approved_at: nowIso,
+          updated_at: nowIso,
+        })
+        .in("id", ids);
+      if (upErr) console.error("Error auto-approving sm2 final:", upErr);
+      else {
+        totalApproved += ids.length;
+        console.log(`Auto-approved ${ids.length} sm2_generations (final review)`);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         message: `Auto-approved ${totalApproved} items`,
