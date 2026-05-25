@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Download, Globe, Link2, Hash, TrendingUp, BarChart3 } from "lucide-react";
 import { useSeoAnalytics, type SeoKeyword, type SeoExtendedData } from "@/hooks/useSeoAnalytics";
+import { useGa4Traffic } from "@/hooks/useGa4Traffic";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import {
@@ -28,6 +29,19 @@ export function SeoReportsTab({ clinicId }: Props) {
     const idx = months.indexOf(activeMonth);
     return idx < months.length - 1 ? rows.find(r => r.month === months[idx + 1]) || null : null;
   }, [rows, months, activeMonth]);
+
+  // GA4 traffic for the selected month
+  const monthRange = useMemo(() => {
+    if (!activeMonth) return null;
+    const [yStr, mStr] = activeMonth.split("-");
+    const yr = Number(yStr), mo = Number(mStr) - 1;
+    if (!isFinite(yr) || !isFinite(mo)) return null;
+    const from = new Date(yr, mo, 1);
+    const to = new Date(yr, mo + 1, 0);
+    return { from, to };
+  }, [activeMonth]);
+  const { data: ga4 } = useGa4Traffic(clinicId, monthRange || { from: new Date(), to: new Date() });
+
 
   const [clinicName, setClinicName] = useState("");
   useMemo(() => {
@@ -450,6 +464,59 @@ export function SeoReportsTab({ clinicId }: Props) {
         y += 4;
       }
 
+      // ── GA4 Traffic Acquisition (for the report month) ──
+      if (ga4 && ga4.isConnected && ga4.totals.sessions > 0) {
+        const fmtNum = (n: number) => new Intl.NumberFormat("en-US").format(Math.round(n));
+        const fmtSec = (s: number) => {
+          if (!s || !isFinite(s)) return "0s";
+          const m = Math.floor(s / 60);
+          const sec = Math.round(s % 60);
+          return m === 0 ? `${sec}s` : `${m}m ${sec}s`;
+        };
+
+        y = ensureSpace(doc, y, 60);
+        y = renderSectionHeader(doc, "Traffic Acquisition", y, PDF_COLORS.seo, `Source: Google Analytics 4 (${current.month})`);
+
+        autoTable(doc, {
+          startY: y,
+          head: [["Metric", "Value"]],
+          body: [
+            ["Sessions", fmtNum(ga4.totals.sessions)],
+            ["Engaged Sessions", fmtNum(ga4.totals.engagedSessions)],
+            ["Engagement Rate", `${(ga4.totals.engagementRate * 100).toFixed(1)}%`],
+            ["Avg. Engagement Time", fmtSec(ga4.totals.avgEngagementTimeSeconds)],
+            ["Events / Session", ga4.totals.eventsPerSession.toFixed(2)],
+          ],
+          ...getTableStyles(PDF_COLORS.seo),
+        });
+        y = (doc as any).lastAutoTable?.finalY || y + 50;
+        y += 4;
+
+        if (ga4.channels.length > 0) {
+          y = ensureSpace(doc, y, 60);
+          y = renderSectionHeader(doc, "Sessions by Channel", y, PDF_COLORS.seo);
+
+          autoTable(doc, {
+            startY: y,
+            head: [["#", "Channel", "Sessions", "%", "Engaged", "Eng. Rate", "Avg. Time", "Events/Sess"]],
+            body: ga4.channels.map((c, i) => [
+              (i + 1).toString(),
+              c.channel,
+              fmtNum(c.sessions),
+              `${ga4.totals.sessions > 0 ? ((c.sessions / ga4.totals.sessions) * 100).toFixed(1) : 0}%`,
+              fmtNum(c.engagedSessions),
+              `${(c.engagementRate * 100).toFixed(1)}%`,
+              fmtSec(c.avgEngagementTimeSeconds),
+              c.eventsPerSession.toFixed(2),
+            ]),
+            ...getTableStyles(PDF_COLORS.seo),
+            columnStyles: { 0: { cellWidth: 10 } },
+          });
+          y = (doc as any).lastAutoTable?.finalY || y + 50;
+          y += 4;
+        }
+      }
+
       // ── Historical Traffic Trend ──
       if (rows.length > 1) {
         y = ensureSpace(doc, y, 60);
@@ -470,7 +537,7 @@ export function SeoReportsTab({ clinicId }: Props) {
     } finally {
       setGenerating(false);
     }
-  }, [current, prevMonth, rows, clinicName]);
+  }, [current, prevMonth, rows, clinicName, ga4]);
 
   if (!clinicId) {
     return <p className="text-muted-foreground text-sm text-center py-12">Select a clinic to generate reports.</p>;
