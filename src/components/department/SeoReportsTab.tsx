@@ -21,14 +21,25 @@ export function SeoReportsTab({ clinicId }: Props) {
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [generating, setGenerating] = useState(false);
 
-  const months = useMemo(() => rows.map(r => r.month).sort().reverse(), [rows]);
+  // Always offer the last 24 months as selectable options, regardless of stored SEO rows
+  const months = useMemo(() => {
+    const out: string[] = [];
+    const now = new Date();
+    for (let i = 0; i < 24; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      out.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    }
+    return out;
+  }, []);
   const activeMonth = selectedMonth || months[0] || "";
   const current = useMemo(() => rows.find(r => r.month === activeMonth) || null, [rows, activeMonth]);
+  const sortedDataMonths = useMemo(() => rows.map(r => r.month).sort().reverse(), [rows]);
   const prevMonth = useMemo(() => {
-    if (!activeMonth || months.length < 2) return null;
-    const idx = months.indexOf(activeMonth);
-    return idx < months.length - 1 ? rows.find(r => r.month === months[idx + 1]) || null : null;
-  }, [rows, months, activeMonth]);
+    if (!activeMonth || sortedDataMonths.length < 2) return null;
+    const idx = sortedDataMonths.indexOf(activeMonth);
+    if (idx === -1) return rows.find(r => r.month === sortedDataMonths[0]) || null;
+    return idx < sortedDataMonths.length - 1 ? rows.find(r => r.month === sortedDataMonths[idx + 1]) || null : null;
+  }, [rows, sortedDataMonths, activeMonth]);
 
   // GA4 traffic for the selected month
   const monthRange = useMemo(() => {
@@ -72,16 +83,16 @@ export function SeoReportsTab({ clinicId }: Props) {
   }
 
   const generatePDF = useCallback(async () => {
-    if (!current) return;
+    if (!activeMonth) return;
     setGenerating(true);
     try {
       const doc = new jsPDF();
-      const ext: SeoExtendedData = current.extended_data || {};
+      const ext: SeoExtendedData = current?.extended_data || {};
 
       // ── Header ──
       const subtitle = ext.report_period
         ? `Report Period: ${ext.report_period}`
-        : prevMonth ? `Month: ${current.month} vs ${prevMonth.month}` : `Month: ${current.month}`;
+        : current && prevMonth ? `Month: ${current.month} vs ${prevMonth.month}` : `Month: ${activeMonth}`;
       let y = renderPDFHeader(doc, "SEO Performance Report", clinicName, subtitle, PDF_COLORS.seo);
 
       // Website URL
@@ -92,6 +103,7 @@ export function SeoReportsTab({ clinicId }: Props) {
         y += 2;
       }
 
+      if (current) {
       // ── Primary KPI Cards ──
       y = renderKPICards(doc, y, [
         { label: "Domain Authority", value: current.domain_authority.toString(), change: prevMonth ? pctText(current.domain_authority, prevMonth.domain_authority) : undefined },
@@ -463,6 +475,7 @@ export function SeoReportsTab({ clinicId }: Props) {
         y = (doc as any).lastAutoTable?.finalY || y + 50;
         y += 4;
       }
+      } // end if (current)
 
       // ── GA4 Traffic Acquisition (for the report month) ──
       if (ga4 && ga4.isConnected && ga4.totals.sessions > 0) {
@@ -475,7 +488,7 @@ export function SeoReportsTab({ clinicId }: Props) {
         };
 
         y = ensureSpace(doc, y, 60);
-        y = renderSectionHeader(doc, "Traffic Acquisition", y, PDF_COLORS.seo, `Source: Google Analytics 4 (${current.month})`);
+        y = renderSectionHeader(doc, "Traffic Acquisition", y, PDF_COLORS.seo, `Source: Google Analytics 4 (${activeMonth})`);
 
         autoTable(doc, {
           startY: y,
@@ -533,11 +546,11 @@ export function SeoReportsTab({ clinicId }: Props) {
       }
 
       await finalizePDF(doc);
-      doc.save(`${clinicName.replace(/\s+/g, "_")}_SEO_Report_${current.month}.pdf`);
+      doc.save(`${clinicName.replace(/\s+/g, "_")}_SEO_Report_${activeMonth}.pdf`);
     } finally {
       setGenerating(false);
     }
-  }, [current, prevMonth, rows, clinicName, ga4]);
+  }, [activeMonth, current, prevMonth, rows, clinicName, ga4]);
 
   if (!clinicId) {
     return <p className="text-muted-foreground text-sm text-center py-12">Select a clinic to generate reports.</p>;
@@ -562,19 +575,23 @@ export function SeoReportsTab({ clinicId }: Props) {
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">Report Month</label>
               <Select value={activeMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-[200px]"><SelectValue placeholder="Select month" /></SelectTrigger>
+                <SelectTrigger className="w-[220px]"><SelectValue placeholder="Select month" /></SelectTrigger>
                 <SelectContent>
-                  {months.map(m => (<SelectItem key={m} value={m}>{m}</SelectItem>))}
+                  {months.map(m => {
+                    const [y, mo] = m.split("-");
+                    const label = new Date(Number(y), Number(mo) - 1, 1).toLocaleString("en-US", { month: "long", year: "numeric" });
+                    return (<SelectItem key={m} value={m}>{label}</SelectItem>);
+                  })}
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={generatePDF} disabled={isLoading || !current || generating} className="gap-2">
+            <Button onClick={generatePDF} disabled={!activeMonth || generating} className="gap-2">
               <Download className="h-4 w-4" />
               {generating ? "Generating…" : "Download PDF Report"}
             </Button>
           </div>
           {isLoading && <p className="text-xs text-muted-foreground mt-3">Loading data…</p>}
-          {!isLoading && months.length === 0 && <p className="text-xs text-muted-foreground mt-3">No SEO data available. Use "Upload SEO Report" to add data.</p>}
+          {!isLoading && !current && <p className="text-xs text-muted-foreground mt-3">No stored SEO metrics for this month — the PDF will include Google Analytics traffic data only.</p>}
           {hasExtended && (
             <p className="text-xs text-success mt-3">✓ Extended data available - PDF will include all detailed sections.</p>
           )}
