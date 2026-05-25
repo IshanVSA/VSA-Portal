@@ -97,7 +97,8 @@ const fallbackKpis = [
 
 export default function SeoDepartment() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentTab = searchParams.get("tab") || "overview";
+  const rawTab = searchParams.get("tab") || "overview";
+  const currentTab = rawTab === "analytics" ? "overview" : rawTab;
   const { clinics, selectedClinic, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
   const { team } = useDepartmentTeam("seo", selectedClinicId);
   const { latest, trafficData, topKeywords } = useSeoAnalytics(selectedClinicId);
