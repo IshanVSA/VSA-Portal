@@ -81,8 +81,9 @@ interface PostRow {
 
 interface RequestRow {
   id: string;
-  status: string; // bucketed: "generated" | "sent_to_client" | "final_approved" | other
+  status: string; // bucketed: "generated" | "sent_to_client" | "copy_approved" | "final_approved" | other
   clinic_id: string | null;
+  month_year: string | null; // YYYY-MM
 }
 
 interface RoleRow {
