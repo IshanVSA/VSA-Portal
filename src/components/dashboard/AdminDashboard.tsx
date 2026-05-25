@@ -81,7 +81,7 @@ interface PostRow {
 
 interface RequestRow {
   id: string;
-  status: string;
+  status: string; // bucketed: "generated" | "sent_to_client" | "final_approved" | other
   clinic_id: string | null;
 }
 
