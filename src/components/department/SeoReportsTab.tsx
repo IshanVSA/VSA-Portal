@@ -575,19 +575,23 @@ export function SeoReportsTab({ clinicId }: Props) {
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">Report Month</label>
               <Select value={activeMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-[200px]"><SelectValue placeholder="Select month" /></SelectTrigger>
+                <SelectTrigger className="w-[220px]"><SelectValue placeholder="Select month" /></SelectTrigger>
                 <SelectContent>
-                  {months.map(m => (<SelectItem key={m} value={m}>{m}</SelectItem>))}
+                  {months.map(m => {
+                    const [y, mo] = m.split("-");
+                    const label = new Date(Number(y), Number(mo) - 1, 1).toLocaleString("en-US", { month: "long", year: "numeric" });
+                    return (<SelectItem key={m} value={m}>{label}</SelectItem>);
+                  })}
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={generatePDF} disabled={isLoading || !current || generating} className="gap-2">
+            <Button onClick={generatePDF} disabled={!activeMonth || generating} className="gap-2">
               <Download className="h-4 w-4" />
               {generating ? "Generating…" : "Download PDF Report"}
             </Button>
           </div>
           {isLoading && <p className="text-xs text-muted-foreground mt-3">Loading data…</p>}
-          {!isLoading && months.length === 0 && <p className="text-xs text-muted-foreground mt-3">No SEO data available. Use "Upload SEO Report" to add data.</p>}
+          {!isLoading && !current && <p className="text-xs text-muted-foreground mt-3">No stored SEO metrics for this month — the PDF will include Google Analytics traffic data only.</p>}
           {hasExtended && (
             <p className="text-xs text-success mt-3">✓ Extended data available - PDF will include all detailed sections.</p>
           )}
