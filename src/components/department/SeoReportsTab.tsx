@@ -103,6 +103,7 @@ export function SeoReportsTab({ clinicId }: Props) {
         y += 2;
       }
 
+      if (current) {
       // ── Primary KPI Cards ──
       y = renderKPICards(doc, y, [
         { label: "Domain Authority", value: current.domain_authority.toString(), change: prevMonth ? pctText(current.domain_authority, prevMonth.domain_authority) : undefined },
