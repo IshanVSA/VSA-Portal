@@ -714,6 +714,38 @@ export type Database = {
           },
         ]
       }
+      clinic_ga4_cta_daily: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          cta_type: string
+          date: string
+          event_count: number
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          cta_type: string
+          date: string
+          event_count?: number
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          cta_type?: string
+          date?: string
+          event_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_ga4_cta_daily_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_ga4_traffic_daily: {
         Row: {
           avg_engagement_time_seconds: number
