@@ -396,9 +396,17 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
-              <p className="text-[11px] text-muted-foreground">
-                Viewing {sortedGens.length} month{sortedGens.length === 1 ? "" : "s"}
-              </p>
+              <div className="flex items-center gap-3">
+                {selectedGen && !ACTIVE_GEN_STATUSES.includes(selectedGen.approval_status) && (
+                  <AddPostHeaderButton
+                    generationId={selectedGen.id}
+                    monthYear={selectedGen.month_year}
+                  />
+                )}
+                <p className="text-[11px] text-muted-foreground">
+                  Viewing {sortedGens.length} month{sortedGens.length === 1 ? "" : "s"}
+                </p>
+              </div>
             </div>
           )}
 
