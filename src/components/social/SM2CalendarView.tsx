@@ -80,10 +80,6 @@ export default function SM2CalendarView({
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
 
-  // Concierge/admin can rearrange dates while the calendar is still being prepared.
-  // Lock once the client has given final approval.
-  const canDrag = !isClient && !["approved_client", "approved_auto"].includes(approvalStatus);
-
   // Are we in the copy round or final round?
   const isCopyRound =
     approvalStatus === "pending" || approvalStatus === "copy_changes_requested";
@@ -99,6 +95,13 @@ export default function SM2CalendarView({
     "approved_client",
     "approved_auto",
   ].includes(approvalStatus);
+
+  // Once copy is approved, all copy edits (drag, add, delete, edit text) are locked.
+  // Only visuals can be added in the final round.
+  const copyLocked = imagesUnlocked;
+
+  // Concierge/admin can rearrange dates and add/delete posts only during the copy round.
+  const canDrag = !isClient && !copyLocked;
 
   const missingPosts = useMemo(
     () => posts.filter((p) => !postHasImage(p)),
