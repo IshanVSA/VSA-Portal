@@ -401,6 +401,7 @@ export default function SM2CalendarView({
           generationId={generationId}
           isClient={isClient}
           imagesUnlocked={imagesUnlocked}
+          copyLocked={copyLocked}
         />
 
         <AlertDialog open={confirmSendOpen} onOpenChange={setConfirmSendOpen}>
