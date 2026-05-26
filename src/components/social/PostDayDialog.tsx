@@ -198,6 +198,7 @@ function PostCard({
   post,
   isClient,
   imagesUnlocked = true,
+  copyLocked = false,
   imageUrls,
   onUpload,
   onRemoveImage,
@@ -214,6 +215,7 @@ function PostCard({
   post: SM2Post;
   isClient: boolean;
   imagesUnlocked?: boolean;
+  copyLocked?: boolean;
   imageUrls: { path: string; url: string }[];
   onUpload: (files: File[]) => void;
   onRemoveImage: (path: string) => void;
