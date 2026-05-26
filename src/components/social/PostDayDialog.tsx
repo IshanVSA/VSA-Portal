@@ -50,7 +50,7 @@ interface Props {
 }
 
 export default function PostDayDialog({ open, onClose, date, generationId, isClient, imagesUnlocked = true }: Props) {
-  const { posts, uploadImage, removeImage, saveFeedback, updatePost, toggleMetaAd, addPost, deletePost, getImageUrl } = useSM2Posts(generationId);
+  const { posts, uploadImage, removeImage, saveFeedback, updatePost, toggleMetaAd, deletePost, getImageUrl } = useSM2Posts(generationId);
   const metaAdSelectedCount = posts.filter((p) => p.run_meta_ad).length;
   const dayPosts = date ? posts.filter((p) => p.scheduled_date === date) : [];
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -64,21 +64,7 @@ export default function PostDayDialog({ open, onClose, date, generationId, isCli
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-4xl max-h-[88vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center justify-between gap-3">
-            <DialogTitle>{label}</DialogTitle>
-            {!isClient && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5"
-                disabled={addPost.isPending}
-                onClick={() => addPost.mutate({ scheduledDate: date })}
-              >
-                <ImagePlus className="h-3.5 w-3.5" />
-                {addPost.isPending ? "Adding..." : "Add Post"}
-              </Button>
-            )}
-          </div>
+          <DialogTitle>{label}</DialogTitle>
         </DialogHeader>
         {showLockBanner && (
           <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs">
@@ -96,7 +82,7 @@ export default function PostDayDialog({ open, onClose, date, generationId, isCli
         )}
         {dayPosts.length === 0 ? (
           <p className="text-sm text-muted-foreground py-6 text-center">
-            No posts scheduled this day.{!isClient && " Use \"Add Post\" above to create one."}
+            No posts scheduled this day.{!isClient && " Use the \"Add Post\" button in the calendar header to create one."}
           </p>
         ) : (
           <div className="space-y-4">
