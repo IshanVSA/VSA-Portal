@@ -310,10 +310,14 @@ export default function SM2CalendarView({
                     inMonth && "bg-card",
                     today && "bg-accent/30",
                     dayPosts.length > 0 && "hover:bg-accent/30 cursor-pointer",
-                    dayPosts.length === 0 && "cursor-default",
+                    dayPosts.length === 0 && canDrag && inMonth && "hover:bg-accent/20 cursor-pointer",
+                    dayPosts.length === 0 && !(canDrag && inMonth) && "cursor-default",
                     isDropTarget && "bg-primary/10 ring-2 ring-inset ring-primary/40",
                   )}
-                  onClick={() => dayPosts.length > 0 && setOpenDate(dateStr)}
+                  onClick={() => {
+                    if (dayPosts.length > 0) setOpenDate(dateStr);
+                    else if (canDrag && inMonth) setOpenDate(dateStr);
+                  }}
                   role="button"
                 >
                   {unseenNotes > 0 && (
