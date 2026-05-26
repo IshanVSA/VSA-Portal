@@ -417,7 +417,7 @@ function PostCard({
             <Badge variant="outline" className={cn("text-[10px] font-semibold", statusBadgeClass(post.status))}>
               {(post.status || "PASS").toUpperCase()}
             </Badge>
-            {!isClient && (
+            {!isClient && !copyLocked && (
               <>
                 <Button
                   size="sm"
@@ -440,6 +440,12 @@ function PostCard({
                   Delete
                 </Button>
               </>
+            )}
+            {!isClient && copyLocked && (
+              <Badge variant="outline" className="ml-auto text-[10px] gap-1 border-amber-500/40 text-amber-700 dark:text-amber-400">
+                <Lock className="h-3 w-3" />
+                Copy locked
+              </Badge>
             )}
           </div>
 
