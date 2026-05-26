@@ -40,19 +40,35 @@ interface Props {
 }
 
 export default function PostDayDialog({ open, onClose, date, generationId, isClient, imagesUnlocked = true }: Props) {
-  const { posts, uploadImage, removeImage, saveFeedback, updatePost, toggleMetaAd, getImageUrl } = useSM2Posts(generationId);
+  const { posts, uploadImage, removeImage, saveFeedback, updatePost, toggleMetaAd, addPost, deletePost, getImageUrl } = useSM2Posts(generationId);
   const metaAdSelectedCount = posts.filter((p) => p.run_meta_ad).length;
   const dayPosts = date ? posts.filter((p) => p.scheduled_date === date) : [];
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   if (!date) return null;
   const label = format(new Date(date + "T00:00:00"), "EEEE, MMMM d, yyyy");
   const showLockBanner = !isClient && !imagesUnlocked;
+  const postToDelete = confirmDeleteId ? dayPosts.find((p) => p.id === confirmDeleteId) : null;
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-4xl max-h-[88vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{label}</DialogTitle>
+          <div className="flex items-center justify-between gap-3">
+            <DialogTitle>{label}</DialogTitle>
+            {!isClient && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                disabled={addPost.isPending}
+                onClick={() => addPost.mutate({ scheduledDate: date })}
+              >
+                <ImagePlus className="h-3.5 w-3.5" />
+                {addPost.isPending ? "Adding..." : "Add Post"}
+              </Button>
+            )}
+          </div>
         </DialogHeader>
         {showLockBanner && (
           <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs">
@@ -69,7 +85,9 @@ export default function PostDayDialog({ open, onClose, date, generationId, isCli
           </div>
         )}
         {dayPosts.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-6 text-center">No posts scheduled this day.</p>
+          <p className="text-sm text-muted-foreground py-6 text-center">
+            No posts scheduled this day.{!isClient && " Use \"Add Post\" above to create one."}
+          </p>
         ) : (
           <div className="space-y-4">
             {dayPosts.map((post) => (
@@ -84,6 +102,7 @@ export default function PostDayDialog({ open, onClose, date, generationId, isCli
                 onSaveFeedback={(feedback) => saveFeedback.mutate({ postId: post.id, feedback })}
                 onUpdatePost={(updates) => updatePost.mutate({ postId: post.id, updates })}
                 onToggleMetaAd={(value) => toggleMetaAd.mutate({ postId: post.id, value })}
+                onRequestDelete={() => setConfirmDeleteId(post.id)}
                 metaAdSelectedCount={metaAdSelectedCount}
                 togglingMetaAd={toggleMetaAd.isPending}
                 uploading={uploadImage.isPending}
@@ -94,6 +113,36 @@ export default function PostDayDialog({ open, onClose, date, generationId, isCli
           </div>
         )}
       </DialogContent>
+
+      <AlertDialog
+        open={!!confirmDeleteId}
+        onOpenChange={(o) => !o && setConfirmDeleteId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this post?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes
+              {postToDelete?.topic ? ` "${postToDelete.topic}"` : " the post"}
+              {" "}from the calendar, along with any uploaded images. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (postToDelete) {
+                  deletePost.mutate({ post: postToDelete });
+                }
+                setConfirmDeleteId(null);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
