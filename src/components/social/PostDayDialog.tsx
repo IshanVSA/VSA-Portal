@@ -427,16 +427,28 @@ function PostCard({
               {(post.status || "PASS").toUpperCase()}
             </Badge>
             {!isClient && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setEditOpen(true)}
-                className="ml-auto h-7 px-2 gap-1 text-[11px]"
-                title="Edit post copy (admin/concierge only)"
-              >
-                <Pencil className="h-3 w-3" />
-                Edit
-              </Button>
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setEditOpen(true)}
+                  className="ml-auto h-7 px-2 gap-1 text-[11px]"
+                  title="Edit post copy (admin/concierge only)"
+                >
+                  <Pencil className="h-3 w-3" />
+                  Edit
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={onRequestDelete}
+                  className="h-7 px-2 gap-1 text-[11px] text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+                  title="Delete this post"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  Delete
+                </Button>
+              </>
             )}
           </div>
 
