@@ -84,7 +84,7 @@ export default function PostDayDialog({ open, onClose, date, generationId, isCli
         )}
         {dayPosts.length === 0 ? (
           <p className="text-sm text-muted-foreground py-6 text-center">
-            No posts scheduled this day.{!isClient && " Use the \"Add Post\" button in the calendar header to create one."}
+            No posts scheduled this day.{!isClient && !copyLocked && " Use the \"Add Post\" button in the calendar header to create one."}
           </p>
         ) : (
           <div className="space-y-4">
