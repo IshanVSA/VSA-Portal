@@ -397,7 +397,9 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                 </Button>
               </div>
               <div className="flex items-center gap-3">
-                {selectedGen && !ACTIVE_GEN_STATUSES.includes(selectedGen.approval_status) && (
+                {selectedGen
+                  && !ACTIVE_GEN_STATUSES.includes(selectedGen.approval_status)
+                  && !["copy_approved","sent_for_final_review","final_changes_requested","approved_client","approved_auto"].includes(selectedGen.approval_status) && (
                   <AddPostHeaderButton
                     generationId={selectedGen.id}
                     monthYear={selectedGen.month_year}

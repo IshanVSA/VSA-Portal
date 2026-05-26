@@ -47,9 +47,11 @@ interface Props {
   isClient: boolean;
   /** When false (and not a client), uploads are locked until copy approval. */
   imagesUnlocked?: boolean;
+  /** When true, the copy has been approved — text edits, add and delete are blocked. */
+  copyLocked?: boolean;
 }
 
-export default function PostDayDialog({ open, onClose, date, generationId, isClient, imagesUnlocked = true }: Props) {
+export default function PostDayDialog({ open, onClose, date, generationId, isClient, imagesUnlocked = true, copyLocked = false }: Props) {
   const { posts, uploadImage, removeImage, saveFeedback, updatePost, toggleMetaAd, deletePost, getImageUrl } = useSM2Posts(generationId);
   const metaAdSelectedCount = posts.filter((p) => p.run_meta_ad).length;
   const dayPosts = date ? posts.filter((p) => p.scheduled_date === date) : [];
@@ -82,7 +84,7 @@ export default function PostDayDialog({ open, onClose, date, generationId, isCli
         )}
         {dayPosts.length === 0 ? (
           <p className="text-sm text-muted-foreground py-6 text-center">
-            No posts scheduled this day.{!isClient && " Use the \"Add Post\" button in the calendar header to create one."}
+            No posts scheduled this day.{!isClient && !copyLocked && " Use the \"Add Post\" button in the calendar header to create one."}
           </p>
         ) : (
           <div className="space-y-4">
@@ -92,6 +94,7 @@ export default function PostDayDialog({ open, onClose, date, generationId, isCli
                 post={post}
                 isClient={isClient}
                 imagesUnlocked={imagesUnlocked}
+                copyLocked={copyLocked}
                 imageUrls={getPostImagePaths(post).map((p) => ({ path: p, url: getImageUrl(p) }))}
                 onUpload={(files) => uploadImage.mutate({ post, files })}
                 onRemoveImage={(path) => removeImage.mutate({ post, path })}
@@ -195,6 +198,7 @@ function PostCard({
   post,
   isClient,
   imagesUnlocked = true,
+  copyLocked = false,
   imageUrls,
   onUpload,
   onRemoveImage,
@@ -211,6 +215,7 @@ function PostCard({
   post: SM2Post;
   isClient: boolean;
   imagesUnlocked?: boolean;
+  copyLocked?: boolean;
   imageUrls: { path: string; url: string }[];
   onUpload: (files: File[]) => void;
   onRemoveImage: (path: string) => void;
@@ -412,7 +417,7 @@ function PostCard({
             <Badge variant="outline" className={cn("text-[10px] font-semibold", statusBadgeClass(post.status))}>
               {(post.status || "PASS").toUpperCase()}
             </Badge>
-            {!isClient && (
+            {!isClient && !copyLocked && (
               <>
                 <Button
                   size="sm"
@@ -435,6 +440,12 @@ function PostCard({
                   Delete
                 </Button>
               </>
+            )}
+            {!isClient && copyLocked && (
+              <Badge variant="outline" className="ml-auto text-[10px] gap-1 border-amber-500/40 text-amber-700 dark:text-amber-400">
+                <Lock className="h-3 w-3" />
+                Copy locked
+              </Badge>
             )}
           </div>
 
