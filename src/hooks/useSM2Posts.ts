@@ -286,6 +286,75 @@ export function useSM2Posts(generationId: string | undefined) {
     },
   });
 
+  const addPost = useMutation({
+    mutationFn: async ({
+      scheduledDate,
+      platform = "instagram",
+      postType = "IMAGE",
+      topic = "New post",
+    }: {
+      scheduledDate: string;
+      platform?: string;
+      postType?: string;
+      topic?: string;
+    }) => {
+      if (!generationId) throw new Error("Missing generation");
+
+      // Resolve clinic_id from any existing post, otherwise fetch from generation.
+      let clinicId = posts?.[0]?.clinic_id;
+      if (!clinicId) {
+        const { data: gen, error: genErr } = await supabase
+          .from("sm2_generations")
+          .select("clinic_id")
+          .eq("id", generationId)
+          .single();
+        if (genErr) throw genErr;
+        clinicId = (gen as any).clinic_id;
+      }
+
+      const sameDay = (posts || []).filter((p) => p.scheduled_date === scheduledDate);
+      const nextPosition = sameDay.length
+        ? Math.max(...sameDay.map((p) => p.position ?? 0)) + 1
+        : 0;
+      const nextPostNumber =
+        (posts || []).reduce((max, p) => Math.max(max, p.post_number ?? 0), 0) + 1;
+
+      const { error } = await supabase.from("sm2_posts").insert({
+        generation_id: generationId,
+        clinic_id: clinicId,
+        scheduled_date: scheduledDate,
+        platform,
+        post_type: postType,
+        topic,
+        position: nextPosition,
+        post_number: nextPostNumber,
+        status: "PASS",
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+      toast.success("Post added to calendar");
+    },
+    onError: (e: Error) => toast.error("Failed to add post", { description: e.message }),
+  });
+
+  const deletePost = useMutation({
+    mutationFn: async ({ post }: { post: SM2Post }) => {
+      const paths = getPostImagePaths(post);
+      if (paths.length > 0) {
+        await supabase.storage.from("department-files").remove(paths);
+      }
+      const { error } = await supabase.from("sm2_posts").delete().eq("id", post.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+      toast.success("Post deleted");
+    },
+    onError: (e: Error) => toast.error("Failed to delete post", { description: e.message }),
+  });
+
   const getImageUrl = (path: string) => {
     return supabase.storage.from("department-files").getPublicUrl(path).data.publicUrl;
   };
@@ -302,6 +371,8 @@ export function useSM2Posts(generationId: string | undefined) {
     saveFeedback,
     updatePost,
     toggleMetaAd,
+    addPost,
+    deletePost,
     getImageUrl,
     total,
     withImages,
