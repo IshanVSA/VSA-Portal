@@ -15,6 +15,7 @@ import { Sparkles, RefreshCw, FileText, Eye, AlertTriangle, CheckCircle, Clock, 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import HtmlEditorDialog from "./HtmlEditorDialog";
 import SM2CalendarView from "./SM2CalendarView";
+import AddPostHeaderButton from "./AddPostHeaderButton";
 import ClientContentCalendar from "./ClientContentCalendar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { format } from "date-fns";
