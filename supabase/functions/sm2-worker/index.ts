@@ -109,7 +109,16 @@ RULES:
 - NO engagement bait.
 - Hashtags in Instagram only.
 
-For each of the 10 posts output JSON with: number, hook_a, hook_b, caption, hashtags, disclaimer, alt_text, stories_hook.
+SCRIPT FIELD (MANDATORY for every post):
+Write a ready-to-shoot "script" tailored to the post format (carousel, reel, story, static single image). The script is what the clinic team will read on-camera or use as slide copy.
+- Carousel: one opening hook line, then "Slide 1" / "Slide 2" / ... blocks with a slide title and slide body, then a final "CTA Slide" with clinic name and phone.
+- Reel / video: 1 hook line, then "Scene 1", "Scene 2", ... blocks with on-screen text plus voice-over, ending with a CTA scene that includes clinic name and phone.
+- Story sequence: numbered "Frame 1", "Frame 2", ... blocks with the on-screen line and sticker prompt, ending in a CTA frame.
+- Static / single image: 2-4 short lines of on-image copy plus a one-line CTA with clinic name and phone.
+
+Use the clinic's actual name, city / landmark and phone from the DNA payload. Plain text with line breaks (\\n). No markdown asterisks, no emojis, no em dashes. The script is the visual / voice-over flow, NOT a copy of the caption.
+
+For each of the 10 posts output JSON with: number, hook_a, hook_b, caption, hashtags, disclaimer, alt_text, stories_hook, script.
 
 Output ONLY valid JSON array of 10 post objects.`;
 
