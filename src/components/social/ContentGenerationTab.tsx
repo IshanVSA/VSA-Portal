@@ -80,7 +80,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
   const [clinicNews, setClinicNews] = useState("");
   const [fbSpecific, setFbSpecific] = useState("");
   const [budget, setBudget] = useState("300");
-  const [viewingHtml, setViewingHtml] = useState<string | null>(null);
+  const [viewingHtml, setViewingHtml] = useState<{ generationId: string } | null>(null);
   const [editingHtml, setEditingHtml] = useState<string | null>(null);
   const [topPerformers, setTopPerformers] = useState<PerformanceData[]>([]);
   const [contentSettings, setContentSettings] = useState<ContentSettings>(DEFAULT_SETTINGS);
