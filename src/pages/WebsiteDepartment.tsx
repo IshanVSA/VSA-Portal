@@ -3,13 +3,14 @@ import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Globe, LayoutGrid, Ticket, ChartColumn, FileText, Upload, Eye, TrendingUp, Clock, Layers, ShieldCheck, MessageCircle, ListChecks } from "lucide-react";
+import { Globe, LayoutGrid, Ticket, ChartColumn, FileText, Upload, Eye, TrendingUp, Clock, Layers, ShieldCheck, MessageCircle, ListChecks, ClipboardCheck } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { WebsiteAnalyticsTab } from "@/components/department/WebsiteAnalyticsTab";
 import { WebsiteReportsTab } from "@/components/department/WebsiteReportsTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
 import { WebsiteHealthTab } from "@/components/department/WebsiteHealthTab";
+import { WebsiteChecklistTab } from "@/components/department/WebsiteChecklistTab";
 import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { useWebsiteKPIs } from "@/hooks/useWebsiteKPIs";
