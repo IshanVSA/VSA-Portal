@@ -237,7 +237,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
         </div>
         <div className="flex gap-2">
           {selectedGen?.html_file_path && (
-            <Button variant="outline" size="sm" onClick={() => setViewingHtml(selectedGen.html_file_path!)} className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => setViewingHtml({ generationId: selectedGen.id })} className="gap-2">
               <Eye className="h-4 w-4" /> View Content
             </Button>
           )}
