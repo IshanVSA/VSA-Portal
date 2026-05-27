@@ -3,13 +3,14 @@ import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Globe, LayoutGrid, Ticket, ChartColumn, FileText, Upload, Eye, TrendingUp, Clock, Layers, ShieldCheck, MessageCircle, ListChecks } from "lucide-react";
+import { Globe, LayoutGrid, Ticket, ChartColumn, FileText, Upload, Eye, TrendingUp, Clock, Layers, ShieldCheck, MessageCircle, ListChecks, ClipboardCheck } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { WebsiteAnalyticsTab } from "@/components/department/WebsiteAnalyticsTab";
 import { WebsiteReportsTab } from "@/components/department/WebsiteReportsTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
 import { WebsiteHealthTab } from "@/components/department/WebsiteHealthTab";
+import { WebsiteChecklistTab } from "@/components/department/WebsiteChecklistTab";
 import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { useWebsiteKPIs } from "@/hooks/useWebsiteKPIs";
@@ -31,6 +32,7 @@ const baseTabs = [
 ];
 
 const healthTab = { value: "health", label: "Health", icon: ShieldCheck };
+const checklistTab = { value: "checklist", label: "Checklist", icon: ClipboardCheck };
 const tasksTabDef = { value: "tasks", label: "Tasks", icon: ListChecks };
 const chatTab = { value: "chat", label: "Team Chat", icon: MessageCircle };
 
@@ -70,7 +72,7 @@ export default function WebsiteDepartment() {
   const tabs = [
     ...baseTabs,
     ...(canViewHealth ? [healthTab] : []),
-    ...(isStaff ? [tasksTabDef, chatTab] : []),
+    ...(isStaff ? [checklistTab, tasksTabDef, chatTab] : []),
   ];
   const selectedClinicName = selectedClinic?.clinic_name;
 
@@ -149,6 +151,7 @@ export default function WebsiteDepartment() {
                 <TabsContent value="reports" className="mt-4"><WebsiteReportsTab clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="website" clinicId={selectedClinicId} /></TabsContent>
                 {canViewHealth && <TabsContent value="health" className="mt-4"><WebsiteHealthTab clinicId={selectedClinicId} /></TabsContent>}
+                {isStaff && <TabsContent value="checklist" className="mt-4"><WebsiteChecklistTab clinicId={selectedClinicId} /></TabsContent>}
                 {isStaff && <TabsContent value="tasks" className="mt-4"><TasksTab department="website" clinicId={selectedClinicId} /></TabsContent>}
                 {isStaff && <TabsContent value="chat" className="mt-4"><DepartmentChat department="website" clinicId={selectedClinicId} onVisible={markAsRead} /></TabsContent>}
               </Tabs>
