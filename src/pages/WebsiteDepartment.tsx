@@ -151,6 +151,7 @@ export default function WebsiteDepartment() {
                 <TabsContent value="reports" className="mt-4"><WebsiteReportsTab clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="website" clinicId={selectedClinicId} /></TabsContent>
                 {canViewHealth && <TabsContent value="health" className="mt-4"><WebsiteHealthTab clinicId={selectedClinicId} /></TabsContent>}
+                {isStaff && <TabsContent value="checklist" className="mt-4"><WebsiteChecklistTab clinicId={selectedClinicId} /></TabsContent>}
                 {isStaff && <TabsContent value="tasks" className="mt-4"><TasksTab department="website" clinicId={selectedClinicId} /></TabsContent>}
                 {isStaff && <TabsContent value="chat" className="mt-4"><DepartmentChat department="website" clinicId={selectedClinicId} onVisible={markAsRead} /></TabsContent>}
               </Tabs>
