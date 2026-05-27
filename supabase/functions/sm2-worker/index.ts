@@ -316,6 +316,8 @@ h3{color:#F1F3F7;margin:8px 0}
 .verdict.flag{background:#7C2D12;color:#FB923C;padding:3px 10px;border-radius:12px;font-size:11px}
 .hooks{background:#08090E;padding:12px;border-radius:8px;margin:8px 0;font-size:13px}
 .caption{background:#08090E;padding:12px;border-radius:8px;white-space:pre-wrap;font-family:inherit;font-size:13px}
+.script-label{margin-top:12px;font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#A78BFA}
+.script{background:#0B1220;border:1px solid #1E293B;padding:12px;border-radius:8px;white-space:pre-wrap;font-family:inherit;font-size:13px;color:#E2E8F0;margin-top:6px}
 .hashtags{color:#60A5FA;font-size:12px;margin-top:8px}
 details{margin-top:8px;background:#08090E;padding:8px 12px;border-radius:8px}
 summary{cursor:pointer;font-weight:600;font-size:12px;color:#A78BFA}
