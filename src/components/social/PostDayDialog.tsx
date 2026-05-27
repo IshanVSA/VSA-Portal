@@ -810,6 +810,7 @@ function EditPostDialog({
     setHashtags((post.hashtags || []).join(" "));
     setCta(post.cta || "");
     setCompliance(post.compliance_notes || "");
+    setScript(post.script || "");
   }, [open, post.id]);
 
   const handleSave = () => {
