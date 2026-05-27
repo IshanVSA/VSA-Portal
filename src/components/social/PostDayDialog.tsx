@@ -494,6 +494,17 @@ function PostCard({
             </div>
           )}
 
+          {/* Script — shoot-ready slide / scene / frame copy */}
+          {post.script && (
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+              <p className="text-[10px] uppercase tracking-wide text-primary font-semibold flex items-center gap-1.5 mb-1.5">
+                <FileText className="h-3 w-3" />
+                Script
+              </p>
+              <p className="text-sm whitespace-pre-wrap leading-relaxed font-mono">{post.script}</p>
+            </div>
+          )}
+
           {/* Hashtags */}
           {post.hashtags && post.hashtags.length > 0 && (
             <p className="text-xs text-primary/80 font-mono break-words">{post.hashtags.join(" ")}</p>
