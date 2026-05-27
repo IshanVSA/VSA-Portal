@@ -827,6 +827,7 @@ function EditPostDialog({
       hashtags: tagList.length ? tagList : null,
       cta: cta.trim() || null,
       compliance_notes: compliance.trim() || null,
+      script: script.trim() || null,
     });
   };
 
