@@ -610,7 +610,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
 
       {/* HTML Viewer Dialog */}
       {viewingHtml && (
-        <HtmlPreviewDialog filePath={viewingHtml} onClose={() => setViewingHtml(null)} />
+        <HtmlPreviewDialog generationId={viewingHtml.generationId} onClose={() => setViewingHtml(null)} />
       )}
 
       {/* HTML Editor Dialog */}
