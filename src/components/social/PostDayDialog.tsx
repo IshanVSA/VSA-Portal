@@ -798,6 +798,7 @@ function EditPostDialog({
   const [hashtags, setHashtags] = useState((post.hashtags || []).join(" "));
   const [cta, setCta] = useState(post.cta || "");
   const [compliance, setCompliance] = useState(post.compliance_notes || "");
+  const [script, setScript] = useState(post.script || "");
 
   // Re-sync local state whenever the dialog opens for a (potentially) different post
   useEffect(() => {
