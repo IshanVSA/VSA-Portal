@@ -566,6 +566,7 @@ async function runOneStage(supabase: any, job: any): Promise<{ done: boolean; st
             art_direction: a && Object.keys(a).length ? a : null,
             stories: storiesFrames,
             concierge_brief: c && Object.keys(c).length ? c : null,
+            script: w.script || null,
           };
         });
 
