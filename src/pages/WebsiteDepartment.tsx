@@ -72,7 +72,7 @@ export default function WebsiteDepartment() {
   const tabs = [
     ...baseTabs,
     ...(canViewHealth ? [healthTab] : []),
-    ...(isStaff ? [tasksTabDef, chatTab] : []),
+    ...(isStaff ? [checklistTab, tasksTabDef, chatTab] : []),
   ];
   const selectedClinicName = selectedClinic?.clinic_name;
 
