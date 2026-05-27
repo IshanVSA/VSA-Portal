@@ -1,80 +1,46 @@
-## Goal
+## Website Delivery Checklist Tab
 
-Rework the **Content Request** ticket type (Social Media department) into a 3-stage flow:
+Add a new **Checklist** tab inside the Website department that tracks delivery/configuration items per clinic. Items are managed globally (admin-editable) and tracked per clinic. Hidden from clients.
 
-1. **Pre-ticket** — client fills details, generates an AI preview, optionally regenerates with change notes, then creates the ticket.
-2. **In-progress** — ticket goes through normal concierge workflow.
-3. **On completion** — the saved AI preview + a concierge-uploaded graphic surface inside the ticket for client approval, with **auto-approval after 24h**.
+### Database (2 new tables)
 
-This only affects `ticket_type = "Content Request"` in the Social Media department. All other ticket types are untouched.
+**`website_checklist_items`** — global master list shared across all clinics
+- `id`, `section` (text: e.g. "Before Migration" / "After Migration"), `label` (text), `position` (int for ordering), `is_active` (bool), `created_at`, `updated_at`
+- Seeded with the 24 items from the uploaded checklist (2 before-migration + 22 after-migration)
+- RLS: admin/concierge can read & write; clients blocked
 
----
+**`website_checklist_status`** — per-clinic completion state
+- `id`, `clinic_id` (fk), `item_id` (fk → website_checklist_items), `is_done` (bool), `completed_by` (uuid, nullable), `completed_at` (timestamptz, nullable), `notes` (text, nullable), `created_at`, `updated_at`
+- Unique constraint on `(clinic_id, item_id)`
+- RLS: admin/concierge only
 
-## Stage 1 — New Ticket Dialog (Content Request only)
+When a new item is added globally, it appears for every clinic as unchecked (no row needed — UI shows missing rows as not-done).
 
-Edit `ContentRequestForm.tsx` and `NewTicketDialog.tsx`:
+### UI
 
-- Hide the global **Create Ticket** footer button when `ticketType === "Content Request"` and no preview has been generated yet.
-- In `ContentRequestForm`, when the user fills Campaign details and clicks **Generate AI preview** (already exists), keep current behavior.
-- After preview is generated, show:
-  - The editable preview block (already exists).
-  - A new **Regenerate with changes** action: clicking it reveals a textarea ("What would you like to change?"). Submitting calls `generate-content-preview` again with the change notes appended.
-  - The **Create Ticket** button (re-enabled via a `previewReady` callback the form raises up to `NewTicketDialog`).
-- Persist the final preview JSON (`title / description / caption / cta`) onto the ticket at creation time in a new column `content_preview` (JSONB).
+**New tab** in `src/pages/WebsiteDepartment.tsx`: `ListChecks` icon, label "Checklist", gated to `isStaff` (admin/concierge) — same pattern as Tasks/Chat tabs. **Hidden from clients.**
 
-Validation: cannot submit a Content Request ticket without `previewReady === true`.
+**New component** `src/components/department/WebsiteChecklistTab.tsx`:
+- Grouped by section ("Before Migration", "After Migration") in collapsible cards
+- Each item = checkbox + label + (when checked) small "by {name} · {date}" caption + optional notes popover
+- Progress bar at top: "X of Y complete" per clinic
+- Toggling a checkbox upserts into `website_checklist_status`
+- **Manage items** button (admin only) → opens a dialog to add/rename/reorder/deactivate global items; changes propagate to all clinics immediately
 
----
+**New hook** `src/hooks/useWebsiteChecklist.ts`:
+- `useChecklistItems()` — global active items
+- `useChecklistStatus(clinicId)` — joined items + status for a clinic
+- Mutations: `toggleItem`, `addItem`, `updateItem`, `deactivateItem`, `reorderItems`
 
-## Stage 2 — Ticket lifecycle (unchanged until completion)
+### Files
 
-No changes. Ticket flows open → in_progress → completed exactly as today.
+- migration: create both tables + RLS + seed 24 items
+- new: `src/components/department/WebsiteChecklistTab.tsx`
+- new: `src/components/department/ChecklistItemsManagerDialog.tsx` (admin manage modal)
+- new: `src/hooks/useWebsiteChecklist.ts`
+- edit: `src/pages/WebsiteDepartment.tsx` (add tab)
 
----
+### Notes / Open questions
 
-## Stage 3 — Completion approval panel
-
-When a Content Request ticket's status becomes `completed`, render a new **Content Approval** panel inside the ticket detail view (`TicketEditDialog.tsx` / `TicketCard`):
-
-- **AI Preview card** — read-only display of the stored `content_preview`.
-- **Concierge graphic upload** — file uploader (images/PDF), stored in the existing `department-files` Supabase bucket, paths saved on the ticket in a new `content_deliverable_files` (text[]) column. Only admin/concierge can upload.
-- **Client actions**:
-  - **Approve** button → sets `content_approval_status = 'approved'`, records `content_approved_at`.
-  - **Request changes** button → opens a notes textarea; on submit sets `content_approval_status = 'changes_requested'` + stores `content_change_notes`. This reopens the ticket (status back to `in_progress`) so concierge can iterate.
-- **Auto-approval after 24h**: when the panel renders, show a countdown ("Auto-approves in 23h 12m"). A cron edge function (`auto-approve-content-requests`, runs every 15 min) flips any pending Content Request ticket whose `content_ready_for_review_at` is older than 24h to `content_approval_status = 'auto_approved'`.
-
-`content_ready_for_review_at` is set the moment the concierge uploads the deliverable AND the ticket is `completed`. Until a graphic is attached, the panel shows "Waiting on concierge to upload the deliverable" and the 24h timer does not start.
-
----
-
-## Technical changes
-
-**Database migration** (new columns on `department_tickets`, plus cron):
-- `content_preview jsonb`
-- `content_deliverable_files text[] default '{}'`
-- `content_change_notes text`
-- `content_approval_status text` (`pending | approved | changes_requested | auto_approved`)
-- `content_approved_at timestamptz`
-- `content_ready_for_review_at timestamptz`
-- pg_cron job hitting the new edge function every 15 min.
-
-**Edge functions**:
-- `generate-content-preview` — extend to accept an optional `change_notes` arg for regeneration.
-- `auto-approve-content-requests` — new cron-triggered function (uses `CRON_SECRET`) that flips eligible tickets to `auto_approved` and notifies the clinic via `sendZohoEmail`.
-
-**Frontend files touched**:
-- `src/components/department/ticket-forms/ContentRequestForm.tsx` — add regenerate-with-notes UI, raise `previewReady` + `previewData` to parent.
-- `src/components/department/NewTicketDialog.tsx` — gate the submit button for Content Request; pass `content_preview` into the insert.
-- `src/components/department/TicketEditDialog.tsx` (or `TicketCard.tsx` detail view) — render the Content Approval panel when `ticket_type === "Content Request"` and `status === "completed"`.
-- New `src/components/department/ticket-forms/ContentApprovalPanel.tsx` — preview card + uploader + approve / request-changes actions + countdown.
-- `src/integrations/supabase/types.ts` — regenerated by migration.
-
-**RLS**: existing `department_tickets` policies cover reads/writes; add a policy allowing the ticket's clinic owner + sub-accounts to UPDATE only the `content_approval_status` / `content_change_notes` columns (via a SECURITY DEFINER function `client_set_content_approval(ticket_id, status, notes)` to keep the policy surface small).
-
----
-
-## Out of scope
-
-- Changing other ticket types' flows.
-- Reworking the existing Social Media SM2 content pipeline (this remains a one-off ad-hoc request flow, not part of the monthly batch).
-- Push/SMS notifications (email only).
+1. Should the **Manage items** dialog be admin-only, or concierge too? (Default: admin-only — concierge can only tick boxes.)
+2. Item deletion: soft-delete via `is_active=false` so historical completion data is preserved — OK?
