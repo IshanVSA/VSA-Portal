@@ -536,7 +536,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                       </span>
                       {gen.html_file_path && (
                         <>
-                          <Button variant="ghost" size="sm" onClick={() => setViewingHtml(gen.html_file_path)}>
+                          <Button variant="ghost" size="sm" onClick={() => setViewingHtml({ generationId: gen.id })}>
                             <Eye className="h-4 w-4" />
                           </Button>
                           <Button variant="ghost" size="sm" onClick={() => setEditingHtml(gen.html_file_path)} title="Edit Content">
