@@ -33,6 +33,8 @@ import {
   X,
   Lock,
   Pencil,
+  FileText,
+
 } from "lucide-react";
 import { format } from "date-fns";
 import { useSM2Posts, type SM2Post, getPostImagePaths, SM2_MAX_IMAGES_PER_POST } from "@/hooks/useSM2Posts";
@@ -492,6 +494,17 @@ function PostCard({
             </div>
           )}
 
+          {/* Script — shoot-ready slide / scene / frame copy */}
+          {post.script && (
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+              <p className="text-[10px] uppercase tracking-wide text-primary font-semibold flex items-center gap-1.5 mb-1.5">
+                <FileText className="h-3 w-3" />
+                Script
+              </p>
+              <p className="text-sm whitespace-pre-wrap leading-relaxed font-mono">{post.script}</p>
+            </div>
+          )}
+
           {/* Hashtags */}
           {post.hashtags && post.hashtags.length > 0 && (
             <p className="text-xs text-primary/80 font-mono break-words">{post.hashtags.join(" ")}</p>
@@ -785,6 +798,7 @@ function EditPostDialog({
   const [hashtags, setHashtags] = useState((post.hashtags || []).join(" "));
   const [cta, setCta] = useState(post.cta || "");
   const [compliance, setCompliance] = useState(post.compliance_notes || "");
+  const [script, setScript] = useState(post.script || "");
 
   // Re-sync local state whenever the dialog opens for a (potentially) different post
   useEffect(() => {
@@ -796,6 +810,7 @@ function EditPostDialog({
     setHashtags((post.hashtags || []).join(" "));
     setCta(post.cta || "");
     setCompliance(post.compliance_notes || "");
+    setScript(post.script || "");
   }, [open, post.id]);
 
   const handleSave = () => {
@@ -812,6 +827,7 @@ function EditPostDialog({
       hashtags: tagList.length ? tagList : null,
       cta: cta.trim() || null,
       compliance_notes: compliance.trim() || null,
+      script: script.trim() || null,
     });
   };
 
@@ -857,6 +873,16 @@ function EditPostDialog({
           <div className="space-y-1.5">
             <Label className="text-xs">Compliance Notes</Label>
             <Textarea value={compliance} onChange={(e) => setCompliance(e.target.value)} rows={2} />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs flex items-center gap-1.5"><FileText className="h-3 w-3" /> Script <span className="text-muted-foreground font-normal">(slides / scenes / frames)</span></Label>
+            <Textarea
+              value={script}
+              onChange={(e) => setScript(e.target.value)}
+              rows={10}
+              className="font-mono text-xs"
+              placeholder={"Opening hook line...\n\nSlide 1\nTitle\nBody copy\n\nSlide 2\n...\n\nCTA Slide\nClinic name\nPhone"}
+            />
           </div>
         </div>
         <DialogFooter>
