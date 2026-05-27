@@ -80,7 +80,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
   const [clinicNews, setClinicNews] = useState("");
   const [fbSpecific, setFbSpecific] = useState("");
   const [budget, setBudget] = useState("300");
-  const [viewingHtml, setViewingHtml] = useState<string | null>(null);
+  const [viewingHtml, setViewingHtml] = useState<{ generationId: string } | null>(null);
   const [editingHtml, setEditingHtml] = useState<string | null>(null);
   const [topPerformers, setTopPerformers] = useState<PerformanceData[]>([]);
   const [contentSettings, setContentSettings] = useState<ContentSettings>(DEFAULT_SETTINGS);
@@ -237,7 +237,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
         </div>
         <div className="flex gap-2">
           {selectedGen?.html_file_path && (
-            <Button variant="outline" size="sm" onClick={() => setViewingHtml(selectedGen.html_file_path!)} className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => setViewingHtml({ generationId: selectedGen.id })} className="gap-2">
               <Eye className="h-4 w-4" /> View Content
             </Button>
           )}
@@ -536,7 +536,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                       </span>
                       {gen.html_file_path && (
                         <>
-                          <Button variant="ghost" size="sm" onClick={() => setViewingHtml(gen.html_file_path)}>
+                          <Button variant="ghost" size="sm" onClick={() => setViewingHtml({ generationId: gen.id })}>
                             <Eye className="h-4 w-4" />
                           </Button>
                           <Button variant="ghost" size="sm" onClick={() => setEditingHtml(gen.html_file_path)} title="Edit Content">
@@ -610,7 +610,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
 
       {/* HTML Viewer Dialog */}
       {viewingHtml && (
-        <HtmlPreviewDialog filePath={viewingHtml} onClose={() => setViewingHtml(null)} />
+        <HtmlPreviewDialog generationId={viewingHtml.generationId} onClose={() => setViewingHtml(null)} />
       )}
 
       {/* HTML Editor Dialog */}
@@ -674,27 +674,164 @@ function StatusBadge({ status, stage }: { status: string; stage?: string | null 
   );
 }
 
-function HtmlPreviewDialog({ filePath, onClose }: { filePath: string; onClose: () => void }) {
+function escapeHtml(s: any): string {
+  if (s === null || s === undefined) return "";
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function buildPreviewHtml(args: {
+  clinicName: string;
+  monthLabel: string;
+  pipelineData: any;
+  posts: any[];
+}): string {
+  const { clinicName, monthLabel, pipelineData, posts } = args;
+  const pd = pipelineData || {};
+  const review = pd.review || {};
+  const planPosts: any[] = pd?.plan?.posts || [];
+  const arts: any[] = Array.isArray(pd.art_direction) ? pd.art_direction : [];
+  const stories: any[] = Array.isArray(pd.stories) ? pd.stories : [];
+  const concierges: any[] = Array.isArray(pd?.concierge?.posts) ? pd.concierge.posts : [];
+  const checks: any[] = Array.isArray(pd.fact_check) ? pd.fact_check : [];
+
+  // Index live posts by post_number (fallback to position)
+  const postByNumber = new Map<number, any>();
+  posts.forEach((p) => {
+    if (typeof p.post_number === "number") postByNumber.set(p.post_number, p);
+  });
+
+  // Use plan ordering as the canonical sequence; if no plan, fall back to live posts
+  const sequence = planPosts.length > 0
+    ? planPosts.map((p, i) => ({ plan: p, idx: i }))
+    : posts.map((p, i) => ({ plan: { number: p.post_number ?? i + 1 }, idx: i }));
+
+  const postCards = sequence
+    .map(({ plan, idx }) => {
+      const num = plan?.number ?? idx + 1;
+      const live = postByNumber.get(num) || posts[idx] || {};
+      const a = arts[idx] || live.art_direction || {};
+      const s = stories[idx] || { frames: live.stories || [] };
+      const c = concierges[idx] || live.concierge_brief || {};
+      const f = checks[idx] || {};
+      const verdict = live.status || f.verdict || "PENDING";
+      const verdictClass = verdict === "PASS" ? "pass" : "flag";
+
+      const topic = live.topic || plan?.topic || "";
+      const hookA = live.hook || "";
+      const hookB = live.hook_b || "";
+      const caption = live.caption || "";
+      const hashtags = Array.isArray(live.hashtags)
+        ? live.hashtags.join(" ")
+        : (live.hashtags || "");
+      const script = live.script || "";
+
+      return `<div class="post-card">
+      <div class="post-header">
+        <span class="num">#${escapeHtml(num)}</span>
+        <span class="pillar">${escapeHtml(plan?.pillar || live.theme || "")}</span>
+        <span class="format">${escapeHtml(plan?.format || live.post_type || "")}</span>
+        <span class="verdict ${verdictClass}">${escapeHtml(verdict)}</span>
+      </div>
+      <h3>${escapeHtml(topic)}</h3>
+      <div class="hooks"><strong>Hook A:</strong> ${escapeHtml(hookA)}<br/><strong>Hook B:</strong> ${escapeHtml(hookB)}</div>
+      <pre class="caption">${escapeHtml(caption)}</pre>
+      <p class="hashtags">${escapeHtml(hashtags)}</p>
+      ${script ? `<div class="script-label">Script / Shot List</div><pre class="script">${escapeHtml(script)}</pre>` : ""}
+      <details><summary>Art Direction</summary><pre>${escapeHtml(JSON.stringify(a, null, 2))}</pre></details>
+      <details><summary>Stories (${(s.frames || []).length})</summary><pre>${escapeHtml(JSON.stringify(s.frames || [], null, 2))}</pre></details>
+      <details><summary>Concierge Brief</summary><pre>${escapeHtml(JSON.stringify(c, null, 2))}</pre></details>
+    </div>`;
+    })
+    .join("\n");
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHtml(clinicName)} — ${escapeHtml(monthLabel)}</title>
+<style>
+body{font-family:system-ui,sans-serif;background:#0F1018;color:#C8CDD8;padding:24px;max-width:1200px;margin:0 auto}
+h1{color:#F1F3F7;font-size:28px;margin-bottom:8px}
+h3{color:#F1F3F7;margin:8px 0}
+.post-card{background:#16181F;border:1px solid #2A2D38;border-radius:12px;padding:20px;margin-bottom:16px}
+.post-header{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.num{font-weight:700;color:#60A5FA}
+.pillar,.format{background:#1E293B;padding:3px 10px;border-radius:12px;font-size:11px}
+.verdict.pass{background:#14532D;color:#4ADE80;padding:3px 10px;border-radius:12px;font-size:11px}
+.verdict.flag{background:#7C2D12;color:#FB923C;padding:3px 10px;border-radius:12px;font-size:11px}
+.hooks{background:#08090E;padding:12px;border-radius:8px;margin:8px 0;font-size:13px}
+.caption{background:#08090E;padding:12px;border-radius:8px;white-space:pre-wrap;font-family:inherit;font-size:13px}
+.script-label{margin-top:12px;font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#A78BFA}
+.script{background:#0B1220;border:1px solid #1E293B;padding:12px;border-radius:8px;white-space:pre-wrap;font-family:inherit;font-size:13px;color:#E2E8F0;margin-top:6px}
+.hashtags{color:#60A5FA;font-size:12px;margin-top:8px}
+details{margin-top:8px;background:#08090E;padding:8px 12px;border-radius:8px}
+summary{cursor:pointer;font-weight:600;font-size:12px;color:#A78BFA}
+pre{white-space:pre-wrap;font-size:11px;color:#8A90A0;margin-top:8px;max-height:300px;overflow:auto}
+.review{background:#1E1B4B;padding:16px;border-radius:12px;margin:16px 0}
+.live-badge{display:inline-block;background:#14532D;color:#4ADE80;padding:2px 8px;border-radius:8px;font-size:10px;margin-left:8px;vertical-align:middle}
+</style></head><body>
+<h1>${escapeHtml(clinicName)} <span class="live-badge">LIVE</span></h1>
+<p>${escapeHtml(monthLabel)} — Social Media Content (${sequence.length} posts)</p>
+<div class="review">
+  <strong>Batch Verdict:</strong> ${escapeHtml(review.batch_verdict || "PENDING")}<br/>
+  <em>${escapeHtml(review.batch_summary || "")}</em>
+</div>
+${postCards}
+</body></html>`;
+}
+
+function HtmlPreviewDialog({ generationId, onClose }: { generationId: string; onClose: () => void }) {
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchHtml = async () => {
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
       try {
-        const { data } = supabase.storage.from("department-files").getPublicUrl(filePath);
-        const res = await fetch(data.publicUrl);
-        if (!res.ok) throw new Error("Failed to fetch");
-        const text = await res.text();
-        setHtmlContent(text);
+        const { data: gen, error: genErr } = await supabase
+          .from("sm2_generations")
+          .select("clinic_id, month_year, pipeline_data")
+          .eq("id", generationId)
+          .single();
+        if (genErr) throw genErr;
+
+        const [{ data: clinic }, { data: posts }] = await Promise.all([
+          supabase.from("clinics").select("clinic_name").eq("id", gen.clinic_id).single(),
+          supabase
+            .from("sm2_posts")
+            .select("*")
+            .eq("generation_id", generationId)
+            .order("post_number", { ascending: true }),
+        ]);
+
+        const [y, m] = (gen.month_year || "").split("-").map(Number);
+        const monthLabel =
+          y && m
+            ? new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" })
+            : gen.month_year || "";
+
+        const html = buildPreviewHtml({
+          clinicName: clinic?.clinic_name || "Clinic",
+          monthLabel,
+          pipelineData: gen.pipeline_data,
+          posts: posts || [],
+        });
+        if (!cancelled) setHtmlContent(html);
       } catch (err) {
-        console.error("Failed to load HTML preview:", err);
-        setHtmlContent("<html><body><p>Failed to load content preview.</p></body></html>");
+        console.error("Failed to build live preview:", err);
+        if (!cancelled)
+          setHtmlContent("<html><body><p>Failed to load content preview.</p></body></html>");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
-    fetchHtml();
-  }, [filePath]);
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [generationId]);
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -719,3 +856,4 @@ function HtmlPreviewDialog({ filePath, onClose }: { filePath: string; onClose: (
     </Dialog>
   );
 }
+
