@@ -2766,6 +2766,7 @@ export type Database = {
           post_type: string | null
           run_meta_ad: boolean
           scheduled_date: string
+          script: string | null
           status: string | null
           stories: Json | null
           theme: string | null
@@ -2796,6 +2797,7 @@ export type Database = {
           post_type?: string | null
           run_meta_ad?: boolean
           scheduled_date: string
+          script?: string | null
           status?: string | null
           stories?: Json | null
           theme?: string | null
@@ -2826,6 +2828,7 @@ export type Database = {
           post_type?: string | null
           run_meta_ad?: boolean
           scheduled_date?: string
+          script?: string | null
           status?: string | null
           stories?: Json | null
           theme?: string | null
