@@ -873,6 +873,7 @@ function EditPostDialog({
           <div className="space-y-1.5">
             <Label className="text-xs">Compliance Notes</Label>
             <Textarea value={compliance} onChange={(e) => setCompliance(e.target.value)} rows={2} />
+          </div>
           <div className="space-y-1.5">
             <Label className="text-xs flex items-center gap-1.5"><FileText className="h-3 w-3" /> Script <span className="text-muted-foreground font-normal">(slides / scenes / frames)</span></Label>
             <Textarea
