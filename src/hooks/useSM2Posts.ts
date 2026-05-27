@@ -32,6 +32,7 @@ export interface SM2Post {
   art_direction: Record<string, any> | null;
   stories: any[] | null;
   concierge_brief: Record<string, any> | null;
+  script: string | null;
   created_at: string;
   updated_at: string;
 }
