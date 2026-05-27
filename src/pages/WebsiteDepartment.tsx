@@ -32,6 +32,7 @@ const baseTabs = [
 ];
 
 const healthTab = { value: "health", label: "Health", icon: ShieldCheck };
+const checklistTab = { value: "checklist", label: "Checklist", icon: ClipboardCheck };
 const tasksTabDef = { value: "tasks", label: "Tasks", icon: ListChecks };
 const chatTab = { value: "chat", label: "Team Chat", icon: MessageCircle };
 
