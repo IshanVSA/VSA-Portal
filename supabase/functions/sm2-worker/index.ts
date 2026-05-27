@@ -296,6 +296,7 @@ function assembleHTML(clinic: any, monthLabel: string, planData: any, writerData
       <div class="hooks"><strong>Hook A:</strong> ${w.hook_a || ""}<br/><strong>Hook B:</strong> ${w.hook_b || ""}</div>
       <pre class="caption">${w.caption || ""}</pre>
       <p class="hashtags">${w.hashtags || ""}</p>
+      ${w.script ? `<div class="script-label">Script / Shot List</div><pre class="script">${w.script}</pre>` : ""}
       <details><summary>Art Direction</summary><pre>${JSON.stringify(a, null, 2)}</pre></details>
       <details><summary>Stories (${(s.frames || []).length})</summary><pre>${JSON.stringify(s.frames || [], null, 2)}</pre></details>
       <details><summary>Concierge Brief</summary><pre>${JSON.stringify(c, null, 2)}</pre></details>
