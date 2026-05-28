@@ -36,7 +36,7 @@ export default function PostDetailsDrawer({
   const [activeIndex, setActiveIndex] = useState(0);
 
   const isActionable = approvalStatus === "sent_for_copy_review" || approvalStatus === "sent_for_final_review";
-  const isCopyRound = approvalStatus === "sent_for_copy_review";
+  const isCopyRound = false; // single-step approval — copy-only round no longer exists
   const monthLabel = useMemo(
     () => format(new Date(monthYear + "-01T00:00:00"), "MMMM yyyy"),
     [monthYear]
