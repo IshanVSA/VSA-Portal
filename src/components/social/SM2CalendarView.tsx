@@ -122,21 +122,15 @@ export default function SM2CalendarView({
 
   // Status pill
   const statusPill = (() => {
-    if (approvalStatus === "approved_client" || approvalStatus === "approved_auto")
+    if (isApprovedFinal)
       return <Badge className="gap-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"><CheckCircle className="h-3 w-3" />Approved</Badge>;
-    if (approvalStatus === "sent_for_copy_review")
-      return <Badge variant="outline" className="gap-1"><Clock className="h-3 w-3" />Awaiting client copy approval</Badge>;
-    if (approvalStatus === "copy_changes_requested")
-      return <Badge variant="secondary" className="gap-1"><MessageSquare className="h-3 w-3" />Copy changes requested</Badge>;
-    if (approvalStatus === "copy_approved")
-      return <Badge className="gap-1 bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30"><CheckCircle className="h-3 w-3" />Copy approved · add visuals</Badge>;
-    if (approvalStatus === "sent_for_final_review")
-      return <Badge variant="outline" className="gap-1"><Clock className="h-3 w-3" />Awaiting final approval</Badge>;
-    if (approvalStatus === "final_changes_requested")
-      return <Badge variant="secondary" className="gap-1"><MessageSquare className="h-3 w-3" />Final changes requested</Badge>;
-    if (!isClient && total > 0 && isFinalRound) {
+    if (isAwaitingClient)
+      return <Badge variant="outline" className="gap-1"><Clock className="h-3 w-3" />Awaiting client approval</Badge>;
+    if (approvalStatus === "final_changes_requested" || approvalStatus === "copy_changes_requested")
+      return <Badge variant="secondary" className="gap-1"><MessageSquare className="h-3 w-3" />Changes requested</Badge>;
+    if (!isClient && total > 0 && canSend) {
       return imagesComplete
-        ? <Badge className="gap-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"><CheckCircle className="h-3 w-3" />Ready for final send</Badge>
+        ? <Badge className="gap-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"><CheckCircle className="h-3 w-3" />Ready to send</Badge>
         : <Badge variant="outline" className="gap-1 border-amber-500/30 text-amber-700 dark:text-amber-400">Awaiting visuals · {withImages}/{total} posts</Badge>;
     }
     return null;
@@ -157,9 +151,8 @@ export default function SM2CalendarView({
     );
   }
 
-  // Whether the staff "send" CTA should require image completeness
-  const sendRequiresImages = isFinalRound;
-  const sendDisabled = sendPending || (sendRequiresImages && !imagesComplete);
+  // Staff "send" CTA always requires image completeness now.
+  const sendDisabled = sendPending || !imagesComplete;
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -169,28 +162,15 @@ export default function SM2CalendarView({
           <div className="flex items-center gap-3 flex-wrap">
             <h3 className="text-lg font-semibold">{monthLabel}</h3>
             {statusPill}
-            {sentToClientAt &&
-              (approvalStatus === "sent_for_copy_review" ||
-                approvalStatus === "sent_for_final_review") && (
-                <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
-                  <Send className="h-3 w-3" />
-                  Sent to client {format(new Date(sentToClientAt), "MMM d, yyyy 'at' h:mm a")}
-                </span>
-              )}
+            {sentToClientAt && isAwaitingClient && (
+              <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                <Send className="h-3 w-3" />
+                Sent to client {format(new Date(sentToClientAt), "MMM d, yyyy 'at' h:mm a")}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2">
-            {!isClient && isCopyRound && (
-              <Button
-                size="sm"
-                onClick={() => setConfirmSendOpen(true)}
-                disabled={sendPending}
-                className="gap-2"
-              >
-                <Send className="h-3.5 w-3.5" />
-                {approvalStatus === "copy_changes_requested" ? "Resend copy" : "Send copy to client"}
-              </Button>
-            )}
-            {!isClient && isFinalRound && (
+            {!isClient && canSend && (
               <Button
                 size="sm"
                 onClick={() => setConfirmSendOpen(true)}
@@ -198,54 +178,26 @@ export default function SM2CalendarView({
                 className="gap-2"
               >
                 <Send className="h-3.5 w-3.5" />
-                Send for final approval
+                {approvalStatus === "final_changes_requested" || approvalStatus === "copy_changes_requested"
+                  ? "Resend for approval"
+                  : "Send to client for approval"}
               </Button>
             )}
-            {isClient && approvalStatus === "sent_for_copy_review" && (
+            {isClient && isAwaitingClient && (
               <>
-                <Button size="sm" variant="outline" onClick={onRequestCopyChanges} className="gap-2">
-                  <MessageSquare className="h-3.5 w-3.5" />
-                  Request copy changes
-                </Button>
-                <Button size="sm" onClick={onApproveCopy} className="gap-2">
-                  <ThumbsUp className="h-3.5 w-3.5" />
-                  Approve copy
-                </Button>
-              </>
-            )}
-            {isClient && approvalStatus === "sent_for_final_review" && (
-              <>
-                <Button size="sm" variant="outline" onClick={onRequestFinalChanges} className="gap-2">
+                <Button size="sm" variant="outline" onClick={onRequestFinalChanges ?? onRequestCopyChanges} className="gap-2">
                   <MessageSquare className="h-3.5 w-3.5" />
                   Request changes
                 </Button>
-                <Button size="sm" onClick={onApproveFinal} className="gap-2">
+                <Button size="sm" onClick={onApproveFinal ?? onApproveCopy} className="gap-2">
                   <ThumbsUp className="h-3.5 w-3.5" />
-                  Approve final
+                  Approve
                 </Button>
               </>
             )}
           </div>
         </div>
 
-        {/* Image-upload lock banner (concierge view, before copy approval) */}
-        {!isClient && !imagesUnlocked && (
-          <div className="flex items-start gap-2.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs">
-            <Lock className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="font-semibold text-amber-700 dark:text-amber-400">
-                Images unlocked after copy approval
-              </p>
-              <p className="text-amber-700/80 dark:text-amber-400/80 mt-0.5">
-                {approvalStatus === "sent_for_copy_review"
-                  ? "Waiting on the client to approve the copy. Image uploads will unlock automatically once they sign off."
-                  : approvalStatus === "copy_changes_requested"
-                  ? "Client requested copy changes. Revise the captions and resend — images unlock after copy approval."
-                  : "Send the copy for client approval first. Image uploads unlock once the copy is approved."}
-              </p>
-            </div>
-          </div>
-        )}
 
         <div className="border border-border rounded-xl overflow-hidden bg-card shadow-sm">
           <div className="overflow-x-auto">
