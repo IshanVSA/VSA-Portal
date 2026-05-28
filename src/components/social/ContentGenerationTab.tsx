@@ -241,7 +241,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-semibold">Content Generation</h2>
-          <p className="text-xs text-muted-foreground">SM2 v2.1 - 8-Agent Pipeline &middot; {monthLabel}</p>
+          <p className="text-xs text-muted-foreground">SM2 v2.1 - 8-Agent Pipeline &middot; {headerMonthLabel}</p>
         </div>
         <div className="flex gap-2">
           {selectedGen?.html_file_path && (
