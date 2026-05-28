@@ -192,7 +192,7 @@ function PostDetail({
       <div className="relative rounded-lg overflow-hidden bg-muted border aspect-[4/5] max-h-96">
         {images[0] ? (
           <img
-            src={getImageUrl(images[0])}
+            src={getImageUrl(coverPathFor(images[0]))}
             alt={post.topic || "Post image"}
             className="w-full h-full object-contain bg-background"
           />
