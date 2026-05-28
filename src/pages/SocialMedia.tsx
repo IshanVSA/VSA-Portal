@@ -5,7 +5,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Share2, LayoutGrid, ChartColumn, Ticket, Upload, MessageCircle, Dna, Sparkles, Eye, SlidersHorizontal, MapPin, Tag, Megaphone, FileText, ListChecks } from "lucide-react";
+import { Share2, LayoutGrid, ChartColumn, Ticket, Upload, MessageCircle, Dna, Sparkles, Eye, SlidersHorizontal, MapPin, Tag, Megaphone, FileText, ListChecks, Users } from "lucide-react";
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { ComingSoonTab } from "@/components/department/ComingSoonTab";
 import { GBPPostsTab } from "@/components/seo/gbp/GBPPostsTab";
