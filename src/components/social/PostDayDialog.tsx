@@ -357,22 +357,17 @@ function PostCard({
                   const isVid = isVideoUrl(img.url);
                   return (
                     <div key={img.path} className="relative group">
-                      <img
-                        src={img.thumbUrl}
-                        alt="Post image"
-                        className={cn(
-                          "w-full aspect-square object-cover rounded border cursor-zoom-in",
-                          isVid && "bg-black",
-                        )}
-                        onClick={() => setViewerIndex(realIdx)}
-                      />
-                      {isVid && (
-                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                          <div className="h-6 w-6 rounded-full bg-background/80 backdrop-blur border flex items-center justify-center">
-                            <Play className="h-2.5 w-2.5 fill-foreground text-foreground" />
-                          </div>
-                        </div>
-                      )}
+                      <div className="relative w-full aspect-square rounded border overflow-hidden">
+                        <MediaCover
+                          url={img.url}
+                          thumbUrl={img.thumbUrl}
+                          isVideo={isVid}
+                          alt="Post image"
+                          iconSize="sm"
+                          className="cursor-zoom-in"
+                          onClick={() => setViewerIndex(realIdx)}
+                        />
+                      </div>
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); setViewerIndex(realIdx); }}
