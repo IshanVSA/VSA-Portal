@@ -3,7 +3,7 @@ import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Globe, LayoutGrid, Ticket, ChartColumn, FileText, Upload, Eye, TrendingUp, Clock, Layers, ShieldCheck, MessageCircle, ListChecks, ClipboardCheck } from "lucide-react";
+import { Globe, LayoutGrid, Ticket, ChartColumn, FileText, Upload, Eye, TrendingUp, Clock, Layers, ShieldCheck, MessageCircle, ListChecks, ClipboardCheck, MessagesSquare } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { WebsiteAnalyticsTab } from "@/components/department/WebsiteAnalyticsTab";
@@ -35,6 +35,7 @@ const healthTab = { value: "health", label: "Health", icon: ShieldCheck };
 const checklistTab = { value: "checklist", label: "Checklist", icon: ClipboardCheck };
 const tasksTabDef = { value: "tasks", label: "Tasks", icon: ListChecks };
 const chatTab = { value: "chat", label: "Team Chat", icon: MessageCircle };
+const clientChatTab = { value: "client-chat", label: "Client Chat", icon: MessagesSquare };
 
 const services = [
   "Time Changes", "Pop-up Offers", "Third Party Integrations",
