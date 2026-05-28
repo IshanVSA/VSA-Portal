@@ -513,13 +513,13 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                 }}
               >
                 <CardContent className="py-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                         <FileText className="h-4 w-4 text-primary" />
                       </div>
-                      <div>
-                        <p className="text-sm font-medium">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">
                           {format(new Date(gen.month_year + "-01T00:00:00"), "MMMM yyyy")}
                         </p>
                         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
@@ -538,7 +538,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-2 flex-wrap sm:justify-end" onClick={(e) => e.stopPropagation()}>
                       <span className="text-xs text-muted-foreground">
                         {format(new Date(gen.created_at), "MMM d, h:mm a")}
                       </span>
