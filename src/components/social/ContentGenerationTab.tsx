@@ -205,6 +205,14 @@ export default function ContentGenerationTab({ clinicId }: Props) {
     return format(new Date(parseInt(y), parseInt(m) - 1), "MMMM yyyy");
   }, [targetMonth]);
 
+  const headerMonthLabel = useMemo(() => {
+    if (selectedGen?.month_year) {
+      const [y, m] = selectedGen.month_year.split("-").map(Number);
+      return format(new Date(y, m - 1, 1), "MMMM yyyy");
+    }
+    return monthLabel;
+  }, [selectedGen, monthLabel]);
+
   const activeGates = [
     { label: "Promotions", active: contentSettings.promotion_requested },
     { label: "Team Spotlights", active: contentSettings.team_spotlight_requested },
@@ -233,7 +241,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-semibold">Content Generation</h2>
-          <p className="text-xs text-muted-foreground">SM2 v2.1 - 8-Agent Pipeline &middot; {monthLabel}</p>
+          <p className="text-xs text-muted-foreground">SM2 v2.1 - 8-Agent Pipeline &middot; {headerMonthLabel}</p>
         </div>
         <div className="flex gap-2">
           {selectedGen?.html_file_path && (
