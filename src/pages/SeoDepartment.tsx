@@ -35,6 +35,7 @@ const commonTabs = [
   { value: "uploads", label: "Files", icon: Upload },
 ];
 const chatTab = { value: "chat", label: "Team Chat", icon: MessageCircle };
+const clientChatTab = { value: "client-chat", label: "Client Chat", icon: MessageCircle };
 const tasksTabDef = { value: "tasks", label: "Tasks", icon: ListChecks };
 const blogTab = { value: "blog", label: "Blog", icon: BookOpen };
 function TopKeywordsCard({ keywords }: { keywords: SeoKeyword[] }) {
