@@ -224,7 +224,7 @@ function PostCard({
   isClient: boolean;
   imagesUnlocked?: boolean;
   copyLocked?: boolean;
-  imageUrls: { path: string; url: string }[];
+  imageUrls: { path: string; url: string; thumbUrl: string }[];
   onUpload: (files: File[]) => void;
   onRemoveImage: (path: string) => void;
   onSaveFeedback: (feedback: string) => void;
