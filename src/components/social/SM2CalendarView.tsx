@@ -90,7 +90,8 @@ export default function SM2CalendarView({
   const isAwaitingClient = approvalStatus === "sent_for_final_review" || approvalStatus === "sent_for_copy_review";
   const isApprovedFinal = approvalStatus === "approved_client" || approvalStatus === "approved_auto";
   const imagesUnlocked = true;
-  const copyLocked = isAwaitingClient || isApprovedFinal;
+  // Posts remain editable until the client gives final approval.
+  const copyLocked = isApprovedFinal;
   const canDrag = !isClient && !copyLocked;
 
 
