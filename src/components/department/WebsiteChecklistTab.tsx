@@ -55,7 +55,7 @@ function ItemNotes({
 
 export function WebsiteChecklistTab({ clinicId }: Props) {
   const { role } = useUserRole();
-  const isAdmin = role === "admin";
+  const isStaff = role === "admin" || role === "concierge";
   const { data: rows = [], isLoading } = useChecklistStatus(clinicId);
   const toggle = useToggleChecklistItem(clinicId);
   const [managerOpen, setManagerOpen] = useState(false);
