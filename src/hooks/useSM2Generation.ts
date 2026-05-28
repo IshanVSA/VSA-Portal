@@ -282,7 +282,9 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
     currentGeneration,
     isLoading,
     generate,
-    // Two-step approval workflow
+    // Single-step approval workflow (+ backwards-compatible aliases)
+    sendForApproval,
+    requestChanges,
     sendCopyForReview,
     approveCopy,
     requestCopyChanges,
