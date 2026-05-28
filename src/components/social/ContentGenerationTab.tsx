@@ -205,6 +205,14 @@ export default function ContentGenerationTab({ clinicId }: Props) {
     return format(new Date(parseInt(y), parseInt(m) - 1), "MMMM yyyy");
   }, [targetMonth]);
 
+  const headerMonthLabel = useMemo(() => {
+    if (selectedGen?.month_year) {
+      const [y, m] = selectedGen.month_year.split("-").map(Number);
+      return format(new Date(y, m - 1, 1), "MMMM yyyy");
+    }
+    return monthLabel;
+  }, [selectedGen, monthLabel]);
+
   const activeGates = [
     { label: "Promotions", active: contentSettings.promotion_requested },
     { label: "Team Spotlights", active: contentSettings.team_spotlight_requested },
