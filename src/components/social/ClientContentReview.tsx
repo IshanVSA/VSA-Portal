@@ -369,11 +369,11 @@ function ContentReviewCard({
 
 function ReviewStatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive"; icon: typeof CheckCircle }> = {
-    sent_for_copy_review: { label: "Awaiting Copy Review", variant: "outline", icon: Clock },
-    copy_approved: { label: "Copy Approved · Awaiting Visuals", variant: "secondary", icon: CheckCircle },
-    copy_changes_requested: { label: "Copy Changes Sent", variant: "secondary", icon: MessageSquare },
-    sent_for_final_review: { label: "Awaiting Final Approval", variant: "outline", icon: Clock },
-    final_changes_requested: { label: "Final Changes Sent", variant: "secondary", icon: MessageSquare },
+    sent_for_copy_review: { label: "Awaiting Approval", variant: "outline", icon: Clock },
+    copy_approved: { label: "Ready to Send", variant: "secondary", icon: CheckCircle },
+    copy_changes_requested: { label: "Changes Sent", variant: "secondary", icon: MessageSquare },
+    sent_for_final_review: { label: "Awaiting Approval", variant: "outline", icon: Clock },
+    final_changes_requested: { label: "Changes Sent", variant: "secondary", icon: MessageSquare },
     approved_client: { label: "Approved", variant: "default", icon: CheckCircle },
     approved_auto: { label: "Auto-Approved", variant: "secondary", icon: CheckCircle },
   };
