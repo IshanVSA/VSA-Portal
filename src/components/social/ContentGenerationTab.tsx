@@ -238,20 +238,20 @@ export default function ContentGenerationTab({ clinicId }: Props) {
 
       <TabsContent value="pipeline" className="mt-0 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="min-w-0">
           <h2 className="text-base font-semibold">Content Generation</h2>
           <p className="text-xs text-muted-foreground">SM2 v2.1 - 8-Agent Pipeline &middot; {headerMonthLabel}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {selectedGen?.html_file_path && (
-            <Button variant="outline" size="sm" onClick={() => setViewingHtml({ generationId: selectedGen.id })} className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => setViewingHtml({ generationId: selectedGen.id })} className="gap-2 flex-1 sm:flex-none">
               <Eye className="h-4 w-4" /> View Content
             </Button>
           )}
           <Dialog open={preflightOpen} onOpenChange={setPreflightOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" disabled={!canGenerate || generate.isPending} className="gap-2">
+              <Button size="sm" disabled={!canGenerate || generate.isPending} className="gap-2 flex-1 sm:flex-none">
                 {generate.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 {generate.isPending ? "Generating..." : "Generate Content"}
               </Button>
@@ -513,13 +513,13 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                 }}
               >
                 <CardContent className="py-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                         <FileText className="h-4 w-4 text-primary" />
                       </div>
-                      <div>
-                        <p className="text-sm font-medium">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">
                           {format(new Date(gen.month_year + "-01T00:00:00"), "MMMM yyyy")}
                         </p>
                         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
@@ -538,7 +538,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-2 flex-wrap sm:justify-end" onClick={(e) => e.stopPropagation()}>
                       <span className="text-xs text-muted-foreground">
                         {format(new Date(gen.created_at), "MMM d, h:mm a")}
                       </span>
