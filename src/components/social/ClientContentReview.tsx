@@ -287,12 +287,9 @@ function ContentReviewCard({
 }) {
   const monthLabel = format(new Date(generation.month_year + "-01T00:00:00"), "MMMM yyyy");
   const status = generation.approval_status;
-  const isCopyActionable = status === "sent_for_copy_review";
-  const isFinalActionable = status === "sent_for_final_review";
-  const isActionable = isCopyActionable || isFinalActionable;
+  const isActionable = status === "sent_for_final_review" || status === "sent_for_copy_review";
   const isApproved = ["approved_client", "approved_auto"].includes(status);
   const hasFeedback = status === "copy_changes_requested" || status === "final_changes_requested";
-  const isCopyApprovedWaiting = status === "copy_approved";
 
   return (
     <Card
@@ -309,8 +306,6 @@ function ContentReviewCard({
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <FileText className="h-4 w-4" />
             {monthLabel} Content
-            {isCopyActionable && <Badge variant="outline" className="text-[10px] ml-1">Round 1 · Copy</Badge>}
-            {isFinalActionable && <Badge variant="outline" className="text-[10px] ml-1">Round 2 · Final</Badge>}
           </CardTitle>
           <ReviewStatusBadge status={status} />
         </div>
@@ -321,25 +316,10 @@ function ContentReviewCard({
         )}
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Round-specific helper text */}
-        {isCopyActionable && (
+        {isActionable && (
           <div className="rounded-xl border border-blue-200/50 bg-blue-50/30 p-3">
             <p className="text-sm">
-              <strong>Round 1: Review the copy.</strong> Check captions, hooks and hashtags. Visuals will be added by your concierge after you approve the copy.
-            </p>
-          </div>
-        )}
-        {isCopyApprovedWaiting && (
-          <div className="rounded-xl border border-blue-200/50 bg-blue-50/30 p-3">
-            <p className="text-sm">
-              <strong>Copy approved.</strong> Your concierge is now adding visuals. You'll be asked for final approval shortly.
-            </p>
-          </div>
-        )}
-        {isFinalActionable && (
-          <div className="rounded-xl border border-blue-200/50 bg-blue-50/30 p-3">
-            <p className="text-sm">
-              <strong>Round 2: Final approval.</strong> Review the visuals alongside the approved copy. Approving here unlocks scheduling.
+              <strong>Ready for your approval.</strong> Review the captions and visuals together. Approving here unlocks scheduling.
             </p>
           </div>
         )}
@@ -371,23 +351,13 @@ function ContentReviewCard({
           </Button>
           {isActionable && (
             <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onFeedback}
-                className="gap-2"
-              >
+              <Button variant="outline" size="sm" onClick={onFeedback} className="gap-2">
                 <MessageSquare className="h-4 w-4" />
                 Send back
               </Button>
-              <Button
-                size="sm"
-                onClick={onApprove}
-                disabled={isPendingApproval}
-                className="gap-2 ml-auto"
-              >
+              <Button size="sm" onClick={onApprove} disabled={isPendingApproval} className="gap-2 ml-auto">
                 <ThumbsUp className="h-4 w-4" />
-                {isCopyActionable ? "Approve copy" : "Approve final"}
+                Approve
               </Button>
             </>
           )}
