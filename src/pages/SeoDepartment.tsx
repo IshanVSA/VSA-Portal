@@ -191,6 +191,7 @@ export default function SeoDepartment() {
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="seo" clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="blog" className="mt-4"><BlogTab clinicId={selectedClinicId} /></TabsContent>
                 {isStaff && <TabsContent value="tasks" className="mt-4"><TasksTab department="seo" clinicId={selectedClinicId} /></TabsContent>}
+                <TabsContent value="client-chat" className="mt-4"><DepartmentChat department="seo" clinicId={selectedClinicId} variant="client" onVisible={markClientRead} /></TabsContent>
                 {isStaff && <TabsContent value="chat" className="mt-4"><DepartmentChat department="seo" clinicId={selectedClinicId} onVisible={markAsRead} /></TabsContent>}
               </Tabs>
             </motion.div>
