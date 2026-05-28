@@ -360,7 +360,8 @@ export function useSM2Posts(generationId: string | undefined) {
     mutationFn: async ({ post }: { post: SM2Post }) => {
       const paths = getPostImagePaths(post);
       if (paths.length > 0) {
-        await supabase.storage.from("department-files").remove(paths);
+        const withThumbs = paths.flatMap((p) => [p, thumbPathFor(p)]);
+        await supabase.storage.from("department-files").remove(withThumbs);
       }
       const { error } = await supabase.from("sm2_posts").delete().eq("id", post.id);
       if (error) throw error;
