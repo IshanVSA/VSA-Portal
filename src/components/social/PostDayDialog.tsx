@@ -318,23 +318,29 @@ function PostCard({
           ) : (
             <>
               <div className="relative group">
-                {isVideoUrl(imageUrls[0].url) ? (
-                  <video
-                    src={imageUrls[0].url}
-                    className="w-full aspect-square object-cover rounded-xl border cursor-zoom-in bg-black"
-                    onClick={() => setViewerIndex(0)}
-                    muted
-                    playsInline
-                    preload="metadata"
-                  />
-                ) : (
-                  <img
-                    src={imageUrls[0].url}
-                    alt="Cover"
-                    className="w-full aspect-square object-cover rounded-xl border cursor-zoom-in"
-                    onClick={() => setViewerIndex(0)}
-                  />
-                )}
+                {(() => {
+                  const isVid = isVideoUrl(imageUrls[0].url);
+                  return (
+                    <div className="relative w-full aspect-square">
+                      <img
+                        src={imageUrls[0].thumbUrl}
+                        alt="Cover"
+                        className={cn(
+                          "w-full h-full object-cover rounded-xl border cursor-zoom-in",
+                          isVid && "bg-black",
+                        )}
+                        onClick={() => setViewerIndex(0)}
+                      />
+                      {isVid && (
+                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                          <div className="h-9 w-9 rounded-full bg-background/80 backdrop-blur border flex items-center justify-center shadow">
+                            <Play className="h-4 w-4 fill-foreground text-foreground" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
                 <Badge className="absolute top-1.5 left-1.5 text-[9px] py-0 px-1.5">Cover</Badge>
                 <button
                   type="button"
