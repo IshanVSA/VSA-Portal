@@ -420,7 +420,7 @@ function PostCard({
           <input
             ref={fileRef}
             type="file"
-            accept="image/*"
+            accept="image/*,video/*"
             multiple
             className="hidden"
             onChange={(e) => {
