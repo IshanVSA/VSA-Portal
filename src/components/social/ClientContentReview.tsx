@@ -46,10 +46,8 @@ export default function ClientContentReview({ clinicId }: Props) {
   const {
     generations,
     isLoading,
-    approveCopy,
-    requestCopyChanges,
     approveFinal,
-    requestFinalChanges,
+    requestChanges,
     getHtmlUrl,
   } = useSM2Generation(clinicId);
   const [viewingGen, setViewingGen] = useState<SM2Generation | null>(null);
@@ -58,10 +56,11 @@ export default function ClientContentReview({ clinicId }: Props) {
   const [feedbackText, setFeedbackText] = useState("");
   const [approveConfirm, setApproveConfirm] = useState<SM2Generation | null>(null);
 
-  // Show generations once they've been sent for either review round, plus terminal states.
+  // Show generations once they've been sent for review, plus terminal states.
+  // Legacy copy-stage statuses are still rendered so historical records don't disappear.
   const VISIBLE_STATUSES = [
-    "sent_for_copy_review",
-    "copy_approved",
+    "sent_for_copy_review", // legacy
+    "copy_approved",        // legacy
     "copy_changes_requested",
     "sent_for_final_review",
     "final_changes_requested",
@@ -72,35 +71,19 @@ export default function ClientContentReview({ clinicId }: Props) {
     (g) => g.sent_to_client_at && VISIBLE_STATUSES.includes(g.approval_status)
   );
 
-  const isCopyRound = (g: SM2Generation | null) =>
-    !!g && g.approval_status === "sent_for_copy_review";
-  const isFinalRound = (g: SM2Generation | null) =>
-    !!g && g.approval_status === "sent_for_final_review";
+  const isActionableStatus = (g: SM2Generation | null) =>
+    !!g && (g.approval_status === "sent_for_final_review" || g.approval_status === "sent_for_copy_review");
 
   const handleApprove = () => {
     if (!approveConfirm) return;
-    if (isCopyRound(approveConfirm)) {
-      approveCopy.mutate(approveConfirm.id);
-    } else if (isFinalRound(approveConfirm)) {
-      approveFinal.mutate(approveConfirm.id);
-    }
+    approveFinal.mutate(approveConfirm.id);
     setApproveConfirm(null);
   };
 
   const handleSubmitFeedback = () => {
     if (!feedbackGen) return;
     const note = feedbackText.trim() || "Per-post changes requested. See post comments.";
-    if (isCopyRound(feedbackGen)) {
-      requestCopyChanges.mutate({
-        generationId: feedbackGen.id,
-        feedback: note,
-      });
-    } else if (isFinalRound(feedbackGen)) {
-      requestFinalChanges.mutate({
-        generationId: feedbackGen.id,
-        feedback: note,
-      });
-    }
+    requestChanges.mutate({ generationId: feedbackGen.id, feedback: note });
     setFeedbackGen(null);
     setFeedbackText("");
   };
