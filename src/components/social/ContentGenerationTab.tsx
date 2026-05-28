@@ -734,6 +734,22 @@ function buildPreviewHtml(args: {
         ? live.hashtags.join(" ")
         : (live.hashtags || "");
       const script = live.script || "";
+      const imagePaths: string[] = Array.from(new Set(
+        [live.image_path, ...(Array.isArray(live.image_paths) ? live.image_paths : [])].filter(Boolean)
+      ));
+      const imageUrls = imagePaths.map((p: string) =>
+        supabase.storage.from("department-files").getPublicUrl(p).data.publicUrl
+      );
+      const mediaGallery = imageUrls.length
+        ? `<div class="media-gallery">${imageUrls
+            .map((u) => {
+              const isVideo = /\.(mp4|mov|webm|m4v)(\?|$)/i.test(u);
+              return isVideo
+                ? `<video src="${escapeHtml(u)}" controls class="media-item"></video>`
+                : `<img src="${escapeHtml(u)}" alt="" class="media-item" loading="lazy"/>`;
+            })
+            .join("")}</div>`
+        : "";
 
       return `<div class="post-card">
       <div class="post-header">
@@ -743,6 +759,7 @@ function buildPreviewHtml(args: {
         <span class="verdict ${verdictClass}">${escapeHtml(verdict)}</span>
       </div>
       <h3>${escapeHtml(topic)}</h3>
+      ${mediaGallery}
       <div class="hooks"><strong>Hook A:</strong> ${escapeHtml(hookA)}<br/><strong>Hook B:</strong> ${escapeHtml(hookB)}</div>
       <pre class="caption">${escapeHtml(caption)}</pre>
       <p class="hashtags">${escapeHtml(hashtags)}</p>
@@ -753,6 +770,7 @@ function buildPreviewHtml(args: {
     </div>`;
     })
     .join("\n");
+
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHtml(clinicName)} — ${escapeHtml(monthLabel)}</title>
 <style>
@@ -765,6 +783,8 @@ h3{color:#F1F3F7;margin:8px 0}
 .pillar,.format{background:#1E293B;padding:3px 10px;border-radius:12px;font-size:11px}
 .verdict.pass{background:#14532D;color:#4ADE80;padding:3px 10px;border-radius:12px;font-size:11px}
 .verdict.flag{background:#7C2D12;color:#FB923C;padding:3px 10px;border-radius:12px;font-size:11px}
+.media-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin:12px 0}
+.media-item{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:8px;background:#08090E;border:1px solid #2A2D38}
 .hooks{background:#08090E;padding:12px;border-radius:8px;margin:8px 0;font-size:13px}
 .caption{background:#08090E;padding:12px;border-radius:8px;white-space:pre-wrap;font-family:inherit;font-size:13px}
 .script-label{margin-top:12px;font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#A78BFA}
