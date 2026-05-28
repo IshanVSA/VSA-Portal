@@ -34,6 +34,7 @@ import {
   Lock,
   Pencil,
   FileText,
+  Play,
 
 } from "lucide-react";
 import { format } from "date-fns";
@@ -41,8 +42,7 @@ import { useSM2Posts, type SM2Post, getPostImagePaths, SM2_MAX_IMAGES_PER_POST }
 import { isClientNoteUnseen, markClientNoteSeen } from "@/hooks/useSeenClientNotes";
 import { cn } from "@/lib/utils";
 
-const VIDEO_EXT_RE = /\.(mp4|mov|webm|m4v|avi|mkv|qt)(\?|$)/i;
-const isVideoUrl = (url?: string | null) => !!url && VIDEO_EXT_RE.test(url);
+import { isVideoUrl, thumbPathFor, isVideoPath } from "@/lib/video-thumbnail";
 
 interface Props {
   open: boolean;
@@ -100,7 +100,11 @@ export default function PostDayDialog({ open, onClose, date, generationId, isCli
                 isClient={isClient}
                 imagesUnlocked={imagesUnlocked}
                 copyLocked={copyLocked}
-                imageUrls={getPostImagePaths(post).map((p) => ({ path: p, url: getImageUrl(p) }))}
+                imageUrls={getPostImagePaths(post).map((p) => ({
+                  path: p,
+                  url: getImageUrl(p),
+                  thumbUrl: isVideoPath(p) ? getImageUrl(thumbPathFor(p)) : getImageUrl(p),
+                }))}
                 onUpload={(files) => uploadImage.mutate({ post, files })}
                 onRemoveImage={(path) => removeImage.mutate({ post, path })}
                 onSaveFeedback={(feedback) => saveFeedback.mutate({ postId: post.id, feedback })}
@@ -221,7 +225,7 @@ function PostCard({
   isClient: boolean;
   imagesUnlocked?: boolean;
   copyLocked?: boolean;
-  imageUrls: { path: string; url: string }[];
+  imageUrls: { path: string; url: string; thumbUrl: string }[];
   onUpload: (files: File[]) => void;
   onRemoveImage: (path: string) => void;
   onSaveFeedback: (feedback: string) => void;
@@ -314,23 +318,29 @@ function PostCard({
           ) : (
             <>
               <div className="relative group">
-                {isVideoUrl(imageUrls[0].url) ? (
-                  <video
-                    src={imageUrls[0].url}
-                    className="w-full aspect-square object-cover rounded-xl border cursor-zoom-in bg-black"
-                    onClick={() => setViewerIndex(0)}
-                    muted
-                    playsInline
-                    preload="metadata"
-                  />
-                ) : (
-                  <img
-                    src={imageUrls[0].url}
-                    alt="Cover"
-                    className="w-full aspect-square object-cover rounded-xl border cursor-zoom-in"
-                    onClick={() => setViewerIndex(0)}
-                  />
-                )}
+                {(() => {
+                  const isVid = isVideoUrl(imageUrls[0].url);
+                  return (
+                    <div className="relative w-full aspect-square">
+                      <img
+                        src={imageUrls[0].thumbUrl}
+                        alt="Cover"
+                        className={cn(
+                          "w-full h-full object-cover rounded-xl border cursor-zoom-in",
+                          isVid && "bg-black",
+                        )}
+                        onClick={() => setViewerIndex(0)}
+                      />
+                      {isVid && (
+                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                          <div className="h-9 w-9 rounded-full bg-background/80 backdrop-blur border flex items-center justify-center shadow">
+                            <Play className="h-4 w-4 fill-foreground text-foreground" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
                 <Badge className="absolute top-1.5 left-1.5 text-[9px] py-0 px-1.5">Cover</Badge>
                 <button
                   type="button"
@@ -356,24 +366,24 @@ function PostCard({
               <div className="grid grid-cols-4 gap-1.5">
                 {imageUrls.slice(1).map((img, idx) => {
                   const realIdx = idx + 1;
+                  const isVid = isVideoUrl(img.url);
                   return (
                     <div key={img.path} className="relative group">
-                      {isVideoUrl(img.url) ? (
-                        <video
-                          src={img.url}
-                          className="w-full aspect-square object-cover rounded border cursor-zoom-in bg-black"
-                          onClick={() => setViewerIndex(realIdx)}
-                          muted
-                          playsInline
-                          preload="metadata"
-                        />
-                      ) : (
-                        <img
-                          src={img.url}
-                          alt="Post image"
-                          className="w-full aspect-square object-cover rounded border cursor-zoom-in"
-                          onClick={() => setViewerIndex(realIdx)}
-                        />
+                      <img
+                        src={img.thumbUrl}
+                        alt="Post image"
+                        className={cn(
+                          "w-full aspect-square object-cover rounded border cursor-zoom-in",
+                          isVid && "bg-black",
+                        )}
+                        onClick={() => setViewerIndex(realIdx)}
+                      />
+                      {isVid && (
+                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                          <div className="h-6 w-6 rounded-full bg-background/80 backdrop-blur border flex items-center justify-center">
+                            <Play className="h-2.5 w-2.5 fill-foreground text-foreground" />
+                          </div>
+                        </div>
                       )}
                       <button
                         type="button"

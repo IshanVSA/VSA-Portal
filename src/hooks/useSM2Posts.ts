@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { generateVideoThumbnail, thumbPathFor } from "@/lib/video-thumbnail";
 
 export const SM2_MAX_IMAGES_PER_POST = 10;
 
@@ -125,6 +126,21 @@ export function useSM2Posts(generationId: string | undefined) {
           .upload(path, f, { upsert: true, contentType: f.type });
         if (upErr) throw upErr;
         uploadedPaths.push(path);
+
+        // Best-effort poster thumbnail for videos so calendars/grids can render
+        // a still cover instead of an HTML5 <video> element.
+        if (f.type.startsWith("video/")) {
+          try {
+            const thumb = await generateVideoThumbnail(f);
+            if (thumb) {
+              await supabase.storage
+                .from("department-files")
+                .upload(thumbPathFor(path), thumb, { upsert: true, contentType: "image/jpeg" });
+            }
+          } catch (err) {
+            console.warn("[sm2] video thumbnail generation failed", err);
+          }
+        }
       }
 
       const { data: userData } = await supabase.auth.getUser();
@@ -176,8 +192,8 @@ export function useSM2Posts(generationId: string | undefined) {
       const targetPath = path ?? post.image_path ?? (post.image_paths || [])[0];
       if (!targetPath) return;
 
-      // Remove from storage (best-effort)
-      await supabase.storage.from("department-files").remove([targetPath]);
+      // Remove from storage (best-effort) — also drop the video poster thumbnail if any.
+      await supabase.storage.from("department-files").remove([targetPath, thumbPathFor(targetPath)]);
 
       let nextCover: string | null = post.image_path;
       let nextGallery: string[] = post.image_paths || [];
@@ -344,7 +360,8 @@ export function useSM2Posts(generationId: string | undefined) {
     mutationFn: async ({ post }: { post: SM2Post }) => {
       const paths = getPostImagePaths(post);
       if (paths.length > 0) {
-        await supabase.storage.from("department-files").remove(paths);
+        const withThumbs = paths.flatMap((p) => [p, thumbPathFor(p)]);
+        await supabase.storage.from("department-files").remove(withThumbs);
       }
       const { error } = await supabase.from("sm2_posts").delete().eq("id", post.id);
       if (error) throw error;

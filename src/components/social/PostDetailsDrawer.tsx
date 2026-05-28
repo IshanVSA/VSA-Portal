@@ -12,6 +12,7 @@ import {
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useSM2Posts, type SM2Post, getPostImagePaths } from "@/hooks/useSM2Posts";
+import { coverPathFor } from "@/lib/video-thumbnail";
 
 interface Props {
   open: boolean;
@@ -138,7 +139,7 @@ export default function PostDetailsDrawer({
                       >
                         {cover ? (
                           <img
-                            src={getImageUrl(cover)}
+                            src={getImageUrl(coverPathFor(cover))}
                             alt={`Post ${idx + 1}`}
                             className="w-full h-full object-cover"
                           />
@@ -191,7 +192,7 @@ function PostDetail({
       <div className="relative rounded-lg overflow-hidden bg-muted border aspect-[4/5] max-h-96">
         {images[0] ? (
           <img
-            src={getImageUrl(images[0])}
+            src={getImageUrl(coverPathFor(images[0]))}
             alt={post.topic || "Post image"}
             className="w-full h-full object-contain bg-background"
           />
@@ -209,7 +210,7 @@ function PostDetail({
           {images.slice(1).map((p) => (
             <img
               key={p}
-              src={getImageUrl(p)}
+              src={getImageUrl(coverPathFor(p))}
               alt="Additional"
               className="w-full aspect-square object-cover rounded border"
             />

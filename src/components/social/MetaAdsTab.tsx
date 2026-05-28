@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Megaphone, Facebook, Instagram, CalendarDays, ImageOff } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { coverPathFor } from "@/lib/video-thumbnail";
 
 interface Props {
   clinicId: string | undefined;
@@ -109,7 +110,7 @@ export default function MetaAdsTab({ clinicId }: Props) {
                     <div className="aspect-square w-[120px] bg-muted flex items-center justify-center">
                       {cover ? (
                         <img
-                          src={getImageUrl(cover)}
+                          src={getImageUrl(coverPathFor(cover))}
                           alt="Cover"
                           className="w-full h-full object-cover"
                         />
