@@ -192,8 +192,8 @@ export function useSM2Posts(generationId: string | undefined) {
       const targetPath = path ?? post.image_path ?? (post.image_paths || [])[0];
       if (!targetPath) return;
 
-      // Remove from storage (best-effort)
-      await supabase.storage.from("department-files").remove([targetPath]);
+      // Remove from storage (best-effort) — also drop the video poster thumbnail if any.
+      await supabase.storage.from("department-files").remove([targetPath, thumbPathFor(targetPath)]);
 
       let nextCover: string | null = post.image_path;
       let nextGallery: string[] = post.image_paths || [];
