@@ -358,12 +358,23 @@ function PostCard({
                   const realIdx = idx + 1;
                   return (
                     <div key={img.path} className="relative group">
-                      <img
-                        src={img.url}
-                        alt="Post image"
-                        className="w-full aspect-square object-cover rounded border cursor-zoom-in"
-                        onClick={() => setViewerIndex(realIdx)}
-                      />
+                      {isVideoUrl(img.url) ? (
+                        <video
+                          src={img.url}
+                          className="w-full aspect-square object-cover rounded border cursor-zoom-in bg-black"
+                          onClick={() => setViewerIndex(realIdx)}
+                          muted
+                          playsInline
+                          preload="metadata"
+                        />
+                      ) : (
+                        <img
+                          src={img.url}
+                          alt="Post image"
+                          className="w-full aspect-square object-cover rounded border cursor-zoom-in"
+                          onClick={() => setViewerIndex(realIdx)}
+                        />
+                      )}
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); setViewerIndex(realIdx); }}
