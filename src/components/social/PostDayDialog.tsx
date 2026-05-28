@@ -99,7 +99,11 @@ export default function PostDayDialog({ open, onClose, date, generationId, isCli
                 isClient={isClient}
                 imagesUnlocked={imagesUnlocked}
                 copyLocked={copyLocked}
-                imageUrls={getPostImagePaths(post).map((p) => ({ path: p, url: getImageUrl(p) }))}
+                imageUrls={getPostImagePaths(post).map((p) => ({
+                  path: p,
+                  url: getImageUrl(p),
+                  thumbUrl: isVideoPath(p) ? getImageUrl(thumbPathFor(p)) : getImageUrl(p),
+                }))}
                 onUpload={(files) => uploadImage.mutate({ post, files })}
                 onRemoveImage={(path) => removeImage.mutate({ post, path })}
                 onSaveFeedback={(feedback) => saveFeedback.mutate({ postId: post.id, feedback })}
