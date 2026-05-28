@@ -82,10 +82,10 @@ export default function WebsiteDepartment() {
   const pagesChange = formatChange(kpiData.pagesPerSession, kpiData.pagesPerSessionPrev);
 
   const kpis = [
-    { label: "Visitors Today", value: kpiData.loading ? "—" : kpiData.visitorsToday.toLocaleString(), change: kpiData.loading ? "" : visitorsChange.text, changeType: visitorsChange.type, icon: Eye, gradient: "blue" as const },
-    { label: "Engaged Sessions", value: kpiData.loading ? "—" : kpiData.engagedSessions.toLocaleString(), change: kpiData.loading ? "" : engagementChange.text, changeType: engagementChange.type, icon: TrendingUp, gradient: "green" as const },
-    { label: "Avg. Session", value: kpiData.loading ? "—" : formatDuration(kpiData.avgSessionDuration), change: kpiData.loading ? "" : durationChange.text, changeType: durationChange.type, icon: Clock, gradient: "amber" as const },
-    { label: "Pages/Session", value: kpiData.loading ? "—" : kpiData.pagesPerSession.toString(), change: kpiData.loading ? "" : pagesChange.text, changeType: pagesChange.type, icon: Layers, gradient: "purple" as const },
+    { label: "Visitors Today", value: kpiData.loading ? "—" : kpiData.visitorsToday.toLocaleString(), icon: Eye, gradient: "blue" as const },
+    { label: "Engaged Sessions", value: kpiData.loading ? "—" : kpiData.engagedSessions.toLocaleString(), icon: TrendingUp, gradient: "green" as const },
+    { label: "Avg. Session", value: kpiData.loading ? "—" : formatDuration(kpiData.avgSessionDuration), icon: Clock, gradient: "amber" as const },
+    { label: "Pages/Session", value: kpiData.loading ? "—" : kpiData.pagesPerSession.toString(), icon: Layers, gradient: "purple" as const },
   ];
 
   const trafficData = kpiData.dailyTraffic.length > 0 ? kpiData.dailyTraffic : [{ label: "—", value: 0 }];
