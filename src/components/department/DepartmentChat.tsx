@@ -22,11 +22,41 @@ import { FilePreviewDialog } from "@/components/FilePreviewDialog";
 
 type DepartmentType = Database["public"]["Enums"]["department_type"];
 
+type ChatVariant = "team" | "client";
+
 interface Props {
   department: DepartmentType;
   clinicId: string | undefined;
   onVisible?: () => void;
+  variant?: ChatVariant;
 }
+
+const VARIANT_CONFIG = {
+  team: {
+    chatTable: "department_chats",
+    readsTable: "department_chat_reads",
+    storagePrefix: "chat",
+    channelKey: "dept-chat",
+    queryKeyBase: "department-chats",
+    readsQueryKeyBase: "department-chat-reads",
+    headerTitle: "Team Chat",
+    headerHint: "Internal only",
+    placeholder: "Type a message... Use @ to mention",
+    emptyHint: "Start the conversation",
+  },
+  client: {
+    chatTable: "department_client_chats",
+    readsTable: "department_client_chat_reads",
+    storagePrefix: "client-chat",
+    channelKey: "client-chat",
+    queryKeyBase: "department-client-chats",
+    readsQueryKeyBase: "department-client-chat-reads",
+    headerTitle: "Client Chat",
+    headerHint: "Shared with clinic team",
+    placeholder: "Share an update or upload pet photos…",
+    emptyHint: "Share photos or a message with the team",
+  },
+} as const;
 
 interface FileAttachment {
   name: string;
