@@ -1,42 +1,58 @@
-# Single-Step Social Media Approval
+# Client Chat (per Department)
 
-Replace the current two-round approval (copy review → visuals → final review) with one combined approval. Staff prepares captions AND visuals together, sends once, and the client's approval is treated as the final approval.
+Add a new "Client Chat" tab in every department (Website, SEO, Google Ads, AI SEO, Social Media) that works like the existing Team Chat but is visible to **clients and sub-clients** as well as staff. Primary use case: clients share pet photos / treatment images with the team.
 
-## Behavior changes
+## Scope
 
-**Staff side (ContentGenerationTab / SM2CalendarView)**
-- Visuals (image upload) section is unlocked from the moment a generation completes — no longer gated behind `copy_approved`.
-- Remove the "Send copy to client" CTA. Replace with a single **"Send to client for approval"** button.
-- That button is disabled until every post has at least one image attached (same rule that currently governs final-round send).
-- Clicking it sets `approval_status = 'sent_for_final_review'` directly (skipping `sent_for_copy_review` / `copy_approved`).
-- Wording cleanup: remove "Copy approved · add visuals", "captions only", "Round 1 / Round 2" copy throughout the calendar view and status badges.
+- Visible to: Admin, Concierge (assigned to dept/clinic), Client, Sub-client (per existing clinic access rules).
+- Same UX as Team Chat: messages, replies, reactions, pins, edits, file/image attachments, drag-and-drop, search, typing indicators, unread badge.
+- Image-friendly: inline thumbnails for image attachments (already supported by `DepartmentChat`), 10 MB / 5 file limits, stored in the existing `department-files` bucket under a `client-chat/...` prefix.
+- Per-department, per-clinic channel — same model as Team Chat.
 
-**Client side (ClientContentReview)**
-- Only one review state is shown: `sent_for_final_review`.
-- Approve button reads **"Approve"** and sets `approval_status = 'approved_client'` (already the existing final-approve path).
-- "Request changes" sends back as `final_changes_requested` (existing behavior).
-- Remove the "Copy approved · awaiting visuals" intermediate card.
+## Data model (new tables)
 
-**Backend / automation**
-- `useSM2Generation.sendToClient`: write `sent_for_final_review` (and set `sent_to_client_at`) instead of `sent_for_copy_review`. Remove the separate `approveCopy` / `sendFinalReview` two-step methods from the UI flow (keep functions usable but unused, or delete callers).
-- `supabase/functions/auto-approve-posts` Part 3a (copy review auto-advance) becomes a no-op since nothing will enter `sent_for_copy_review` anymore. Keep Part 3b (final review → `approved_client`) unchanged.
-- `supabase/functions/notify-content-approval`: default `stage` to `"final"`; only the final-review email template is used going forward.
+Create two new tables that mirror the existing team-chat tables so RLS and access scopes stay clean and independent:
 
-**Legacy data**
-- Existing generations still sitting in `sent_for_copy_review` / `copy_approved` remain renderable (badges/labels kept in maps) so historical records aren't broken, but no new generation can reach those states.
+1. `public.department_client_chats` — same columns as `department_chats` (`id`, `department`, `clinic_id`, `user_id`, `message`, `attachments`, `reactions`, `reply_to`, `pinned`, `edited_at`, `created_at`).
+2. `public.department_client_chat_reads` — same columns as `department_chat_reads` (`user_id`, `department`, `clinic_id`, `last_read_message_id`, `last_read_at`).
 
-## Files to touch
+RLS:
+- **Select / Insert / Update (reactions, edits)**: allowed when the user is staff with access to that dept+clinic (same predicate as Team Chat) **OR** when the user is a client/sub-client with access to that clinic (reuse existing helpers such as `has_clinic_access` / `is_clinic_client`).
+- **Delete**: admins only (same as Team Chat).
+- `department_client_chat_reads`: user can read/write only their own row.
+- GRANTs to `authenticated` (and `service_role`); no `anon`.
 
-- `src/hooks/useSM2Generation.ts` — reroute send to `sent_for_final_review`; deprecate copy-stage mutations from UI.
-- `src/components/social/SM2CalendarView.tsx` — `imagesUnlocked = true`, drop copy-locked branch, single send button gated on `imagesComplete`, update banners/labels.
-- `src/components/social/ContentGenerationTab.tsx` — collapse "Send copy" / "Send final" buttons into one; update status priority + badge labels.
-- `src/components/social/ClientContentReview.tsx` — show only final-review actionable state; update labels and the intermediate "copy approved" card.
-- `src/components/social/ClientContentCalendar.tsx`, `ClientPostsTab.tsx`, `overview/*SocialOverview.tsx`, `dashboard/AdminDashboard.tsx`, `notifications/NotificationBell.tsx`, `hooks/usePendingCounts.ts` — audit copy-stage status checks; treat them as legacy-only (no new emissions) and update any user-facing wording.
-- `supabase/functions/notify-content-approval/index.ts` — default `stage` to `"final"`.
-- `supabase/functions/auto-approve-posts/index.ts` — leave Part 3a in place as a safety net for legacy rows; add a comment noting it's deprecated.
+Realtime: add both tables to the `supabase_realtime` publication.
+
+## Frontend
+
+1. Refactor `src/components/department/DepartmentChat.tsx` to accept a `variant: "team" | "client"` prop (or a thin wrapper). The variant chooses:
+   - Table names (`department_chats` vs `department_client_chats`, and matching reads table).
+   - Storage prefix (`chat/...` vs `client-chat/...`).
+   - Realtime channel name.
+   - Header label / empty state copy ("Client Chat — share photos and updates with your clinic team").
+   - Mentions: keep staff-only mentionable list; clients won't see suggestions but can post freely.
+2. Add `useDepartmentClientChatUnread` hook (clone of `useDepartmentChatUnread` pointed at the new tables).
+3. Add a new tab `client-chat` (icon: `Users` or `Camera`, label "Client Chat") to each department page:
+   - `src/pages/WebsiteDepartment.tsx`
+   - `src/pages/SeoDepartment.tsx`
+   - `src/pages/GoogleAdsDepartment.tsx`
+   - `src/pages/AiSeoDepartment.tsx`
+   - `src/pages/SocialMedia.tsx` (only where a dept-chat surface exists)
+   The tab is visible to **all roles** (not gated by `isStaff`), shows an unread badge from the new hook, and renders `<DepartmentChat variant="client" ... />`.
+4. Respect existing service-access gating (`useClinicServiceAccess`) so a locked department also hides Client Chat for clients.
 
 ## Out of scope
 
-- No DB schema migration (status enum/values stay the same; we just stop producing the intermediate ones).
-- No changes to GBP posts, blog, or any other department.
-- No changes to the 5-day auto-approval window — it just collapses from two windows to one.
+- No changes to the existing Team Chat behavior or table.
+- No new notification channels (email/push) — only the in-app unread badge.
+- No moderation tooling beyond admin-delete (same as Team Chat).
+
+## Technical notes
+
+- Reusing `DepartmentChat` via a `variant` prop avoids duplicating ~1000 lines of UI.
+- File uploads continue to use the public `department-files` bucket; image previews already render inline via `FilePreviewDialog`.
+- Client role must already have a working session; no auth changes needed.
+- Migration order per table: `CREATE TABLE` → `GRANT` → `ENABLE RLS` → `CREATE POLICY`.
+
+Confirm and I'll implement.
