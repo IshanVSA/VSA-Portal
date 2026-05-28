@@ -179,15 +179,15 @@ export function DepartmentChat({ department, clinicId, onVisible, variant = "tea
         );
       }
 
-      const mapped = (data || []).map((m) => ({
+      const mapped = rows.map((m: any) => ({
         ...m,
         sender_name: profileMap[m.user_id] || "Unknown",
         attachments: (m.attachments as unknown as FileAttachment[] | null) || [],
         reactions: (m.reactions as unknown as Record<string, string[]> | null) || {},
-        reply_to: (m as any).reply_to as string | null,
+        reply_to: m.reply_to as string | null,
         reply_preview: null as { sender_name: string; message: string } | null,
-        pinned: (m as any).pinned as boolean || false,
-        edited_at: (m as any).edited_at as string | null,
+        pinned: (m.pinned as boolean) || false,
+        edited_at: m.edited_at as string | null,
       }));
 
       // Build reply previews
