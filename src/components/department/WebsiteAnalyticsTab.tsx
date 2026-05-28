@@ -52,7 +52,10 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
     const previousToKey = getZonedDateKey(dateRange.to, timeZone);
     const nextToKey = getZonedDateKey(clinicToday, timeZone);
 
-    if (previousToKey !== nextToKey) return;
+    // Only roll forward when the day has actually changed (e.g. crossed midnight).
+    // Without this guard, the effect re-sets dateRange to fresh Date objects on
+    // every render, which retriggers the fetch effect and causes a skeleton flash loop.
+    if (previousToKey === nextToKey) return;
 
     const days = Math.max(differenceInDays(dateRange.to, dateRange.from) + 1, 1);
     setDateRange({
