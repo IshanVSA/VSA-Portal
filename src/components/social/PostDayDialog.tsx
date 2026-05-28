@@ -366,24 +366,24 @@ function PostCard({
               <div className="grid grid-cols-4 gap-1.5">
                 {imageUrls.slice(1).map((img, idx) => {
                   const realIdx = idx + 1;
+                  const isVid = isVideoUrl(img.url);
                   return (
                     <div key={img.path} className="relative group">
-                      {isVideoUrl(img.url) ? (
-                        <video
-                          src={img.url}
-                          className="w-full aspect-square object-cover rounded border cursor-zoom-in bg-black"
-                          onClick={() => setViewerIndex(realIdx)}
-                          muted
-                          playsInline
-                          preload="metadata"
-                        />
-                      ) : (
-                        <img
-                          src={img.url}
-                          alt="Post image"
-                          className="w-full aspect-square object-cover rounded border cursor-zoom-in"
-                          onClick={() => setViewerIndex(realIdx)}
-                        />
+                      <img
+                        src={img.thumbUrl}
+                        alt="Post image"
+                        className={cn(
+                          "w-full aspect-square object-cover rounded border cursor-zoom-in",
+                          isVid && "bg-black",
+                        )}
+                        onClick={() => setViewerIndex(realIdx)}
+                      />
+                      {isVid && (
+                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                          <div className="h-6 w-6 rounded-full bg-background/80 backdrop-blur border flex items-center justify-center">
+                            <Play className="h-2.5 w-2.5 fill-foreground text-foreground" />
+                          </div>
+                        </div>
                       )}
                       <button
                         type="button"
