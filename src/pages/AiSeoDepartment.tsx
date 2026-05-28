@@ -22,7 +22,7 @@ export default function AiSeoDepartment() {
   const { hasAccess, isLoading } = useAiSeoAccess(selectedClinicId || undefined);
   const clinicAiSeoEnabled = selectedClinic?.ai_seo_enabled ?? false;
   const isAdminBypass = hasAccess && !!selectedClinic && !clinicAiSeoEnabled;
-  const { unreadCount: clientUnreadCount, markAsRead: markClientAsRead } = useDepartmentChatUnread("ai_seo", selectedClinicId, "client");
+  const { unreadCount: clientUnreadCount, markAsRead: markClientAsRead } = useDepartmentChatUnread("seo", selectedClinicId, "client");
 
   const tabs = [...baseTabs, clientChatTab];
 
@@ -87,7 +87,7 @@ export default function AiSeoDepartment() {
               </TabsContent>
 
               <TabsContent value="client-chat" className="mt-4">
-                <DepartmentChat variant="client" department="ai_seo" clinicId={selectedClinicId} onVisible={markClientAsRead} />
+                <DepartmentChat variant="client" department="seo" clinicId={selectedClinicId} onVisible={markClientAsRead} />
               </TabsContent>
             </Tabs>
           </div>
