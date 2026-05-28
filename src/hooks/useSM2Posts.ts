@@ -126,6 +126,21 @@ export function useSM2Posts(generationId: string | undefined) {
           .upload(path, f, { upsert: true, contentType: f.type });
         if (upErr) throw upErr;
         uploadedPaths.push(path);
+
+        // Best-effort poster thumbnail for videos so calendars/grids can render
+        // a still cover instead of an HTML5 <video> element.
+        if (f.type.startsWith("video/")) {
+          try {
+            const thumb = await generateVideoThumbnail(f);
+            if (thumb) {
+              await supabase.storage
+                .from("department-files")
+                .upload(thumbPathFor(path), thumb, { upsert: true, contentType: "image/jpeg" });
+            }
+          } catch (err) {
+            console.warn("[sm2] video thumbnail generation failed", err);
+          }
+        }
       }
 
       const { data: userData } = await supabase.auth.getUser();
