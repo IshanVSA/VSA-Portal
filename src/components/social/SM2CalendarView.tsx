@@ -351,15 +351,10 @@ export default function SM2CalendarView({
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle className="flex items-center gap-2">
-                {isCopyRound ? (
-                  <>
-                    <Send className="h-5 w-5 text-primary" />
-                    Send copy to client?
-                  </>
-                ) : imagesComplete ? (
+                {imagesComplete ? (
                   <>
                     <CheckCircle className="h-5 w-5 text-emerald-500" />
-                    Send for final approval?
+                    Send to client for approval?
                   </>
                 ) : (
                   <>
@@ -370,23 +365,18 @@ export default function SM2CalendarView({
               </AlertDialogTitle>
               <AlertDialogDescription asChild>
                 <div className="space-y-3">
-                  {isCopyRound ? (
-                    <p>
-                      The client will review captions, hooks, and hashtags only — no images required at this stage.
-                      Once they approve the copy, you'll upload visuals and send back for final approval.
-                    </p>
-                  ) : imagesComplete ? (
+                  {imagesComplete ? (
                     <p>
                       All <span className="font-semibold text-foreground">{total}</span> posts have at least
-                      one image attached. The client will be asked to give final approval on the complete
-                      monthly calendar.
+                      one image attached. The client will review captions and visuals together — their
+                      approval is the final sign-off.
                     </p>
                   ) : (
                     <>
                       <p>
                         <span className="font-semibold text-foreground">{missingPosts.length}</span> of{" "}
                         <span className="font-semibold text-foreground">{total}</span> posts still don't have
-                        any image. Each post needs at least one visual before final approval can be requested.
+                        any image. Each post needs at least one visual before it can be sent for approval.
                       </p>
                       <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 max-h-48 overflow-y-auto">
                         <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400 mb-2">
@@ -420,19 +410,18 @@ export default function SM2CalendarView({
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>
-                {isCopyRound || imagesComplete ? "Cancel" : "Keep editing"}
+                {imagesComplete ? "Cancel" : "Keep editing"}
               </AlertDialogCancel>
               <AlertDialogAction
-                disabled={sendPending || (isFinalRound && !imagesComplete)}
+                disabled={sendPending || !imagesComplete}
                 onClick={() => {
-                  if (isFinalRound && !imagesComplete) return;
+                  if (!imagesComplete) return;
                   setConfirmSendOpen(false);
-                  if (isCopyRound) onSendCopyForReview?.();
-                  else if (isFinalRound) onSendFinalForReview?.();
+                  (onSendFinalForReview ?? onSendCopyForReview)?.();
                 }}
               >
                 <Send className="h-3.5 w-3.5 mr-1.5" />
-                Confirm & send
+                Confirm &amp; send
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
