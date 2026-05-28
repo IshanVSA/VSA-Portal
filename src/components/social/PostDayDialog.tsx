@@ -314,12 +314,23 @@ function PostCard({
           ) : (
             <>
               <div className="relative group">
-                <img
-                  src={imageUrls[0].url}
-                  alt="Cover"
-                  className="w-full aspect-square object-cover rounded-xl border cursor-zoom-in"
-                  onClick={() => setViewerIndex(0)}
-                />
+                {isVideoUrl(imageUrls[0].url) ? (
+                  <video
+                    src={imageUrls[0].url}
+                    className="w-full aspect-square object-cover rounded-xl border cursor-zoom-in bg-black"
+                    onClick={() => setViewerIndex(0)}
+                    muted
+                    playsInline
+                    preload="metadata"
+                  />
+                ) : (
+                  <img
+                    src={imageUrls[0].url}
+                    alt="Cover"
+                    className="w-full aspect-square object-cover rounded-xl border cursor-zoom-in"
+                    onClick={() => setViewerIndex(0)}
+                  />
+                )}
                 <Badge className="absolute top-1.5 left-1.5 text-[9px] py-0 px-1.5">Cover</Badge>
                 <button
                   type="button"
