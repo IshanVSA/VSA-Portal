@@ -778,12 +778,23 @@ function ImageLightbox({
         </button>
       )}
 
-      <img
-        src={current.url}
-        alt="Preview"
-        className="max-h-[95vh] max-w-[95vw] w-auto h-auto object-contain rounded-xl shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      />
+      {isVideoUrl(current.url) ? (
+        <video
+          src={current.url}
+          className="max-h-[95vh] max-w-[95vw] w-auto h-auto object-contain rounded-xl shadow-2xl bg-black"
+          onClick={(e) => e.stopPropagation()}
+          controls
+          autoPlay
+          playsInline
+        />
+      ) : (
+        <img
+          src={current.url}
+          alt="Preview"
+          className="max-h-[95vh] max-w-[95vw] w-auto h-auto object-contain rounded-xl shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        />
+      )}
 
       {hasMany && (
         <button
