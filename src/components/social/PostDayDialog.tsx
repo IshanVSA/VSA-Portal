@@ -43,6 +43,7 @@ import { isClientNoteUnseen, markClientNoteSeen } from "@/hooks/useSeenClientNot
 import { cn } from "@/lib/utils";
 
 import { isVideoUrl, thumbPathFor, isVideoPath } from "@/lib/video-thumbnail";
+import { MediaCover } from "./MediaCover";
 
 interface Props {
   open: boolean;
