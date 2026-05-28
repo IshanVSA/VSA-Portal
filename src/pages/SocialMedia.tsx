@@ -5,7 +5,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Share2, LayoutGrid, ChartColumn, Ticket, Upload, MessageCircle, Dna, Sparkles, Eye, SlidersHorizontal, MapPin, Tag, Megaphone, FileText, ListChecks } from "lucide-react";
+import { Share2, LayoutGrid, ChartColumn, Ticket, Upload, MessageCircle, Dna, Sparkles, Eye, SlidersHorizontal, MapPin, Tag, Megaphone, FileText, ListChecks, Users } from "lucide-react";
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { ComingSoonTab } from "@/components/department/ComingSoonTab";
 import { GBPPostsTab } from "@/components/seo/gbp/GBPPostsTab";
@@ -56,6 +56,7 @@ const baseTabs = [
   { value: "uploads", label: "Files", icon: Upload },
 ];
 const chatTab = { value: "chat", label: "Team Chat", icon: MessageCircle };
+const clientChatTab = { value: "client-chat", label: "Client Chat", icon: Users };
 const tasksTabDef = { value: "tasks", label: "Tasks", icon: ListChecks };
 const dnaTab = { value: "brand-dna", label: "Brand DNA", icon: Dna };
 const generationTab = { value: "generation", label: "Generate", icon: Sparkles };
@@ -76,6 +77,7 @@ export default function SocialMedia() {
   const isStaff = role === "admin" || role === "concierge";
   const isClient = role === "client";
   const { unreadCount, markAsRead } = useDepartmentChatUnread("social_media", selectedClinicId);
+  const { unreadCount: clientUnreadCount, markAsRead: markClientAsRead } = useDepartmentChatUnread("social_media", selectedClinicId, "client");
   const myOpenTasks = useMyOpenTaskCount("social_media", selectedClinicId);
   const { socialPending } = usePendingCounts(selectedClinicId);
 
@@ -94,8 +96,9 @@ export default function SocialMedia() {
         dnaTab,
         themeSlidersTab,
         metaAdsTab,
+        clientChatTab,
       ]
-    : [...baseTabs, generationTab, gbpPostsTab, dnaTab, themeSlidersTab, metaAdsTab, ...(isStaff ? [tasksTabDef, chatTab] : [])];
+    : [...baseTabs, generationTab, gbpPostsTab, dnaTab, themeSlidersTab, metaAdsTab, clientChatTab, ...(isStaff ? [tasksTabDef, chatTab] : [])];
 
   const handleTabChange = (value: string) => {
     setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", value); return next; }, { replace: true });
@@ -163,6 +166,7 @@ export default function SocialMedia() {
                         (isStaff && tab.value === "generation")) &&
                       currentTab !== tab.value;
                     const showChatBadge = tab.value === "chat" && unreadCount > 0 && currentTab !== "chat";
+                    const showClientChatBadge = tab.value === "client-chat" && clientUnreadCount > 0 && currentTab !== "client-chat";
                     const showTasksBadge = tab.value === "tasks" && myOpenTasks > 0 && currentTab !== "tasks";
                     return (
                       <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm relative">
@@ -171,6 +175,11 @@ export default function SocialMedia() {
                         {showChatBadge && (
                           <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
                             {unreadCount > 99 ? "99+" : unreadCount}
+                          </span>
+                        )}
+                        {showClientChatBadge && (
+                          <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                            {clientUnreadCount > 99 ? "99+" : clientUnreadCount}
                           </span>
                         )}
                         {showSocialBadge && (
@@ -209,6 +218,7 @@ export default function SocialMedia() {
                     <TabsContent value="chat" className="mt-4"><DepartmentChat department="social_media" clinicId={selectedClinicId} onVisible={markAsRead} /></TabsContent>
                   </>
                 )}
+                <TabsContent value="client-chat" className="mt-4"><DepartmentChat variant="client" department="social_media" clinicId={selectedClinicId} onVisible={markClientAsRead} /></TabsContent>
               </Tabs>
             </motion.div>
           )}
