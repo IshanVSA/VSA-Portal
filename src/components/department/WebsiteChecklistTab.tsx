@@ -55,7 +55,7 @@ function ItemNotes({
 
 export function WebsiteChecklistTab({ clinicId }: Props) {
   const { role } = useUserRole();
-  const isAdmin = role === "admin";
+  const isStaff = role === "admin" || role === "concierge";
   const { data: rows = [], isLoading } = useChecklistStatus(clinicId);
   const toggle = useToggleChecklistItem(clinicId);
   const [managerOpen, setManagerOpen] = useState(false);
@@ -92,7 +92,7 @@ export function WebsiteChecklistTab({ clinicId }: Props) {
               </div>
             </div>
           </div>
-          {isAdmin && (
+          {isStaff && (
             <Button variant="outline" size="sm" onClick={() => setManagerOpen(true)}>
               <Settings className="h-4 w-4" /> Manage items
             </Button>
@@ -146,7 +146,7 @@ export function WebsiteChecklistTab({ clinicId }: Props) {
         );
       })}
 
-      {isAdmin && <ChecklistItemsManagerDialog open={managerOpen} onOpenChange={setManagerOpen} />}
+      {isStaff && <ChecklistItemsManagerDialog open={managerOpen} onOpenChange={setManagerOpen} />}
     </div>
   );
 }
