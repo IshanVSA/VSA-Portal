@@ -136,6 +136,11 @@ export default function WebsiteDepartment() {
                           {unreadCount > 99 ? "99+" : unreadCount}
                         </span>
                       )}
+                      {tab.value === "client-chat" && clientUnread > 0 && currentTab !== "client-chat" && (
+                        <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                          {clientUnread > 99 ? "99+" : clientUnread}
+                        </span>
+                      )}
                       {tab.value === "tasks" && myOpenTasks > 0 && currentTab !== "tasks" && (
                         <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1">
                           {myOpenTasks > 99 ? "99+" : myOpenTasks}
