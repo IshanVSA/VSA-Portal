@@ -307,7 +307,7 @@ function PostCard({
                 disabled={uploading}
               >
                 <ImagePlus className="h-5 w-5 text-muted-foreground" />
-                <span className="text-muted-foreground">{uploading ? "Uploading..." : "Add image"}</span>
+                <span className="text-muted-foreground">{uploading ? "Uploading..." : "Add image or video"}</span>
                 <span className="text-[10px] text-muted-foreground">Up to {SM2_MAX_IMAGES_PER_POST}</span>
               </button>
             )
