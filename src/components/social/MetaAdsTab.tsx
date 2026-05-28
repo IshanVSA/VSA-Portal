@@ -110,7 +110,7 @@ export default function MetaAdsTab({ clinicId }: Props) {
                     <div className="aspect-square w-[120px] bg-muted flex items-center justify-center">
                       {cover ? (
                         <img
-                          src={getImageUrl(cover)}
+                          src={getImageUrl(coverPathFor(cover))}
                           alt="Cover"
                           className="w-full h-full object-cover"
                         />
