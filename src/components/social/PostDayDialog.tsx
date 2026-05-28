@@ -41,8 +41,7 @@ import { useSM2Posts, type SM2Post, getPostImagePaths, SM2_MAX_IMAGES_PER_POST }
 import { isClientNoteUnseen, markClientNoteSeen } from "@/hooks/useSeenClientNotes";
 import { cn } from "@/lib/utils";
 
-const VIDEO_EXT_RE = /\.(mp4|mov|webm|m4v|avi|mkv|qt)(\?|$)/i;
-const isVideoUrl = (url?: string | null) => !!url && VIDEO_EXT_RE.test(url);
+import { isVideoUrl, thumbPathFor, isVideoPath } from "@/lib/video-thumbnail";
 
 interface Props {
   open: boolean;
