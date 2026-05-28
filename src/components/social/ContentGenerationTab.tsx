@@ -570,16 +570,13 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                           Regenerate
                         </Button>
                       )}
-                      {(gen.approval_status === "pending" || gen.approval_status === "copy_changes_requested") && gen.html_file_path && (
-                        <Button variant="outline" size="sm" onClick={() => sendCopyForReview.mutate(gen.id)} disabled={sendCopyForReview.isPending} className="gap-1.5 text-xs">
+                      {(gen.approval_status === "pending" ||
+                        gen.approval_status === "copy_changes_requested" ||
+                        gen.approval_status === "copy_approved" ||
+                        gen.approval_status === "final_changes_requested") && gen.html_file_path && (
+                        <Button variant="outline" size="sm" onClick={() => sendForApproval.mutate(gen.id)} disabled={sendForApproval.isPending} className="gap-1.5 text-xs">
                           <Send className="h-3.5 w-3.5" />
-                          {gen.approval_status === "copy_changes_requested" ? "Resend copy" : "Send copy to client"}
-                        </Button>
-                      )}
-                      {(gen.approval_status === "copy_approved" || gen.approval_status === "final_changes_requested") && gen.html_file_path && (
-                        <Button variant="outline" size="sm" onClick={() => sendFinalForReview.mutate(gen.id)} disabled={sendFinalForReview.isPending} className="gap-1.5 text-xs">
-                          <Send className="h-3.5 w-3.5" />
-                          Send final for approval
+                          {gen.approval_status === "pending" ? "Send to client" : "Resend for approval"}
                         </Button>
                       )}
                       {gen.sent_to_client_at && (
