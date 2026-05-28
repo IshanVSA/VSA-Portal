@@ -41,6 +41,9 @@ import { useSM2Posts, type SM2Post, getPostImagePaths, SM2_MAX_IMAGES_PER_POST }
 import { isClientNoteUnseen, markClientNoteSeen } from "@/hooks/useSeenClientNotes";
 import { cn } from "@/lib/utils";
 
+const VIDEO_EXT_RE = /\.(mp4|mov|webm|m4v|avi|mkv|qt)(\?|$)/i;
+const isVideoUrl = (url?: string | null) => !!url && VIDEO_EXT_RE.test(url);
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -250,7 +253,9 @@ function PostCard({
   }, [noteIsNewForStaff, post.id, post.updated_at]);
 
   const handleFiles = (files: FileList | File[]) => {
-    const arr = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    const arr = Array.from(files).filter(
+      (f) => f.type.startsWith("image/") || f.type.startsWith("video/"),
+    );
     if (arr.length === 0) return;
     onUpload(arr);
   };
@@ -302,19 +307,30 @@ function PostCard({
                 disabled={uploading}
               >
                 <ImagePlus className="h-5 w-5 text-muted-foreground" />
-                <span className="text-muted-foreground">{uploading ? "Uploading..." : "Add image"}</span>
+                <span className="text-muted-foreground">{uploading ? "Uploading..." : "Add image or video"}</span>
                 <span className="text-[10px] text-muted-foreground">Up to {SM2_MAX_IMAGES_PER_POST}</span>
               </button>
             )
           ) : (
             <>
               <div className="relative group">
-                <img
-                  src={imageUrls[0].url}
-                  alt="Cover"
-                  className="w-full aspect-square object-cover rounded-xl border cursor-zoom-in"
-                  onClick={() => setViewerIndex(0)}
-                />
+                {isVideoUrl(imageUrls[0].url) ? (
+                  <video
+                    src={imageUrls[0].url}
+                    className="w-full aspect-square object-cover rounded-xl border cursor-zoom-in bg-black"
+                    onClick={() => setViewerIndex(0)}
+                    muted
+                    playsInline
+                    preload="metadata"
+                  />
+                ) : (
+                  <img
+                    src={imageUrls[0].url}
+                    alt="Cover"
+                    className="w-full aspect-square object-cover rounded-xl border cursor-zoom-in"
+                    onClick={() => setViewerIndex(0)}
+                  />
+                )}
                 <Badge className="absolute top-1.5 left-1.5 text-[9px] py-0 px-1.5">Cover</Badge>
                 <button
                   type="button"
@@ -342,12 +358,23 @@ function PostCard({
                   const realIdx = idx + 1;
                   return (
                     <div key={img.path} className="relative group">
-                      <img
-                        src={img.url}
-                        alt="Post image"
-                        className="w-full aspect-square object-cover rounded border cursor-zoom-in"
-                        onClick={() => setViewerIndex(realIdx)}
-                      />
+                      {isVideoUrl(img.url) ? (
+                        <video
+                          src={img.url}
+                          className="w-full aspect-square object-cover rounded border cursor-zoom-in bg-black"
+                          onClick={() => setViewerIndex(realIdx)}
+                          muted
+                          playsInline
+                          preload="metadata"
+                        />
+                      ) : (
+                        <img
+                          src={img.url}
+                          alt="Post image"
+                          className="w-full aspect-square object-cover rounded border cursor-zoom-in"
+                          onClick={() => setViewerIndex(realIdx)}
+                        />
+                      )}
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); setViewerIndex(realIdx); }}
@@ -393,7 +420,7 @@ function PostCard({
           <input
             ref={fileRef}
             type="file"
-            accept="image/*"
+            accept="image/*,video/*"
             multiple
             className="hidden"
             onChange={(e) => {
@@ -751,12 +778,23 @@ function ImageLightbox({
         </button>
       )}
 
-      <img
-        src={current.url}
-        alt="Preview"
-        className="max-h-[95vh] max-w-[95vw] w-auto h-auto object-contain rounded-xl shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      />
+      {isVideoUrl(current.url) ? (
+        <video
+          src={current.url}
+          className="max-h-[95vh] max-w-[95vw] w-auto h-auto object-contain rounded-xl shadow-2xl bg-black"
+          onClick={(e) => e.stopPropagation()}
+          controls
+          autoPlay
+          playsInline
+        />
+      ) : (
+        <img
+          src={current.url}
+          alt="Preview"
+          className="max-h-[95vh] max-w-[95vw] w-auto h-auto object-contain rounded-xl shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        />
+      )}
 
       {hasMany && (
         <button
