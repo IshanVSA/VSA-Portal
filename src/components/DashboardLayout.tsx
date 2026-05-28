@@ -562,9 +562,9 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
 
           <div className="hidden lg:block flex-1" />
 
-          {/* Right cluster — scrolls horizontally on small screens */}
+          {/* Middle cluster — scrolls horizontally on small screens */}
           <div className="flex-1 lg:flex-none min-w-0 overflow-x-auto overflow-y-hidden no-scrollbar">
-            <div className="flex items-center justify-end gap-1.5 sm:gap-2 lg:gap-3 h-14 px-3 sm:px-4 lg:px-8 w-max ml-auto">
+            <div className="flex items-center justify-end gap-1.5 sm:gap-2 lg:gap-3 h-14 px-2 sm:px-3 lg:px-4 w-max ml-auto">
               {clinicSelectorSelectedId && (
                 <div className="hidden xl:block shrink-0">
                   <ClinicClock clinicId={clinicSelectorSelectedId} />
@@ -594,28 +594,31 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
                 <Plus className="h-3 w-3" />
                 <span className="hidden sm:inline">New Ticket</span>
               </Button>
+            </div>
+          </div>
 
-              <button
-                className="relative p-2 rounded-lg hover:bg-muted/50 transition-colors duration-200 shrink-0"
-                onClick={() => {
-                  document.documentElement.classList.toggle("dark");
-                  localStorage.setItem("theme", document.documentElement.classList.contains("dark") ? "dark" : "light");
-                }}
-                aria-label="Toggle theme"
-              >
-                <Sun className="h-4 w-4 text-muted-foreground dark:hidden" />
-                <Moon className="h-4 w-4 text-muted-foreground hidden dark:block" />
-              </button>
+          {/* Right cluster — pinned, always visible */}
+          <div className="flex items-center gap-1 sm:gap-2 pr-3 sm:pr-4 lg:pr-8 pl-1 shrink-0 border-l border-border/40 lg:border-l-0">
+            <button
+              className="relative p-2 rounded-lg hover:bg-muted/50 transition-colors duration-200 shrink-0"
+              onClick={() => {
+                document.documentElement.classList.toggle("dark");
+                localStorage.setItem("theme", document.documentElement.classList.contains("dark") ? "dark" : "light");
+              }}
+              aria-label="Toggle theme"
+            >
+              <Sun className="h-4 w-4 text-muted-foreground dark:hidden" />
+              <Moon className="h-4 w-4 text-muted-foreground hidden dark:block" />
+            </button>
 
-              <div className="shrink-0">
-                <NotificationBell />
-              </div>
+            <div className="shrink-0">
+              <NotificationBell />
+            </div>
 
-              <div className="hidden sm:flex h-8 w-8 rounded-lg bg-primary/8 items-center justify-center ring-1 ring-primary/10 shrink-0">
-                <span className="text-[11px] font-bold text-primary">
-                  {profile?.full_name?.charAt(0)?.toUpperCase() || "U"}
-                </span>
-              </div>
+            <div className="hidden sm:flex h-8 w-8 rounded-lg bg-primary/8 items-center justify-center ring-1 ring-primary/10 shrink-0">
+              <span className="text-[11px] font-bold text-primary">
+                {profile?.full_name?.charAt(0)?.toUpperCase() || "U"}
+              </span>
             </div>
           </div>
         </header>
