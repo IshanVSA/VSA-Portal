@@ -32,6 +32,7 @@ const baseTabs = [
   { value: "uploads", label: "Files", icon: Upload },
 ];
 const chatTab = { value: "chat", label: "Team Chat", icon: MessageCircle };
+const clientChatTab = { value: "client-chat", label: "Client Chat", icon: MessageCircle };
 const tasksTabDef = { value: "tasks", label: "Tasks", icon: ListChecks };
 
 const services = ["Dashboard Access", "Analytics Review", "Monthly Performance Report", "Call Volume Issues", "Wrong Call Tracking", "Campaign Adjustments", "Others"];

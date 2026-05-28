@@ -4,13 +4,21 @@ import { useAuth } from "@/hooks/useAuth";
 import type { Database } from "@/integrations/supabase/types";
 
 type DepartmentType = Database["public"]["Enums"]["department_type"];
+type ChatVariant = "team" | "client";
+
+const TABLES = {
+  team: { chat: "department_chats", reads: "department_chat_reads" },
+  client: { chat: "department_client_chats", reads: "department_client_chat_reads" },
+} as const;
 
 export function useDepartmentChatUnread(
   department: DepartmentType,
-  clinicId: string | undefined
+  clinicId: string | undefined,
+  variant: ChatVariant = "team"
 ) {
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
+  const t = TABLES[variant];
 
   const fetchUnread = useCallback(async () => {
     if (!clinicId || !user) {
@@ -18,9 +26,8 @@ export function useDepartmentChatUnread(
       return;
     }
 
-    // Get the user's last-read timestamp from the server-side receipts table
     const { data: receipt } = await supabase
-      .from("department_chat_reads" as any)
+      .from(t.reads as any)
       .select("last_read_at")
       .eq("user_id", user.id)
       .eq("department", department)
@@ -30,7 +37,7 @@ export function useDepartmentChatUnread(
     const lastReadAt = (receipt as any)?.last_read_at as string | undefined;
 
     let query = supabase
-      .from("department_chats")
+      .from(t.chat as any)
       .select("id", { count: "exact", head: true })
       .eq("department", department)
       .eq("clinic_id", clinicId)
@@ -42,46 +49,29 @@ export function useDepartmentChatUnread(
 
     const { count } = await query;
     setUnreadCount(count || 0);
-  }, [clinicId, department, user]);
+  }, [clinicId, department, user, t.chat, t.reads]);
 
-  // Initial fetch
   useEffect(() => {
     fetchUnread();
   }, [fetchUnread]);
 
-  // Realtime updates: new messages OR my own read receipt updating
   useEffect(() => {
     if (!clinicId || !user) return;
     const channel = supabase
-      .channel(`clinic:${clinicId}:unread:${department}:${user.id}`)
+      .channel(`clinic:${clinicId}:unread:${variant}:${department}:${user.id}`)
       .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "department_chats",
-          filter: `clinic_id=eq.${clinicId}`,
-        },
+        { event: "INSERT", schema: "public", table: t.chat, filter: `clinic_id=eq.${clinicId}` },
         () => fetchUnread()
       )
       .on(
         "postgres_changes",
-        {
-          event: "DELETE",
-          schema: "public",
-          table: "department_chats",
-          filter: `clinic_id=eq.${clinicId}`,
-        },
+        { event: "DELETE", schema: "public", table: t.chat, filter: `clinic_id=eq.${clinicId}` },
         () => fetchUnread()
       )
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "department_chat_reads",
-          filter: `clinic_id=eq.${clinicId}`,
-        },
+        { event: "*", schema: "public", table: t.reads, filter: `clinic_id=eq.${clinicId}` },
         (payload) => {
           const row = (payload.new ?? payload.old) as { user_id?: string; department?: string } | null;
           if (row?.user_id === user.id && row?.department === department) {
@@ -94,15 +84,14 @@ export function useDepartmentChatUnread(
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [clinicId, department, user, fetchUnread]);
+  }, [clinicId, department, user, fetchUnread, variant, t.chat, t.reads]);
 
   const markAsRead = useCallback(async () => {
     if (!clinicId || !user) return;
     setUnreadCount(0);
 
-    // Find the latest message id to record as last_read_message_id
     const { data: latest } = await supabase
-      .from("department_chats")
+      .from(t.chat as any)
       .select("id")
       .eq("department", department)
       .eq("clinic_id", clinicId)
@@ -114,12 +103,12 @@ export function useDepartmentChatUnread(
       user_id: user.id,
       department,
       clinic_id: clinicId,
-      last_read_message_id: latest?.id ?? null,
+      last_read_message_id: (latest as any)?.id ?? null,
       last_read_at: new Date().toISOString(),
     };
 
     const { data: existing } = await supabase
-      .from("department_chat_reads" as any)
+      .from(t.reads as any)
       .select("id")
       .eq("user_id", user.id)
       .eq("department", department)
@@ -128,7 +117,7 @@ export function useDepartmentChatUnread(
 
     if (existing) {
       await supabase
-        .from("department_chat_reads" as any)
+        .from(t.reads as any)
         .update({
           last_read_message_id: payload.last_read_message_id,
           last_read_at: payload.last_read_at,
@@ -137,9 +126,9 @@ export function useDepartmentChatUnread(
         .eq("department", department)
         .eq("clinic_id", clinicId);
     } else {
-      await supabase.from("department_chat_reads" as any).insert(payload);
+      await supabase.from(t.reads as any).insert(payload);
     }
-  }, [clinicId, department, user]);
+  }, [clinicId, department, user, t.chat, t.reads]);
 
   return { unreadCount, markAsRead };
 }

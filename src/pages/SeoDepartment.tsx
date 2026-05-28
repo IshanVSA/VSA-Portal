@@ -35,6 +35,7 @@ const commonTabs = [
   { value: "uploads", label: "Files", icon: Upload },
 ];
 const chatTab = { value: "chat", label: "Team Chat", icon: MessageCircle };
+const clientChatTab = { value: "client-chat", label: "Client Chat", icon: MessageCircle };
 const tasksTabDef = { value: "tasks", label: "Tasks", icon: ListChecks };
 const blogTab = { value: "blog", label: "Blog", icon: BookOpen };
 function TopKeywordsCard({ keywords }: { keywords: SeoKeyword[] }) {
@@ -107,8 +108,9 @@ export default function SeoDepartment() {
   const isClient = role === "client";
   const isStaff = !isClient;
   const { unreadCount, markAsRead } = useDepartmentChatUnread("seo", selectedClinicId);
+  const { unreadCount: clientUnread, markAsRead: markClientRead } = useDepartmentChatUnread("seo", selectedClinicId, "client");
   const myOpenTasks = useMyOpenTaskCount("seo", selectedClinicId);
-  const tabs = isStaff ? [...commonTabs, blogTab, tasksTabDef, chatTab] : [...commonTabs, blogTab];
+  const tabs = isStaff ? [...commonTabs, blogTab, clientChatTab, tasksTabDef, chatTab] : [...commonTabs, blogTab, clientChatTab];
 
   const selectedClinicName = selectedClinic?.clinic_name;
 
@@ -165,6 +167,11 @@ export default function SeoDepartment() {
                           {unreadCount > 99 ? "99+" : unreadCount}
                         </span>
                       )}
+                      {tab.value === "client-chat" && clientUnread > 0 && currentTab !== "client-chat" && (
+                        <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                          {clientUnread > 99 ? "99+" : clientUnread}
+                        </span>
+                      )}
                       {tab.value === "tasks" && myOpenTasks > 0 && currentTab !== "tasks" && (
                         <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1">
                           {myOpenTasks > 99 ? "99+" : myOpenTasks}
@@ -184,6 +191,7 @@ export default function SeoDepartment() {
                 <TabsContent value="uploads" className="mt-4"><UploadsTab department="seo" clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="blog" className="mt-4"><BlogTab clinicId={selectedClinicId} /></TabsContent>
                 {isStaff && <TabsContent value="tasks" className="mt-4"><TasksTab department="seo" clinicId={selectedClinicId} /></TabsContent>}
+                <TabsContent value="client-chat" className="mt-4"><DepartmentChat department="seo" clinicId={selectedClinicId} variant="client" onVisible={markClientRead} /></TabsContent>
                 {isStaff && <TabsContent value="chat" className="mt-4"><DepartmentChat department="seo" clinicId={selectedClinicId} onVisible={markAsRead} /></TabsContent>}
               </Tabs>
             </motion.div>

@@ -1636,6 +1636,98 @@ export type Database = {
           },
         ]
       }
+      department_client_chat_reads: {
+        Row: {
+          clinic_id: string
+          department: Database["public"]["Enums"]["department_type"]
+          id: string
+          last_read_at: string
+          last_read_message_id: string | null
+          user_id: string
+        }
+        Insert: {
+          clinic_id: string
+          department: Database["public"]["Enums"]["department_type"]
+          id?: string
+          last_read_at?: string
+          last_read_message_id?: string | null
+          user_id: string
+        }
+        Update: {
+          clinic_id?: string
+          department?: Database["public"]["Enums"]["department_type"]
+          id?: string
+          last_read_at?: string
+          last_read_message_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_client_chat_reads_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      department_client_chats: {
+        Row: {
+          attachments: Json
+          clinic_id: string
+          created_at: string
+          department: Database["public"]["Enums"]["department_type"]
+          edited_at: string | null
+          id: string
+          message: string
+          pinned: boolean
+          reactions: Json
+          reply_to: string | null
+          user_id: string
+        }
+        Insert: {
+          attachments?: Json
+          clinic_id: string
+          created_at?: string
+          department: Database["public"]["Enums"]["department_type"]
+          edited_at?: string | null
+          id?: string
+          message?: string
+          pinned?: boolean
+          reactions?: Json
+          reply_to?: string | null
+          user_id: string
+        }
+        Update: {
+          attachments?: Json
+          clinic_id?: string
+          created_at?: string
+          department?: Database["public"]["Enums"]["department_type"]
+          edited_at?: string | null
+          id?: string
+          message?: string
+          pinned?: boolean
+          reactions?: Json
+          reply_to?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_client_chats_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_client_chats_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "department_client_chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       department_members: {
         Row: {
           created_at: string

@@ -22,11 +22,41 @@ import { FilePreviewDialog } from "@/components/FilePreviewDialog";
 
 type DepartmentType = Database["public"]["Enums"]["department_type"];
 
+type ChatVariant = "team" | "client";
+
 interface Props {
   department: DepartmentType;
   clinicId: string | undefined;
   onVisible?: () => void;
+  variant?: ChatVariant;
 }
+
+const VARIANT_CONFIG = {
+  team: {
+    chatTable: "department_chats",
+    readsTable: "department_chat_reads",
+    storagePrefix: "chat",
+    channelKey: "dept-chat",
+    queryKeyBase: "department-chats",
+    readsQueryKeyBase: "department-chat-reads",
+    headerTitle: "Team Chat",
+    headerHint: "Internal only",
+    placeholder: "Type a message... Use @ to mention",
+    emptyHint: "Start the conversation",
+  },
+  client: {
+    chatTable: "department_client_chats",
+    readsTable: "department_client_chat_reads",
+    storagePrefix: "client-chat",
+    channelKey: "client-chat",
+    queryKeyBase: "department-client-chats",
+    readsQueryKeyBase: "department-client-chat-reads",
+    headerTitle: "Client Chat",
+    headerHint: "Shared with clinic team",
+    placeholder: "Share an update or upload pet photos…",
+    emptyHint: "Share photos or a message with the team",
+  },
+} as const;
 
 interface FileAttachment {
   name: string;
@@ -69,7 +99,8 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const MAX_FILES = 5;
 const TYPING_TIMEOUT = 3000;
 
-export function DepartmentChat({ department, clinicId, onVisible }: Props) {
+export function DepartmentChat({ department, clinicId, onVisible, variant = "team" }: Props) {
+  const cfg = VARIANT_CONFIG[variant];
   const { user } = useAuth();
   const { role } = useUserRole();
   const queryClient = useQueryClient();
@@ -115,7 +146,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
   const { data: mentionableUsers = [] } = useMentionableUsers(department, clinicId);
   const mentionableNames = mentionableUsers.map((u) => u.name);
 
-  const queryKey = ["department-chats", department, clinicId, pageLimit];
+  const queryKey = [cfg.queryKeyBase, department, clinicId, pageLimit];
 
   const { data: messages = [], isLoading } = useQuery({
     queryKey,
@@ -123,19 +154,20 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
       if (!clinicId) return [];
       // Fetch most recent `pageLimit` messages, then reverse to ascending
       const { data, error } = await supabase
-        .from("department_chats")
+        .from(cfg.chatTable as any)
         .select("id, message, created_at, user_id, attachments, reactions, reply_to, pinned, edited_at")
         .eq("department", department)
         .eq("clinic_id", clinicId)
         .order("created_at", { ascending: false })
         .limit(pageLimit + 1);
       if (error) throw error;
-      const more = (data || []).length > pageLimit;
+      const rows = (data as any[]) || [];
+      const more = rows.length > pageLimit;
       setHasMore(more);
-      if (more) data!.pop();
-      data!.reverse();
+      if (more) rows.pop();
+      rows.reverse();
 
-      const userIds = [...new Set((data || []).map((m) => m.user_id))];
+      const userIds = [...new Set(rows.map((m: any) => m.user_id))];
       let profileMap: Record<string, string> = {};
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
@@ -147,15 +179,15 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
         );
       }
 
-      const mapped = (data || []).map((m) => ({
+      const mapped = rows.map((m: any) => ({
         ...m,
         sender_name: profileMap[m.user_id] || "Unknown",
         attachments: (m.attachments as unknown as FileAttachment[] | null) || [],
         reactions: (m.reactions as unknown as Record<string, string[]> | null) || {},
-        reply_to: (m as any).reply_to as string | null,
+        reply_to: m.reply_to as string | null,
         reply_preview: null as { sender_name: string; message: string } | null,
-        pinned: (m as any).pinned as boolean || false,
-        edited_at: (m as any).edited_at as string | null,
+        pinned: (m.pinned as boolean) || false,
+        edited_at: m.edited_at as string | null,
       }));
 
       // Build reply previews
@@ -188,13 +220,13 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
   });
 
   // Read receipts - fetch all readers for this dept+clinic
-  const readReceiptsKey = ["department-chat-reads", department, clinicId];
+  const readReceiptsKey = [cfg.readsQueryKeyBase, department, clinicId];
   const { data: readReceipts = [] } = useQuery({
     queryKey: readReceiptsKey,
     queryFn: async () => {
       if (!clinicId) return [];
       const { data } = await supabase
-        .from("department_chat_reads" as any)
+        .from(cfg.readsTable as any)
         .select("user_id, last_read_message_id, last_read_at")
         .eq("department", department)
         .eq("clinic_id", clinicId);
@@ -212,13 +244,13 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
 
     if (myReceipt) {
       await supabase
-        .from("department_chat_reads" as any)
+        .from(cfg.readsTable as any)
         .update({ last_read_message_id: lastMsg.id, last_read_at: new Date().toISOString() } as any)
         .eq("user_id", user.id)
         .eq("department", department)
         .eq("clinic_id", clinicId);
     } else {
-      await supabase.from("department_chat_reads" as any).insert({
+      await supabase.from(cfg.readsTable as any).insert({
         user_id: user.id,
         department,
         clinic_id: clinicId,
@@ -248,13 +280,13 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
   useEffect(() => {
     if (!clinicId || !user) return;
     const invalidate = () => {
-      queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
+      queryClient.invalidateQueries({ queryKey: [cfg.queryKeyBase, department, clinicId] });
     };
     const channel = supabase
-      .channel(`clinic:${clinicId}:dept-chat:${department}:${user.id}`)
+      .channel(`clinic:${clinicId}:${cfg.channelKey}:${department}:${user.id}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "department_chats", filter: `clinic_id=eq.${clinicId}` },
+        { event: "*", schema: "public", table: cfg.chatTable, filter: `clinic_id=eq.${clinicId}` },
         () => {
           invalidate();
           onVisible?.();
@@ -262,7 +294,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "department_chat_reads", filter: `clinic_id=eq.${clinicId}` },
+        { event: "*", schema: "public", table: cfg.readsTable, filter: `clinic_id=eq.${clinicId}` },
         () => {
           queryClient.invalidateQueries({ queryKey: readReceiptsKey });
         }
@@ -392,7 +424,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     const uploaded: FileAttachment[] = [];
     for (const file of files) {
       const ext = file.name.split(".").pop() || "bin";
-      const storagePath = `chat/${department}/${clinicId}/${crypto.randomUUID()}.${ext}`;
+      const storagePath = `${cfg.storagePrefix}/${department}/${clinicId}/${crypto.randomUUID()}.${ext}`;
       const { error } = await supabase.storage.from("department-files").upload(storagePath, file);
       if (error) { toast.error(`Failed to upload ${file.name}`); continue; }
       uploaded.push({ name: file.name, path: storagePath, type: file.type, size: file.size });
@@ -408,7 +440,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     try {
       let attachments: FileAttachment[] = [];
       if (hasFiles) attachments = await uploadFiles(pendingFiles);
-      const { error } = await supabase.from("department_chats").insert({
+      const { error } = await supabase.from(cfg.chatTable as any).insert({
         department, clinic_id: clinicId, user_id: user.id,
         message: newMessage.trim() || (attachments.length > 0 ? `Sent ${attachments.length} file${attachments.length > 1 ? "s" : ""}` : ""),
         attachments: attachments as any,
@@ -422,7 +454,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
       setPendingFiles([]);
       setReplyTo(null);
       // Refetch immediately so the sender sees their message without waiting for realtime
-      await queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
+      await queryClient.invalidateQueries({ queryKey: [cfg.queryKeyBase, department, clinicId] });
     } finally { setSending(false); }
   };
 
@@ -459,8 +491,8 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     else users.push(user.id);
     if (users.length === 0) delete reactions[emoji];
     else reactions[emoji] = users;
-    await supabase.from("department_chats").update({ reactions: reactions as any }).eq("id", messageId);
-    queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
+    await supabase.from(cfg.chatTable as any).update({ reactions: reactions as any }).eq("id", messageId);
+    queryClient.invalidateQueries({ queryKey: [cfg.queryKeyBase, department, clinicId] });
   };
 
   const handleEmojiInsert = (emoji: string) => {
@@ -468,8 +500,8 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
   };
 
    const handleTogglePin = async (messageId: string, currentlyPinned: boolean) => {
-    await supabase.from("department_chats").update({ pinned: !currentlyPinned } as any).eq("id", messageId);
-    queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
+    await supabase.from(cfg.chatTable as any).update({ pinned: !currentlyPinned } as any).eq("id", messageId);
+    queryClient.invalidateQueries({ queryKey: [cfg.queryKeyBase, department, clinicId] });
   };
 
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -493,7 +525,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
     if (!trimmed) { toast.error("Message cannot be empty"); return; }
     if (trimmed === original.message) { cancelEditing(); return; }
     const { error } = await supabase
-      .from("department_chats")
+      .from(cfg.chatTable as any)
       .update({ message: trimmed, edited_at: new Date().toISOString() } as any)
       .eq("id", editingMessageId)
       .eq("user_id", user.id);
@@ -501,7 +533,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
       toast.error("Failed to edit message");
       return;
     }
-    queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
+    queryClient.invalidateQueries({ queryKey: [cfg.queryKeyBase, department, clinicId] });
     cancelEditing();
   };
 
@@ -509,11 +541,11 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
 
   const confirmDeleteMessage = async () => {
     if (!deleteMessageId) return;
-    const { error } = await supabase.from("department_chats").delete().eq("id", deleteMessageId);
+    const { error } = await supabase.from(cfg.chatTable as any).delete().eq("id", deleteMessageId);
     if (error) {
       toast.error("Failed to delete message");
     } else {
-      queryClient.invalidateQueries({ queryKey: ["department-chats", department, clinicId] });
+      queryClient.invalidateQueries({ queryKey: [cfg.queryKeyBase, department, clinicId] });
       toast.success("Message deleted");
     }
     setDeleteMessageId(null);
@@ -574,7 +606,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
 
       <div className="px-4 py-3 border-b border-border/40 flex items-center gap-2">
         <MessageSquare className="h-4 w-4 text-muted-foreground" />
-        <h3 className="text-sm font-bold text-foreground">Team Chat</h3>
+        <h3 className="text-sm font-bold text-foreground">{cfg.headerTitle}</h3>
         <div className="ml-auto flex items-center gap-1">
           {searchOpen ? (
             <div className="flex items-center gap-1">
@@ -604,7 +636,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
               <Search className="h-3.5 w-3.5 text-muted-foreground" />
             </Button>
           )}
-          <span className="text-xs text-muted-foreground">Internal only</span>
+          <span className="text-xs text-muted-foreground">{cfg.headerHint}</span>
         </div>
       </div>
 
@@ -661,7 +693,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
               ) : (
                 <>
                   <p>No messages yet</p>
-                  <p className="text-xs">Start the conversation</p>
+                  <p className="text-xs">{cfg.emptyHint}</p>
                 </>
               )}
             </div>
@@ -900,7 +932,7 @@ export function DepartmentChat({ department, clinicId, onVisible }: Props) {
             department={department}
             clinicId={clinicId}
             disabled={sending}
-            placeholder="Type a message... Use @ to mention"
+            placeholder={cfg.placeholder}
           />
           <Button size="sm" onClick={handleSend} disabled={(!newMessage.trim() && pendingFiles.length === 0) || sending} className="h-9 px-3">
             <Send className="h-3.5 w-3.5" />
