@@ -253,7 +253,9 @@ function PostCard({
   }, [noteIsNewForStaff, post.id, post.updated_at]);
 
   const handleFiles = (files: FileList | File[]) => {
-    const arr = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    const arr = Array.from(files).filter(
+      (f) => f.type.startsWith("image/") || f.type.startsWith("video/"),
+    );
     if (arr.length === 0) return;
     onUpload(arr);
   };
