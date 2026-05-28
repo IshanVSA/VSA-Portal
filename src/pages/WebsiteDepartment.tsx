@@ -161,6 +161,7 @@ export default function WebsiteDepartment() {
                 {canViewHealth && <TabsContent value="health" className="mt-4"><WebsiteHealthTab clinicId={selectedClinicId} /></TabsContent>}
                 {isStaff && <TabsContent value="checklist" className="mt-4"><WebsiteChecklistTab clinicId={selectedClinicId} /></TabsContent>}
                 {isStaff && <TabsContent value="tasks" className="mt-4"><TasksTab department="website" clinicId={selectedClinicId} /></TabsContent>}
+                <TabsContent value="client-chat" className="mt-4"><DepartmentChat department="website" clinicId={selectedClinicId} variant="client" onVisible={markClientRead} /></TabsContent>
                 {isStaff && <TabsContent value="chat" className="mt-4"><DepartmentChat department="website" clinicId={selectedClinicId} onVisible={markAsRead} /></TabsContent>}
               </Tabs>
             </motion.div>
