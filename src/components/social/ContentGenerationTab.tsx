@@ -68,7 +68,7 @@ const ACTIVE_GEN_STATUSES = ["queued", "processing", "retrying"];
 
 export default function ContentGenerationTab({ clinicId }: Props) {
   const { dna } = useBrandDNA(clinicId);
-  const { generations, currentGeneration, generate, sendCopyForReview, sendFinalForReview, isLoading, pollForCompletion, cancelGeneration } = useSM2Generation(clinicId);
+  const { generations, currentGeneration, generate, sendForApproval, isLoading, pollForCompletion, cancelGeneration } = useSM2Generation(clinicId);
   const [stopTargetId, setStopTargetId] = useState<string | null>(null);
 
   const monthOptions = useMemo(() => buildMonthOptions(), []);
@@ -451,9 +451,9 @@ export default function ContentGenerationTab({ clinicId }: Props) {
               monthYear={selectedGen.month_year}
               approvalStatus={selectedGen.approval_status}
               isClient={false}
-              onSendCopyForReview={() => sendCopyForReview.mutate(selectedGen.id)}
-              onSendFinalForReview={() => sendFinalForReview.mutate(selectedGen.id)}
-              sendPending={sendCopyForReview.isPending || sendFinalForReview.isPending}
+              onSendCopyForReview={() => sendForApproval.mutate(selectedGen.id)}
+              onSendFinalForReview={() => sendForApproval.mutate(selectedGen.id)}
+              sendPending={sendForApproval.isPending}
               sentToClientAt={selectedGen.sent_to_client_at}
             />
           )}
@@ -570,16 +570,13 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                           Regenerate
                         </Button>
                       )}
-                      {(gen.approval_status === "pending" || gen.approval_status === "copy_changes_requested") && gen.html_file_path && (
-                        <Button variant="outline" size="sm" onClick={() => sendCopyForReview.mutate(gen.id)} disabled={sendCopyForReview.isPending} className="gap-1.5 text-xs">
+                      {(gen.approval_status === "pending" ||
+                        gen.approval_status === "copy_changes_requested" ||
+                        gen.approval_status === "copy_approved" ||
+                        gen.approval_status === "final_changes_requested") && gen.html_file_path && (
+                        <Button variant="outline" size="sm" onClick={() => sendForApproval.mutate(gen.id)} disabled={sendForApproval.isPending} className="gap-1.5 text-xs">
                           <Send className="h-3.5 w-3.5" />
-                          {gen.approval_status === "copy_changes_requested" ? "Resend copy" : "Send copy to client"}
-                        </Button>
-                      )}
-                      {(gen.approval_status === "copy_approved" || gen.approval_status === "final_changes_requested") && gen.html_file_path && (
-                        <Button variant="outline" size="sm" onClick={() => sendFinalForReview.mutate(gen.id)} disabled={sendFinalForReview.isPending} className="gap-1.5 text-xs">
-                          <Send className="h-3.5 w-3.5" />
-                          Send final for approval
+                          {gen.approval_status === "pending" ? "Send to client" : "Resend for approval"}
                         </Button>
                       )}
                       {gen.sent_to_client_at && (
@@ -659,11 +656,11 @@ function StatusBadge({ status, stage }: { status: string; stage?: string | null 
     processing: { label: "Pipeline Running", variant: "secondary", icon: RefreshCw },
     retrying: { label: "Retrying", variant: "secondary", icon: RefreshCw },
     pending: { label: "Pending Review", variant: "outline", icon: Clock },
-    sent_for_copy_review: { label: "Awaiting Client Copy Approval", variant: "secondary", icon: Send },
-    copy_changes_requested: { label: "Copy Changes Requested", variant: "destructive", icon: AlertTriangle },
-    copy_approved: { label: "Copy Approved · Add Visuals", variant: "default", icon: CheckCircle },
-    sent_for_final_review: { label: "Awaiting Final Approval", variant: "secondary", icon: Send },
-    final_changes_requested: { label: "Final Changes Requested", variant: "destructive", icon: AlertTriangle },
+    sent_for_copy_review: { label: "Awaiting Client Approval", variant: "secondary", icon: Send },
+    copy_changes_requested: { label: "Changes Requested", variant: "destructive", icon: AlertTriangle },
+    copy_approved: { label: "Ready to Send for Approval", variant: "default", icon: CheckCircle },
+    sent_for_final_review: { label: "Awaiting Client Approval", variant: "secondary", icon: Send },
+    final_changes_requested: { label: "Changes Requested", variant: "destructive", icon: AlertTriangle },
     approved_client: { label: "Client Approved", variant: "default", icon: CheckCircle },
     approved_auto: { label: "Auto-Approved", variant: "secondary", icon: CheckCircle },
     generation_failed: { label: "Generation Failed", variant: "destructive", icon: AlertTriangle },

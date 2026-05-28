@@ -46,10 +46,8 @@ export default function ClientContentReview({ clinicId }: Props) {
   const {
     generations,
     isLoading,
-    approveCopy,
-    requestCopyChanges,
     approveFinal,
-    requestFinalChanges,
+    requestChanges,
     getHtmlUrl,
   } = useSM2Generation(clinicId);
   const [viewingGen, setViewingGen] = useState<SM2Generation | null>(null);
@@ -58,10 +56,11 @@ export default function ClientContentReview({ clinicId }: Props) {
   const [feedbackText, setFeedbackText] = useState("");
   const [approveConfirm, setApproveConfirm] = useState<SM2Generation | null>(null);
 
-  // Show generations once they've been sent for either review round, plus terminal states.
+  // Show generations once they've been sent for review, plus terminal states.
+  // Legacy copy-stage statuses are still rendered so historical records don't disappear.
   const VISIBLE_STATUSES = [
-    "sent_for_copy_review",
-    "copy_approved",
+    "sent_for_copy_review", // legacy
+    "copy_approved",        // legacy
     "copy_changes_requested",
     "sent_for_final_review",
     "final_changes_requested",
@@ -72,35 +71,19 @@ export default function ClientContentReview({ clinicId }: Props) {
     (g) => g.sent_to_client_at && VISIBLE_STATUSES.includes(g.approval_status)
   );
 
-  const isCopyRound = (g: SM2Generation | null) =>
-    !!g && g.approval_status === "sent_for_copy_review";
-  const isFinalRound = (g: SM2Generation | null) =>
-    !!g && g.approval_status === "sent_for_final_review";
+  const isActionableStatus = (g: SM2Generation | null) =>
+    !!g && (g.approval_status === "sent_for_final_review" || g.approval_status === "sent_for_copy_review");
 
   const handleApprove = () => {
     if (!approveConfirm) return;
-    if (isCopyRound(approveConfirm)) {
-      approveCopy.mutate(approveConfirm.id);
-    } else if (isFinalRound(approveConfirm)) {
-      approveFinal.mutate(approveConfirm.id);
-    }
+    approveFinal.mutate(approveConfirm.id);
     setApproveConfirm(null);
   };
 
   const handleSubmitFeedback = () => {
     if (!feedbackGen) return;
     const note = feedbackText.trim() || "Per-post changes requested. See post comments.";
-    if (isCopyRound(feedbackGen)) {
-      requestCopyChanges.mutate({
-        generationId: feedbackGen.id,
-        feedback: note,
-      });
-    } else if (isFinalRound(feedbackGen)) {
-      requestFinalChanges.mutate({
-        generationId: feedbackGen.id,
-        feedback: note,
-      });
-    }
+    requestChanges.mutate({ generationId: feedbackGen.id, feedback: note });
     setFeedbackGen(null);
     setFeedbackText("");
   };
@@ -149,7 +132,7 @@ export default function ClientContentReview({ clinicId }: Props) {
               setFeedbackGen(gen);
               setFeedbackText(gen.client_feedback || "");
             }}
-            isPendingApproval={approveCopy.isPending || approveFinal.isPending}
+            isPendingApproval={approveFinal.isPending}
           />
         ))}
       </div>
@@ -251,39 +234,33 @@ export default function ClientContentReview({ clinicId }: Props) {
             </Button>
             <Button
               onClick={handleSubmitFeedback}
-              disabled={requestCopyChanges.isPending || requestFinalChanges.isPending}
+              disabled={requestChanges.isPending}
               className="gap-2"
             >
               <Send className="h-4 w-4" />
-              {(requestCopyChanges.isPending || requestFinalChanges.isPending) ? "Sending..." : "Send back"}
+              {requestChanges.isPending ? "Sending..." : "Send back"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Approve Confirmation — context-aware copy vs final */}
+      {/* Approve Confirmation — single-step */}
       <AlertDialog open={!!approveConfirm} onOpenChange={() => setApproveConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {isCopyRound(approveConfirm)
-                ? "Approve the copy?"
-                : "Approve final content?"}
-            </AlertDialogTitle>
+            <AlertDialogTitle>Approve this month's content?</AlertDialogTitle>
             <AlertDialogDescription>
-              {isCopyRound(approveConfirm)
-                ? "By approving the copy, you confirm the captions, hooks, and hashtags look good. Your concierge will then add visuals and send the calendar back for your final approval."
-                : "By approving, you confirm the content is ready to be scheduled and posted on your social media channels. Your concierge will begin the posting schedule."}
+              By approving, you confirm both the captions and visuals are good to go. Your concierge will begin the posting schedule.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleApprove}
-              disabled={approveCopy.isPending || approveFinal.isPending}
+              disabled={approveFinal.isPending}
             >
               <ThumbsUp className="h-4 w-4 mr-2" />
-              {isCopyRound(approveConfirm) ? "Yes, approve copy" : "Yes, approve final"}
+              Yes, approve
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -310,12 +287,9 @@ function ContentReviewCard({
 }) {
   const monthLabel = format(new Date(generation.month_year + "-01T00:00:00"), "MMMM yyyy");
   const status = generation.approval_status;
-  const isCopyActionable = status === "sent_for_copy_review";
-  const isFinalActionable = status === "sent_for_final_review";
-  const isActionable = isCopyActionable || isFinalActionable;
+  const isActionable = status === "sent_for_final_review" || status === "sent_for_copy_review";
   const isApproved = ["approved_client", "approved_auto"].includes(status);
   const hasFeedback = status === "copy_changes_requested" || status === "final_changes_requested";
-  const isCopyApprovedWaiting = status === "copy_approved";
 
   return (
     <Card
@@ -332,8 +306,6 @@ function ContentReviewCard({
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <FileText className="h-4 w-4" />
             {monthLabel} Content
-            {isCopyActionable && <Badge variant="outline" className="text-[10px] ml-1">Round 1 · Copy</Badge>}
-            {isFinalActionable && <Badge variant="outline" className="text-[10px] ml-1">Round 2 · Final</Badge>}
           </CardTitle>
           <ReviewStatusBadge status={status} />
         </div>
@@ -344,25 +316,10 @@ function ContentReviewCard({
         )}
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Round-specific helper text */}
-        {isCopyActionable && (
+        {isActionable && (
           <div className="rounded-xl border border-blue-200/50 bg-blue-50/30 p-3">
             <p className="text-sm">
-              <strong>Round 1: Review the copy.</strong> Check captions, hooks and hashtags. Visuals will be added by your concierge after you approve the copy.
-            </p>
-          </div>
-        )}
-        {isCopyApprovedWaiting && (
-          <div className="rounded-xl border border-blue-200/50 bg-blue-50/30 p-3">
-            <p className="text-sm">
-              <strong>Copy approved.</strong> Your concierge is now adding visuals. You'll be asked for final approval shortly.
-            </p>
-          </div>
-        )}
-        {isFinalActionable && (
-          <div className="rounded-xl border border-blue-200/50 bg-blue-50/30 p-3">
-            <p className="text-sm">
-              <strong>Round 2: Final approval.</strong> Review the visuals alongside the approved copy. Approving here unlocks scheduling.
+              <strong>Ready for your approval.</strong> Review the captions and visuals together. Approving here unlocks scheduling.
             </p>
           </div>
         )}
@@ -394,23 +351,13 @@ function ContentReviewCard({
           </Button>
           {isActionable && (
             <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onFeedback}
-                className="gap-2"
-              >
+              <Button variant="outline" size="sm" onClick={onFeedback} className="gap-2">
                 <MessageSquare className="h-4 w-4" />
                 Send back
               </Button>
-              <Button
-                size="sm"
-                onClick={onApprove}
-                disabled={isPendingApproval}
-                className="gap-2 ml-auto"
-              >
+              <Button size="sm" onClick={onApprove} disabled={isPendingApproval} className="gap-2 ml-auto">
                 <ThumbsUp className="h-4 w-4" />
-                {isCopyActionable ? "Approve copy" : "Approve final"}
+                Approve
               </Button>
             </>
           )}
@@ -422,11 +369,11 @@ function ContentReviewCard({
 
 function ReviewStatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive"; icon: typeof CheckCircle }> = {
-    sent_for_copy_review: { label: "Awaiting Copy Review", variant: "outline", icon: Clock },
-    copy_approved: { label: "Copy Approved · Awaiting Visuals", variant: "secondary", icon: CheckCircle },
-    copy_changes_requested: { label: "Copy Changes Sent", variant: "secondary", icon: MessageSquare },
-    sent_for_final_review: { label: "Awaiting Final Approval", variant: "outline", icon: Clock },
-    final_changes_requested: { label: "Final Changes Sent", variant: "secondary", icon: MessageSquare },
+    sent_for_copy_review: { label: "Awaiting Approval", variant: "outline", icon: Clock },
+    copy_approved: { label: "Ready to Send", variant: "secondary", icon: CheckCircle },
+    copy_changes_requested: { label: "Changes Sent", variant: "secondary", icon: MessageSquare },
+    sent_for_final_review: { label: "Awaiting Approval", variant: "outline", icon: Clock },
+    final_changes_requested: { label: "Changes Sent", variant: "secondary", icon: MessageSquare },
     approved_client: { label: "Approved", variant: "default", icon: CheckCircle },
     approved_auto: { label: "Auto-Approved", variant: "secondary", icon: CheckCircle },
   };

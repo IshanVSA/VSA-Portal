@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const reviewStage: "copy" | "final" = stage === "final" ? "final" : "copy";
+    const reviewStage: "copy" | "final" = stage === "copy" ? "copy" : "final";
 
     if (testRecipient && !isPrivileged) {
       return new Response(

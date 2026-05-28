@@ -155,74 +155,10 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
     },
   });
 
-  // ─── Two-step approval workflow ─────────────────────────────────
-  // Round 1: Concierge sends copy (no images required) for client copy review.
-  const sendCopyForReview = useMutation({
-    mutationFn: async (generationId: string) => {
-      const { error } = await supabase
-        .from("sm2_generations")
-        .update({
-          approval_status: "sent_for_copy_review",
-          sent_to_client_at: new Date().toISOString(),
-          client_feedback: null, // clear prior feedback when re-sending after edits
-        })
-        .eq("id", generationId);
-      if (error) throw error;
-      // Fire-and-forget: client notification email
-      supabase.functions
-        .invoke("notify-content-approval", { body: { generationId, stage: "copy" } })
-        .catch((e) => console.warn("notify-content-approval (copy) failed", e));
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sm2-generations", clinicId] });
-      toast.success("Copy sent to client for review");
-    },
-    onError: (error: Error) => {
-      toast.error("Failed to send copy to client", { description: error.message });
-    },
-  });
-
-  // Client approves the copy → unlocks image upload for concierge.
-  const approveCopy = useMutation({
-    mutationFn: async (generationId: string) => {
-      const { error } = await supabase
-        .from("sm2_generations")
-        .update({ approval_status: "copy_approved" })
-        .eq("id", generationId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sm2-generations", clinicId] });
-      toast.success("Copy approved! Your concierge will now add visuals.");
-    },
-    onError: (error: Error) => {
-      toast.error("Approval failed", { description: error.message });
-    },
-  });
-
-  // Client requests copy changes.
-  const requestCopyChanges = useMutation({
-    mutationFn: async ({ generationId, feedback }: { generationId: string; feedback: string }) => {
-      const { error } = await supabase
-        .from("sm2_generations")
-        .update({
-          approval_status: "copy_changes_requested",
-          client_feedback: feedback,
-        })
-        .eq("id", generationId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sm2-generations", clinicId] });
-      toast.success("Feedback submitted. Your concierge will revise the copy.");
-    },
-    onError: (error: Error) => {
-      toast.error("Failed to submit feedback", { description: error.message });
-    },
-  });
-
-  // Round 2: Concierge sends final (with images) for client final review.
-  const sendFinalForReview = useMutation({
+  // ─── Single-step approval workflow ─────────────────────────────────
+  // Concierge sends captions + visuals together. The client's approval
+  // is treated as final approval.
+  const sendForApproval = useMutation({
     mutationFn: async (generationId: string) => {
       // Gate: every sm2_post must have at least one image
       const { data: posts, error: postsErr } = await supabase
@@ -244,51 +180,25 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
         .update({
           approval_status: "sent_for_final_review",
           sent_to_client_at: new Date().toISOString(),
-          client_feedback: null,
+          client_feedback: null, // clear prior feedback when re-sending after edits
         })
         .eq("id", generationId);
       if (error) throw error;
-      // Fire-and-forget: client notification email
       supabase.functions
         .invoke("notify-content-approval", { body: { generationId, stage: "final" } })
-        .catch((e) => console.warn("notify-content-approval (final) failed", e));
+        .catch((e) => console.warn("notify-content-approval failed", e));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sm2-generations", clinicId] });
-      toast.success("Final calendar sent to client for approval");
+      toast.success("Content sent to client for approval");
     },
     onError: (error: Error) => {
       toast.error("Failed to send to client", { description: error.message });
     },
   });
 
-  // Client final approval → unlocks downstream scheduling.
-  const approveFinal = useMutation({
-    mutationFn: async (generationId: string) => {
-      const { error } = await supabase
-        .from("sm2_generations")
-        .update({
-          approval_status: "approved_client",
-          approved_at: new Date().toISOString(),
-        })
-        .eq("id", generationId);
-      if (error) throw error;
-      // Materialize approved posts into the content calendar (fire-and-forget; logged on failure)
-      supabase.functions
-        .invoke("materialize-sm2-posts", { body: { generationId } })
-        .catch((e) => console.warn("materialize-sm2-posts failed", e));
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sm2-generations", clinicId] });
-      toast.success("Content approved! Posts have been added to your calendar.");
-    },
-    onError: (error: Error) => {
-      toast.error("Approval failed", { description: error.message });
-    },
-  });
-
-  // Client requests changes on final (visuals).
-  const requestFinalChanges = useMutation({
+  // Client requests changes (single round).
+  const requestChanges = useMutation({
     mutationFn: async ({ generationId, feedback }: { generationId: string; feedback: string }) => {
       const { error } = await supabase
         .from("sm2_generations")
@@ -307,6 +217,37 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
       toast.error("Failed to submit feedback", { description: error.message });
     },
   });
+
+  // Client final approval → unlocks downstream scheduling.
+  const approveFinal = useMutation({
+    mutationFn: async (generationId: string) => {
+      const { error } = await supabase
+        .from("sm2_generations")
+        .update({
+          approval_status: "approved_client",
+          approved_at: new Date().toISOString(),
+        })
+        .eq("id", generationId);
+      if (error) throw error;
+      supabase.functions
+        .invoke("materialize-sm2-posts", { body: { generationId } })
+        .catch((e) => console.warn("materialize-sm2-posts failed", e));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sm2-generations", clinicId] });
+      toast.success("Content approved! Posts have been added to your calendar.");
+    },
+    onError: (error: Error) => {
+      toast.error("Approval failed", { description: error.message });
+    },
+  });
+
+  // Backwards-compatible aliases so existing call-sites keep working.
+  const sendCopyForReview = sendForApproval;
+  const sendFinalForReview = sendForApproval;
+  const approveCopy = approveFinal;
+  const requestCopyChanges = requestChanges;
+  const requestFinalChanges = requestChanges;
 
   // Manual stop — admin/concierge can cancel an in-flight generation.
   const cancelGeneration = useMutation({
@@ -341,7 +282,9 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
     currentGeneration,
     isLoading,
     generate,
-    // Two-step approval workflow
+    // Single-step approval workflow (+ backwards-compatible aliases)
+    sendForApproval,
+    requestChanges,
     sendCopyForReview,
     approveCopy,
     requestCopyChanges,

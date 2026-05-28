@@ -1,46 +1,42 @@
-## Website Delivery Checklist Tab
+# Single-Step Social Media Approval
 
-Add a new **Checklist** tab inside the Website department that tracks delivery/configuration items per clinic. Items are managed globally (admin-editable) and tracked per clinic. Hidden from clients.
+Replace the current two-round approval (copy review → visuals → final review) with one combined approval. Staff prepares captions AND visuals together, sends once, and the client's approval is treated as the final approval.
 
-### Database (2 new tables)
+## Behavior changes
 
-**`website_checklist_items`** — global master list shared across all clinics
-- `id`, `section` (text: e.g. "Before Migration" / "After Migration"), `label` (text), `position` (int for ordering), `is_active` (bool), `created_at`, `updated_at`
-- Seeded with the 24 items from the uploaded checklist (2 before-migration + 22 after-migration)
-- RLS: admin/concierge can read & write; clients blocked
+**Staff side (ContentGenerationTab / SM2CalendarView)**
+- Visuals (image upload) section is unlocked from the moment a generation completes — no longer gated behind `copy_approved`.
+- Remove the "Send copy to client" CTA. Replace with a single **"Send to client for approval"** button.
+- That button is disabled until every post has at least one image attached (same rule that currently governs final-round send).
+- Clicking it sets `approval_status = 'sent_for_final_review'` directly (skipping `sent_for_copy_review` / `copy_approved`).
+- Wording cleanup: remove "Copy approved · add visuals", "captions only", "Round 1 / Round 2" copy throughout the calendar view and status badges.
 
-**`website_checklist_status`** — per-clinic completion state
-- `id`, `clinic_id` (fk), `item_id` (fk → website_checklist_items), `is_done` (bool), `completed_by` (uuid, nullable), `completed_at` (timestamptz, nullable), `notes` (text, nullable), `created_at`, `updated_at`
-- Unique constraint on `(clinic_id, item_id)`
-- RLS: admin/concierge only
+**Client side (ClientContentReview)**
+- Only one review state is shown: `sent_for_final_review`.
+- Approve button reads **"Approve"** and sets `approval_status = 'approved_client'` (already the existing final-approve path).
+- "Request changes" sends back as `final_changes_requested` (existing behavior).
+- Remove the "Copy approved · awaiting visuals" intermediate card.
 
-When a new item is added globally, it appears for every clinic as unchecked (no row needed — UI shows missing rows as not-done).
+**Backend / automation**
+- `useSM2Generation.sendToClient`: write `sent_for_final_review` (and set `sent_to_client_at`) instead of `sent_for_copy_review`. Remove the separate `approveCopy` / `sendFinalReview` two-step methods from the UI flow (keep functions usable but unused, or delete callers).
+- `supabase/functions/auto-approve-posts` Part 3a (copy review auto-advance) becomes a no-op since nothing will enter `sent_for_copy_review` anymore. Keep Part 3b (final review → `approved_client`) unchanged.
+- `supabase/functions/notify-content-approval`: default `stage` to `"final"`; only the final-review email template is used going forward.
 
-### UI
+**Legacy data**
+- Existing generations still sitting in `sent_for_copy_review` / `copy_approved` remain renderable (badges/labels kept in maps) so historical records aren't broken, but no new generation can reach those states.
 
-**New tab** in `src/pages/WebsiteDepartment.tsx`: `ListChecks` icon, label "Checklist", gated to `isStaff` (admin/concierge) — same pattern as Tasks/Chat tabs. **Hidden from clients.**
+## Files to touch
 
-**New component** `src/components/department/WebsiteChecklistTab.tsx`:
-- Grouped by section ("Before Migration", "After Migration") in collapsible cards
-- Each item = checkbox + label + (when checked) small "by {name} · {date}" caption + optional notes popover
-- Progress bar at top: "X of Y complete" per clinic
-- Toggling a checkbox upserts into `website_checklist_status`
-- **Manage items** button (admin only) → opens a dialog to add/rename/reorder/deactivate global items; changes propagate to all clinics immediately
+- `src/hooks/useSM2Generation.ts` — reroute send to `sent_for_final_review`; deprecate copy-stage mutations from UI.
+- `src/components/social/SM2CalendarView.tsx` — `imagesUnlocked = true`, drop copy-locked branch, single send button gated on `imagesComplete`, update banners/labels.
+- `src/components/social/ContentGenerationTab.tsx` — collapse "Send copy" / "Send final" buttons into one; update status priority + badge labels.
+- `src/components/social/ClientContentReview.tsx` — show only final-review actionable state; update labels and the intermediate "copy approved" card.
+- `src/components/social/ClientContentCalendar.tsx`, `ClientPostsTab.tsx`, `overview/*SocialOverview.tsx`, `dashboard/AdminDashboard.tsx`, `notifications/NotificationBell.tsx`, `hooks/usePendingCounts.ts` — audit copy-stage status checks; treat them as legacy-only (no new emissions) and update any user-facing wording.
+- `supabase/functions/notify-content-approval/index.ts` — default `stage` to `"final"`.
+- `supabase/functions/auto-approve-posts/index.ts` — leave Part 3a in place as a safety net for legacy rows; add a comment noting it's deprecated.
 
-**New hook** `src/hooks/useWebsiteChecklist.ts`:
-- `useChecklistItems()` — global active items
-- `useChecklistStatus(clinicId)` — joined items + status for a clinic
-- Mutations: `toggleItem`, `addItem`, `updateItem`, `deactivateItem`, `reorderItems`
+## Out of scope
 
-### Files
-
-- migration: create both tables + RLS + seed 24 items
-- new: `src/components/department/WebsiteChecklistTab.tsx`
-- new: `src/components/department/ChecklistItemsManagerDialog.tsx` (admin manage modal)
-- new: `src/hooks/useWebsiteChecklist.ts`
-- edit: `src/pages/WebsiteDepartment.tsx` (add tab)
-
-### Notes / Open questions
-
-1. Should the **Manage items** dialog be admin-only, or concierge too? (Default: admin-only — concierge can only tick boxes.)
-2. Item deletion: soft-delete via `is_active=false` so historical completion data is preserved — OK?
+- No DB schema migration (status enum/values stay the same; we just stop producing the intermediate ones).
+- No changes to GBP posts, blog, or any other department.
+- No changes to the 5-day auto-approval window — it just collapses from two windows to one.
