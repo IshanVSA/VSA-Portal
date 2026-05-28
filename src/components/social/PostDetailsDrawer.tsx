@@ -12,6 +12,7 @@ import {
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useSM2Posts, type SM2Post, getPostImagePaths } from "@/hooks/useSM2Posts";
+import { coverPathFor } from "@/lib/video-thumbnail";
 
 interface Props {
   open: boolean;
