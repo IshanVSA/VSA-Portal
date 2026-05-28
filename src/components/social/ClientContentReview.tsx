@@ -132,7 +132,7 @@ export default function ClientContentReview({ clinicId }: Props) {
               setFeedbackGen(gen);
               setFeedbackText(gen.client_feedback || "");
             }}
-            isPendingApproval={approveCopy.isPending || approveFinal.isPending}
+            isPendingApproval={approveFinal.isPending}
           />
         ))}
       </div>
