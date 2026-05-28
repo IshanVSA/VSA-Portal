@@ -69,10 +69,12 @@ export default function WebsiteDepartment() {
   const { isLocked, isAdminBypass, loading: accessLoading } = useClinicServiceAccess(selectedClinic, "website", clinicsLoading);
   const isStaff = role === "admin" || role === "concierge";
   const { unreadCount, markAsRead } = useDepartmentChatUnread("website", selectedClinicId);
+  const { unreadCount: clientUnread, markAsRead: markClientRead } = useDepartmentChatUnread("website", selectedClinicId, "client");
   const myOpenTasks = useMyOpenTaskCount("website", selectedClinicId);
   const tabs = [
     ...baseTabs,
     ...(canViewHealth ? [healthTab] : []),
+    clientChatTab,
     ...(isStaff ? [checklistTab, tasksTabDef, chatTab] : []),
   ];
   const selectedClinicName = selectedClinic?.clinic_name;
