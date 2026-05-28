@@ -783,6 +783,8 @@ h3{color:#F1F3F7;margin:8px 0}
 .pillar,.format{background:#1E293B;padding:3px 10px;border-radius:12px;font-size:11px}
 .verdict.pass{background:#14532D;color:#4ADE80;padding:3px 10px;border-radius:12px;font-size:11px}
 .verdict.flag{background:#7C2D12;color:#FB923C;padding:3px 10px;border-radius:12px;font-size:11px}
+.media-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin:12px 0}
+.media-item{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:8px;background:#08090E;border:1px solid #2A2D38}
 .hooks{background:#08090E;padding:12px;border-radius:8px;margin:8px 0;font-size:13px}
 .caption{background:#08090E;padding:12px;border-radius:8px;white-space:pre-wrap;font-family:inherit;font-size:13px}
 .script-label{margin-top:12px;font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#A78BFA}
