@@ -234,39 +234,33 @@ export default function ClientContentReview({ clinicId }: Props) {
             </Button>
             <Button
               onClick={handleSubmitFeedback}
-              disabled={requestCopyChanges.isPending || requestFinalChanges.isPending}
+              disabled={requestChanges.isPending}
               className="gap-2"
             >
               <Send className="h-4 w-4" />
-              {(requestCopyChanges.isPending || requestFinalChanges.isPending) ? "Sending..." : "Send back"}
+              {requestChanges.isPending ? "Sending..." : "Send back"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Approve Confirmation — context-aware copy vs final */}
+      {/* Approve Confirmation — single-step */}
       <AlertDialog open={!!approveConfirm} onOpenChange={() => setApproveConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {isCopyRound(approveConfirm)
-                ? "Approve the copy?"
-                : "Approve final content?"}
-            </AlertDialogTitle>
+            <AlertDialogTitle>Approve this month's content?</AlertDialogTitle>
             <AlertDialogDescription>
-              {isCopyRound(approveConfirm)
-                ? "By approving the copy, you confirm the captions, hooks, and hashtags look good. Your concierge will then add visuals and send the calendar back for your final approval."
-                : "By approving, you confirm the content is ready to be scheduled and posted on your social media channels. Your concierge will begin the posting schedule."}
+              By approving, you confirm both the captions and visuals are good to go. Your concierge will begin the posting schedule.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleApprove}
-              disabled={approveCopy.isPending || approveFinal.isPending}
+              disabled={approveFinal.isPending}
             >
               <ThumbsUp className="h-4 w-4 mr-2" />
-              {isCopyRound(approveConfirm) ? "Yes, approve copy" : "Yes, approve final"}
+              Yes, approve
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
