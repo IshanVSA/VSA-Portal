@@ -99,7 +99,8 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const MAX_FILES = 5;
 const TYPING_TIMEOUT = 3000;
 
-export function DepartmentChat({ department, clinicId, onVisible }: Props) {
+export function DepartmentChat({ department, clinicId, onVisible, variant = "team" }: Props) {
+  const cfg = VARIANT_CONFIG[variant];
   const { user } = useAuth();
   const { role } = useUserRole();
   const queryClient = useQueryClient();
