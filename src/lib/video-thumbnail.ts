@@ -42,8 +42,7 @@ export async function generateVideoThumbnail(
   const video = document.createElement("video");
   video.preload = "auto";
   video.muted = true;
-  video.playsInline = true;
-  video.crossOrigin = "anonymous";
+  (video as HTMLVideoElement & { playsInline: boolean }).playsInline = true;
   video.src = objectUrl;
 
   const cleanup = () => {
@@ -72,6 +71,9 @@ export async function generateVideoThumbnail(
         reject(err);
       }
     });
+
+    // Wait one rAF so the decoded frame is actually painted before drawImage.
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
 
     const srcW = video.videoWidth;
     const srcH = video.videoHeight;

@@ -43,6 +43,7 @@ import { isClientNoteUnseen, markClientNoteSeen } from "@/hooks/useSeenClientNot
 import { cn } from "@/lib/utils";
 
 import { isVideoUrl, thumbPathFor, isVideoPath } from "@/lib/video-thumbnail";
+import { MediaCover } from "./MediaCover";
 
 interface Props {
   open: boolean;
@@ -318,29 +319,16 @@ function PostCard({
           ) : (
             <>
               <div className="relative group">
-                {(() => {
-                  const isVid = isVideoUrl(imageUrls[0].url);
-                  return (
-                    <div className="relative w-full aspect-square">
-                      <img
-                        src={imageUrls[0].thumbUrl}
-                        alt="Cover"
-                        className={cn(
-                          "w-full h-full object-cover rounded-xl border cursor-zoom-in",
-                          isVid && "bg-black",
-                        )}
-                        onClick={() => setViewerIndex(0)}
-                      />
-                      {isVid && (
-                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                          <div className="h-9 w-9 rounded-full bg-background/80 backdrop-blur border flex items-center justify-center shadow">
-                            <Play className="h-4 w-4 fill-foreground text-foreground" />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
+                <div className="relative w-full aspect-square rounded-xl border overflow-hidden">
+                  <MediaCover
+                    url={imageUrls[0].url}
+                    thumbUrl={imageUrls[0].thumbUrl}
+                    isVideo={isVideoUrl(imageUrls[0].url)}
+                    alt="Cover"
+                    className="cursor-zoom-in"
+                    onClick={() => setViewerIndex(0)}
+                  />
+                </div>
                 <Badge className="absolute top-1.5 left-1.5 text-[9px] py-0 px-1.5">Cover</Badge>
                 <button
                   type="button"
@@ -369,22 +357,17 @@ function PostCard({
                   const isVid = isVideoUrl(img.url);
                   return (
                     <div key={img.path} className="relative group">
-                      <img
-                        src={img.thumbUrl}
-                        alt="Post image"
-                        className={cn(
-                          "w-full aspect-square object-cover rounded border cursor-zoom-in",
-                          isVid && "bg-black",
-                        )}
-                        onClick={() => setViewerIndex(realIdx)}
-                      />
-                      {isVid && (
-                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                          <div className="h-6 w-6 rounded-full bg-background/80 backdrop-blur border flex items-center justify-center">
-                            <Play className="h-2.5 w-2.5 fill-foreground text-foreground" />
-                          </div>
-                        </div>
-                      )}
+                      <div className="relative w-full aspect-square rounded border overflow-hidden">
+                        <MediaCover
+                          url={img.url}
+                          thumbUrl={img.thumbUrl}
+                          isVideo={isVid}
+                          alt="Post image"
+                          iconSize="sm"
+                          className="cursor-zoom-in"
+                          onClick={() => setViewerIndex(realIdx)}
+                        />
+                      </div>
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); setViewerIndex(realIdx); }}
