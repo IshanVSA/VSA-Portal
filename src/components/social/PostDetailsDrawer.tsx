@@ -139,7 +139,7 @@ export default function PostDetailsDrawer({
                       >
                         {cover ? (
                           <img
-                            src={getImageUrl(cover)}
+                            src={getImageUrl(coverPathFor(cover))}
                             alt={`Post ${idx + 1}`}
                             className="w-full h-full object-cover"
                           />
