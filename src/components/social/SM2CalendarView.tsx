@@ -80,28 +80,19 @@ export default function SM2CalendarView({
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
 
-  // Are we in the copy round or final round?
-  const isCopyRound =
-    approvalStatus === "pending" || approvalStatus === "copy_changes_requested";
-  const isFinalRound =
-    approvalStatus === "copy_approved" || approvalStatus === "final_changes_requested";
-
-  // Image uploads are gated until the client approves the copy.
-  // Unlocked once we reach copy_approved (or any later final-stage status).
-  const imagesUnlocked = [
-    "copy_approved",
-    "sent_for_final_review",
-    "final_changes_requested",
-    "approved_client",
-    "approved_auto",
-  ].includes(approvalStatus);
-
-  // Once copy is approved, all copy edits (drag, add, delete, edit text) are locked.
-  // Only visuals can be added in the final round.
-  const copyLocked = imagesUnlocked;
-
-  // Concierge/admin can rearrange dates and add/delete posts only during the copy round.
+  // Single-step approval: visuals are unlocked from the start, copy stays editable
+  // until the client approves.
+  const canSend =
+    approvalStatus === "pending" ||
+    approvalStatus === "final_changes_requested" ||
+    approvalStatus === "copy_changes_requested" || // legacy
+    approvalStatus === "copy_approved"; // legacy
+  const isAwaitingClient = approvalStatus === "sent_for_final_review" || approvalStatus === "sent_for_copy_review";
+  const isApprovedFinal = approvalStatus === "approved_client" || approvalStatus === "approved_auto";
+  const imagesUnlocked = true;
+  const copyLocked = isAwaitingClient || isApprovedFinal;
   const canDrag = !isClient && !copyLocked;
+
 
   const missingPosts = useMemo(
     () => posts.filter((p) => !postHasImage(p)),
