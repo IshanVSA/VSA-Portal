@@ -169,13 +169,13 @@ export default function SM2CalendarView({
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             {!isClient && canSend && (
               <Button
                 size="sm"
                 onClick={() => setConfirmSendOpen(true)}
                 disabled={sendDisabled}
-                className="gap-2"
+                className="gap-2 w-full sm:w-auto"
               >
                 <Send className="h-3.5 w-3.5" />
                 {approvalStatus === "final_changes_requested" || approvalStatus === "copy_changes_requested"
@@ -185,11 +185,11 @@ export default function SM2CalendarView({
             )}
             {isClient && isAwaitingClient && (
               <>
-                <Button size="sm" variant="outline" onClick={onRequestFinalChanges ?? onRequestCopyChanges} className="gap-2">
+                <Button size="sm" variant="outline" onClick={onRequestFinalChanges ?? onRequestCopyChanges} className="gap-2 flex-1 sm:flex-none">
                   <MessageSquare className="h-3.5 w-3.5" />
                   Request changes
                 </Button>
-                <Button size="sm" onClick={onApproveFinal ?? onApproveCopy} className="gap-2">
+                <Button size="sm" onClick={onApproveFinal ?? onApproveCopy} className="gap-2 flex-1 sm:flex-none">
                   <ThumbsUp className="h-3.5 w-3.5" />
                   Approve
                 </Button>
