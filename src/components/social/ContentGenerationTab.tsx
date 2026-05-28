@@ -734,6 +734,22 @@ function buildPreviewHtml(args: {
         ? live.hashtags.join(" ")
         : (live.hashtags || "");
       const script = live.script || "";
+      const imagePaths: string[] = Array.from(new Set(
+        [live.image_path, ...(Array.isArray(live.image_paths) ? live.image_paths : [])].filter(Boolean)
+      ));
+      const imageUrls = imagePaths.map((p: string) =>
+        supabase.storage.from("department-files").getPublicUrl(p).data.publicUrl
+      );
+      const mediaGallery = imageUrls.length
+        ? `<div class="media-gallery">${imageUrls
+            .map((u) => {
+              const isVideo = /\.(mp4|mov|webm|m4v)(\?|$)/i.test(u);
+              return isVideo
+                ? `<video src="${escapeHtml(u)}" controls class="media-item"></video>`
+                : `<img src="${escapeHtml(u)}" alt="" class="media-item" loading="lazy"/>`;
+            })
+            .join("")}</div>`
+        : "";
 
       return `<div class="post-card">
       <div class="post-header">
@@ -743,6 +759,7 @@ function buildPreviewHtml(args: {
         <span class="verdict ${verdictClass}">${escapeHtml(verdict)}</span>
       </div>
       <h3>${escapeHtml(topic)}</h3>
+      ${mediaGallery}
       <div class="hooks"><strong>Hook A:</strong> ${escapeHtml(hookA)}<br/><strong>Hook B:</strong> ${escapeHtml(hookB)}</div>
       <pre class="caption">${escapeHtml(caption)}</pre>
       <p class="hashtags">${escapeHtml(hashtags)}</p>
@@ -753,6 +770,7 @@ function buildPreviewHtml(args: {
     </div>`;
     })
     .join("\n");
+
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHtml(clinicName)} — ${escapeHtml(monthLabel)}</title>
 <style>
