@@ -161,12 +161,13 @@ export function DepartmentChat({ department, clinicId, onVisible, variant = "tea
         .order("created_at", { ascending: false })
         .limit(pageLimit + 1);
       if (error) throw error;
-      const more = (data || []).length > pageLimit;
+      const rows = (data as any[]) || [];
+      const more = rows.length > pageLimit;
       setHasMore(more);
-      if (more) data!.pop();
-      data!.reverse();
+      if (more) rows.pop();
+      rows.reverse();
 
-      const userIds = [...new Set((data || []).map((m) => m.user_id))];
+      const userIds = [...new Set(rows.map((m: any) => m.user_id))];
       let profileMap: Record<string, string> = {};
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
