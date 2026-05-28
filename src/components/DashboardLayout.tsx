@@ -598,7 +598,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
           </div>
 
           {/* Right cluster — pinned, always visible */}
-          <div className="flex items-center gap-1 sm:gap-2 pr-3 sm:pr-4 lg:pr-8 pl-1 shrink-0 border-l border-border/40 lg:border-l-0">
+          <div className="flex items-center gap-1 sm:gap-2 pr-3 sm:pr-4 lg:pr-8 pl-1 shrink-0">
             <button
               className="relative p-2 rounded-lg hover:bg-muted/50 transition-colors duration-200 shrink-0"
               onClick={() => {
