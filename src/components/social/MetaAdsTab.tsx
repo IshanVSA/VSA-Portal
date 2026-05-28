@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Megaphone, Facebook, Instagram, CalendarDays, ImageOff } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { coverPathFor } from "@/lib/video-thumbnail";
 
 interface Props {
   clinicId: string | undefined;
