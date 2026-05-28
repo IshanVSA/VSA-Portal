@@ -287,7 +287,7 @@ export default function SM2CalendarView({
                   <div className="space-y-1">
                     {dayPosts.slice(0, 3).map((p) => {
                       const color = themeColors[p.theme || ""] || "hsl(var(--primary))";
-                      const url = p.image_path ? getImageUrl(p.image_path) : null;
+                      const url = p.image_path ? getImageUrl(coverPathFor(p.image_path)) : null;
                       const isDragging = draggingId === p.id;
                       return (
                         <div
