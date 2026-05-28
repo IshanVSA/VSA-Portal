@@ -18,7 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Send, ThumbsUp, MessageSquare, CheckCircle, Clock, Facebook, Instagram, AlertTriangle, Lock } from "lucide-react";
+import { Send, ThumbsUp, MessageSquare, CheckCircle, Clock, Facebook, Instagram, AlertTriangle } from "lucide-react";
 import { useSM2Posts, type SM2Post, postHasImage } from "@/hooks/useSM2Posts";
 import { isClientNoteUnseen } from "@/hooks/useSeenClientNotes";
 import PostDayDialog from "./PostDayDialog";
