@@ -210,7 +210,7 @@ function PostDetail({
           {images.slice(1).map((p) => (
             <img
               key={p}
-              src={getImageUrl(p)}
+              src={getImageUrl(coverPathFor(p))}
               alt="Additional"
               className="w-full aspect-square object-cover rounded border"
             />
