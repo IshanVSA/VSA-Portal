@@ -10,6 +10,7 @@ import type { DashboardFilter } from "./AdminDashboard";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useUserDepartments, type DepartmentType } from "@/hooks/useUserDepartments";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const deptRoute: Record<string, string> = {
   website: "/website",
