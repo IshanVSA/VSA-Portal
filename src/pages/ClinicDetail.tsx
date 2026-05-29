@@ -817,6 +817,7 @@ export default function ClinicDetail() {
               <GA4ConnectionCard clinicId={id!} />
               
               {(role === "admin" || isDebraj) && <TrackingSetupCard clinicId={id!} />}
+              {(role === "admin" || isDebraj) && <CtaTrackingSetupCard clinicId={id!} />}
 
               {/* Website URL Card */}
               {(role === "admin" || isDebraj) && (
