@@ -1,0 +1,1 @@
+alter view public.cta_daily set (security_invoker = true);
