@@ -1,58 +1,55 @@
-# Client Chat (per Department)
+# VSA CTA Tracking — Implementation Plan
 
-Add a new "Client Chat" tab in every department (Website, SEO, Google Ads, AI SEO, Social Media) that works like the existing Team Chat but is visible to **clients and sub-clients** as well as staff. Primary use case: clients share pet photos / treatment images with the team.
+Adds a self-hosted CTA + session tracking pipeline (independent of GA4) so the SEO/Traffic department can show **organic-only** CTA performance with a real conversion-rate denominator. Matches existing portal styling (glass cards, Inter, dept-seo tint).
 
-## Scope
+## 1. Database (Supabase migration)
 
-- Visible to: Admin, Concierge (assigned to dept/clinic), Client, Sub-client (per existing clinic access rules).
-- Same UX as Team Chat: messages, replies, reactions, pins, edits, file/image attachments, drag-and-drop, search, typing indicators, unread badge.
-- Image-friendly: inline thumbnails for image attachments (already supported by `DepartmentChat`), 10 MB / 5 file limits, stored in the existing `department-files` bucket under a `client-chat/...` prefix.
-- Per-department, per-clinic channel — same model as Team Chat.
+Create `public.tracking_events` and `public.cta_daily` view per the spec, plus required GRANTs:
 
-## Data model (new tables)
+- Table `tracking_events`: `id, clinic_id (text), event_type ('session_start'|'cta_click'), cta_type (5 enums), channel (6 enums, default 'direct'), source, landing_page, page_path, session_id, created_at`.
+- Indexes: `(clinic_id, created_at desc)`, `(channel, event_type)`.
+- `GRANT SELECT ON public.tracking_events TO authenticated;` `GRANT ALL ... TO service_role;` (no anon — edge function writes with service role; portal users read).
+- RLS enabled, policy "portal users can read" for `authenticated`.
+- View `cta_daily` aggregating per `clinic_id, day, channel` with one column per CTA + `sessions` + `total_ctas`. Grant `SELECT` on view to `authenticated`.
 
-Create two new tables that mirror the existing team-chat tables so RLS and access scopes stay clean and independent:
+## 2. Edge function `track-event`
 
-1. `public.department_client_chats` — same columns as `department_chats` (`id`, `department`, `clinic_id`, `user_id`, `message`, `attachments`, `reactions`, `reply_to`, `pinned`, `edited_at`, `created_at`).
-2. `public.department_client_chat_reads` — same columns as `department_chat_reads` (`user_id`, `department`, `clinic_id`, `last_read_message_id`, `last_read_at`).
+New public function (no JWT) at `supabase/functions/track-event/index.ts`:
+- CORS open (clinic sites are third-party origins).
+- Validates `event_type`, `cta_type`, `channel` against whitelists.
+- Rejects missing/`UNSET` `clinic_id`.
+- Inserts via service-role client; truncates string fields to spec lengths.
+- Add to `supabase/config.toml` with `verify_jwt = false`.
 
-RLS:
-- **Select / Insert / Update (reactions, edits)**: allowed when the user is staff with access to that dept+clinic (same predicate as Team Chat) **OR** when the user is a client/sub-client with access to that clinic (reuse existing helpers such as `has_clinic_access` / `is_clinic_client`).
-- **Delete**: admins only (same as Team Chat).
-- `department_client_chat_reads`: user can read/write only their own row.
-- GRANTs to `authenticated` (and `service_role`); no `anon`.
+## 3. SEO/Traffic department — new "CTA Performance (Organic)" section
 
-Realtime: add both tables to the `supabase_realtime` publication.
+Add to `src/components/department/SeoTrafficTab.tsx` **below** the existing GA4 CTA card, clearly labeled as organic-only (separate data source). Keep existing GA4 card untouched.
 
-## Frontend
+- New hook `src/hooks/useCtaTracking.ts` querying `cta_daily` filtered to selected clinic + `channel='organic'` + reusing the existing `DateRangeFilter` range (7/30/90 already supported via shared filter).
+- Three stat cards (reuse `StatsCard` styling already in the tab): **Organic Sessions**, **Total CTA Actions**, **Overall Conversion Rate**.
+- Table: 5 rows in fixed order — Book Appointment, Find Us (Maps), Call Us, New Client Form, Email/Contact — columns Actions | Conversion Rate. `—` when sessions = 0.
+- Daily trend line chart (Recharts, same as rest of tab) of `total_ctas` per day.
+- Empty-state when no rows: "No organic tracking data yet — install the snippet from Tracking Setup."
 
-1. Refactor `src/components/department/DepartmentChat.tsx` to accept a `variant: "team" | "client"` prop (or a thin wrapper). The variant chooses:
-   - Table names (`department_chats` vs `department_client_chats`, and matching reads table).
-   - Storage prefix (`chat/...` vs `client-chat/...`).
-   - Realtime channel name.
-   - Header label / empty state copy ("Client Chat — share photos and updates with your clinic team").
-   - Mentions: keep staff-only mentionable list; clients won't see suggestions but can post freely.
-2. Add `useDepartmentClientChatUnread` hook (clone of `useDepartmentChatUnread` pointed at the new tables).
-3. Add a new tab `client-chat` (icon: `Users` or `Camera`, label "Client Chat") to each department page:
-   - `src/pages/WebsiteDepartment.tsx`
-   - `src/pages/SeoDepartment.tsx`
-   - `src/pages/GoogleAdsDepartment.tsx`
-   - `src/pages/AiSeoDepartment.tsx`
-   - `src/pages/SocialMedia.tsx` (only where a dept-chat surface exists)
-   The tab is visible to **all roles** (not gated by `isStaff`), shows an unread badge from the new hook, and renders `<DepartmentChat variant="client" ... />`.
-4. Respect existing service-access gating (`useClinicServiceAccess`) so a locked department also hides Client Chat for clients.
+## 4. Tracking Setup snippet generator
 
-## Out of scope
+Replace the existing minimal `TrackingSetupCard` snippet output (or add a new "CTA Tracking" section below it on `ClinicDetail`) that renders the full IIFE snippet from the spec with:
+- `clinicId` injected from the selected clinic.
+- `endpoint` = `${VITE_SUPABASE_URL}/functions/v1/track-event`.
+- Copy button (existing pattern).
+- Install instructions block: paste before `</body>` or as GTM Custom HTML on All Pages; add `data-cta="..."` on each CTA element; `tel:`/`mailto:` auto-detected.
 
-- No changes to the existing Team Chat behavior or table.
-- No new notification channels (email/push) — only the in-app unread badge.
-- No moderation tooling beyond admin-delete (same as Team Chat).
+Keep the existing `track-pageview` card as-is — the two pipelines coexist (pageview = generic, track-event = CTA conversions).
 
 ## Technical notes
 
-- Reusing `DepartmentChat` via a `variant` prop avoids duplicating ~1000 lines of UI.
-- File uploads continue to use the public `department-files` bucket; image previews already render inline via `FilePreviewDialog`.
-- Client role must already have a working session; no auth changes needed.
-- Migration order per table: `CREATE TABLE` → `GRANT` → `ENABLE RLS` → `CREATE POLICY`.
+- `clinic_id` is `text` in the new table to match the snippet payload; existing app `clinic_id` UUIDs cast cleanly to text in queries.
+- View columns are queried via `(supabase as any).from("cta_daily")` until `types.ts` is regenerated post-migration.
+- No changes to the existing GA4 `useGa4Cta` hook or the GA4 CTA card.
+- Service-role key stays only in the edge function env.
 
-Confirm and I'll implement.
+## Acceptance
+
+- Pick clinic in SEO → Traffic → see Organic Sessions, per-CTA counts, conversion rates over 7/30/90 days.
+- Clinic Detail → Tracking Setup shows copy-pasteable snippet with injected `clinicId` + endpoint.
+- Snippet posting to `track-event` lands rows in `tracking_events`; SEO view reflects them within seconds.
