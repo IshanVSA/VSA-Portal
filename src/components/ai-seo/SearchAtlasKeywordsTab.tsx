@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useSearchAtlas, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
+import { findSearchAtlasProject, useSearchAtlasCustomerProjects, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "./SearchAtlasEmptyState";
 
 interface Props { config: SearchAtlasClinicConfig; clinicId?: string }
@@ -19,26 +19,24 @@ interface Kw {
 
 export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
   const rtId = config.search_atlas_rank_tracker_id;
-  const q = useSearchAtlas<any>(
-    ["rank-tracker", rtId],
-    rtId ? { path: `/api/v1/rank-tracker/`, query: { project_id: rtId, limit: 100 } } : null,
-  );
+  const q = useSearchAtlasCustomerProjects(!!rtId || !!config.search_atlas_domain);
 
   if (!rtId) {
     return <SearchAtlasEmptyState clinicId={clinicId} message="Add a Rank Tracker project ID to view keyword rankings." />;
   }
   if (q.isLoading) return <Skeleton className="h-64" />;
 
-  const raw = q.data as any;
+  const project = findSearchAtlasProject(q.data, config);
+  const raw = project?.data?.se ?? project ?? {};
   const rows: Kw[] = Array.isArray(raw?.keywords) ? raw.keywords :
-                    Array.isArray(raw?.results) ? raw.results :
-                    Array.isArray(raw) ? raw : [];
+                    Array.isArray(raw?.organic_keywords_list) ? raw.organic_keywords_list : [];
+  const totalKeywords = raw?.organic_keywords ?? raw?.keywords_count ?? rows.length;
 
   return (
     <Card className="border-border/60">
       <div className="px-4 py-3 border-b border-border/40">
         <h3 className="text-sm font-bold">Tracked Keywords</h3>
-        <p className="text-[11px] text-muted-foreground">{rows.length} keywords</p>
+        <p className="text-[11px] text-muted-foreground">{Number(totalKeywords || 0).toLocaleString()} organic keywords</p>
       </div>
       <CardContent className="p-0">
         {rows.length === 0 ? (

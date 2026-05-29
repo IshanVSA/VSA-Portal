@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useSearchAtlas, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
+import { findSearchAtlasProject, useSearchAtlasCustomerProjects, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "./SearchAtlasEmptyState";
 
 interface Props { config: SearchAtlasClinicConfig; clinicId?: string }
@@ -9,29 +9,23 @@ export function SearchAtlasLLMTab({ config, clinicId }: Props) {
   const pid = config.search_atlas_llm_project_id;
   const domain = config.search_atlas_domain;
 
-  const overviewQ = useSearchAtlas<any>(
-    ["llm-overview", pid, domain],
-    pid ? {
-      path: "/api/v1/brand/overview/",
-      method: "POST",
-      body: { project_id: pid },
-    } : null,
-  );
+  const overviewQ = useSearchAtlasCustomerProjects(!!pid || !!domain);
 
   if (!pid) {
     return <SearchAtlasEmptyState clinicId={clinicId} message="Add an LLM Visibility project ID to view brand visibility across AI search." />;
   }
   if (overviewQ.isLoading) return <Skeleton className="h-64" />;
 
-  const o = overviewQ.data ?? {};
+  const project = findSearchAtlasProject(overviewQ.data, config);
+  const o = project?.data?.llmv ?? project ?? {};
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Stat label="Visibility Score" value={o?.visibility_score ?? "—"} />
+        <Stat label="Visibility Score" value={o?.visibility_score ?? o?.current_mentions ?? "—"} />
         <Stat label="Share of Voice" value={o?.share_of_voice ? `${o.share_of_voice}%` : "—"} />
         <Stat label="Sentiment" value={o?.sentiment ?? "—"} />
-        <Stat label="Citations" value={(o?.total_citations ?? 0).toLocaleString()} />
+        <Stat label="Citations" value={(o?.total_citations ?? o?.current_mentions ?? 0).toLocaleString()} />
       </div>
 
       <Card className="border-border/60">

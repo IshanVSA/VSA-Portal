@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useSearchAtlas, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
+import { findSearchAtlasProject, useSearchAtlasCustomerProjects, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
 import { Globe, Link2, Hash, TrendingUp, ShieldCheck } from "lucide-react";
 
 interface Props { config: SearchAtlasClinicConfig }
@@ -21,25 +21,11 @@ function Stat({ icon: Icon, label, value, hint }: { icon: any; label: string; va
 }
 
 export function SearchAtlasOverviewCard({ config }: Props) {
-  // Site Auditor project details give the health score
-  const auditQ = useSearchAtlas<any>(
-    ["site-audit-details", config.search_atlas_otto_uuid],
-    config.search_atlas_otto_uuid
-      ? { path: `/api/site-auditor/${config.search_atlas_otto_uuid}/project-details/` }
-      : null,
-  );
-
-  // Rank tracker gives tracked keyword count
-  const rtQ = useSearchAtlas<any>(
-    ["rank-tracker-overview", config.search_atlas_rank_tracker_id],
-    config.search_atlas_rank_tracker_id
-      ? { path: `/api/v1/rank-tracker/`, query: { project_id: config.search_atlas_rank_tracker_id, limit: 1 } }
-      : null,
-  );
-
-  const loading = auditQ.isLoading || rtQ.isLoading;
-  const audit = auditQ.data ?? {};
-  const rt = rtQ.data ?? {};
+  const projectsQ = useSearchAtlasCustomerProjects(true);
+  const project = findSearchAtlasProject(projectsQ.data, config);
+  const se = project?.data?.se ?? {};
+  const llmv = project?.data?.llmv ?? {};
+  const loading = projectsQ.isLoading;
 
   if (loading) {
     return (
@@ -49,14 +35,18 @@ export function SearchAtlasOverviewCard({ config }: Props) {
     );
   }
 
-  const totalKeywords = rt?.count ?? rt?.total ?? (Array.isArray(rt?.results) ? rt.results.length : 0);
+  const pagesCrawled = project?.pages_crawled ?? project?.total_pages_crawled ?? project?.data?.site_audit?.pages_crawled;
+  const totalKeywords = se?.organic_keywords ?? project?.organic_keywords ?? project?.keywords ?? 0;
+  const backlinks = se?.backlinks ?? project?.backlinks ?? 0;
+  const healthScore = project?.health_score ?? project?.score ?? project?.data?.site_audit?.health_score ?? "—";
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      <Stat icon={ShieldCheck} label="Health Score" value={audit?.health_score ?? audit?.score ?? "—"} hint="Site Auditor" />
+      <Stat icon={ShieldCheck} label="Health Score" value={healthScore} hint="Site Auditor" />
       <Stat icon={Globe} label="Domain" value={config.search_atlas_domain ?? "—"} hint="Tracked domain" />
-      <Stat icon={TrendingUp} label="Pages Crawled" value={(audit?.total_pages_crawled ?? audit?.pages_crawled ?? 0).toLocaleString?.() ?? "—"} hint="Last crawl" />
-      <Stat icon={Hash} label="Keywords" value={totalKeywords?.toLocaleString?.() ?? totalKeywords ?? "—"} hint="Tracked" />
+      <Stat icon={TrendingUp} label="Pages Crawled" value={pagesCrawled?.toLocaleString?.() ?? pagesCrawled ?? "—"} hint={llmv?.current_mentions ? `${llmv.current_mentions} AI mentions` : "Last crawl"} />
+      <Stat icon={Hash} label="Keywords" value={totalKeywords?.toLocaleString?.() ?? totalKeywords ?? "—"} hint="Organic" />
+      <Stat icon={Link2} label="Backlinks" value={backlinks?.toLocaleString?.() ?? backlinks ?? "—"} hint="Site Explorer" />
     </div>
   );
 }

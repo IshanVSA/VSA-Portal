@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { useSearchAtlas, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
+import { findSearchAtlasProject, useSearchAtlasCustomerProjects, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "./SearchAtlasEmptyState";
 
 interface Props { config: SearchAtlasClinicConfig; clinicId?: string }
@@ -18,23 +18,17 @@ interface Issue {
 
 export function SearchAtlasSiteAuditTab({ config, clinicId }: Props) {
   const uuid = config.search_atlas_otto_uuid;
-  const issuesQ = useSearchAtlas<{ results?: Issue[] } | Issue[]>(
-    ["site-audit-issues", uuid],
-    uuid ? { path: `/api/site-auditor/${uuid}/issues/`, query: { limit: 50 } } : null,
-  );
-  const detailsQ = useSearchAtlas<any>(
-    ["site-audit-details", uuid],
-    uuid ? { path: `/api/site-auditor/${uuid}/project-details/` } : null,
-  );
+  const projectsQ = useSearchAtlasCustomerProjects(!!uuid || !!config.search_atlas_domain);
 
   if (!uuid) {
     return <SearchAtlasEmptyState clinicId={clinicId} message="Add a Site Audit / OTTO project UUID to view site health." />;
   }
-  if (issuesQ.isLoading) return <Skeleton className="h-64" />;
+  if (projectsQ.isLoading) return <Skeleton className="h-64" />;
 
-  const raw = issuesQ.data as any;
-  const issues: Issue[] = Array.isArray(raw) ? raw : (raw?.results ?? []);
-  const details = detailsQ.data ?? {};
+  const project = findSearchAtlasProject(projectsQ.data, config);
+  const details = project?.data?.site_audit ?? project ?? {};
+  const rawIssues = details?.issues ?? details?.top_issues ?? project?.app_error_messages;
+  const issues: Issue[] = Array.isArray(rawIssues) ? rawIssues : [];
 
   const errors = issues.filter((i) => (i.severity ?? "").toLowerCase().includes("error")).length;
   const warnings = issues.filter((i) => (i.severity ?? "").toLowerCase().includes("warn")).length;

@@ -1,6 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useSearchAtlas, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
+import { type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "./SearchAtlasEmptyState";
 
 interface Props { config: SearchAtlasClinicConfig; clinicId?: string }
@@ -24,24 +23,11 @@ function rankColor(rank: number | undefined): string {
 
 export function SearchAtlasHeatmapTab({ config, clinicId }: Props) {
   const rtId = config.search_atlas_rank_tracker_id;
-  const q = useSearchAtlas<any>(
-    ["heatmap", rtId],
-    rtId ? { path: `/api/v1/rank-tracker/`, query: { project_id: rtId, include_heatmap: true } } : null,
-  );
 
   if (!rtId) {
     return <SearchAtlasEmptyState clinicId={clinicId} message="Add a Rank Tracker project ID to view the local heatmap." />;
   }
-  if (q.isLoading) return <Skeleton className="h-96" />;
-
-  const raw = q.data as any;
-  // Try to find heatmap cells in common locations
-  const cells: Cell[] =
-    raw?.heatmap?.cells ??
-    raw?.grid ??
-    raw?.cells ??
-    (Array.isArray(raw?.results) && raw.results[0]?.heatmap?.cells) ??
-    [];
+  const cells: Cell[] = [];
 
   if (!cells || cells.length === 0) {
     return (
