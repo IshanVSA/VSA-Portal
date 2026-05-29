@@ -1,55 +1,45 @@
-# VSA CTA Tracking — Implementation Plan
+## Search Atlas integration in AI SEO department
 
-Adds a self-hosted CTA + session tracking pipeline (independent of GA4) so the SEO/Traffic department can show **organic-only** CTA performance with a real conversion-rate denominator. Matches existing portal styling (glass cards, Inter, dept-seo tint).
+### What you'll see
+A new tabbed dashboard inside **AI SEO → per clinic**, pulling live from Search Atlas:
 
-## 1. Database (Supabase migration)
+1. **Overview** — Domain Power, organic traffic estimate, visibility score, total backlinks, keywords tracked
+2. **Site Audit** — Health score, total issues by severity (errors / warnings / notices), top issue list
+3. **Keyword Rankings** — Tracked keywords, current position, position change, search volume, SERP feature
+4. **Backlinks** — Total backlinks, referring domains, new vs lost (last 30d), top referring domains
+5. **Heatmap** — Local rank tracker grid (lat/lng cells colored by ranking position) for the clinic's primary keyword
+6. **LLM Visibility** — Brand visibility across ChatGPT / Perplexity / Gemini (since you mentioned "etc.")
 
-Create `public.tracking_events` and `public.cta_daily` view per the spec, plus required GRANTs:
+Each card supports the existing 7d/14d/30d/90d DateRangeFilter where applicable, with empty/loading/error states matching the rest of the app.
 
-- Table `tracking_events`: `id, clinic_id (text), event_type ('session_start'|'cta_click'), cta_type (5 enums), channel (6 enums, default 'direct'), source, landing_page, page_path, session_id, created_at`.
-- Indexes: `(clinic_id, created_at desc)`, `(channel, event_type)`.
-- `GRANT SELECT ON public.tracking_events TO authenticated;` `GRANT ALL ... TO service_role;` (no anon — edge function writes with service role; portal users read).
-- RLS enabled, policy "portal users can read" for `authenticated`.
-- View `cta_daily` aggregating per `clinic_id, day, channel` with one column per CTA + `sessions` + `total_ctas`. Grant `SELECT` on view to `authenticated`.
+### Per-clinic mapping
+Each clinic needs to know **which Search Atlas project IDs** to query. We'll add fields to the `clinics` table:
+- `search_atlas_otto_uuid` — OTTO/Site Audit project UUID
+- `search_atlas_rank_tracker_id` — Rank tracker project ID (also drives heatmap)
+- `search_atlas_backlink_project_id` — Backlink project ID
+- `search_atlas_llm_project_id` — LLM visibility project ID (optional)
+- `search_atlas_domain` — domain string (for Site Explorer-style endpoints)
 
-## 2. Edge function `track-event`
+A new **"Search Atlas Setup"** card on the Clinic Detail page lets you paste these IDs (with a "Fetch projects" button that lists all available projects from your account so you can pick by dropdown).
 
-New public function (no JWT) at `supabase/functions/track-event/index.ts`:
-- CORS open (clinic sites are third-party origins).
-- Validates `event_type`, `cta_type`, `channel` against whitelists.
-- Rejects missing/`UNSET` `clinic_id`.
-- Inserts via service-role client; truncates string fields to spec lengths.
-- Add to `supabase/config.toml` with `verify_jwt = false`.
+### Technical details
+- **Secret**: `SEARCH_ATLAS_API_KEY` already added ✅
+- **Edge function** `search-atlas-proxy`: validates JWT, takes `{ endpoint, params }`, calls `https://api.searchatlas.com{endpoint}` with `X-API-Key` header. Whitelists allowed endpoints (read-only GETs covering otto-projects, site-auditor, rank-tracker, backlink, llm-visibility, brand). Returns JSON or `extractEdgeFunctionError`-compatible error.
+- **Hook** `useSearchAtlas(clinicId, endpoint, params)` — react-query wrapper, 5-min stale time, gated on whether the clinic has the relevant project ID set.
+- **Components** (all in `src/components/ai-seo/`):
+  - `SearchAtlasOverviewCard.tsx`
+  - `SearchAtlasSiteAuditTab.tsx`
+  - `SearchAtlasKeywordsTab.tsx`
+  - `SearchAtlasBacklinksTab.tsx`
+  - `SearchAtlasHeatmapTab.tsx` (renders the rank-tracker grid as a colored mini-map)
+  - `SearchAtlasLLMTab.tsx`
+- **Department gating**: existing AI SEO access lock still applies. If clinic has no Search Atlas IDs configured, show a "Connect Search Atlas" empty state with a link to the Clinic Detail setup card.
+- **AI SEO tab structure**: replace the "Coming Soon" Overview with `Overview / Site Audit / Keywords / Backlinks / Heatmap / LLM Visibility / Client Chat` tabs.
 
-## 3. SEO/Traffic department — new "CTA Performance (Organic)" section
+### What I won't do (unless you ask)
+- Won't write Search Atlas back (no creating projects/posts from our app — all read-only)
+- Won't auto-create OTTO/rank tracker projects per clinic (you'll wire IDs by hand or pick from dropdown)
+- Won't expose Search Atlas data to the `client` role until you confirm (admin/member only by default)
 
-Add to `src/components/department/SeoTrafficTab.tsx` **below** the existing GA4 CTA card, clearly labeled as organic-only (separate data source). Keep existing GA4 card untouched.
-
-- New hook `src/hooks/useCtaTracking.ts` querying `cta_daily` filtered to selected clinic + `channel='organic'` + reusing the existing `DateRangeFilter` range (7/30/90 already supported via shared filter).
-- Three stat cards (reuse `StatsCard` styling already in the tab): **Organic Sessions**, **Total CTA Actions**, **Overall Conversion Rate**.
-- Table: 5 rows in fixed order — Book Appointment, Find Us (Maps), Call Us, New Client Form, Email/Contact — columns Actions | Conversion Rate. `—` when sessions = 0.
-- Daily trend line chart (Recharts, same as rest of tab) of `total_ctas` per day.
-- Empty-state when no rows: "No organic tracking data yet — install the snippet from Tracking Setup."
-
-## 4. Tracking Setup snippet generator
-
-Replace the existing minimal `TrackingSetupCard` snippet output (or add a new "CTA Tracking" section below it on `ClinicDetail`) that renders the full IIFE snippet from the spec with:
-- `clinicId` injected from the selected clinic.
-- `endpoint` = `${VITE_SUPABASE_URL}/functions/v1/track-event`.
-- Copy button (existing pattern).
-- Install instructions block: paste before `</body>` or as GTM Custom HTML on All Pages; add `data-cta="..."` on each CTA element; `tel:`/`mailto:` auto-detected.
-
-Keep the existing `track-pageview` card as-is — the two pipelines coexist (pageview = generic, track-event = CTA conversions).
-
-## Technical notes
-
-- `clinic_id` is `text` in the new table to match the snippet payload; existing app `clinic_id` UUIDs cast cleanly to text in queries.
-- View columns are queried via `(supabase as any).from("cta_daily")` until `types.ts` is regenerated post-migration.
-- No changes to the existing GA4 `useGa4Cta` hook or the GA4 CTA card.
-- Service-role key stays only in the edge function env.
-
-## Acceptance
-
-- Pick clinic in SEO → Traffic → see Organic Sessions, per-CTA counts, conversion rates over 7/30/90 days.
-- Clinic Detail → Tracking Setup shows copy-pasteable snippet with injected `clinicId` + endpoint.
-- Snippet posting to `track-event` lands rows in `tracking_events`; SEO view reflects them within seconds.
+### Open question
+Should the client role be able to see this data too, or is it admin/member-only? (Default: admin/member only.)
