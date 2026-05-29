@@ -254,12 +254,17 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
       });
 
       // ---- SM2 generations ----
+      // Clients should only ever see calendars that have been sent to them or approved.
+      // The internal "generated" milestone is staff-only.
       (sm2Res.data || []).forEach((g: any) => {
+        if (isClient && !g.sent_to_client_at && !g.approved_at) return;
         const clinicName = clinicOf(g.clinic_id) || "a clinic";
         const ts = g.approved_at || g.sent_to_client_at || g.updated_at || g.created_at;
-        const label = g.approved_at ? "SM2 calendar approved"
-          : g.sent_to_client_at ? "SM2 calendar sent to client"
-          : `SM2 calendar ${String(g.approval_status || "updated").replace(/_/g, " ")}`;
+        const label = g.approved_at
+          ? (isClient ? "Calendar approved" : "SM2 calendar approved")
+          : g.sent_to_client_at
+            ? (isClient ? "Calendar ready for your review" : "SM2 calendar sent to client")
+            : `SM2 calendar ${String(g.approval_status || "updated").replace(/_/g, " ")}`;
         activities.push({
           id: `sm2-${g.id}`, type: "sm2_generation",
           label, description: `${g.month_year || ""} for ${clinicName}`.trim(),
@@ -268,6 +273,7 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
           clinic_id: g.clinic_id || null, department: "social_media", status: g.approval_status || null,
         });
       });
+
 
       // ---- Promotions ----
       (promosRes.data || []).forEach((p: any) => {
