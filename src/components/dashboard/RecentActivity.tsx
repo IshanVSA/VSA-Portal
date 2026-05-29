@@ -146,7 +146,9 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
         final_approved: { label: "Calendar finalized", color: "text-success", icon: CheckCircle2 },
       };
 
+      const CLIENT_VISIBLE_CR_STATUSES = new Set(["concierge_preferred", "admin_approved", "client_selected", "final_approved"]);
       (contentRequestsRes.data || []).forEach((cr: any) => {
+        if (isClient && !CLIENT_VISIBLE_CR_STATUSES.has(cr.status)) return;
         const conciergeName = nameOf(cr.created_by_concierge_id);
         const clinicName = clinicOf(cr.clinic_id) || "a clinic";
         const intake = cr.intake_data as any;
