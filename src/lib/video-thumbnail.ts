@@ -51,16 +51,25 @@ export async function generateVideoThumbnail(
     try { video.load(); } catch { /* noop */ }
   };
 
+  // Hard timeout — some browsers hang indefinitely on unsupported codecs
+  // (HEVC/HEIC MOV from iPhone, ProRes, etc.). Without this the caller's
+  // upload mutation never resolves and the UI looks "stuck uploading".
+  const withTimeout = <T,>(p: Promise<T>, ms: number, label: string) =>
+    new Promise<T>((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error(`${label} timed out`)), ms);
+      p.then((v) => { clearTimeout(t); resolve(v); }, (e) => { clearTimeout(t); reject(e); });
+    });
+
   try {
-    await new Promise<void>((resolve, reject) => {
+    await withTimeout(new Promise<void>((resolve, reject) => {
       const onLoaded = () => { video.removeEventListener("error", onError); resolve(); };
       const onError = () => { video.removeEventListener("loadedmetadata", onLoaded); reject(new Error("video metadata failed")); };
       video.addEventListener("loadedmetadata", onLoaded, { once: true });
       video.addEventListener("error", onError, { once: true });
-    });
+    }), 8000, "video metadata");
 
     const target = Math.min(Math.max(seekSeconds, 0), Math.max((video.duration || 0) - 0.1, 0));
-    await new Promise<void>((resolve, reject) => {
+    await withTimeout(new Promise<void>((resolve, reject) => {
       const onSeeked = () => { video.removeEventListener("error", onError); resolve(); };
       const onError = () => { video.removeEventListener("seeked", onSeeked); reject(new Error("video seek failed")); };
       video.addEventListener("seeked", onSeeked, { once: true });
@@ -70,7 +79,7 @@ export async function generateVideoThumbnail(
       } catch (err) {
         reject(err);
       }
-    });
+    }), 8000, "video seek");
 
     // Wait one rAF so the decoded frame is actually painted before drawImage.
     await new Promise<void>((r) => requestAnimationFrame(() => r()));
