@@ -37,6 +37,44 @@ export function unwrapSearchAtlasPayload<T = unknown>(value: unknown): T | null 
   return candidate as T;
 }
 
+function normalizeDomain(value?: string | null) {
+  return (value ?? "")
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .split("/")[0]
+    .toLowerCase();
+}
+
+export function findSearchAtlasProject(raw: unknown, cfg: SearchAtlasClinicConfig | null | undefined) {
+  const payload = unwrapSearchAtlasPayload<any>(raw);
+  const results: any[] = Array.isArray(payload?.results) ? payload.results : Array.isArray(payload) ? payload : [];
+  const domain = normalizeDomain(cfg?.search_atlas_domain);
+  const ottoId = cfg?.search_atlas_otto_uuid;
+  const seId = cfg?.search_atlas_rank_tracker_id ?? cfg?.search_atlas_backlink_project_id;
+  const llmId = cfg?.search_atlas_llm_project_id;
+
+  return results.find((project) => {
+    const projectDomain = normalizeDomain(project?.domain ?? project?.hostname ?? project?.data?.se?.domain ?? project?.data?.llmv?.domain);
+    const projectOtto = String(project?.id ?? project?.project_id ?? project?.otto_project_id ?? "");
+    const projectSe = String(project?.data?.se?.id ?? project?.se_id ?? project?.site_explorer_id ?? "");
+    const projectLlm = String(project?.data?.llmv?.id ?? project?.llmv_id ?? project?.llm_visibility_project_id ?? "");
+    return Boolean(
+      (domain && projectDomain === domain) ||
+      (ottoId && projectOtto === String(ottoId)) ||
+      (seId && projectSe === String(seId)) ||
+      (llmId && projectLlm === String(llmId)),
+    );
+  }) ?? null;
+}
+
+export function useSearchAtlasCustomerProjects(enabled = true) {
+  return useSearchAtlas<any>(
+    ["customer-projects"],
+    { path: "/api/customer/projects/projects", query: { limit: 100 } },
+    { enabled, staleTime: 10 * 60 * 1000 },
+  );
+}
+
 export async function callSearchAtlas<T = unknown>(req: SearchAtlasRequest): Promise<T> {
   const { data, error } = await supabase.functions.invoke("search-atlas-proxy", {
     body: {
