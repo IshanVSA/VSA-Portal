@@ -3,10 +3,38 @@ import { supabase } from "@/integrations/supabase/client";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 
 export interface SearchAtlasRequest {
-  path: string;
+  path?: string;
   method?: "GET" | "POST";
   query?: Record<string, string | number | boolean | undefined>;
   body?: unknown;
+  tool?: string;
+  op?: string;
+  params?: Record<string, unknown>;
+}
+
+export interface SearchAtlasSoftError {
+  __searchAtlasError: true;
+  status?: number;
+  source?: string;
+  path?: string;
+  tool?: string;
+  op?: string;
+  details?: unknown;
+}
+
+export function isSearchAtlasSoftError(value: unknown): value is SearchAtlasSoftError {
+  return Boolean(value && typeof value === "object" && (value as Record<string, unknown>).__searchAtlasError === true);
+}
+
+export function unwrapSearchAtlasPayload<T = unknown>(value: unknown): T | null {
+  if (!value || isSearchAtlasSoftError(value)) return null;
+  const data = value as any;
+  const candidate = data?.result?.structuredContent ?? data?.result?.data ?? data?.data ?? data;
+  const content = data?.result?.content;
+  if (Array.isArray(content) && typeof content[0]?.text === "string") {
+    try { return JSON.parse(content[0].text) as T; } catch { return content[0].text as T; }
+  }
+  return candidate as T;
 }
 
 export async function callSearchAtlas<T = unknown>(req: SearchAtlasRequest): Promise<T> {
@@ -16,6 +44,9 @@ export async function callSearchAtlas<T = unknown>(req: SearchAtlasRequest): Pro
       method: req.method ?? "GET",
       query: req.query,
       body: req.body,
+      tool: req.tool,
+      op: req.op,
+      params: req.params,
     },
   });
   if (error || (data && typeof data === "object" && "error" in (data as Record<string, unknown>))) {
