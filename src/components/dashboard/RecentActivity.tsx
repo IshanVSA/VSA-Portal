@@ -10,6 +10,7 @@ import type { DashboardFilter } from "./AdminDashboard";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useUserDepartments, type DepartmentType } from "@/hooks/useUserDepartments";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const deptRoute: Record<string, string> = {
   website: "/website",
@@ -84,7 +85,8 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
   const [loading, setLoading] = useState(true);
   const [extraTicketIds, setExtraTicketIds] = useState<Set<string>>(new Set());
   const { departments, isAllAccess } = useUserDepartments();
-
+  const { role } = useUserRole();
+  const isClient = role === "client";
   useEffect(() => {
     const fetchAll = async () => {
       const [profilesRes, clinicsRes] = await Promise.all([
@@ -144,7 +146,9 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
         final_approved: { label: "Calendar finalized", color: "text-success", icon: CheckCircle2 },
       };
 
+      const CLIENT_VISIBLE_CR_STATUSES = new Set(["concierge_preferred", "admin_approved", "client_selected", "final_approved"]);
       (contentRequestsRes.data || []).forEach((cr: any) => {
+        if (isClient && !CLIENT_VISIBLE_CR_STATUSES.has(cr.status)) return;
         const conciergeName = nameOf(cr.created_by_concierge_id);
         const clinicName = clinicOf(cr.clinic_id) || "a clinic";
         const intake = cr.intake_data as any;
@@ -252,12 +256,17 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
       });
 
       // ---- SM2 generations ----
+      // Clients should only ever see calendars that have been sent to them or approved.
+      // The internal "generated" milestone is staff-only.
       (sm2Res.data || []).forEach((g: any) => {
+        if (isClient && !g.sent_to_client_at && !g.approved_at) return;
         const clinicName = clinicOf(g.clinic_id) || "a clinic";
         const ts = g.approved_at || g.sent_to_client_at || g.updated_at || g.created_at;
-        const label = g.approved_at ? "SM2 calendar approved"
-          : g.sent_to_client_at ? "SM2 calendar sent to client"
-          : `SM2 calendar ${String(g.approval_status || "updated").replace(/_/g, " ")}`;
+        const label = g.approved_at
+          ? (isClient ? "Calendar approved" : "SM2 calendar approved")
+          : g.sent_to_client_at
+            ? (isClient ? "Calendar ready for your review" : "SM2 calendar sent to client")
+            : `SM2 calendar ${String(g.approval_status || "updated").replace(/_/g, " ")}`;
         activities.push({
           id: `sm2-${g.id}`, type: "sm2_generation",
           label, description: `${g.month_year || ""} for ${clinicName}`.trim(),
@@ -266,6 +275,7 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
           clinic_id: g.clinic_id || null, department: "social_media", status: g.approval_status || null,
         });
       });
+
 
       // ---- Promotions ----
       (promosRes.data || []).forEach((p: any) => {
