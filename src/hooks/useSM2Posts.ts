@@ -114,6 +114,26 @@ export function useSM2Posts(generationId: string | undefined) {
       const toUpload = incoming.slice(0, remaining);
       const skipped = incoming.length - toUpload.length;
 
+      // Hard size cap — Supabase Storage default is 50MB unless the bucket is
+      // raised. Reject early with a clear message instead of letting the
+      // upload silently stall halfway through a huge iPhone video.
+      const MAX_BYTES = 200 * 1024 * 1024; // 200MB
+      const tooBig = toUpload.find((f) => f.size > MAX_BYTES);
+      if (tooBig) {
+        throw new Error(`"${tooBig.name}" is ${(tooBig.size / 1024 / 1024).toFixed(0)}MB. Please compress to under 200MB before uploading.`);
+      }
+
+      // Per-file network timeout so a dead connection rejects instead of
+      // hanging the mutation forever (which looked like "stuck uploading").
+      const withUploadTimeout = <T,>(p: PromiseLike<T>, ms: number, name: string) =>
+        new Promise<T>((resolve, reject) => {
+          const t = setTimeout(() => reject(new Error(`Upload of "${name}" timed out — check your connection and try again`)), ms);
+          Promise.resolve(p).then(
+            (v) => { clearTimeout(t); resolve(v); },
+            (e) => { clearTimeout(t); reject(e); },
+          );
+        });
+
       const uploadedPaths: string[] = [];
       for (let i = 0; i < toUpload.length; i++) {
         const f = toUpload[i];
@@ -121,15 +141,21 @@ export function useSM2Posts(generationId: string | undefined) {
         const slot = existingAll.length + i;
         const stamp = Date.now();
         const path = `sm2/${post.generation_id}/${post.id}-${slot}-${stamp}-${i}.${ext}`;
-        const { error: upErr } = await supabase.storage
-          .from("department-files")
-          .upload(path, f, { upsert: true, contentType: f.type });
+        // Scale timeout with file size: 60s base + 30s per 10MB, capped at 10min.
+        const timeoutMs = Math.min(10 * 60_000, 60_000 + Math.ceil(f.size / (10 * 1024 * 1024)) * 30_000);
+        const { error: upErr } = await withUploadTimeout(
+          supabase.storage.from("department-files").upload(path, f, { upsert: true, contentType: f.type }),
+          timeoutMs,
+          f.name,
+        );
         if (upErr) throw upErr;
         uploadedPaths.push(path);
 
         // Best-effort poster thumbnail for videos so calendars/grids can render
-        // a still cover instead of an HTML5 <video> element.
-        if (f.type.startsWith("video/")) {
+        // a still cover instead of an HTML5 <video> element. Skip for very
+        // large files — in-browser decoding of 50MB+ videos is unreliable and
+        // can hang/crash the tab. The grid will fall back to the <video> tag.
+        if (f.type.startsWith("video/") && f.size < 50 * 1024 * 1024) {
           try {
             const thumb = await generateVideoThumbnail(f);
             if (thumb) {
@@ -142,6 +168,7 @@ export function useSM2Posts(generationId: string | undefined) {
           }
         }
       }
+
 
       const { data: userData } = await supabase.auth.getUser();
       const update: Record<string, any> = {
