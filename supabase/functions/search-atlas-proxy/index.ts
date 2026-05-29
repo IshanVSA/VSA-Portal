@@ -3,10 +3,13 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 // Whitelisted Search Atlas endpoints (read-only). Path-prefix match.
 const ALLOWED_PREFIXES = [
-  "/api/v2/otto-projects",          // OTTO / Site Audit projects + URLs
+  "/api/agent/projects",            // Agent projects list
+  "/api/agent/otto",                // OTTO status
+  "/api/customer/projects/projects",// Core customer projects
   "/api/site-auditor",              // Site audit details / issues
-  "/api/v2/page-explorer",          // Page explorer
+  "/api/v2/site-audit",             // Site audit v2 events stream
   "/api/v1/rank-tracker",           // Rank tracker / heatmap grids
+  "/api/agent/local-seo-heatmaps",  // Local SEO heatmaps
   "/backlink/projects",             // Backlink projects + refdomains
   "/backlink/backlink-profile-analysis",
   "/backlink/backlink-research",
@@ -14,7 +17,6 @@ const ALLOWED_PREFIXES = [
   "/api/v1/brand",                  // LLM brand metrics (POST allowed)
   "/api/v1/se",                     // Site Explorer / LLM visibility SE
   "/api/v1/keyword_details",        // Keyword metrics
-  "/api/customer/projects/projects", // Core projects (for setup dropdown)
   "/search-console/api/v2/keywords",
   "/search-console/api/v2/keyword-rankings",
   "/search-console/api/v2/keyword-historical-performance",
