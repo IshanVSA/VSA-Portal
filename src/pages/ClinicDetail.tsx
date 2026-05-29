@@ -32,6 +32,7 @@ import { GA4ConnectionCard } from "@/components/clinic-detail/GA4ConnectionCard"
 import { GA4PropertySelectionDialog, type GA4Property } from "@/components/clinic-detail/GA4PropertySelectionDialog";
 import { TrackingSetupCard } from "@/components/clinic-detail/TrackingSetupCard";
 import { CtaTrackingSetupCard } from "@/components/clinic-detail/CtaTrackingSetupCard";
+import { SearchAtlasSetupCard } from "@/components/clinic-detail/SearchAtlasSetupCard";
 import { ClinicLogoUploader } from "@/components/clinic-detail/ClinicLogoUploader";
 import { COMMON_TIMEZONES, DEFAULT_CLINIC_TIMEZONE, getSafeTimeZone } from "@/lib/website-analytics";
 
@@ -819,6 +820,7 @@ export default function ClinicDetail() {
               
               {(role === "admin" || isDebraj) && <TrackingSetupCard clinicId={id!} />}
               {(role === "admin" || isDebraj) && <CtaTrackingSetupCard clinicId={id!} />}
+              {(role === "admin" || isDebraj) && <SearchAtlasSetupCard clinicId={id!} />}
 
               {/* Website URL Card */}
               {(role === "admin" || isDebraj) && (
