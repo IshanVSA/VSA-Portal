@@ -21,25 +21,25 @@ function Stat({ icon: Icon, label, value, hint }: { icon: any; label: string; va
 }
 
 export function SearchAtlasOverviewCard({ config }: Props) {
-  // OTTO project gives health score and crawl stats
-  const ottoQ = useSearchAtlas<any>(
-    ["otto-project", config.search_atlas_otto_uuid],
+  // Site Auditor project details give the health score
+  const auditQ = useSearchAtlas<any>(
+    ["site-audit-details", config.search_atlas_otto_uuid],
     config.search_atlas_otto_uuid
-      ? { path: `/api/v2/otto-projects/${config.search_atlas_otto_uuid}/` }
+      ? { path: `/api/site-auditor/${config.search_atlas_otto_uuid}/project-details/` }
       : null,
   );
 
-  // Site Explorer-style summary via /api/v1/se/llm-visibility-overview if domain is set
-  const seQ = useSearchAtlas<any>(
-    ["se-overview", config.search_atlas_domain],
-    config.search_atlas_domain
-      ? { path: "/api/v1/se/llm-visibility-overview/", query: { domain: config.search_atlas_domain } }
+  // Rank tracker gives tracked keyword count
+  const rtQ = useSearchAtlas<any>(
+    ["rank-tracker-overview", config.search_atlas_rank_tracker_id],
+    config.search_atlas_rank_tracker_id
+      ? { path: `/api/v1/rank-tracker/`, query: { project_id: config.search_atlas_rank_tracker_id, limit: 1 } }
       : null,
   );
 
-  const loading = ottoQ.isLoading || seQ.isLoading;
-  const otto = ottoQ.data ?? {};
-  const se = seQ.data ?? {};
+  const loading = auditQ.isLoading || rtQ.isLoading;
+  const audit = auditQ.data ?? {};
+  const rt = rtQ.data ?? {};
 
   if (loading) {
     return (
@@ -49,12 +49,14 @@ export function SearchAtlasOverviewCard({ config }: Props) {
     );
   }
 
+  const totalKeywords = rt?.count ?? rt?.total ?? (Array.isArray(rt?.results) ? rt.results.length : 0);
+
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      <Stat icon={ShieldCheck} label="Health Score" value={otto?.health_score ?? otto?.score ?? "—"} hint="OTTO Site Audit" />
-      <Stat icon={Globe} label="Domain Power" value={se?.domain_power ?? se?.domain_authority ?? "—"} hint="Site Explorer" />
-      <Stat icon={TrendingUp} label="Organic Traffic" value={(se?.organic_traffic ?? se?.traffic ?? 0).toLocaleString?.() ?? "—"} hint="Estimated monthly" />
-      <Stat icon={Hash} label="Keywords" value={(se?.total_keywords ?? otto?.total_keywords ?? 0).toLocaleString?.() ?? "—"} hint="Tracked / discovered" />
+      <Stat icon={ShieldCheck} label="Health Score" value={audit?.health_score ?? audit?.score ?? "—"} hint="Site Auditor" />
+      <Stat icon={Globe} label="Domain" value={config.search_atlas_domain ?? "—"} hint="Tracked domain" />
+      <Stat icon={TrendingUp} label="Pages Crawled" value={(audit?.total_pages_crawled ?? audit?.pages_crawled ?? 0).toLocaleString?.() ?? "—"} hint="Last crawl" />
+      <Stat icon={Hash} label="Keywords" value={totalKeywords?.toLocaleString?.() ?? totalKeywords ?? "—"} hint="Tracked" />
     </div>
   );
 }
