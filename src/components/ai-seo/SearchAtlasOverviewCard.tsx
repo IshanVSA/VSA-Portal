@@ -42,7 +42,7 @@ export function SearchAtlasOverviewCard({ config }: Props) {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      <Stat icon={ShieldCheck} label="Health Score" value={audit?.health_score ?? audit?.score ?? "—"} hint="Site Auditor" />
+      <Stat icon={ShieldCheck} label="Health Score" value={healthScore} hint="Site Auditor" />
       <Stat icon={Globe} label="Domain" value={config.search_atlas_domain ?? "—"} hint="Tracked domain" />
       <Stat icon={TrendingUp} label="Pages Crawled" value={pagesCrawled?.toLocaleString?.() ?? pagesCrawled ?? "—"} hint={llmv?.current_mentions ? `${llmv.current_mentions} AI mentions` : "Last crawl"} />
       <Stat icon={Hash} label="Keywords" value={totalKeywords?.toLocaleString?.() ?? totalKeywords ?? "—"} hint="Organic" />
