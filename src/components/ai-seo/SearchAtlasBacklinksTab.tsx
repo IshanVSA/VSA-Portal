@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useSearchAtlas, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
+import { findSearchAtlasProject, useSearchAtlasCustomerProjects, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "./SearchAtlasEmptyState";
 
 interface Props { config: SearchAtlasClinicConfig; clinicId?: string }
@@ -17,23 +17,16 @@ interface RefDomain {
 
 export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
   const pid = config.search_atlas_backlink_project_id;
-  const projQ = useSearchAtlas<any>(
-    ["bl-project", pid],
-    pid ? { path: `/backlink/projects/${pid}/` } : null,
-  );
-  const refQ = useSearchAtlas<any>(
-    ["bl-refdomains", pid],
-    pid ? { path: `/backlink/projects/${pid}/refdomains/`, query: { limit: 50 } } : null,
-  );
+  const projQ = useSearchAtlasCustomerProjects(!!pid || !!config.search_atlas_domain);
 
   if (!pid) {
     return <SearchAtlasEmptyState clinicId={clinicId} message="Add a Backlink project ID to view backlink data." />;
   }
-  if (projQ.isLoading || refQ.isLoading) return <Skeleton className="h-64" />;
+  if (projQ.isLoading) return <Skeleton className="h-64" />;
 
-  const proj = projQ.data ?? {};
-  const raw = refQ.data as any;
-  const refs: RefDomain[] = Array.isArray(raw?.results) ? raw.results : Array.isArray(raw) ? raw : [];
+  const project = findSearchAtlasProject(projQ.data, config);
+  const proj = project?.data?.se ?? project ?? {};
+  const refs: RefDomain[] = Array.isArray(proj?.referring_domains_list) ? proj.referring_domains_list : [];
 
   return (
     <div className="space-y-4">
