@@ -1188,6 +1188,11 @@ export type Database = {
           owner_user_id: string | null
           phone: string | null
           profile_status: string | null
+          search_atlas_backlink_project_id: string | null
+          search_atlas_domain: string | null
+          search_atlas_llm_project_id: string | null
+          search_atlas_otto_uuid: string | null
+          search_atlas_rank_tracker_id: string | null
           seo_enabled: boolean
           social_media_enabled: boolean
           status: string
@@ -1214,6 +1219,11 @@ export type Database = {
           owner_user_id?: string | null
           phone?: string | null
           profile_status?: string | null
+          search_atlas_backlink_project_id?: string | null
+          search_atlas_domain?: string | null
+          search_atlas_llm_project_id?: string | null
+          search_atlas_otto_uuid?: string | null
+          search_atlas_rank_tracker_id?: string | null
           seo_enabled?: boolean
           social_media_enabled?: boolean
           status?: string
@@ -1240,6 +1250,11 @@ export type Database = {
           owner_user_id?: string | null
           phone?: string | null
           profile_status?: string | null
+          search_atlas_backlink_project_id?: string | null
+          search_atlas_domain?: string | null
+          search_atlas_llm_project_id?: string | null
+          search_atlas_otto_uuid?: string | null
+          search_atlas_rank_tracker_id?: string | null
           seo_enabled?: boolean
           social_media_enabled?: boolean
           status?: string
