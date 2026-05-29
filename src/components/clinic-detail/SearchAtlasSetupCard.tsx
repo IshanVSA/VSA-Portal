@@ -85,7 +85,7 @@ export function SearchAtlasSetupCard({ clinicId }: Props) {
     setTesting(true);
     try {
       // Simple read-only ping using OTTO projects list
-      await callSearchAtlas({ path: "/api/v2/otto-projects/", query: { limit: 1 } });
+      await callSearchAtlas({ path: "/api/customer/projects/projects", query: { limit: 1 } });
       toast.success("Connected to Search Atlas");
     } catch (e) {
       toast.error((e as Error).message || "Connection failed");
