@@ -3197,6 +3197,45 @@ export type Database = {
           },
         ]
       }
+      tracking_events: {
+        Row: {
+          channel: string
+          clinic_id: string
+          created_at: string
+          cta_type: string | null
+          event_type: string
+          id: string
+          landing_page: string | null
+          page_path: string | null
+          session_id: string | null
+          source: string | null
+        }
+        Insert: {
+          channel?: string
+          clinic_id: string
+          created_at?: string
+          cta_type?: string | null
+          event_type: string
+          id?: string
+          landing_page?: string | null
+          page_path?: string | null
+          session_id?: string | null
+          source?: string | null
+        }
+        Update: {
+          channel?: string
+          clinic_id?: string
+          created_at?: string
+          cta_type?: string | null
+          event_type?: string
+          id?: string
+          landing_page?: string | null
+          page_path?: string | null
+          session_id?: string | null
+          source?: string | null
+        }
+        Relationships: []
+      }
       user_login_activity: {
         Row: {
           first_login_at: string | null
@@ -3371,7 +3410,21 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      cta_daily: {
+        Row: {
+          book_appointment: number | null
+          call_us: number | null
+          channel: string | null
+          clinic_id: string | null
+          day: string | null
+          email_contact: number | null
+          find_us: number | null
+          new_client_form: number | null
+          sessions: number | null
+          total_ctas: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       _rebuild_gbp_batches_from_clusters: { Args: never; Returns: undefined }
