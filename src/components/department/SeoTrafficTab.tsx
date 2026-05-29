@@ -295,6 +295,92 @@ export function SeoTrafficTab({ clinicId }: Props) {
           )}
         </CardContent>
       </Card>
+
+      {/* CTA Performance — Organic only (self-hosted tracking) */}
+      <Card className="border-border/60">
+        <div className="px-4 py-3 border-b border-border/40 flex items-center gap-2">
+          <Leaf className="h-4 w-4 text-emerald-500" />
+          <div className="flex-1">
+            <h3 className="text-sm font-bold text-foreground">CTA Performance — Organic Search</h3>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Organic-only sessions and CTA clicks from the clinic site. Powered by VSA Tracking (separate from GA4).
+            </p>
+          </div>
+        </div>
+        <CardContent className="p-4 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+            <Card className="border-border/60">
+              <CardContent className="p-3">
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Organic Sessions</div>
+                <div className="text-xl font-bold text-foreground tabular-nums mt-1">{formatNumber(organic?.sessions ?? 0)}</div>
+              </CardContent>
+            </Card>
+            <Card className="border-border/60">
+              <CardContent className="p-3">
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Total CTA Actions</div>
+                <div className="text-xl font-bold text-foreground tabular-nums mt-1">{formatNumber(organic?.totalCtas ?? 0)}</div>
+              </CardContent>
+            </Card>
+            <Card className="border-border/60">
+              <CardContent className="p-3">
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Overall Conversion Rate</div>
+                <div className="text-xl font-bold text-foreground tabular-nums mt-1">
+                  {organic && organic.sessions > 0 ? `${(organic.conversionRate * 100).toFixed(1)}%` : "—"}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {(!organic || (organic.sessions === 0 && organic.totalCtas === 0)) ? (
+            <div className="text-center text-xs text-muted-foreground py-6">
+              No organic tracking data yet. Install the VSA Tracking snippet from <span className="font-medium text-foreground">Clinic Detail → Tracking Setup</span> to start collecting.
+            </div>
+          ) : (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Call to Action</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="text-right">Conversion Rate</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {TRACKED_CTA_ORDER.map((key) => {
+                    const count = organic?.totals[key] ?? 0;
+                    const sessions = organic?.sessions ?? 0;
+                    const rate = sessions > 0 ? (count / sessions) * 100 : null;
+                    return (
+                      <TableRow key={key}>
+                        <TableCell className="font-medium">{TRACKED_CTA_LABELS[key]}</TableCell>
+                        <TableCell className="text-right tabular-nums">{formatNumber(count)}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {rate === null ? "—" : `${rate.toFixed(1)}%`}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+
+              <div className="h-52">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={organic?.daily ?? []} margin={{ top: 4, right: 12, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
+                    <XAxis dataKey="day" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => format(new Date(v), "MMM d")} />
+                    <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} width={36} />
+                    <Tooltip
+                      contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                      labelFormatter={(v) => format(new Date(v), "MMM d, yyyy")}
+                    />
+                    <Bar dataKey="total_ctas" name="CTA actions" fill="hsl(142, 71%, 45%)" radius={[3, 3, 0, 0]} isAnimationActive={false} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
