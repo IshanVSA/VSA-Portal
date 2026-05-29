@@ -85,7 +85,8 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
   const [loading, setLoading] = useState(true);
   const [extraTicketIds, setExtraTicketIds] = useState<Set<string>>(new Set());
   const { departments, isAllAccess } = useUserDepartments();
-
+  const { role } = useUserRole();
+  const isClient = role === "client";
   useEffect(() => {
     const fetchAll = async () => {
       const [profilesRes, clinicsRes] = await Promise.all([
