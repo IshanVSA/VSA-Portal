@@ -136,6 +136,7 @@ export default function PostDetailsDrawer({
                 <div className="grid grid-cols-6 gap-2">
                   {posts.map((p, idx) => {
                     const cover = getPostImagePaths(p)[0];
+                    const c = computePostConfidence(p);
                     return (
                       <button
                         key={p.id}
@@ -146,7 +147,7 @@ export default function PostDetailsDrawer({
                             ? "border-primary ring-2 ring-primary/30"
                             : "border-border hover:border-primary/50"
                         )}
-                        title={`Post ${idx + 1}`}
+                        title={`Post ${idx + 1} · ${c.score}% confidence${c.issues.length ? ` — ${c.issues.join("; ")}` : ""}`}
                       >
                         {cover ? (
                           <img
@@ -161,6 +162,12 @@ export default function PostDetailsDrawer({
                         )}
                         <span className="absolute top-0.5 left-0.5 text-[10px] font-bold bg-background/80 text-foreground rounded px-1 tabular-nums">
                           {idx + 1}
+                        </span>
+                        <span className={cn(
+                          "absolute bottom-0.5 right-0.5 text-[9px] font-bold rounded px-1 tabular-nums border",
+                          confidenceBadgeClass(c.score)
+                        )}>
+                          {c.score}
                         </span>
                       </button>
                     );
