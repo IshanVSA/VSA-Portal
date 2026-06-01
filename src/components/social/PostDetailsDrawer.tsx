@@ -13,6 +13,8 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useSM2Posts, type SM2Post, getPostImagePaths } from "@/hooks/useSM2Posts";
 import { coverPathFor } from "@/lib/video-thumbnail";
+import { computePostConfidence, confidenceBadgeClass } from "@/lib/sm2-confidence";
+import { AlertTriangle, ShieldCheck } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -102,8 +104,17 @@ export default function PostDetailsDrawer({
                 >
                   <ChevronLeft className="h-4 w-4" /> Prev
                 </Button>
-                <div className="text-xs text-muted-foreground tabular-nums">
-                  Post {activeIndex + 1} of {posts.length}
+                <div className="flex items-center gap-2 text-xs text-muted-foreground tabular-nums">
+                  <span>Post {activeIndex + 1} of {posts.length}</span>
+                  {activePost && (() => {
+                    const c = computePostConfidence(activePost);
+                    return (
+                      <Badge variant="outline" className={cn("gap-1 font-semibold", confidenceBadgeClass(c.score))}>
+                        {c.score >= 90 ? <ShieldCheck className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                        {c.score}%
+                      </Badge>
+                    );
+                  })()}
                 </div>
                 <Button
                   variant="outline" size="sm" onClick={goNext}
@@ -125,6 +136,7 @@ export default function PostDetailsDrawer({
                 <div className="grid grid-cols-6 gap-2">
                   {posts.map((p, idx) => {
                     const cover = getPostImagePaths(p)[0];
+                    const c = computePostConfidence(p);
                     return (
                       <button
                         key={p.id}
@@ -135,7 +147,7 @@ export default function PostDetailsDrawer({
                             ? "border-primary ring-2 ring-primary/30"
                             : "border-border hover:border-primary/50"
                         )}
-                        title={`Post ${idx + 1}`}
+                        title={`Post ${idx + 1} · ${c.score}% confidence${c.issues.length ? ` — ${c.issues.join("; ")}` : ""}`}
                       >
                         {cover ? (
                           <img
@@ -150,6 +162,12 @@ export default function PostDetailsDrawer({
                         )}
                         <span className="absolute top-0.5 left-0.5 text-[10px] font-bold bg-background/80 text-foreground rounded px-1 tabular-nums">
                           {idx + 1}
+                        </span>
+                        <span className={cn(
+                          "absolute bottom-0.5 right-0.5 text-[9px] font-bold rounded px-1 tabular-nums border",
+                          confidenceBadgeClass(c.score)
+                        )}>
+                          {c.score}
                         </span>
                       </button>
                     );
@@ -186,8 +204,36 @@ function PostDetail({
   getImageUrl: (path: string) => string;
 }) {
   const images = getPostImagePaths(post);
+  const confidence = computePostConfidence(post);
   return (
     <div className="space-y-4 animate-fade-in">
+      {/* Per-post confidence banner */}
+      <div className={cn(
+        "rounded-xl border p-3 flex items-start gap-2.5",
+        confidenceBadgeClass(confidence.score)
+      )}>
+        {confidence.score >= 90
+          ? <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0" />
+          : <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />}
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold">
+            Confidence {confidence.score}%
+            <span className="font-normal opacity-70 ml-1">
+              {confidence.score >= 90
+                ? "— this post is on-brand and compliant"
+                : confidence.score >= 70
+                ? "— minor issues, review before approving"
+                : "— needs attention before sending to client"}
+            </span>
+          </p>
+          {confidence.issues.length > 0 && (
+            <ul className="mt-1 text-[11px] space-y-0.5 list-disc list-inside opacity-90">
+              {confidence.issues.map((i, idx) => <li key={idx}>{i}</li>)}
+            </ul>
+          )}
+        </div>
+      </div>
+
       {/* Cover image / placeholder */}
       <div className="relative rounded-lg overflow-hidden bg-muted border aspect-[4/5] max-h-96">
         {images[0] ? (
