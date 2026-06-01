@@ -104,8 +104,17 @@ export default function PostDetailsDrawer({
                 >
                   <ChevronLeft className="h-4 w-4" /> Prev
                 </Button>
-                <div className="text-xs text-muted-foreground tabular-nums">
-                  Post {activeIndex + 1} of {posts.length}
+                <div className="flex items-center gap-2 text-xs text-muted-foreground tabular-nums">
+                  <span>Post {activeIndex + 1} of {posts.length}</span>
+                  {activePost && (() => {
+                    const c = computePostConfidence(activePost);
+                    return (
+                      <Badge variant="outline" className={cn("gap-1 font-semibold", confidenceBadgeClass(c.score))}>
+                        {c.score >= 90 ? <ShieldCheck className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                        {c.score}%
+                      </Badge>
+                    );
+                  })()}
                 </div>
                 <Button
                   variant="outline" size="sm" onClick={goNext}
