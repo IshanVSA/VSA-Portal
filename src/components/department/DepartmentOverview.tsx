@@ -49,6 +49,7 @@ interface DepartmentOverviewProps {
   extraSection?: ReactNode;
   clinicId?: string;
   hideQuickActions?: boolean;
+  hideTrafficChart?: boolean;
 }
 
 function useTicketCounts(department: string, clinicId?: string): TicketSummary {
