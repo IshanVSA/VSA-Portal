@@ -68,9 +68,11 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
     return (h || 0) * 60 + (m || 0);
   };
   // Skip validation while both fields are still at the default 00:00 (untouched).
+  // Treat a close time of 00:00 as midnight (24:00) so e.g. 08:00 -> 00:00 is valid.
   const isInvalidRange = (open: string, close: string) => {
     if (open === "00:00" && close === "00:00") return false;
-    return toMinutes(close) <= toMinutes(open);
+    const closeMin = close === "00:00" ? 24 * 60 : toMinutes(close);
+    return closeMin <= toMinutes(open);
   };
 
   const dayErrors: Record<string, boolean> = Object.fromEntries(
