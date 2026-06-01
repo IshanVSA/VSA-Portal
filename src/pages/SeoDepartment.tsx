@@ -26,6 +26,7 @@ import { BlogTab } from "@/components/seo/blog/BlogTab";
 import { TasksTab } from "@/components/department/tasks/TasksTab";
 import { useMyOpenTaskCount } from "@/hooks/useDepartmentTasks";
 import { SeoTrafficTab } from "@/components/department/SeoTrafficTab";
+import { SeoChannelOverview } from "@/components/department/SeoChannelOverview";
 
 
 
