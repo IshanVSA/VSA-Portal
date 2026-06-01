@@ -92,11 +92,19 @@ function TopKeywordsCard({ keywords }: { keywords: SeoKeyword[] }) {
   );
 }
 
+function formatSeconds(s: number): string {
+  if (!s || !isFinite(s)) return "0s";
+  const m = Math.floor(s / 60);
+  const sec = Math.round(s % 60);
+  if (m === 0) return `${sec}s`;
+  return `${m}m ${sec}s`;
+}
+
 const fallbackKpis = [
-  { label: "Domain Authority", value: 0, icon: Globe, gradient: "blue" as const },
-  { label: "Backlinks", value: 0, icon: Link2, gradient: "green" as const },
-  { label: "Keywords Top 10", value: 0, icon: Hash, gradient: "amber" as const },
-  { label: "Organic Traffic", value: 0, icon: TrendingUp, gradient: "purple" as const },
+  { label: "Sessions", value: 0, icon: BarChart3, gradient: "blue" as const },
+  { label: "Engaged Sessions", value: 0, icon: Activity, gradient: "green" as const },
+  { label: "Engagement Rate", value: "0%", icon: TrendingUp, gradient: "purple" as const },
+  { label: "Avg. Engagement Time", value: "0s", icon: Clock, gradient: "amber" as const },
 ];
 
 export default function SeoDepartment() {
@@ -117,12 +125,18 @@ export default function SeoDepartment() {
 
   const selectedClinicName = selectedClinic?.clinic_name;
 
-  const kpis = latest
+  const trafficDateRange = useMemo(() => {
+    const today = new Date();
+    return { from: subDays(today, 29), to: today };
+  }, []);
+  const { data: ga4 } = useGa4Traffic(selectedClinicId, trafficDateRange);
+
+  const kpis = ga4?.isConnected
     ? [
-        { label: "Domain Authority", value: latest.domain_authority, icon: Globe, gradient: "blue" as const },
-        { label: "Backlinks", value: latest.backlinks.toLocaleString(), icon: Link2, gradient: "green" as const },
-        { label: "Keywords Top 10", value: latest.keywords_top_10, icon: Hash, gradient: "amber" as const },
-        { label: "Organic Traffic", value: latest.organic_traffic.toLocaleString(), icon: TrendingUp, gradient: "purple" as const },
+        { label: "Sessions", value: ga4.totals.sessions.toLocaleString(), icon: BarChart3, gradient: "blue" as const },
+        { label: "Engaged Sessions", value: ga4.totals.engagedSessions.toLocaleString(), icon: Activity, gradient: "green" as const },
+        { label: "Engagement Rate", value: `${(ga4.totals.engagementRate * 100).toFixed(1)}%`, icon: TrendingUp, gradient: "purple" as const },
+        { label: "Avg. Engagement Time", value: formatSeconds(ga4.totals.avgEngagementTimeSeconds), icon: Clock, gradient: "amber" as const },
       ]
     : fallbackKpis;
 
