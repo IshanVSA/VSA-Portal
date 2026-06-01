@@ -181,26 +181,28 @@ export function DepartmentOverview({
       )}
 
       {/* Chart + Ticket Summary */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <motion.div variants={staggerItem} className="space-y-1.5">
-          <div className="px-4 flex items-end justify-between">
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/80 flex items-center gap-1.5">
-              <BarChart3 className="h-3 w-3" />
-              {trafficLabel}
-            </h3>
-          </div>
-          <div className="rounded-2xl bg-card border border-border/40 shadow-sm p-4 h-[calc(100%-1.5rem)]">
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={trafficData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} allowDecimals={false} />
-                <Tooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="value" fill={accentColor} radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
+      <div className={cn("grid grid-cols-1 gap-4", !hideTrafficChart && "lg:grid-cols-2") }>
+        {!hideTrafficChart && (
+          <motion.div variants={staggerItem} className="space-y-1.5">
+            <div className="px-4 flex items-end justify-between">
+              <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/80 flex items-center gap-1.5">
+                <BarChart3 className="h-3 w-3" />
+                {trafficLabel}
+              </h3>
+            </div>
+            <div className="rounded-2xl bg-card border border-border/40 shadow-sm p-4 h-[calc(100%-1.5rem)]">
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={trafficData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <Tooltip contentStyle={tooltipStyle} />
+                  <Bar dataKey="value" fill={accentColor} radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
+        )}
 
         {/* Ticket Summary */}
         <motion.div variants={staggerItem} className="space-y-1.5">
