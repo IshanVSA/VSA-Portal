@@ -3,7 +3,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { SearchCode, LayoutGrid, FileText, Upload, Globe, Link2, Hash, TrendingUp, MessageCircle, BookOpen, ListChecks, BarChart3 } from "lucide-react";
+import { SearchCode, LayoutGrid, FileText, Upload, Hash, TrendingUp, MessageCircle, BookOpen, ListChecks, BarChart3, Activity, Clock } from "lucide-react";
+import { useGa4Traffic } from "@/hooks/useGa4Traffic";
+import { subDays } from "date-fns";
+import { useMemo } from "react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { SeoReportsTab } from "@/components/department/SeoReportsTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
