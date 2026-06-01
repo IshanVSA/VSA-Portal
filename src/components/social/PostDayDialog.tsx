@@ -486,6 +486,27 @@ function PostCard({
             )}
           </div>
 
+          {(() => {
+            const c = computePostConfidence(post);
+            if (c.issues.length === 0) return null;
+            return (
+              <div className={cn("rounded-lg border p-2.5 flex items-start gap-2", confidenceBadgeClass(c.score))}>
+                <AlertTriangleIcon className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-semibold">
+                    Why {c.score}%
+                    <span className="font-normal opacity-70 ml-1">
+                      {c.score >= 70 ? "— minor issues to review" : "— needs attention"}
+                    </span>
+                  </p>
+                  <ul className="mt-0.5 text-[11px] list-disc list-inside opacity-90 space-y-0.5">
+                    {c.issues.map((i, idx) => <li key={idx}>{i}</li>)}
+                  </ul>
+                </div>
+              </div>
+            );
+          })()}
+
           {!isClient && (
             <EditPostDialog
               open={editOpen}
