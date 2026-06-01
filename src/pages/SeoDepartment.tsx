@@ -26,6 +26,7 @@ import { BlogTab } from "@/components/seo/blog/BlogTab";
 import { TasksTab } from "@/components/department/tasks/TasksTab";
 import { useMyOpenTaskCount } from "@/hooks/useDepartmentTasks";
 import { SeoTrafficTab } from "@/components/department/SeoTrafficTab";
+import { SeoChannelOverview } from "@/components/department/SeoChannelOverview";
 
 
 
@@ -131,14 +132,7 @@ export default function SeoDepartment() {
   }, []);
   const { data: ga4 } = useGa4Traffic(selectedClinicId, trafficDateRange);
 
-  const kpis = ga4?.isConnected
-    ? [
-        { label: "Sessions", value: ga4.totals.sessions.toLocaleString(), icon: BarChart3, gradient: "blue" as const },
-        { label: "Engaged Sessions", value: ga4.totals.engagedSessions.toLocaleString(), icon: Activity, gradient: "green" as const },
-        { label: "Engagement Rate", value: `${(ga4.totals.engagementRate * 100).toFixed(1)}%`, icon: TrendingUp, gradient: "purple" as const },
-        { label: "Avg. Engagement Time", value: formatSeconds(ga4.totals.avgEngagementTimeSeconds), icon: Clock, gradient: "amber" as const },
-      ]
-    : fallbackKpis;
+  const kpis: typeof fallbackKpis = [];
 
   const handleTabChange = (v: string) => {
     setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", v); return next; }, { replace: true });
@@ -200,7 +194,7 @@ export default function SeoDepartment() {
                 </div>
 
                 <TabsContent value="overview" className="mt-4">
-                  <DepartmentOverview kpis={kpis} trafficData={trafficData.length > 0 ? trafficData : [{ label: "No data", value: 0 }]} trafficLabel="Organic Traffic Trend" team={team} department="seo" accentColor="hsl(var(--dept-seo))" extraSection={<TopKeywordsCard keywords={topKeywords} />} clinicId={selectedClinicId} hideQuickActions />
+                  <DepartmentOverview kpis={kpis} trafficData={trafficData.length > 0 ? trafficData : [{ label: "No data", value: 0 }]} trafficLabel="Organic Traffic Trend" team={team} department="seo" accentColor="hsl(var(--dept-seo))" extraSection={<div className="space-y-3"><SeoChannelOverview clinicId={selectedClinicId} /><TopKeywordsCard keywords={topKeywords} /></div>} clinicId={selectedClinicId} hideQuickActions />
                 </TabsContent>
                 <TabsContent value="traffic" className="mt-4"><SeoTrafficTab clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="reports" className="mt-4"><SeoReportsTab clinicId={selectedClinicId} /></TabsContent>
