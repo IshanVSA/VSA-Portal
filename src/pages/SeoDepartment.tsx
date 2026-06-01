@@ -194,7 +194,7 @@ export default function SeoDepartment() {
                 </div>
 
                 <TabsContent value="overview" className="mt-4">
-                  <DepartmentOverview kpis={kpis} trafficData={trafficData.length > 0 ? trafficData : [{ label: "No data", value: 0 }]} trafficLabel="Organic Traffic Trend" team={team} department="seo" accentColor="hsl(var(--dept-seo))" extraSection={<TopKeywordsCard keywords={topKeywords} />} clinicId={selectedClinicId} hideQuickActions />
+                  <DepartmentOverview kpis={kpis} trafficData={trafficData.length > 0 ? trafficData : [{ label: "No data", value: 0 }]} trafficLabel="Organic Traffic Trend" team={team} department="seo" accentColor="hsl(var(--dept-seo))" extraSection={<div className="space-y-3"><SeoChannelOverview clinicId={selectedClinicId} /><TopKeywordsCard keywords={topKeywords} /></div>} clinicId={selectedClinicId} hideQuickActions />
                 </TabsContent>
                 <TabsContent value="traffic" className="mt-4"><SeoTrafficTab clinicId={selectedClinicId} /></TabsContent>
                 <TabsContent value="reports" className="mt-4"><SeoReportsTab clinicId={selectedClinicId} /></TabsContent>
