@@ -132,7 +132,14 @@ export default function SeoDepartment() {
   }, []);
   const { data: ga4 } = useGa4Traffic(selectedClinicId, trafficDateRange);
 
-  const kpis: typeof fallbackKpis = [];
+  const kpis = ga4?.isConnected
+    ? [
+        { label: "Sessions", value: ga4.totals.sessions.toLocaleString(), icon: BarChart3, gradient: "blue" as const },
+        { label: "Engaged Sessions", value: ga4.totals.engagedSessions.toLocaleString(), icon: Activity, gradient: "green" as const },
+        { label: "Engagement Rate", value: `${(ga4.totals.engagementRate * 100).toFixed(1)}%`, icon: TrendingUp, gradient: "purple" as const },
+        { label: "Avg. Engagement Time", value: formatSeconds(ga4.totals.avgEngagementTimeSeconds), icon: Clock, gradient: "amber" as const },
+      ]
+    : fallbackKpis;
 
   const handleTabChange = (v: string) => {
     setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", v); return next; }, { replace: true });
