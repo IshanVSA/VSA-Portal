@@ -44,6 +44,8 @@ import { cn } from "@/lib/utils";
 
 import { isVideoUrl, thumbPathFor, isVideoPath } from "@/lib/video-thumbnail";
 import { MediaCover } from "./MediaCover";
+import { computePostConfidence, confidenceBadgeClass } from "@/lib/sm2-confidence";
+import { ShieldCheck, AlertTriangle as AlertTriangleIcon } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -439,6 +441,19 @@ function PostCard({
             <Badge variant="outline" className={cn("text-[10px] font-semibold", statusBadgeClass(post.status))}>
               {(post.status || "PASS").toUpperCase()}
             </Badge>
+            {(() => {
+              const c = computePostConfidence(post);
+              return (
+                <Badge
+                  variant="outline"
+                  className={cn("text-[10px] font-semibold gap-1", confidenceBadgeClass(c.score))}
+                  title={c.issues.length ? c.issues.join(" · ") : "On-brand and compliant"}
+                >
+                  {c.score >= 90 ? <ShieldCheck className="h-3 w-3" /> : <AlertTriangleIcon className="h-3 w-3" />}
+                  {c.score}% confidence
+                </Badge>
+              );
+            })()}
             {!isClient && !copyLocked && (
               <>
                 <Button
@@ -470,6 +485,27 @@ function PostCard({
               </Badge>
             )}
           </div>
+
+          {(() => {
+            const c = computePostConfidence(post);
+            if (c.issues.length === 0) return null;
+            return (
+              <div className={cn("rounded-lg border p-2.5 flex items-start gap-2", confidenceBadgeClass(c.score))}>
+                <AlertTriangleIcon className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-semibold">
+                    Why {c.score}%
+                    <span className="font-normal opacity-70 ml-1">
+                      {c.score >= 70 ? "— minor issues to review" : "— needs attention"}
+                    </span>
+                  </p>
+                  <ul className="mt-0.5 text-[11px] list-disc list-inside opacity-90 space-y-0.5">
+                    {c.issues.map((i, idx) => <li key={idx}>{i}</li>)}
+                  </ul>
+                </div>
+              </div>
+            );
+          })()}
 
           {!isClient && (
             <EditPostDialog
