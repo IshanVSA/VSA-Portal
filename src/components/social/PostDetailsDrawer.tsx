@@ -204,8 +204,36 @@ function PostDetail({
   getImageUrl: (path: string) => string;
 }) {
   const images = getPostImagePaths(post);
+  const confidence = computePostConfidence(post);
   return (
     <div className="space-y-4 animate-fade-in">
+      {/* Per-post confidence banner */}
+      <div className={cn(
+        "rounded-xl border p-3 flex items-start gap-2.5",
+        confidenceBadgeClass(confidence.score)
+      )}>
+        {confidence.score >= 90
+          ? <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0" />
+          : <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />}
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold">
+            Confidence {confidence.score}%
+            <span className="font-normal opacity-70 ml-1">
+              {confidence.score >= 90
+                ? "— this post is on-brand and compliant"
+                : confidence.score >= 70
+                ? "— minor issues, review before approving"
+                : "— needs attention before sending to client"}
+            </span>
+          </p>
+          {confidence.issues.length > 0 && (
+            <ul className="mt-1 text-[11px] space-y-0.5 list-disc list-inside opacity-90">
+              {confidence.issues.map((i, idx) => <li key={idx}>{i}</li>)}
+            </ul>
+          )}
+        </div>
+      </div>
+
       {/* Cover image / placeholder */}
       <div className="relative rounded-lg overflow-hidden bg-muted border aspect-[4/5] max-h-96">
         {images[0] ? (
