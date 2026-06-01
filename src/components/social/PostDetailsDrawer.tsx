@@ -13,6 +13,8 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useSM2Posts, type SM2Post, getPostImagePaths } from "@/hooks/useSM2Posts";
 import { coverPathFor } from "@/lib/video-thumbnail";
+import { computePostConfidence, confidenceBadgeClass } from "@/lib/sm2-confidence";
+import { AlertTriangle, ShieldCheck } from "lucide-react";
 
 interface Props {
   open: boolean;
