@@ -441,6 +441,19 @@ function PostCard({
             <Badge variant="outline" className={cn("text-[10px] font-semibold", statusBadgeClass(post.status))}>
               {(post.status || "PASS").toUpperCase()}
             </Badge>
+            {(() => {
+              const c = computePostConfidence(post);
+              return (
+                <Badge
+                  variant="outline"
+                  className={cn("text-[10px] font-semibold gap-1", confidenceBadgeClass(c.score))}
+                  title={c.issues.length ? c.issues.join(" · ") : "On-brand and compliant"}
+                >
+                  {c.score >= 90 ? <ShieldCheck className="h-3 w-3" /> : <AlertTriangleIcon className="h-3 w-3" />}
+                  {c.score}% confidence
+                </Badge>
+              );
+            })()}
             {!isClient && !copyLocked && (
               <>
                 <Button
