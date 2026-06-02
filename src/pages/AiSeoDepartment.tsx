@@ -80,21 +80,6 @@ export default function AiSeoDepartment() {
               </TabsList>
             </div>
 
-            <TabsContent value="overview" className="mt-4">
-              {saLoading ? (
-                <Skeleton className="h-32" />
-              ) : !configured ? (
-                <SearchAtlasEmptyState clinicId={selectedClinicId} />
-              ) : (
-                <SearchAtlasOverviewCard config={saConfig!} />
-              )}
-            </TabsContent>
-
-            <TabsContent value="site-audit" className="mt-4">
-              {saLoading ? <Skeleton className="h-64" /> : configured
-                ? <SearchAtlasSiteAuditTab config={saConfig!} clinicId={selectedClinicId} />
-                : <SearchAtlasEmptyState clinicId={selectedClinicId} />}
-            </TabsContent>
 
             <TabsContent value="keywords" className="mt-4">
               {saLoading ? <Skeleton className="h-64" /> : configured
