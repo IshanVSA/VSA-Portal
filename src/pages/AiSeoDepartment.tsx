@@ -1,6 +1,6 @@
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sparkles, LayoutGrid, Users, ShieldCheck, Hash, Link2, Map, Bot } from "lucide-react";
+import { Sparkles, Users, Hash, Link2, Map, Bot } from "lucide-react";
 import { useAiSeoAccess } from "@/hooks/useAiSeoAccess";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
@@ -11,26 +11,22 @@ import { DepartmentChat } from "@/components/department/DepartmentChat";
 import { useDepartmentChatUnread } from "@/hooks/useDepartmentChatUnread";
 import { useSearchAtlasClinicConfig, isSearchAtlasConfigured } from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "@/components/ai-seo/SearchAtlasEmptyState";
-import { SearchAtlasOverviewCard } from "@/components/ai-seo/SearchAtlasOverviewCard";
-import { SearchAtlasSiteAuditTab } from "@/components/ai-seo/SearchAtlasSiteAuditTab";
 import { SearchAtlasKeywordsTab } from "@/components/ai-seo/SearchAtlasKeywordsTab";
 import { SearchAtlasBacklinksTab } from "@/components/ai-seo/SearchAtlasBacklinksTab";
 import { SearchAtlasHeatmapTab } from "@/components/ai-seo/SearchAtlasHeatmapTab";
 import { SearchAtlasLLMTab } from "@/components/ai-seo/SearchAtlasLLMTab";
 
 const dataTabs = [
-  { value: "overview", label: "Overview", icon: LayoutGrid },
-  { value: "site-audit", label: "Site Audit", icon: ShieldCheck },
-  { value: "keywords", label: "Keywords", icon: Hash },
   { value: "backlinks", label: "Backlinks", icon: Link2 },
-  { value: "heatmap", label: "Heatmap", icon: Map },
   { value: "llm", label: "LLM Visibility", icon: Bot },
+  { value: "keywords", label: "Keyword Rankings", icon: Hash },
+  { value: "heatmap", label: "Local SEO Heatmap", icon: Map },
 ];
 const clientChatTab = { value: "client-chat", label: "Client Chat", icon: Users };
 
 export default function AiSeoDepartment() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentTab = searchParams.get("tab") || "overview";
+  const currentTab = searchParams.get("tab") || "backlinks";
   const { selectedClinicId, selectedClinic, loading: clinicsLoading } = useClinicSelector();
   const { hasAccess, isLoading } = useAiSeoAccess(selectedClinicId || undefined);
   const { data: saConfig, isLoading: saLoading } = useSearchAtlasClinicConfig(selectedClinicId);
@@ -82,21 +78,6 @@ export default function AiSeoDepartment() {
               </TabsList>
             </div>
 
-            <TabsContent value="overview" className="mt-4">
-              {saLoading ? (
-                <Skeleton className="h-32" />
-              ) : !configured ? (
-                <SearchAtlasEmptyState clinicId={selectedClinicId} />
-              ) : (
-                <SearchAtlasOverviewCard config={saConfig!} />
-              )}
-            </TabsContent>
-
-            <TabsContent value="site-audit" className="mt-4">
-              {saLoading ? <Skeleton className="h-64" /> : configured
-                ? <SearchAtlasSiteAuditTab config={saConfig!} clinicId={selectedClinicId} />
-                : <SearchAtlasEmptyState clinicId={selectedClinicId} />}
-            </TabsContent>
 
             <TabsContent value="keywords" className="mt-4">
               {saLoading ? <Skeleton className="h-64" /> : configured
