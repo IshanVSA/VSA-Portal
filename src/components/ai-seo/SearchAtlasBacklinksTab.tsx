@@ -55,8 +55,13 @@ function buildHistory(proj: any): Array<Record<string, number | string>> {
 
 export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
   const pid = config.search_atlas_backlink_project_id;
-  const projQ = useSearchAtlasCustomerProjects(!!pid || !!config.search_atlas_domain);
+  const domain = config.search_atlas_domain ?? undefined;
+  const projQ = useSearchAtlasCustomerProjects(!!pid || !!domain);
   const [granularity, setGranularity] = useState<"Daily" | "Weekly" | "Monthly">("Weekly");
+
+  // Pull real backlink data from MCP (whitelisted in proxy)
+  const overviewQ = useSearchAtlasMcp<any>(["bl-overview", pid ?? domain ?? ""], "backlinks", "get_site_backlinks", { project_id: pid, domain }, !!(pid || domain));
+  const refDomQ = useSearchAtlasMcp<any>(["bl-refdoms", pid ?? domain ?? ""], "backlinks", "get_site_referring_domains", { project_id: pid, domain, limit: 50 }, !!(pid || domain));
 
   if (!pid) {
     return <SearchAtlasEmptyState clinicId={clinicId} message="Add a Backlink project ID to view backlink data." />;
@@ -65,13 +70,35 @@ export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
 
   const project = findSearchAtlasProject(projQ.data, config);
   const proj = project?.data?.se ?? project ?? {};
-  const refs: RefDomain[] = Array.isArray(proj?.referring_domains_list) ? proj.referring_domains_list : [];
 
-  const totalBacklinks = proj?.total_backlinks ?? proj?.backlinks ?? 0;
-  const referringDomains = proj?.referring_domains ?? refs.length ?? 0;
-  const referringIps = proj?.referring_ips ?? proj?.ref_ips ?? 0;
+  // Merge listing + MCP overview
+  const ov: any = !isSearchAtlasSoftError(overviewQ.data) ? (unwrapSearchAtlasPayload<any>(overviewQ.data) ?? {}) : {};
+  const ovRoot = ov?.overview ?? ov?.summary ?? ov?.data ?? ov;
 
-  const history = useMemo(() => buildHistory(proj), [proj]);
+  const refPayload: any = !isSearchAtlasSoftError(refDomQ.data) ? (unwrapSearchAtlasPayload<any>(refDomQ.data) ?? {}) : {};
+  const refs: RefDomain[] = Array.isArray(refPayload?.results) ? refPayload.results
+    : Array.isArray(refPayload?.data) ? refPayload.data
+    : Array.isArray(refPayload?.referring_domains) ? refPayload.referring_domains
+    : Array.isArray(proj?.referring_domains_list) ? proj.referring_domains_list
+    : [];
+
+  const totalBacklinks = ovRoot?.total_backlinks ?? ovRoot?.backlinks ?? proj?.backlinks ?? proj?.total_backlinks ?? 0;
+  const referringDomains = ovRoot?.referring_domains ?? ovRoot?.total_referring_domains ?? proj?.referring_domains ?? refs.length ?? 0;
+  const referringIps = ovRoot?.referring_ips ?? ovRoot?.total_referring_ips ?? proj?.referring_ips ?? proj?.ref_ips ?? 0;
+
+  const history = useMemo(() => {
+    const fromMcp = ovRoot?.history ?? ovRoot?.timeline ?? ovRoot?.backlinks_history;
+    if (Array.isArray(fromMcp) && fromMcp.length) {
+      return fromMcp.map((d: any) => ({
+        date: d.date ?? d.day ?? d.timestamp ?? "",
+        newLinks: Number(d.new_backlinks ?? d.new_links ?? d.newLinks ?? 0),
+        newRef: Number(d.new_referring_domains ?? d.new_ref_domains ?? d.newRef ?? 0),
+        lostRef: Number(d.lost_referring_domains ?? d.lost_ref_domains ?? d.lostRef ?? 0),
+        lostLinks: Number(d.lost_backlinks ?? d.lost_links ?? d.lostLinks ?? 0),
+      }));
+    }
+    return buildHistory(proj);
+  }, [ovRoot, proj]);
 
   return (
     <div className="space-y-5">
