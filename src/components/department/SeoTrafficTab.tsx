@@ -150,12 +150,34 @@ export function SeoTrafficTab({ clinicId }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-base font-bold tracking-tight text-foreground">Traffic Acquisition</h2>
           <p className="text-xs text-muted-foreground">Where your sessions come from, by default channel group.</p>
         </div>
-        <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
+        <div className="flex flex-wrap items-center gap-3">
+          <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+              {lastSyncAt
+                ? `Last synced: ${format(new Date(lastSyncAt), "MMM d, yyyy 'at' h:mm a")}`
+                : "Never synced"}
+            </span>
+            <Badge variant="outline" className="text-[10px] font-medium px-2 py-0.5 rounded-full">
+              Auto-sync: Daily 07:30 UTC
+            </Badge>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleManualSync}
+              disabled={syncing || !clinicId}
+              className="h-8 rounded-full gap-1.5 text-xs font-medium"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
+              {syncing ? "Syncing…" : "Sync Data"}
+            </Button>
+          </div>
+        </div>
       </div>
 
       {!hasData ? (
