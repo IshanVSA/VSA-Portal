@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { subDays } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, BarChart3, TrendingUp, Clock, Sparkles, Activity, Link as LinkIcon, Leaf } from "lucide-react";
+import { Loader2, BarChart3, TrendingUp, Clock, Sparkles, Activity, Link as LinkIcon, Leaf, RefreshCw } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend, BarChart, Bar } from "recharts";
 import { DateRangeFilter, type DateRange } from "@/components/department/DateRangeFilter";
 import { useGa4Traffic } from "@/hooks/useGa4Traffic";
@@ -11,7 +11,14 @@ import { useCtaTracking, TRACKED_CTA_ORDER, TRACKED_CTA_LABELS } from "@/hooks/u
 import { CalendarCheck, MapPin, Phone, UserPlus, Mail } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Link } from "react-router-dom";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { extractEdgeFunctionError } from "@/lib/edge-function-error";
+import { useQueryClient } from "@tanstack/react-query";
+
 
 interface Props {
   clinicId: string | null;
