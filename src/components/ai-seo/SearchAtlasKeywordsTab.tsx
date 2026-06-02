@@ -7,7 +7,7 @@ import { HelpCircle, ChevronDown, Search, Plus, Download, FileText } from "lucid
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import { findSearchAtlasProject, useSearchAtlasCustomerProjects, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
+import { findSearchAtlasProject, useSearchAtlasCustomerProjects, useSearchAtlasMcp, unwrapSearchAtlasPayload, isSearchAtlasSoftError, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "./SearchAtlasEmptyState";
 
 interface Props { config: SearchAtlasClinicConfig; clinicId?: string }
@@ -75,7 +75,13 @@ function bucketize(rows: Kw[]) {
 
 export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
   const rtId = config.search_atlas_rank_tracker_id;
-  const q = useSearchAtlasCustomerProjects(!!rtId || !!config.search_atlas_domain);
+  const domain = config.search_atlas_domain ?? undefined;
+  const q = useSearchAtlasCustomerProjects(!!rtId || !!domain);
+
+  // Real keyword data via MCP
+  const kwQ = useSearchAtlasMcp<any>(["org-kw", rtId ?? domain ?? ""], "organic", "get_organic_keywords", { project_id: rtId, domain, limit: 100 }, !!(rtId || domain));
+  const posQ = useSearchAtlasMcp<any>(["pos-chg", rtId ?? domain ?? ""], "organic", "get_organic_position_changes", { project_id: rtId, domain }, !!(rtId || domain));
+
   const [chartMode, setChartMode] = useState<typeof CHART_MODES[number]["key"]>("position");
   const [range, setRange] = useState<typeof RANGE_TABS[number]>("All time");
   const [topTab, setTopTab] = useState<typeof TOP_TABS[number]>("Organic Keywords");
@@ -89,17 +95,24 @@ export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
 
   const project = findSearchAtlasProject(q.data, config);
   const raw = project?.data?.se ?? project ?? {};
-  const rows: Kw[] = Array.isArray(raw?.keywords) ? raw.keywords :
-                    Array.isArray(raw?.organic_keywords_list) ? raw.organic_keywords_list : [];
-  const totalKeywords = raw?.organic_keywords ?? raw?.keywords_count ?? rows.length;
-  const traffic = raw?.organic_traffic ?? raw?.traffic ?? 0;
-  const trafficCost = raw?.organic_traffic_cost ?? raw?.traffic_cost ?? 0;
+  const kwPayload: any = !isSearchAtlasSoftError(kwQ.data) ? (unwrapSearchAtlasPayload<any>(kwQ.data) ?? {}) : {};
+  const posPayload: any = !isSearchAtlasSoftError(posQ.data) ? (unwrapSearchAtlasPayload<any>(posQ.data) ?? {}) : {};
+
+  const rows: Kw[] = Array.isArray(kwPayload?.results) ? kwPayload.results
+    : Array.isArray(kwPayload?.keywords) ? kwPayload.keywords
+    : Array.isArray(kwPayload?.data) ? kwPayload.data
+    : Array.isArray(raw?.keywords) ? raw.keywords
+    : Array.isArray(raw?.organic_keywords_list) ? raw.organic_keywords_list
+    : [];
+  const totalKeywords = kwPayload?.total ?? kwPayload?.count ?? raw?.organic_keywords ?? raw?.keywords_count ?? rows.length;
+  const traffic = kwPayload?.organic_traffic ?? raw?.organic_traffic ?? raw?.traffic ?? 0;
+  const trafficCost = kwPayload?.organic_traffic_cost ?? raw?.organic_traffic_cost ?? raw?.traffic_cost ?? 0;
 
   const buckets = useMemo(() => bucketize(rows), [rows]);
 
   // Try real time-series from API; else fall back to single-period stack
   const positionHistory = useMemo<any[]>(() => {
-    const hist = raw?.position_history ?? raw?.organic_keyword_position_history ?? [];
+    const hist = posPayload?.history ?? posPayload?.trend ?? posPayload?.data ?? raw?.position_history ?? raw?.organic_keyword_position_history ?? [];
     if (Array.isArray(hist) && hist.length) {
       return hist.map((d: any) => ({
         date: d.date ?? d.day ?? "",

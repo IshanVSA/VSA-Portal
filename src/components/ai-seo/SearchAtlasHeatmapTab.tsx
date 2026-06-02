@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { MapPin, ChevronDown, Lightbulb, Search, Download, MoreVertical, X } from "lucide-react";
-import { type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
+import { useSearchAtlasMcp, unwrapSearchAtlasPayload, isSearchAtlasSoftError, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "./SearchAtlasEmptyState";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -40,12 +40,27 @@ export function SearchAtlasHeatmapTab({ config, clinicId }: Props) {
     })();
   }, [clinicId]);
 
+  // Fetch grids (heatmaps) for this project
+  const gridsQ = useSearchAtlasMcp<any>(["grids", rtId ?? ""], "data", "list_grids", { project_id: rtId }, !!rtId);
+
   if (!rtId) {
     return <SearchAtlasEmptyState clinicId={clinicId} message="Add a Rank Tracker project ID to view the local heatmap." />;
   }
 
-  // Mock placeholder rows so the table renders the SA layout. Replace once heatmap snapshot endpoint is wired.
-  const rows: HeatmapRow[] = [];
+  const gridsPayload: any = !isSearchAtlasSoftError(gridsQ.data) ? (unwrapSearchAtlasPayload<any>(gridsQ.data) ?? {}) : {};
+  const gridList: any[] = Array.isArray(gridsPayload?.results) ? gridsPayload.results
+    : Array.isArray(gridsPayload?.grids) ? gridsPayload.grids
+    : Array.isArray(gridsPayload?.data) ? gridsPayload.data
+    : Array.isArray(gridsPayload) ? gridsPayload : [];
+
+  const rows: HeatmapRow[] = gridList.map((g: any) => ({
+    business: g.business_name ?? g.business ?? clinic?.clinic_name ?? "—",
+    address: g.address ?? clinic?.address ?? "",
+    keyword: g.keyword ?? g.query ?? "—",
+    avg_score: Number(g.avg_score ?? g.average_score ?? g.score ?? 0),
+    last_scan: g.last_scan ?? g.updated_at ?? g.created_at ?? "—",
+    settings: g.settings ?? (`${g.grid_size ?? ""} ${g.radius ?? ""}`.trim() || "—"),
+  }));
 
   const address = clinic?.address ?? "";
   const mapSrc = address
