@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { MapPin, ChevronDown, Lightbulb, Search, Download, MoreVertical, X } from "lucide-react";
-import { type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
+import { useSearchAtlasMcp, unwrapSearchAtlasPayload, isSearchAtlasSoftError, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "./SearchAtlasEmptyState";
 import { supabase } from "@/integrations/supabase/client";
 
