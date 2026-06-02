@@ -10,9 +10,9 @@ const ALLOWED_PREFIXES = [
   "/api/v2/site-audit",             // Site audit v2 events stream
   "/api/v1/rank-tracker",           // Rank tracker / heatmap grids
   "/api/agent/local-seo-heatmaps",  // Local SEO heatmaps
-  "/backlink/projects",             // Backlink projects + refdomains
-  "/backlink/backlink-profile-analysis",
-  "/backlink/backlink-research",
+  // NOTE: Search Atlas backlink REST endpoints (/backlink/...) return 404 with X-API-Key auth,
+  // and the MCP backlink tool requires OAuth 2.1 which this connection doesn't carry. Only the
+  // summary counts inside /api/customer/projects/projects -> data.se are usable for backlinks.
   "/api/v1/projects",               // LLM visibility projects
   "/api/v1/brand",                  // LLM brand metrics (POST allowed)
   "/api/v1/se",                     // Site Explorer / LLM visibility SE
