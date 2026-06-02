@@ -59,7 +59,7 @@ export function SearchAtlasHeatmapTab({ config, clinicId }: Props) {
     keyword: g.keyword ?? g.query ?? "—",
     avg_score: Number(g.avg_score ?? g.average_score ?? g.score ?? 0),
     last_scan: g.last_scan ?? g.updated_at ?? g.created_at ?? "—",
-    settings: g.settings ?? `${g.grid_size ?? ""} ${g.radius ?? ""}`.trim() || "—",
+    settings: g.settings ?? (`${g.grid_size ?? ""} ${g.radius ?? ""}`.trim() || "—"),
   }));
 
   const address = clinic?.address ?? "";
