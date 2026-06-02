@@ -28,7 +28,7 @@ const clientChatTab = { value: "client-chat", label: "Client Chat", icon: Users 
 
 export default function AiSeoDepartment() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentTab = searchParams.get("tab") || "overview";
+  const currentTab = searchParams.get("tab") || "backlinks";
   const { selectedClinicId, selectedClinic, loading: clinicsLoading } = useClinicSelector();
   const { hasAccess, isLoading } = useAiSeoAccess(selectedClinicId || undefined);
   const { data: saConfig, isLoading: saLoading } = useSearchAtlasClinicConfig(selectedClinicId);
