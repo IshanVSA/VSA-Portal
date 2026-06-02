@@ -44,7 +44,8 @@ else{fetch(EP,{method:"POST",headers:{"Content-Type":"application/json"},body:b,
 if(S.isNew){send({event_type:"session_start",landing_page:S.landing_page});S.isNew=false;try{sessionStorage.setItem(SK,JSON.stringify(S))}catch(e){}}
 function res(el){var n=el;while(n&&n!==document.body){if(n.dataset&&n.dataset.cta)return n.dataset.cta;
 if(n.tagName==="A"&&n.href){var hh=n.href.toLowerCase();if(hh.indexOf("tel:")===0)return"call_us";if(hh.indexOf("mailto:")===0)return"email_contact"}n=n.parentNode}return null}
-document.addEventListener("click",function(e){var c=res(e.target);if(c&&CTAS.indexOf(c)!==-1)send({event_type:"cta_click",cta_type:c})},true)})();
+function ga(c){try{if(typeof window.gtag==="function"){window.gtag("event",c,{cta_type:c,channel:S.channel,source:S.source,page_path:location.pathname})}else{(window.dataLayer=window.dataLayer||[]).push({event:c,cta_type:c,channel:S.channel,source:S.source,page_path:location.pathname})}}catch(e){}}
+document.addEventListener("click",function(e){var c=res(e.target);if(c&&CTAS.indexOf(c)!==-1){send({event_type:"cta_click",cta_type:c});ga(c)}},true)})();
 </script>`;
 
   const handleCopy = () => {
@@ -67,6 +68,8 @@ document.addEventListener("click",function(e){var c=res(e.target);if(c&&CTAS.ind
           <p>
             Paste this snippet before the closing <code className="text-xs bg-muted px-1 py-0.5 rounded">&lt;/body&gt;</code> tag
             on the clinic's website (or add it as a Custom HTML tag in Google Tag Manager firing on All Pages).
+            <strong className="text-foreground"> Place it AFTER the GA4/gtag snippet</strong> so it can also forward CTA clicks to Google Analytics
+            (this is what powers the top "Call-to-Action Performance" card in the SEO dashboard).
           </p>
           <p>
             Then add a <code className="text-xs bg-muted px-1 py-0.5 rounded">data-cta</code> attribute to each CTA button:{" "}
