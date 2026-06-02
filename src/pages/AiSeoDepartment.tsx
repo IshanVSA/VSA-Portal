@@ -11,8 +11,6 @@ import { DepartmentChat } from "@/components/department/DepartmentChat";
 import { useDepartmentChatUnread } from "@/hooks/useDepartmentChatUnread";
 import { useSearchAtlasClinicConfig, isSearchAtlasConfigured } from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "@/components/ai-seo/SearchAtlasEmptyState";
-import { SearchAtlasOverviewCard } from "@/components/ai-seo/SearchAtlasOverviewCard";
-import { SearchAtlasSiteAuditTab } from "@/components/ai-seo/SearchAtlasSiteAuditTab";
 import { SearchAtlasKeywordsTab } from "@/components/ai-seo/SearchAtlasKeywordsTab";
 import { SearchAtlasBacklinksTab } from "@/components/ai-seo/SearchAtlasBacklinksTab";
 import { SearchAtlasHeatmapTab } from "@/components/ai-seo/SearchAtlasHeatmapTab";
