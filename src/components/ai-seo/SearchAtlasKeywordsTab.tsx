@@ -112,7 +112,7 @@ export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
 
   // Try real time-series from API; else fall back to single-period stack
   const positionHistory = useMemo<any[]>(() => {
-    const hist = raw?.position_history ?? raw?.organic_keyword_position_history ?? [];
+    const hist = posPayload?.history ?? posPayload?.trend ?? posPayload?.data ?? raw?.position_history ?? raw?.organic_keyword_position_history ?? [];
     if (Array.isArray(hist) && hist.length) {
       return hist.map((d: any) => ({
         date: d.date ?? d.day ?? "",
