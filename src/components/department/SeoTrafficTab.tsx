@@ -152,7 +152,7 @@ export function SeoTrafficTab({ clinicId }: Props) {
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
-        <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+        <span className="ml-auto text-[11px] text-muted-foreground whitespace-nowrap">
           {lastSyncAt
             ? `Last synced: ${format(new Date(lastSyncAt), "MMM d, yyyy 'at' h:mm a")}`
             : "Never synced"}
