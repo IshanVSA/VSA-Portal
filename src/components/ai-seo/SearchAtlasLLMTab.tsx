@@ -23,33 +23,46 @@ export function SearchAtlasLLMTab({ config, clinicId }: Props) {
   const pid = config.search_atlas_llm_project_id;
   const overviewQ = useSearchAtlasCustomerProjects(!!pid || !!config.search_atlas_domain);
 
+  // Real LLM visibility metrics via MCP
+  const brandQ = useSearchAtlasMcp<any>(["brand-ov", pid ?? ""], "visibility", "get_brand_overview", { project_id: pid }, !!pid);
+  const trendQ = useSearchAtlasMcp<any>(["vis-trend", pid ?? ""], "visibility", "get_visibility_trend", { project_id: pid }, !!pid);
+  const sovQ = useSearchAtlasMcp<any>(["sov", pid ?? ""], "visibility", "get_competitor_share_of_voice", { project_id: pid }, !!pid);
+  const sentQ = useSearchAtlasMcp<any>(["sent", pid ?? ""], "sentiment", "get_sentiment_overview", { project_id: pid }, !!pid);
+  const citQ = useSearchAtlasMcp<any>(["cit", pid ?? ""], "citations", "get_citations_overview", { project_id: pid }, !!pid);
+
   if (!pid) {
     return <SearchAtlasEmptyState clinicId={clinicId} message="Add an LLM Visibility project ID to view brand visibility across AI search." />;
   }
   if (overviewQ.isLoading) return <Skeleton className="h-96" />;
 
   const project = findSearchAtlasProject(overviewQ.data, config);
-  const o = project?.data?.llmv ?? project ?? {};
+  const listing = project?.data?.llmv ?? project ?? {};
+  const brand: any = !isSearchAtlasSoftError(brandQ.data) ? (unwrapSearchAtlasPayload<any>(brandQ.data) ?? {}) : {};
+  const trendRaw: any = !isSearchAtlasSoftError(trendQ.data) ? (unwrapSearchAtlasPayload<any>(trendQ.data) ?? {}) : {};
+  const sov: any = !isSearchAtlasSoftError(sovQ.data) ? (unwrapSearchAtlasPayload<any>(sovQ.data) ?? {}) : {};
+  const sent: any = !isSearchAtlasSoftError(sentQ.data) ? (unwrapSearchAtlasPayload<any>(sentQ.data) ?? {}) : {};
+  const cit: any = !isSearchAtlasSoftError(citQ.data) ? (unwrapSearchAtlasPayload<any>(citQ.data) ?? {}) : {};
+  const o: any = { ...listing, ...(brand?.overview ?? brand?.data ?? brand) };
 
-  const visibilityScore = o?.visibility_score ?? o?.current_mentions ?? 0;
-  const sentiment = o?.sentiment_score ?? o?.sentiment ?? 0;
-  const citations = o?.total_citations ?? o?.current_mentions ?? 0;
+  const visibilityScore = o?.visibility_score ?? o?.overall_visibility ?? o?.current_mentions ?? 0;
+  const sentiment = sent?.overall_sentiment ?? sent?.sentiment_score ?? o?.sentiment_score ?? o?.sentiment ?? 0;
+  const citations = cit?.total_citations ?? cit?.citations ?? o?.total_citations ?? o?.current_mentions ?? 0;
 
   const trend = useMemo(() => {
-    const raw = o?.visibility_trend ?? o?.history ?? [];
+    const raw = trendRaw?.trend ?? trendRaw?.results ?? trendRaw?.data ?? o?.visibility_trend ?? o?.history ?? [];
     if (Array.isArray(raw) && raw.length) {
       return raw.map((d: any) => ({
         date: d.date ?? d.day ?? "",
-        score: Number(d.visibility ?? d.score ?? 0),
+        score: Number(d.visibility ?? d.score ?? d.value ?? 0),
       }));
     }
     return [];
-  }, [o]);
+  }, [trendRaw, o]);
 
   const competitors = useMemo(() => {
-    const raw = o?.competitors ?? o?.competitor_visibility ?? [];
+    const raw = sov?.competitors ?? sov?.results ?? sov?.data ?? o?.competitors ?? o?.competitor_visibility ?? [];
     return Array.isArray(raw) ? raw : [];
-  }, [o]);
+  }, [sov, o]);
 
   return (
     <div className="space-y-5">
