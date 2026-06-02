@@ -54,6 +54,40 @@ export function SeoTrafficTab({ clinicId }: Props) {
   const { data, isLoading } = useGa4Traffic(clinicId, dateRange);
   const { data: ctaData } = useGa4Cta(clinicId, dateRange);
   const { data: organic } = useCtaTracking(clinicId, dateRange);
+  const queryClient = useQueryClient();
+  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+
+  useEffect(() => {
+    if (!clinicId) { setLastSyncAt(null); return; }
+    supabase
+      .from("clinic_ga4_credentials")
+      .select("last_sync_at")
+      .eq("clinic_id", clinicId)
+      .maybeSingle()
+      .then(({ data }) => setLastSyncAt(data?.last_sync_at ?? null));
+  }, [clinicId, syncing]);
+
+  const handleManualSync = async () => {
+    if (!clinicId || syncing) return;
+    setSyncing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke("sync-ga4-traffic", {
+        body: { clinic_id: clinicId },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (res.error) throw new Error(await extractEdgeFunctionError(res.error, res.data, "GA4 sync failed"));
+      toast.success("Google Analytics synced");
+      queryClient.invalidateQueries({ queryKey: ["ga4-traffic"] });
+      queryClient.invalidateQueries({ queryKey: ["ga4-cta"] });
+    } catch (e: any) {
+      toast.error(e.message || "Sync failed");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
 
   const channelColorMap = useMemo(() => {
     const map: Record<string, string> = {};
