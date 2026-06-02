@@ -83,15 +83,18 @@ document.addEventListener("click",function(e){var c=res(e.target);if(c&&CTAS.ind
             (this is what powers the top "Call-to-Action Performance" card in the SEO dashboard).
           </p>
           <p>
-            Then add a <code className="text-xs bg-muted px-1 py-0.5 rounded">data-cta</code> attribute to each CTA button:{" "}
-            <code className="text-xs bg-muted px-1 py-0.5 rounded">data-cta="book_appointment"</code>,{" "}
-            <code className="text-xs bg-muted px-1 py-0.5 rounded">"find_us"</code>,{" "}
-            <code className="text-xs bg-muted px-1 py-0.5 rounded">"call_us"</code>,{" "}
-            <code className="text-xs bg-muted px-1 py-0.5 rounded">"new_client_form"</code>,{" "}
-            <code className="text-xs bg-muted px-1 py-0.5 rounded">"email_contact"</code>.{" "}
-            <span className="text-xs">(<code>tel:</code> and <code>mailto:</code> links auto-detect.)</span>
+            <strong className="text-foreground">No per-button setup needed.</strong> The snippet auto-detects CTAs from link text and href patterns:
+            <code className="text-xs bg-muted px-1 py-0.5 rounded">tel:</code> → Call Us,{" "}
+            <code className="text-xs bg-muted px-1 py-0.5 rounded">mailto:</code> → Email,
+            Google Maps links or "Find Us / Directions" → Find Us,
+            "Book / Schedule / Appointment" (incl. PetDesk, Vetstoria, etc.) → Book Appointment,
+            "New Client / Patient Form" → New Client Form.
+          </p>
+          <p className="text-xs">
+            Optional override: add <code className="text-xs bg-muted px-1 py-0.5 rounded">data-cta="book_appointment"</code> (or any of the other types) to force a specific classification on a button.
           </p>
         </div>
+
 
         <div className="relative">
           <pre className="bg-muted rounded-lg p-3 text-[11px] font-mono overflow-x-auto whitespace-pre max-h-72 text-foreground">
