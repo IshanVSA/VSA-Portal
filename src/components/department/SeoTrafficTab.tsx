@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { subDays } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, BarChart3, TrendingUp, Clock, Sparkles, Activity, Link as LinkIcon, Leaf } from "lucide-react";
+import { Loader2, BarChart3, TrendingUp, Clock, Sparkles, Activity, Link as LinkIcon, Leaf, RefreshCw } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend, BarChart, Bar } from "recharts";
 import { DateRangeFilter, type DateRange } from "@/components/department/DateRangeFilter";
 import { useGa4Traffic } from "@/hooks/useGa4Traffic";
@@ -11,7 +11,14 @@ import { useCtaTracking, TRACKED_CTA_ORDER, TRACKED_CTA_LABELS } from "@/hooks/u
 import { CalendarCheck, MapPin, Phone, UserPlus, Mail } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Link } from "react-router-dom";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { extractEdgeFunctionError } from "@/lib/edge-function-error";
+import { useQueryClient } from "@tanstack/react-query";
+
 
 interface Props {
   clinicId: string | null;
@@ -47,6 +54,40 @@ export function SeoTrafficTab({ clinicId }: Props) {
   const { data, isLoading } = useGa4Traffic(clinicId, dateRange);
   const { data: ctaData } = useGa4Cta(clinicId, dateRange);
   const { data: organic } = useCtaTracking(clinicId, dateRange);
+  const queryClient = useQueryClient();
+  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+
+  useEffect(() => {
+    if (!clinicId) { setLastSyncAt(null); return; }
+    supabase
+      .from("clinic_ga4_credentials")
+      .select("last_sync_at")
+      .eq("clinic_id", clinicId)
+      .maybeSingle()
+      .then(({ data }) => setLastSyncAt(data?.last_sync_at ?? null));
+  }, [clinicId, syncing]);
+
+  const handleManualSync = async () => {
+    if (!clinicId || syncing) return;
+    setSyncing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke("sync-ga4-traffic", {
+        body: { clinic_id: clinicId },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (res.error) throw new Error(await extractEdgeFunctionError(res.error, res.data, "GA4 sync failed"));
+      toast.success("Google Analytics synced");
+      queryClient.invalidateQueries({ queryKey: ["ga4-traffic"] });
+      queryClient.invalidateQueries({ queryKey: ["ga4-cta"] });
+    } catch (e: any) {
+      toast.error(e.message || "Sync failed");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
 
   const channelColorMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -109,12 +150,34 @@ export function SeoTrafficTab({ clinicId }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-base font-bold tracking-tight text-foreground">Traffic Acquisition</h2>
           <p className="text-xs text-muted-foreground">Where your sessions come from, by default channel group.</p>
         </div>
-        <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
+        <div className="flex flex-wrap items-center gap-3">
+          <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+              {lastSyncAt
+                ? `Last synced: ${format(new Date(lastSyncAt), "MMM d, yyyy 'at' h:mm a")}`
+                : "Never synced"}
+            </span>
+            <Badge variant="outline" className="text-[10px] font-medium px-2 py-0.5 rounded-full">
+              Auto-sync: Daily 07:30 UTC
+            </Badge>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleManualSync}
+              disabled={syncing || !clinicId}
+              className="h-8 rounded-full gap-1.5 text-xs font-medium"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
+              {syncing ? "Syncing…" : "Sync Data"}
+            </Button>
+          </div>
+        </div>
       </div>
 
       {!hasData ? (

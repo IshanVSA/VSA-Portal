@@ -39,9 +39,9 @@ export function DateRangeFilter({
   const activePreset = presets.find((p) => p.days === totalDays && isToday);
 
   return (
-    <div className={cn("flex items-center gap-1.5", className)}>
-      {/* Segmented preset buttons */}
-      <div className="flex items-center rounded-lg border border-border bg-muted/40 p-0.5">
+    <div className={cn("flex items-center gap-1", className)}>
+      {/* Plain text preset buttons */}
+      <div className="flex items-center gap-0.5">
         {presets.map((preset) => (
           <button
             key={preset.days}
@@ -52,10 +52,10 @@ export function DateRangeFilter({
               })
             }
             className={cn(
-              "relative px-3 py-1.5 text-xs font-medium rounded-xl transition-all duration-200",
+              "px-2.5 py-1 text-xs font-medium rounded-md transition-colors",
               activePreset?.days === preset.days
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
             {preset.label}
@@ -63,26 +63,25 @@ export function DateRangeFilter({
         ))}
       </div>
 
-      {/* Custom range picker */}
+      {/* Custom range picker — pill style */}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
             size="sm"
             className={cn(
-              "h-8 gap-1.5 text-xs font-medium transition-all",
-              !activePreset
-                ? "border-primary/60 bg-primary/5 text-foreground shadow-sm"
-                : "text-muted-foreground"
+              "h-8 gap-1.5 text-xs font-medium rounded-full pl-3 pr-2.5 transition-all",
+              "border-primary/40 bg-primary/5 text-foreground hover:bg-primary/10"
             )}
           >
-            <CalendarIcon className="h-3.5 w-3.5" />
+            <CalendarIcon className="h-3.5 w-3.5 text-primary" />
             <span>
               {format(dateRange.from, "MMM d")} – {format(dateRange.to, "MMM d, yyyy")}
             </span>
-            <ChevronDown className={cn("h-3 w-3 opacity-50 transition-transform", open && "rotate-180")} />
+            <ChevronDown className={cn("h-3 w-3 opacity-60 transition-transform", open && "rotate-180")} />
           </Button>
         </PopoverTrigger>
+
         <PopoverContent className="w-auto p-0" align="start" sideOffset={8}>
           <div className="p-3 pb-0">
             <p className="text-xs font-medium text-muted-foreground mb-1">Select date range</p>
