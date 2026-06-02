@@ -8,19 +8,38 @@ import {
   ComposedChart, Area, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart,
 } from "recharts";
-import { findSearchAtlasProject, useSearchAtlasCustomerProjects, useSearchAtlasMcp, unwrapSearchAtlasPayload, isSearchAtlasSoftError, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
+import { findSearchAtlasProject, useSearchAtlas, useSearchAtlasCustomerProjects, useSearchAtlasMcp, unwrapSearchAtlasPayload, isSearchAtlasSoftError, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "./SearchAtlasEmptyState";
 
 interface Props { config: SearchAtlasClinicConfig; clinicId?: string }
 
 interface RefDomain {
   domain?: string;
+  ref_domain?: string;
+  domain_name?: string;
+  domainName?: string;
   referring_domain?: string;
+  referringDomain?: string;
+  target_url?: string;
   backlinks?: number;
+  backlinks_count?: number;
+  total_backlinks?: number;
   authority?: number;
   domain_authority?: number;
+  domainAuthority?: number;
+  da?: number;
   first_seen?: string;
 }
+
+type HistoryPoint = {
+  date: string;
+  newLinks: number;
+  newRef: number;
+  lostRef: number;
+  lostLinks: number;
+};
+
+type JsonRecord = Record<string, unknown>;
 
 // ---- Series colors aligned to SearchAtlas (green = new, red = lost) ----
 const C = {
@@ -38,19 +57,160 @@ function fmtNumber(n?: number | string): string {
   return v.toLocaleString();
 }
 
-function buildHistory(proj: any): Array<Record<string, number | string>> {
-  // Try several common SearchAtlas history shapes
-  const direct = proj?.backlinks_history ?? proj?.history ?? proj?.timeline;
-  if (Array.isArray(direct) && direct.length > 0) {
-    return direct.map((d: any) => ({
-      date: d.date ?? d.day ?? d.timestamp ?? "",
-      newLinks: Number(d.new_backlinks ?? d.new_links ?? d.newLinks ?? 0),
-      newRef: Number(d.new_referring_domains ?? d.new_ref_domains ?? d.newRef ?? 0),
-      lostRef: Number(d.lost_referring_domains ?? d.lost_ref_domains ?? d.lostRef ?? 0),
-      lostLinks: Number(d.lost_backlinks ?? d.lost_links ?? d.lostLinks ?? 0),
-    }));
+function normalizeKey(key: string) {
+  return key.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function asPlainObject(value: unknown): JsonRecord | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : null;
+}
+
+function unwrapRoot(source: unknown): unknown {
+  const obj = asPlainObject(source);
+  return obj?.overview ?? obj?.summary ?? obj?.data ?? source;
+}
+
+function numberFrom(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Number(value.replace(/,/g, ""));
+    if (Number.isFinite(parsed)) return parsed;
   }
-  return [];
+  return undefined;
+}
+
+function pickNumberDeep(source: unknown, keys: string[], depth = 0): number | undefined {
+  if (!source || depth > 4) return undefined;
+  if (Array.isArray(source)) {
+    for (const item of source.slice(0, 25)) {
+      const found = pickNumberDeep(item, keys, depth + 1);
+      if (found !== undefined) return found;
+    }
+    return undefined;
+  }
+  const obj = asPlainObject(source);
+  if (!obj) return undefined;
+  const wanted = new Set(keys.map(normalizeKey));
+  for (const [key, value] of Object.entries(obj)) {
+    if (wanted.has(normalizeKey(key))) {
+      const parsed = numberFrom(value);
+      if (parsed !== undefined) return parsed;
+    }
+  }
+  for (const value of Object.values(obj)) {
+    const found = pickNumberDeep(value, keys, depth + 1);
+    if (found !== undefined) return found;
+  }
+  return undefined;
+}
+
+function pickValue(row: unknown, keys: string[]) {
+  const wanted = new Set(keys.map(normalizeKey));
+  const obj = asPlainObject(row);
+  if (!obj) return undefined;
+  for (const [key, value] of Object.entries(obj)) {
+    if (wanted.has(normalizeKey(key))) return value;
+  }
+  return undefined;
+}
+
+function metric(row: unknown, keys: string[]) {
+  return numberFrom(pickValue(row, keys)) ?? 0;
+}
+
+function isHistoryArray(value: unknown): value is unknown[] {
+  if (!Array.isArray(value) || value.length === 0) return false;
+  const first = asPlainObject(value.find((item) => asPlainObject(item)));
+  if (!first) return false;
+  const keys = Object.keys(first).map(normalizeKey);
+  const hasDate = keys.some((key) => ["date", "day", "month", "timestamp", "createdat", "x"].includes(key));
+  const hasBacklinkMetric = keys.some((key) => key.includes("backlink") || key.includes("referring") || key.includes("refdomain") || key.includes("lost") || key.includes("new"));
+  return hasDate && hasBacklinkMetric;
+}
+
+function collectHistoryArrays(source: unknown, arrays: unknown[][] = [], depth = 0) {
+  if (!source || depth > 5) return arrays;
+  if (isHistoryArray(source)) {
+    arrays.push(source);
+    return arrays;
+  }
+  if (Array.isArray(source)) {
+    source.slice(0, 20).forEach((item) => collectHistoryArrays(item, arrays, depth + 1));
+    return arrays;
+  }
+  const obj = asPlainObject(source);
+  if (!obj) return arrays;
+  Object.values(obj).forEach((value) => collectHistoryArrays(value, arrays, depth + 1));
+  return arrays;
+}
+
+function buildHistory(...sources: unknown[]): HistoryPoint[] {
+  const byDate = new Map<string, HistoryPoint>();
+  sources.flatMap((source) => collectHistoryArrays(source)).forEach((series) => {
+    let previousBacklinks: number | undefined;
+    let previousRefDomains: number | undefined;
+    [...series].sort((a, b) => String(pickValue(a, ["date", "day", "month", "timestamp", "created_at", "x"]) ?? "").localeCompare(String(pickValue(b, ["date", "day", "month", "timestamp", "created_at", "x"]) ?? ""))).forEach((row) => {
+      const dateValue = pickValue(row, ["date", "day", "month", "timestamp", "created_at", "x"]);
+      const date = String(dateValue ?? "").slice(0, 12).trim();
+      if (!date) return;
+      const current = byDate.get(date) ?? { date, newLinks: 0, newRef: 0, lostRef: 0, lostLinks: 0 };
+      const explicitNewLinks = metric(row, ["new_backlinks", "new_links", "newLinks", "new", "new_backlinks_count", "new_links_count", "backlinks_new", "added_backlinks", "newBacklinks"]);
+      const explicitNewRef = metric(row, ["new_referring_domains", "new_ref_domains", "newRef", "new_refdomains", "new_refdomains_count", "new_ref_domains_count", "new_domains", "referring_domains_new", "refdomains_new", "newRefDomains", "refDomainsNew"]);
+      const explicitLostRef = metric(row, ["lost_referring_domains", "lost_ref_domains", "lostRef", "lost_refdomains", "lost_refdomains_count", "lost_ref_domains_count", "lost_domains", "referring_domains_lost", "refdomains_lost", "lostRefDomains", "refDomainsLost"]);
+      const explicitLostLinks = metric(row, ["lost_backlinks", "lost_links", "lostLinks", "lost", "lost_backlinks_count", "lost_links_count", "backlinks_lost", "removed_backlinks", "lostBacklinks"]);
+      current.newLinks += explicitNewLinks;
+      current.newRef += explicitNewRef;
+      current.lostRef += explicitLostRef;
+      current.lostLinks += explicitLostLinks;
+      const totalLinks = metric(row, ["total_backlinks", "backlinks", "backlinks_count", "totalBacklinks", "links_count", "totalLinks"]);
+      const totalRefs = metric(row, ["total_referring_domains", "referring_domains", "ref_domains", "refdomains", "refdomains_count", "referringDomains", "refDomains", "linking_domains", "domains_count"]);
+      if (explicitNewLinks + explicitLostLinks === 0 && previousBacklinks !== undefined && totalLinks > 0) {
+        const diff = totalLinks - previousBacklinks;
+        if (diff > 0) current.newLinks += diff;
+        if (diff < 0) current.lostLinks += Math.abs(diff);
+      }
+      if (explicitNewRef + explicitLostRef === 0 && previousRefDomains !== undefined && totalRefs > 0) {
+        const diff = totalRefs - previousRefDomains;
+        if (diff > 0) current.newRef += diff;
+        if (diff < 0) current.lostRef += Math.abs(diff);
+      }
+      if (totalLinks > 0) previousBacklinks = totalLinks;
+      if (totalRefs > 0) previousRefDomains = totalRefs;
+      byDate.set(date, current);
+    });
+  });
+  return Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function findRefDomainArrays(source: unknown, arrays: unknown[][] = [], depth = 0) {
+  if (!source || depth > 5) return arrays;
+  if (Array.isArray(source)) {
+    const first = asPlainObject(source.find((item) => asPlainObject(item)));
+    if (first) {
+      const keys = Object.keys(first).map(normalizeKey);
+      const hasDomain = keys.some((key) => key === "domain" || key.includes("referringdomain") || key.includes("refdomain"));
+      const hasMetric = keys.some((key) => key.includes("backlink") || key.includes("authority") || key === "da");
+      if (hasDomain && hasMetric) arrays.push(source);
+    }
+    source.slice(0, 10).forEach((item) => findRefDomainArrays(item, arrays, depth + 1));
+    return arrays;
+  }
+  const obj = asPlainObject(source);
+  if (!obj) return arrays;
+  Object.values(obj).forEach((value) => findRefDomainArrays(value, arrays, depth + 1));
+  return arrays;
+}
+
+function extractRefDomains(...sources: unknown[]): RefDomain[] {
+  const seen = new Set<string>();
+  const rows = sources.flatMap((source) => findRefDomainArrays(source)).flat();
+  return rows.filter((row): row is RefDomain => {
+    const obj = asPlainObject(row);
+    const domain = obj?.referring_domain ?? obj?.referringDomain ?? obj?.domain ?? obj?.ref_domain ?? obj?.domain_name ?? obj?.domainName;
+    if (!domain || seen.has(String(domain))) return false;
+    seen.add(String(domain));
+    return true;
+  });
 }
 
 export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
@@ -60,45 +220,47 @@ export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
   const [granularity, setGranularity] = useState<"Daily" | "Weekly" | "Monthly">("Weekly");
 
   // Pull real backlink data from MCP (whitelisted in proxy)
-  const overviewQ = useSearchAtlasMcp<any>(["bl-overview", pid ?? domain ?? ""], "backlinks", "get_site_backlinks", { project_id: pid, domain }, !!(pid || domain));
-  const refDomQ = useSearchAtlasMcp<any>(["bl-refdoms", pid ?? domain ?? ""], "backlinks", "get_site_referring_domains", { project_id: pid, domain, limit: 50 }, !!(pid || domain));
-
-  if (!pid) {
-    return <SearchAtlasEmptyState clinicId={clinicId} message="Add a Backlink project ID to view backlink data." />;
-  }
-  if (projQ.isLoading) return <Skeleton className="h-96" />;
+  const overviewQ = useSearchAtlasMcp<unknown>(["bl-overview", pid ?? domain ?? ""], "backlinks", "get_site_backlinks", { project_id: pid, domain }, !!(pid || domain));
+  const refDomQ = useSearchAtlasMcp<unknown>(["bl-refdoms", pid ?? domain ?? ""], "backlinks", "get_site_referring_domains", { project_id: pid, domain, limit: 50 }, !!(pid || domain));
+  const profileQ = useSearchAtlas<unknown>(["bl-profile", pid ?? domain ?? ""], { path: "/backlink/backlink-profile-analysis", query: { domain, project_id: pid ?? undefined } }, { enabled: !!(pid || domain) });
+  const researchQ = useSearchAtlas<unknown>(["bl-research", pid ?? domain ?? ""], { path: "/backlink/backlink-research", query: { domain, project_id: pid ?? undefined } }, { enabled: !!(pid || domain) });
+  const projectDetailsQ = useSearchAtlas<unknown>(["bl-project", pid ?? ""], pid ? { path: `/backlink/projects/${pid}` } : null, { enabled: !!pid });
+  const projectRefDomainsQ = useSearchAtlas<unknown>(["bl-project-refdomains", pid ?? ""], pid ? { path: `/backlink/projects/${pid}/refdomains`, query: { limit: 100 } } : null, { enabled: !!pid });
+  const projectRefDomainsAltQ = useSearchAtlas<unknown>(["bl-project-referring-domains", pid ?? ""], pid ? { path: `/backlink/projects/${pid}/referring-domains`, query: { limit: 100 } } : null, { enabled: !!pid });
+  const projectBacklinksQ = useSearchAtlas<unknown>(["bl-project-backlinks", pid ?? ""], pid ? { path: `/backlink/projects/${pid}/backlinks`, query: { limit: 100 } } : null, { enabled: !!pid });
 
   const project = findSearchAtlasProject(projQ.data, config);
-  const proj = project?.data?.se ?? project ?? {};
+  const proj = useMemo(() => {
+    const projectRecord = asPlainObject(project);
+    const dataRecord = asPlainObject(projectRecord?.data);
+    return dataRecord?.se ?? project ?? {};
+  }, [project]);
 
   // Merge listing + MCP overview
-  const ov: any = !isSearchAtlasSoftError(overviewQ.data) ? (unwrapSearchAtlasPayload<any>(overviewQ.data) ?? {}) : {};
-  const ovRoot = ov?.overview ?? ov?.summary ?? ov?.data ?? ov;
+  const ovRoot = useMemo(() => unwrapRoot(!isSearchAtlasSoftError(overviewQ.data) ? (unwrapSearchAtlasPayload<unknown>(overviewQ.data) ?? {}) : {}), [overviewQ.data]);
+  const refPayload = useMemo(() => !isSearchAtlasSoftError(refDomQ.data) ? (unwrapSearchAtlasPayload<unknown>(refDomQ.data) ?? {}) : {}, [refDomQ.data]);
+  const profilePayload = useMemo(() => !isSearchAtlasSoftError(profileQ.data) ? (unwrapSearchAtlasPayload<unknown>(profileQ.data) ?? {}) : {}, [profileQ.data]);
+  const researchPayload = useMemo(() => !isSearchAtlasSoftError(researchQ.data) ? (unwrapSearchAtlasPayload<unknown>(researchQ.data) ?? {}) : {}, [researchQ.data]);
+  const projectDetailsPayload = useMemo(() => !isSearchAtlasSoftError(projectDetailsQ.data) ? (unwrapSearchAtlasPayload<unknown>(projectDetailsQ.data) ?? {}) : {}, [projectDetailsQ.data]);
+  const projectRefDomainsPayload = useMemo(() => !isSearchAtlasSoftError(projectRefDomainsQ.data) ? (unwrapSearchAtlasPayload<unknown>(projectRefDomainsQ.data) ?? {}) : {}, [projectRefDomainsQ.data]);
+  const projectRefDomainsAltPayload = useMemo(() => !isSearchAtlasSoftError(projectRefDomainsAltQ.data) ? (unwrapSearchAtlasPayload<unknown>(projectRefDomainsAltQ.data) ?? {}) : {}, [projectRefDomainsAltQ.data]);
+  const projectBacklinksPayload = useMemo(() => !isSearchAtlasSoftError(projectBacklinksQ.data) ? (unwrapSearchAtlasPayload<unknown>(projectBacklinksQ.data) ?? {}) : {}, [projectBacklinksQ.data]);
 
-  const refPayload: any = !isSearchAtlasSoftError(refDomQ.data) ? (unwrapSearchAtlasPayload<any>(refDomQ.data) ?? {}) : {};
-  const refs: RefDomain[] = Array.isArray(refPayload?.results) ? refPayload.results
-    : Array.isArray(refPayload?.data) ? refPayload.data
-    : Array.isArray(refPayload?.referring_domains) ? refPayload.referring_domains
-    : Array.isArray(proj?.referring_domains_list) ? proj.referring_domains_list
-    : [];
+  const refs: RefDomain[] = extractRefDomains(refPayload, projectRefDomainsPayload, projectRefDomainsAltPayload, projectBacklinksPayload, profilePayload, researchPayload, proj);
 
-  const totalBacklinks = ovRoot?.total_backlinks ?? ovRoot?.backlinks ?? proj?.backlinks ?? proj?.total_backlinks ?? 0;
-  const referringDomains = ovRoot?.referring_domains ?? ovRoot?.total_referring_domains ?? proj?.referring_domains ?? refs.length ?? 0;
-  const referringIps = ovRoot?.referring_ips ?? ovRoot?.total_referring_ips ?? proj?.referring_ips ?? proj?.ref_ips ?? 0;
+  const totalBacklinks = pickNumberDeep([ovRoot, profilePayload, researchPayload, projectDetailsPayload, projectBacklinksPayload, proj], ["total_backlinks", "backlinks", "backlinks_count", "totalBacklinks", "totalLinks", "links_count"]) ?? 0;
+  const referringDomainsRaw = pickNumberDeep([ovRoot, profilePayload, researchPayload, projectDetailsPayload, projectRefDomainsPayload, projectRefDomainsAltPayload, proj], ["referring_domains", "total_referring_domains", "ref_domains", "refdomains", "refdomains_count", "referringDomains", "refDomains", "linking_domains", "linkingDomains", "domains_count"]);
+  const referringDomains = referringDomainsRaw && referringDomainsRaw > 0 ? referringDomainsRaw : refs.length;
+  const referringIps = pickNumberDeep([ovRoot, profilePayload, researchPayload, projectDetailsPayload, projectRefDomainsPayload, projectRefDomainsAltPayload, proj], ["referring_ips", "total_referring_ips", "ref_ips", "refips", "refips_count", "referringIps", "refIps", "ips_count", "ip_count"]) ?? 0;
 
   const history = useMemo(() => {
-    const fromMcp = ovRoot?.history ?? ovRoot?.timeline ?? ovRoot?.backlinks_history;
-    if (Array.isArray(fromMcp) && fromMcp.length) {
-      return fromMcp.map((d: any) => ({
-        date: d.date ?? d.day ?? d.timestamp ?? "",
-        newLinks: Number(d.new_backlinks ?? d.new_links ?? d.newLinks ?? 0),
-        newRef: Number(d.new_referring_domains ?? d.new_ref_domains ?? d.newRef ?? 0),
-        lostRef: Number(d.lost_referring_domains ?? d.lost_ref_domains ?? d.lostRef ?? 0),
-        lostLinks: Number(d.lost_backlinks ?? d.lost_links ?? d.lostLinks ?? 0),
-      }));
-    }
-    return buildHistory(proj);
-  }, [ovRoot, proj]);
+    return buildHistory(ovRoot, refPayload, profilePayload, researchPayload, projectDetailsPayload, projectRefDomainsPayload, projectRefDomainsAltPayload, projectBacklinksPayload, proj);
+  }, [ovRoot, refPayload, profilePayload, researchPayload, projectDetailsPayload, projectRefDomainsPayload, projectRefDomainsAltPayload, projectBacklinksPayload, proj]);
+
+  if (!pid && !domain) {
+    return <SearchAtlasEmptyState clinicId={clinicId} message="Add a Backlink project ID or domain to view backlink data." />;
+  }
+  if (projQ.isLoading) return <Skeleton className="h-96" />;
 
   return (
     <div className="space-y-5">
@@ -106,7 +268,7 @@ export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <span>Site Explorer</span>
         <span className="opacity-50">/</span>
-        <span className="text-foreground">{proj?.domain ?? config.search_atlas_domain ?? "—"}</span>
+        <span className="text-foreground">{String(asPlainObject(proj)?.domain ?? config.search_atlas_domain ?? "—")}</span>
         <span className="opacity-50">/</span>
         <span>Backlinks</span>
       </div>
@@ -201,9 +363,9 @@ export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
             <TableBody>
               {refs.slice(0, 50).map((r, i) => (
                 <TableRow key={i}>
-                  <TableCell className="font-medium">{r.referring_domain ?? r.domain ?? "—"}</TableCell>
-                  <TableCell className="text-right tabular-nums">{(r.backlinks ?? 0).toLocaleString()}</TableCell>
-                  <TableCell className="text-right tabular-nums">{r.domain_authority ?? r.authority ?? "—"}</TableCell>
+                  <TableCell className="font-medium">{r.referring_domain ?? r.referringDomain ?? r.domain ?? "—"}</TableCell>
+                  <TableCell className="text-right tabular-nums">{(r.backlinks ?? r.backlinks_count ?? r.total_backlinks ?? 0).toLocaleString()}</TableCell>
+                  <TableCell className="text-right tabular-nums">{r.domain_authority ?? r.domainAuthority ?? r.authority ?? r.da ?? "—"}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -245,7 +407,7 @@ function LegendRow() {
   );
 }
 
-function GranularityPicker({ value, onChange }: { value: string; onChange: (v: any) => void }) {
+function GranularityPicker({ value, onChange }: { value: string; onChange: (v: "Daily" | "Weekly" | "Monthly") => void }) {
   return (
     <div className="relative">
       <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5">
@@ -253,7 +415,7 @@ function GranularityPicker({ value, onChange }: { value: string; onChange: (v: a
       </Button>
       <select
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChange(e.target.value as "Daily" | "Weekly" | "Monthly")}
         className="absolute inset-0 opacity-0 cursor-pointer"
       >
         <option>Daily</option>
