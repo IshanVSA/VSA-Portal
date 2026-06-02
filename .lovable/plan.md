@@ -1,45 +1,9 @@
-## Search Atlas integration in AI SEO department
+## Why it is still empty
+The top KPI values are showing because the app is finding summary counts from the Search Atlas project/config payload. The timeline chart and Top Referring Domains table are empty because the current Backlinks tab is calling guessed REST paths like `/backlink/projects/{id}/refdomains` and `/backlink/projects/{id}/backlinks`, but the live network snapshot shows no successful Search Atlas backlink data requests reaching the preview, and the proxy logs show no useful backlink payloads. In short: the UI was replicated, but the tab is not yet wired to the actual Search Atlas backlink response shape/endpoints that contain the detailed timeline and referring-domain rows.
 
-### What you'll see
-A new tabbed dashboard inside **AI SEO → per clinic**, pulling live from Search Atlas:
-
-1. **Overview** — Domain Power, organic traffic estimate, visibility score, total backlinks, keywords tracked
-2. **Site Audit** — Health score, total issues by severity (errors / warnings / notices), top issue list
-3. **Keyword Rankings** — Tracked keywords, current position, position change, search volume, SERP feature
-4. **Backlinks** — Total backlinks, referring domains, new vs lost (last 30d), top referring domains
-5. **Heatmap** — Local rank tracker grid (lat/lng cells colored by ranking position) for the clinic's primary keyword
-6. **LLM Visibility** — Brand visibility across ChatGPT / Perplexity / Gemini (since you mentioned "etc.")
-
-Each card supports the existing 7d/14d/30d/90d DateRangeFilter where applicable, with empty/loading/error states matching the rest of the app.
-
-### Per-clinic mapping
-Each clinic needs to know **which Search Atlas project IDs** to query. We'll add fields to the `clinics` table:
-- `search_atlas_otto_uuid` — OTTO/Site Audit project UUID
-- `search_atlas_rank_tracker_id` — Rank tracker project ID (also drives heatmap)
-- `search_atlas_backlink_project_id` — Backlink project ID
-- `search_atlas_llm_project_id` — LLM visibility project ID (optional)
-- `search_atlas_domain` — domain string (for Site Explorer-style endpoints)
-
-A new **"Search Atlas Setup"** card on the Clinic Detail page lets you paste these IDs (with a "Fetch projects" button that lists all available projects from your account so you can pick by dropdown).
-
-### Technical details
-- **Secret**: `SEARCH_ATLAS_API_KEY` already added ✅
-- **Edge function** `search-atlas-proxy`: validates JWT, takes `{ endpoint, params }`, calls `https://api.searchatlas.com{endpoint}` with `X-API-Key` header. Whitelists allowed endpoints (read-only GETs covering otto-projects, site-auditor, rank-tracker, backlink, llm-visibility, brand). Returns JSON or `extractEdgeFunctionError`-compatible error.
-- **Hook** `useSearchAtlas(clinicId, endpoint, params)` — react-query wrapper, 5-min stale time, gated on whether the clinic has the relevant project ID set.
-- **Components** (all in `src/components/ai-seo/`):
-  - `SearchAtlasOverviewCard.tsx`
-  - `SearchAtlasSiteAuditTab.tsx`
-  - `SearchAtlasKeywordsTab.tsx`
-  - `SearchAtlasBacklinksTab.tsx`
-  - `SearchAtlasHeatmapTab.tsx` (renders the rank-tracker grid as a colored mini-map)
-  - `SearchAtlasLLMTab.tsx`
-- **Department gating**: existing AI SEO access lock still applies. If clinic has no Search Atlas IDs configured, show a "Connect Search Atlas" empty state with a link to the Clinic Detail setup card.
-- **AI SEO tab structure**: replace the "Coming Soon" Overview with `Overview / Site Audit / Keywords / Backlinks / Heatmap / LLM Visibility / Client Chat` tabs.
-
-### What I won't do (unless you ask)
-- Won't write Search Atlas back (no creating projects/posts from our app — all read-only)
-- Won't auto-create OTTO/rank tracker projects per clinic (you'll wire IDs by hand or pick from dropdown)
-- Won't expose Search Atlas data to the `client` role until you confirm (admin/member only by default)
-
-### Open question
-Should the client role be able to see this data too, or is it admin/member-only? (Default: admin/member only.)
+## Plan
+1. Inspect the Search Atlas proxy call results for this exact clinic/project (`551407`, `108aveanimalhospital.com`) by invoking the existing edge function endpoints and capturing the raw payload/error shapes.
+2. Update `SearchAtlasBacklinksTab.tsx` to only rely on confirmed payload fields, including correct array paths for referring domains/backlinks and timeline/summary series.
+3. If the current proxy whitelist is blocking the real Search Atlas backlink endpoints, update `supabase/functions/search-atlas-proxy/index.ts` to allow the confirmed read-only endpoints only.
+4. Improve the empty-state messaging so if Search Atlas returns only summary counts but no row/timeline export, it says exactly that instead of looking broken.
+5. Validate on `/ai-seo?clinic=0900d007-5480-44c7-b0e1-c4d688d05a6a` that the top KPIs, timeline/bar chart, and Top Referring Domains table populate or show a truthful API-limit message.
