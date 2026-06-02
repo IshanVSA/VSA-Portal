@@ -30,11 +30,6 @@ export function SearchAtlasLLMTab({ config, clinicId }: Props) {
   const sentQ = useSearchAtlasMcp<any>(["sent", pid ?? ""], "sentiment", "get_sentiment_overview", { project_id: pid }, !!pid);
   const citQ = useSearchAtlasMcp<any>(["cit", pid ?? ""], "citations", "get_citations_overview", { project_id: pid }, !!pid);
 
-  if (!pid) {
-    return <SearchAtlasEmptyState clinicId={clinicId} message="Add an LLM Visibility project ID to view brand visibility across AI search." />;
-  }
-  if (overviewQ.isLoading) return <Skeleton className="h-96" />;
-
   const project = findSearchAtlasProject(overviewQ.data, config);
   const listing = project?.data?.llmv ?? project ?? {};
   const brand: any = !isSearchAtlasSoftError(brandQ.data) ? (unwrapSearchAtlasPayload<any>(brandQ.data) ?? {}) : {};
@@ -63,6 +58,11 @@ export function SearchAtlasLLMTab({ config, clinicId }: Props) {
     const raw = sov?.competitors ?? sov?.results ?? sov?.data ?? o?.competitors ?? o?.competitor_visibility ?? [];
     return Array.isArray(raw) ? raw : [];
   }, [sov, o]);
+
+  if (!pid) {
+    return <SearchAtlasEmptyState clinicId={clinicId} message="Add an LLM Visibility project ID to view brand visibility across AI search." />;
+  }
+  if (overviewQ.isLoading) return <Skeleton className="h-96" />;
 
   return (
     <div className="space-y-5">
