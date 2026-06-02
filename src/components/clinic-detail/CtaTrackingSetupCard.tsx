@@ -68,6 +68,8 @@ document.addEventListener("click",function(e){var c=res(e.target);if(c&&CTAS.ind
           <p>
             Paste this snippet before the closing <code className="text-xs bg-muted px-1 py-0.5 rounded">&lt;/body&gt;</code> tag
             on the clinic's website (or add it as a Custom HTML tag in Google Tag Manager firing on All Pages).
+            <strong className="text-foreground"> Place it AFTER the GA4/gtag snippet</strong> so it can also forward CTA clicks to Google Analytics
+            (this is what powers the top "Call-to-Action Performance" card in the SEO dashboard).
           </p>
           <p>
             Then add a <code className="text-xs bg-muted px-1 py-0.5 rounded">data-cta</code> attribute to each CTA button:{" "}
