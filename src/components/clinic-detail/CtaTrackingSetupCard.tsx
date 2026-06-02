@@ -42,8 +42,19 @@ function send(d){d.clinic_id=CLINIC;d.session_id=S.id;d.channel=S.channel;d.sour
 var b=JSON.stringify(d);if(navigator.sendBeacon){navigator.sendBeacon(EP,new Blob([b],{type:"application/json"}))}
 else{fetch(EP,{method:"POST",headers:{"Content-Type":"application/json"},body:b,keepalive:true})}}
 if(S.isNew){send({event_type:"session_start",landing_page:S.landing_page});S.isNew=false;try{sessionStorage.setItem(SK,JSON.stringify(S))}catch(e){}}
-function res(el){var n=el;while(n&&n!==document.body){if(n.dataset&&n.dataset.cta)return n.dataset.cta;
-if(n.tagName==="A"&&n.href){var hh=n.href.toLowerCase();if(hh.indexOf("tel:")===0)return"call_us";if(hh.indexOf("mailto:")===0)return"email_contact"}n=n.parentNode}return null}
+var BOOK_RX=/(book|schedule|appointment|appt|reserve|petdesk|vetstoria|vetsource|onlinebooking|booknow|request.?(an?.)?appointment|widget\.petdesk|allydvm|rapport|vetsfirstchoice|covetrus)/i;
+var FORM_RX=/(new.?(client|patient)|patient.?registration|client.?form|new.?(client|patient).?form|registration.?form|intake.?form|register.?(as.)?(a.)?(new.)?(client|patient))/i;
+var MAP_RX=/(google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps|maps\.google|find.?us|directions|get.?directions|view.?on.?map|our.?location|visit.?us)/i;
+function txt(n){return((n.textContent||n.innerText||"")+" "+(n.getAttribute&&(n.getAttribute("aria-label")||n.getAttribute("title")||n.getAttribute("alt"))||"")).trim().toLowerCase().slice(0,200)}
+function classify(n){if(n.dataset&&n.dataset.cta)return n.dataset.cta;
+var hh="";if(n.tagName==="A"&&n.href){hh=n.href.toLowerCase();if(hh.indexOf("tel:")===0)return"call_us";if(hh.indexOf("mailto:")===0)return"email_contact";if(MAP_RX.test(hh))return"find_us";if(BOOK_RX.test(hh))return"book_appointment";if(FORM_RX.test(hh))return"new_client_form"}
+var t=txt(n);if(!t)return null;
+if(/\b(call.?us|call.?(now|today)|phone.?us)\b/.test(t))return"call_us";
+if(FORM_RX.test(t))return"new_client_form";
+if(BOOK_RX.test(t))return"book_appointment";
+if(MAP_RX.test(t))return"find_us";
+return null}
+function res(el){var n=el,d=0;while(n&&n!==document.body&&d<6){if(n.tagName==="A"||n.tagName==="BUTTON"||(n.dataset&&n.dataset.cta)||(n.getAttribute&&n.getAttribute("role")==="button")){var c=classify(n);if(c)return c}n=n.parentNode;d++}return null}
 function ga(c){try{if(typeof window.gtag==="function"){window.gtag("event",c,{cta_type:c,channel:S.channel,source:S.source,page_path:location.pathname})}else{(window.dataLayer=window.dataLayer||[]).push({event:c,cta_type:c,channel:S.channel,source:S.source,page_path:location.pathname})}}catch(e){}}
 document.addEventListener("click",function(e){var c=res(e.target);if(c&&CTAS.indexOf(c)!==-1){send({event_type:"cta_click",cta_type:c});ga(c)}},true)})();
 </script>`;
@@ -72,15 +83,18 @@ document.addEventListener("click",function(e){var c=res(e.target);if(c&&CTAS.ind
             (this is what powers the top "Call-to-Action Performance" card in the SEO dashboard).
           </p>
           <p>
-            Then add a <code className="text-xs bg-muted px-1 py-0.5 rounded">data-cta</code> attribute to each CTA button:{" "}
-            <code className="text-xs bg-muted px-1 py-0.5 rounded">data-cta="book_appointment"</code>,{" "}
-            <code className="text-xs bg-muted px-1 py-0.5 rounded">"find_us"</code>,{" "}
-            <code className="text-xs bg-muted px-1 py-0.5 rounded">"call_us"</code>,{" "}
-            <code className="text-xs bg-muted px-1 py-0.5 rounded">"new_client_form"</code>,{" "}
-            <code className="text-xs bg-muted px-1 py-0.5 rounded">"email_contact"</code>.{" "}
-            <span className="text-xs">(<code>tel:</code> and <code>mailto:</code> links auto-detect.)</span>
+            <strong className="text-foreground">No per-button setup needed.</strong> The snippet auto-detects CTAs from link text and href patterns:
+            <code className="text-xs bg-muted px-1 py-0.5 rounded">tel:</code> → Call Us,{" "}
+            <code className="text-xs bg-muted px-1 py-0.5 rounded">mailto:</code> → Email,
+            Google Maps links or "Find Us / Directions" → Find Us,
+            "Book / Schedule / Appointment" (incl. PetDesk, Vetstoria, etc.) → Book Appointment,
+            "New Client / Patient Form" → New Client Form.
+          </p>
+          <p className="text-xs">
+            Optional override: add <code className="text-xs bg-muted px-1 py-0.5 rounded">data-cta="book_appointment"</code> (or any of the other types) to force a specific classification on a button.
           </p>
         </div>
+
 
         <div className="relative">
           <pre className="bg-muted rounded-lg p-3 text-[11px] font-mono overflow-x-auto whitespace-pre max-h-72 text-foreground">
