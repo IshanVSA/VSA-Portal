@@ -6,7 +6,7 @@ import { HelpCircle, ChevronDown, Sparkles, TrendingUp, Users as UsersIcon, Cale
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
-import { findSearchAtlasProject, useSearchAtlasCustomerProjects, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
+import { findSearchAtlasProject, useSearchAtlasCustomerProjects, useSearchAtlasMcp, unwrapSearchAtlasPayload, isSearchAtlasSoftError, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "./SearchAtlasEmptyState";
 
 interface Props { config: SearchAtlasClinicConfig; clinicId?: string }
