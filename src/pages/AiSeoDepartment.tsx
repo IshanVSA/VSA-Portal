@@ -1,6 +1,6 @@
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sparkles, LayoutGrid, Users, ShieldCheck, Hash, Link2, Map, Bot } from "lucide-react";
+import { Sparkles, Users, Hash, Link2, Map, Bot } from "lucide-react";
 import { useAiSeoAccess } from "@/hooks/useAiSeoAccess";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
