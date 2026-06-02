@@ -19,12 +19,10 @@ import { SearchAtlasHeatmapTab } from "@/components/ai-seo/SearchAtlasHeatmapTab
 import { SearchAtlasLLMTab } from "@/components/ai-seo/SearchAtlasLLMTab";
 
 const dataTabs = [
-  { value: "overview", label: "Overview", icon: LayoutGrid },
-  { value: "site-audit", label: "Site Audit", icon: ShieldCheck },
-  { value: "keywords", label: "Keywords", icon: Hash },
   { value: "backlinks", label: "Backlinks", icon: Link2 },
-  { value: "heatmap", label: "Heatmap", icon: Map },
   { value: "llm", label: "LLM Visibility", icon: Bot },
+  { value: "keywords", label: "Keyword Rankings", icon: Hash },
+  { value: "heatmap", label: "Local SEO Heatmap", icon: Map },
 ];
 const clientChatTab = { value: "client-chat", label: "Client Chat", icon: Users };
 
