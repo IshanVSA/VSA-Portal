@@ -112,6 +112,26 @@ export function useSearchAtlas<T = unknown>(
   });
 }
 
+/**
+ * MCP-style call to Search Atlas: `tool.op(params)`.
+ * Soft-errors are returned in the payload (does not throw).
+ */
+export function useSearchAtlasMcp<T = unknown>(
+  key: readonly unknown[],
+  tool: string,
+  op: string,
+  params: Record<string, unknown>,
+  enabled: boolean = true,
+) {
+  return useQuery<T>({
+    queryKey: ["search-atlas-mcp", tool, op, ...key],
+    queryFn: () => callSearchAtlas<T>({ tool, op, params }),
+    enabled,
+    staleTime: 5 * 60 * 1000,
+    retry: 0,
+  });
+}
+
 // ---- Clinic Search Atlas configuration ----
 export interface SearchAtlasClinicConfig {
   search_atlas_otto_uuid: string | null;
