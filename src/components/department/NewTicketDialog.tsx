@@ -185,8 +185,11 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
   const [teamFormValid, setTeamFormValid] = useState(false);
 
 
-  const uploadFiles = async (ticketId: string): Promise<string[]> => {
+  const uploadFiles = async (
+    ticketId: string
+  ): Promise<{ paths: string[]; failed: { name: string; reason: string }[] }> => {
     const paths: string[] = [];
+    const failed: { name: string; reason: string }[] = [];
     for (const { file } of files) {
       // Preserve the (already member-prefixed) filename so admins can identify
       // which photo belongs to which team member at a glance. Sanitize for storage.
@@ -194,14 +197,17 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
       const ext = safeName.includes(".") ? safeName.split(".").pop() : "bin";
       const base = safeName.replace(/\.[^.]+$/, "") || "file";
       const path = `tickets/${ticketId}/${base}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
-      const { error } = await supabase.storage.from("department-files").upload(path, file);
+      const { error } = await supabase.storage
+        .from("department-files")
+        .upload(path, file, { contentType: file.type || undefined, upsert: false });
       if (error) {
-        console.error("Upload error:", error);
+        console.error("Upload error:", error, { file: file.name });
+        failed.push({ name: file.name, reason: error.message || "Upload failed" });
         continue;
       }
       paths.push(path);
     }
-    return paths;
+    return { paths, failed };
   };
 
   const handleSubmit = async () => {
