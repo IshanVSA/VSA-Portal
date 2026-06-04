@@ -1,40 +1,61 @@
 import { createContext, createElement, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { AuthError, User, Session } from "@supabase/supabase-js";
+import { hasStoredSupabaseSession, clearStoredSupabaseSession } from "@/lib/auth-storage";
 
 interface AuthState {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  /**
+   * True if localStorage still has a Supabase refresh token. Lets
+   * ProtectedRoute show a retry screen instead of redirecting to /login
+   * when bootstrap is slow or a transient SIGNED_OUT event arrives.
+   */
+  hasStoredToken: boolean;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
 
-function forceLogout() {
-  Object.keys(localStorage).forEach(key => {
-    if (key.startsWith('sb-')) localStorage.removeItem(key);
-  });
-  if (window.location.pathname !== '/login') {
-    window.location.href = '/login';
-  }
-}
+const AUTH_CHANNEL = "vsa-auth";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasStoredToken, setHasStoredToken] = useState<boolean>(() => hasStoredSupabaseSession());
   const bootstrapped = useRef(false);
+  // Set when *this tab* explicitly initiates a sign-out. Lets us distinguish
+  // user-driven logouts from spurious SIGNED_OUT events emitted by the SDK
+  // (e.g. transient refresh failures, multi-tab noise).
+  const intentionalSignOut = useRef(false);
+  // Coalesces concurrent recovery attempts when a spurious SIGNED_OUT fires.
+  const recoveryInFlight = useRef(false);
 
   useEffect(() => {
     let mounted = true;
 
+    // Cross-tab logout signal: only an explicit signOut() in another tab
+    // should kick this tab out. Storage-only SIGNED_OUT noise is ignored.
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel(AUTH_CHANNEL);
+      bc.onmessage = (evt) => {
+        if (evt?.data?.type === "signout") {
+          intentionalSignOut.current = true;
+          // Fall through — SDK SIGNED_OUT will arrive from storage event too.
+          setUser(null);
+          setSession(null);
+          setHasStoredToken(false);
+        }
+      };
+    } catch {
+      bc = null;
+    }
+
     // Presence heartbeat so admins can see who's actively using the portal.
-    // The server keeps last_seen_at fresh without inflating login_count.
-    // NOTE: supabase.rpc() returns a lazy PostgrestBuilder — it only fires
-    // the HTTP request when .then() is attached (or it is awaited). A bare
-    // `supabase.rpc(...)` does nothing, which is why heartbeats were silent.
     const touch = () => {
       try { (supabase as any).rpc("touch_login_activity").then(() => {}, () => {}); } catch {}
     };
@@ -42,8 +63,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try { (supabase as any).rpc("record_login_activity").then(() => {}, () => {}); } catch {}
     };
 
-    // Recurring heartbeat every 60s while the tab is visible, plus on focus /
-    // visibility change so "online" reflects reality within ~1 minute.
     let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
     const startHeartbeat = () => {
       if (heartbeatTimer) return;
@@ -58,52 +77,113 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('focus', onFocus);
 
-    // 1. Restore session from storage first. This is the single source of
-    // truth for initial routing, so protected routes don't redirect while
-    // Supabase is still hydrating the browser session after sign-in.
+    const applySession = (s: Session) => {
+      setSession(s);
+      setUser(s.user);
+      setHasStoredToken(true);
+    };
+
+    const clearSession = () => {
+      setSession(null);
+      setUser(null);
+      setHasStoredToken(false);
+      clearStoredSupabaseSession();
+    };
+
+    /**
+     * When a SIGNED_OUT event arrives but storage still has a refresh token
+     * (typical for transient refresh failures), try a single refresh before
+     * clearing state. Only clear if the refresh truly fails.
+     */
+    const tryRecover = async () => {
+      if (recoveryInFlight.current) return;
+      recoveryInFlight.current = true;
+      try {
+        const { data, error } = await supabase.auth.refreshSession();
+        if (!mounted) return;
+        if (!error && data.session) {
+          applySession(data.session);
+          touch();
+          startHeartbeat();
+        } else {
+          clearSession();
+        }
+      } catch {
+        if (mounted) clearSession();
+      } finally {
+        recoveryInFlight.current = false;
+        if (mounted) {
+          bootstrapped.current = true;
+          setLoading(false);
+        }
+      }
+    };
+
+    // 1. Restore session from storage first.
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return;
       if (session) {
-        setSession(session);
-        setUser(session.user);
+        applySession(session);
         touch();
         startHeartbeat();
+      } else {
+        // No session in memory. If storage still has a token, attempt recovery
+        // instead of falling through to an unauthenticated state.
+        if (hasStoredSupabaseSession()) {
+          tryRecover();
+          return;
+        }
+        setHasStoredToken(false);
       }
       bootstrapped.current = true;
       setLoading(false);
+    }).catch(() => {
+      // getSession failed entirely — let the safety timer handle UX.
     });
 
-    // 2. Listen for auth changes (sign in/out, token refresh)
+    // 2. Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (event, nextSession) => {
         if (!mounted) return;
 
         if (event === 'SIGNED_OUT') {
-          // A stale refresh-token failure can emit SIGNED_OUT immediately after
-          // a successful password login. Defer and verify storage before
-          // accepting it, so fresh staff sessions are not wiped by an old event.
+          // Honor only user-initiated sign-outs immediately.
+          if (intentionalSignOut.current) {
+            intentionalSignOut.current = false;
+            clearSession();
+            bootstrapped.current = true;
+            setLoading(false);
+            return;
+          }
+
+          // Spurious SIGNED_OUT (refresh hiccup, background tab, etc.).
+          // Defer: if storage still has a token, try to recover; else clear.
           setTimeout(() => {
+            if (!mounted) return;
             supabase.auth.getSession().then(({ data: { session: current } }) => {
               if (!mounted) return;
               if (current) {
-                setSession(current);
-                setUser(current.user);
+                applySession(current);
                 touch();
                 startHeartbeat();
+                bootstrapped.current = true;
+                setLoading(false);
+              } else if (hasStoredSupabaseSession()) {
+                tryRecover();
               } else {
-                setSession(null);
-                setUser(null);
+                clearSession();
+                bootstrapped.current = true;
+                setLoading(false);
               }
-              bootstrapped.current = true;
-              setLoading(false);
+            }).catch(() => {
+              if (mounted && !hasStoredSupabaseSession()) clearSession();
             });
           }, 0);
           return;
         }
 
-        if (session) {
-          setSession(session);
-          setUser(session.user);
+        if (nextSession) {
+          applySession(nextSession);
           if (event === 'SIGNED_IN') {
             recordLogin();
             startHeartbeat();
@@ -131,6 +211,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (heartbeatTimer) clearInterval(heartbeatTimer);
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('focus', onFocus);
+      try { bc?.close(); } catch {}
     };
   }, []);
 
@@ -140,6 +221,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (data.session) {
       setSession(data.session);
       setUser(data.session.user);
+      setHasStoredToken(true);
       bootstrapped.current = true;
     }
     setLoading(false);
@@ -147,30 +229,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    // Fire-and-forget the server signout with a short timeout so a hung/failed
-    // network call (e.g. stale refresh token) never blocks the user.
+    intentionalSignOut.current = true;
+
+    // Broadcast to other tabs so they also accept the logout immediately.
+    try {
+      const bc = new BroadcastChannel(AUTH_CHANNEL);
+      bc.postMessage({ type: "signout" });
+      bc.close();
+    } catch {}
+
+    // Fire-and-forget server signout with a short timeout.
     const serverSignOut = supabase.auth.signOut().catch(() => {});
     const timeout = new Promise((resolve) => setTimeout(resolve, 1500));
     await Promise.race([serverSignOut, timeout]);
 
-    // Wipe React Query cache so the next user on this browser cannot see
-    // any cached PII / clinic data from the previous session.
+    // Wipe React Query cache so the next user cannot see cached PII.
     try {
       const qc = (window as unknown as { __queryClient?: { clear: () => void } }).__queryClient;
       qc?.clear();
     } catch {}
 
-    // Tell the service worker to drop any cached responses too.
     try {
       navigator.serviceWorker?.controller?.postMessage({ type: 'CLEAR_CACHES' });
     } catch {}
 
-    // Always do a local signout + storage wipe + redirect, regardless of server result.
     try { await supabase.auth.signOut({ scope: 'local' }); } catch {}
-    forceLogout();
+    clearStoredSupabaseSession();
+    setUser(null);
+    setSession(null);
+    setHasStoredToken(false);
+    if (window.location.pathname !== '/login') {
+      window.location.href = '/login';
+    }
   }, []);
 
-  const value = useMemo(() => ({ user, session, loading, signIn, signOut }), [user, session, loading, signIn, signOut]);
+  const value = useMemo(
+    () => ({ user, session, loading, hasStoredToken, signIn, signOut }),
+    [user, session, loading, hasStoredToken, signIn, signOut],
+  );
 
   return createElement(AuthContext.Provider, { value }, children);
 }
