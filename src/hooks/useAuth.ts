@@ -1,6 +1,15 @@
-import { useState, useEffect, useCallback } from "react";
+import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
+
+interface AuthState {
+  user: User | null;
+  session: Session | null;
+  loading: boolean;
+  signOut: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthState | null>(null);
 
 function forceLogout() {
   Object.keys(localStorage).forEach(key => {
@@ -11,10 +20,11 @@ function forceLogout() {
   }
 }
 
-export function useAuth() {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const bootstrapped = useRef(false);
 
   useEffect(() => {
     let mounted = true;
@@ -47,7 +57,9 @@ export function useAuth() {
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('focus', onFocus);
 
-    // 1. Restore session from storage first
+    // 1. Restore session from storage first. This is the single source of
+    // truth for initial routing, so protected routes don't redirect while
+    // Supabase is still hydrating the browser session after sign-in.
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return;
       if (session) {
@@ -56,6 +68,7 @@ export function useAuth() {
         touch();
         startHeartbeat();
       }
+      bootstrapped.current = true;
       setLoading(false);
     });
 
@@ -82,13 +95,14 @@ export function useAuth() {
             startHeartbeat();
           }
         }
+        bootstrapped.current = true;
         setLoading(false);
       }
     );
 
     // 3. Safety timeout – never stay loading for more than 5s
     const timer = setTimeout(() => {
-      if (mounted && loading) {
+      if (mounted && !bootstrapped.current) {
         setLoading(false);
       }
     }, 5000);
@@ -127,5 +141,13 @@ export function useAuth() {
     forceLogout();
   }, []);
 
-  return { user, session, loading, signOut };
+  const value = useMemo(() => ({ user, session, loading, signOut }), [user, session, loading, signOut]);
+
+  return createElement(AuthContext.Provider, { value }, children);
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context) return context;
+  throw new Error("useAuth must be used within AuthProvider");
 }
