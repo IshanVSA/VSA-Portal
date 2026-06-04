@@ -7,6 +7,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import SplashScreen from "./components/SplashScreen";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { AuthProvider } from "@/hooks/useAuth";
 import { lazy, ReactNode, Suspense } from "react";
 
 // Eager: critical/auth flows
@@ -71,11 +72,12 @@ const App = () => (
   <ErrorBoundary scope="root">
     <SplashScreen>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
               <Route path="/login" element={guard(<Login />, "login")} />
               <Route path="/reset-password" element={guard(<ResetPassword />, "reset-password")} />
               <Route path="/privacy-policy" element={guard(<PrivacyPolicy />, "privacy")} />
@@ -108,9 +110,10 @@ const App = () => (
               <Route path="/analytics" element={<Navigate to="/social?tab=analytics" replace />} />
 
               <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
       </QueryClientProvider>
     </SplashScreen>
   </ErrorBoundary>

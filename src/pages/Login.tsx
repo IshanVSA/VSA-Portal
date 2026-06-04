@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +7,8 @@ import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
 import vsaLogo from "@/assets/vsa-logo.jpg";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 /**
  * Map any raw error string (technical or otherwise) into a friendly,
@@ -59,6 +60,7 @@ function toFriendlyResetError(raw: string): string {
 
 export default function Login() {
   const navigate = useNavigate();
+  const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -71,7 +73,7 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await signIn(email, password);
     if (error) {
       const m = (error.message || "").toLowerCase();
       if (m.includes("invalid") && (m.includes("credential") || m.includes("login"))) {
