@@ -11,8 +11,9 @@ import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
 import { formatDistanceToNow } from "date-fns";
 import { syncSpecialPromotionFromTicket } from "@/lib/special-promotion-sync";
-import { FileIcon, Image as ImageIcon, Eye, Download, Paperclip, MailCheck, MailWarning } from "lucide-react";
+import { FileIcon, Image as ImageIcon, Eye, Download, Paperclip, MailCheck, MailWarning, Upload, Loader2 } from "lucide-react";
 import { FilePreviewDialog } from "@/components/FilePreviewDialog";
+import { FileUploader, type AttachedFile } from "./ticket-forms/FileUploader";
 import { ContentApprovalPanel } from "./ContentApprovalPanel";
 
 const ATTACHMENT_BUCKET = "department-files";
