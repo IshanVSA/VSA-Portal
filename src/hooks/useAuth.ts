@@ -78,9 +78,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!mounted) return;
 
         if (event === 'SIGNED_OUT') {
-          setSession(null);
-          setUser(null);
-          setLoading(false);
+          // A stale refresh-token failure can emit SIGNED_OUT immediately after
+          // a successful password login. Defer and verify storage before
+          // accepting it, so fresh staff sessions are not wiped by an old event.
+          setTimeout(() => {
+            supabase.auth.getSession().then(({ data: { session: current } }) => {
+              if (!mounted) return;
+              if (current) {
+                setSession(current);
+                setUser(current.user);
+                touch();
+                startHeartbeat();
+              } else {
+                setSession(null);
+                setUser(null);
+              }
+              bootstrapped.current = true;
+              setLoading(false);
+            });
+          }, 0);
           return;
         }
 
