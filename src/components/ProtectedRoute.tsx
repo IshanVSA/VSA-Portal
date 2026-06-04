@@ -17,7 +17,7 @@ interface Props {
 }
 
 export function ProtectedRoute({ children, allowedRoles, allowedDepartments }: Props) {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, hasStoredToken, signOut } = useAuth();
   const { role, isLoading } = useUserRole();
   const { departments, isAllAccess, isLoading: deptsLoading } = useUserDepartments();
   const { hasAccepted, currentVersion, isLoading: termsLoading } = useTermsAcceptance();
@@ -32,17 +32,26 @@ export function ProtectedRoute({ children, allowedRoles, allowedDepartments }: P
     return () => clearTimeout(timer);
   }, [allLoading]);
 
-  if (timedOut && allLoading) {
+  // Stuck-loading recovery screen (covers slow getSession, hung role fetch, etc.)
+  // Also shown when bootstrap finished without a user but storage still has a
+  // token — never silently bounce someone with a valid session to /login.
+  const stuckWithToken = !allLoading && !user && hasStoredToken;
+  if ((timedOut && allLoading) || stuckWithToken) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="text-center space-y-4 max-w-sm">
           <p className="text-muted-foreground text-sm">
-            Having trouble loading your account. You can try signing out and back in.
+            Having trouble loading your account. Try refreshing the page, or sign out and back in.
           </p>
-          <Button variant="destructive" size="sm" onClick={signOut} className="gap-2">
-            <LogOut className="h-4 w-4" />
-            Sign Out
-          </Button>
+          <div className="flex gap-2 justify-center">
+            <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+              Refresh
+            </Button>
+            <Button variant="destructive" size="sm" onClick={signOut} className="gap-2">
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -56,7 +65,7 @@ export function ProtectedRoute({ children, allowedRoles, allowedDepartments }: P
     );
   }
 
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/login" replace state={{ from: location }} />;
 
   if (allowedRoles && role && !allowedRoles.includes(role)) {
     return <AccessDenied attemptedPath={location.pathname} requiredRoles={allowedRoles} />;
