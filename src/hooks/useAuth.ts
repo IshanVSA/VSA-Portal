@@ -1,11 +1,12 @@
 import { createContext, createElement, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { User, Session } from "@supabase/supabase-js";
+import type { AuthError, User, Session } from "@supabase/supabase-js";
 
 interface AuthState {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -133,6 +134,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const signIn = useCallback(async (email: string, password: string) => {
+    setLoading(true);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (data.session) {
+      setSession(data.session);
+      setUser(data.session.user);
+      bootstrapped.current = true;
+    }
+    setLoading(false);
+    return { error };
+  }, []);
+
   const signOut = useCallback(async () => {
     // Fire-and-forget the server signout with a short timeout so a hung/failed
     // network call (e.g. stale refresh token) never blocks the user.
@@ -157,7 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     forceLogout();
   }, []);
 
-  const value = useMemo(() => ({ user, session, loading, signOut }), [user, session, loading, signOut]);
+  const value = useMemo(() => ({ user, session, loading, signIn, signOut }), [user, session, loading, signIn, signOut]);
 
   return createElement(AuthContext.Provider, { value }, children);
 }
