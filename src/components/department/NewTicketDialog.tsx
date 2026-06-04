@@ -185,8 +185,11 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
   const [teamFormValid, setTeamFormValid] = useState(false);
 
 
-  const uploadFiles = async (ticketId: string): Promise<string[]> => {
+  const uploadFiles = async (
+    ticketId: string
+  ): Promise<{ paths: string[]; failed: { name: string; reason: string }[] }> => {
     const paths: string[] = [];
+    const failed: { name: string; reason: string }[] = [];
     for (const { file } of files) {
       // Preserve the (already member-prefixed) filename so admins can identify
       // which photo belongs to which team member at a glance. Sanitize for storage.
@@ -194,14 +197,17 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
       const ext = safeName.includes(".") ? safeName.split(".").pop() : "bin";
       const base = safeName.replace(/\.[^.]+$/, "") || "file";
       const path = `tickets/${ticketId}/${base}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
-      const { error } = await supabase.storage.from("department-files").upload(path, file);
+      const { error } = await supabase.storage
+        .from("department-files")
+        .upload(path, file, { contentType: file.type || undefined, upsert: false });
       if (error) {
-        console.error("Upload error:", error);
+        console.error("Upload error:", error, { file: file.name });
+        failed.push({ name: file.name, reason: error.message || "Upload failed" });
         continue;
       }
       paths.push(path);
     }
-    return paths;
+    return { paths, failed };
   };
 
   const handleSubmit = async () => {
@@ -283,13 +289,27 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
 
     if (files.length > 0) {
       setUploading(true);
-      const paths = await uploadFiles((ticket as any).id);
+      const { paths, failed } = await uploadFiles((ticket as any).id);
       if (paths.length > 0) {
         await supabase.from("department_tickets" as any)
           .update({ attachments: paths } as any)
           .eq("id", (ticket as any).id);
       }
       setUploading(false);
+      if (failed.length > 0) {
+        toast.error(
+          `${failed.length} attachment${failed.length === 1 ? "" : "s"} failed to upload`,
+          {
+            description: failed
+              .slice(0, 3)
+              .map((f) => `${f.name}: ${f.reason}`)
+              .join(" • "),
+            duration: 12000,
+          }
+        );
+      } else if (paths.length > 0) {
+        toast.success(`${paths.length} attachment${paths.length === 1 ? "" : "s"} uploaded`);
+      }
     }
 
     // Fire-and-forget email notification to matching team members for this clinic+department

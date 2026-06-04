@@ -11,8 +11,9 @@ import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
 import { formatDistanceToNow } from "date-fns";
 import { syncSpecialPromotionFromTicket } from "@/lib/special-promotion-sync";
-import { FileIcon, Image as ImageIcon, Eye, Download, Paperclip, MailCheck, MailWarning } from "lucide-react";
+import { FileIcon, Image as ImageIcon, Eye, Download, Paperclip, MailCheck, MailWarning, Upload, Loader2 } from "lucide-react";
 import { FilePreviewDialog } from "@/components/FilePreviewDialog";
+import { FileUploader, type AttachedFile } from "./ticket-forms/FileUploader";
 import { ContentApprovalPanel } from "./ContentApprovalPanel";
 
 const ATTACHMENT_BUCKET = "department-files";
@@ -85,6 +86,8 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
   const [saving, setSaving] = useState(false);
   const [attachments, setAttachments] = useState<TicketAttachmentItem[]>([]);
   const [previewAtt, setPreviewAtt] = useState<TicketAttachmentItem | null>(null);
+  const [newFiles, setNewFiles] = useState<AttachedFile[]>([]);
+  const [uploadingMore, setUploadingMore] = useState(false);
   const [completionEmail, setCompletionEmail] = useState<{ sentAt: string | null; recipients: number | null; error: string | null }>({ sentAt: null, recipients: null, error: null });
   const [contentApproval, setContentApproval] = useState<{
     preview: any; files: string[]; status: string | null; approvedAt: string | null; changeNotes: string | null; readyAt: string | null;
@@ -408,7 +411,76 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
               </ul>
             </div>
           )}
+
+          {/* Add more attachments (e.g. when original upload silently failed) */}
+          <div className="space-y-1.5 pt-1">
+            <Label className="flex items-center gap-1.5">
+              <Upload className="h-3.5 w-3.5" />
+              {attachments.length > 0 ? "Add more attachments" : "Add attachments"}
+            </Label>
+            <FileUploader files={newFiles} onFilesChange={setNewFiles} label="" />
+            {newFiles.length > 0 && (
+              <Button
+                type="button"
+                size="sm"
+                className="w-full gap-1.5"
+                disabled={uploadingMore}
+                onClick={async () => {
+                  if (!ticket) return;
+                  setUploadingMore(true);
+                  const uploaded: string[] = [];
+                  const failed: { name: string; reason: string }[] = [];
+                  for (const { file } of newFiles) {
+                    const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 120) || "file";
+                    const ext = safeName.includes(".") ? safeName.split(".").pop() : "bin";
+                    const base = safeName.replace(/\.[^.]+$/, "") || "file";
+                    const path = `tickets/${ticket.id}/${base}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
+                    const { error } = await supabase.storage
+                      .from(ATTACHMENT_BUCKET)
+                      .upload(path, file, { contentType: file.type || undefined, upsert: false });
+                    if (error) {
+                      failed.push({ name: file.name, reason: error.message || "Upload failed" });
+                      continue;
+                    }
+                    uploaded.push(path);
+                  }
+                  if (uploaded.length > 0) {
+                    const merged = [...attachments.map((a) => a.path), ...uploaded];
+                    const { error: upErr } = await supabase
+                      .from("department_tickets" as any)
+                      .update({ attachments: merged } as any)
+                      .eq("id", ticket.id);
+                    if (upErr) {
+                      toast.error("Saved files but failed to attach to ticket", { description: upErr.message });
+                    } else {
+                      setAttachments(merged.map((p) => ({ path: p, name: p.split("/").pop() || p })));
+                      setNewFiles([]);
+                      toast.success(`${uploaded.length} file${uploaded.length === 1 ? "" : "s"} attached`);
+                      onUpdated();
+                    }
+                  }
+                  if (failed.length > 0) {
+                    toast.error(
+                      `${failed.length} file${failed.length === 1 ? "" : "s"} failed to upload`,
+                      {
+                        description: failed.slice(0, 3).map((f) => `${f.name}: ${f.reason}`).join(" • "),
+                        duration: 12000,
+                      }
+                    );
+                  }
+                  setUploadingMore(false);
+                }}
+              >
+                {uploadingMore ? (
+                  <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading…</>
+                ) : (
+                  <><Upload className="h-3.5 w-3.5" /> Upload {newFiles.length} file{newFiles.length === 1 ? "" : "s"}</>
+                )}
+              </Button>
+            )}
+          </div>
         </div>
+
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
