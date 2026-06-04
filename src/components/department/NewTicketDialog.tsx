@@ -289,13 +289,27 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
 
     if (files.length > 0) {
       setUploading(true);
-      const paths = await uploadFiles((ticket as any).id);
+      const { paths, failed } = await uploadFiles((ticket as any).id);
       if (paths.length > 0) {
         await supabase.from("department_tickets" as any)
           .update({ attachments: paths } as any)
           .eq("id", (ticket as any).id);
       }
       setUploading(false);
+      if (failed.length > 0) {
+        toast.error(
+          `${failed.length} attachment${failed.length === 1 ? "" : "s"} failed to upload`,
+          {
+            description: failed
+              .slice(0, 3)
+              .map((f) => `${f.name}: ${f.reason}`)
+              .join(" • "),
+            duration: 12000,
+          }
+        );
+      } else if (paths.length > 0) {
+        toast.success(`${paths.length} attachment${paths.length === 1 ? "" : "s"} uploaded`);
+      }
     }
 
     // Fire-and-forget email notification to matching team members for this clinic+department
