@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,6 +60,7 @@ function toFriendlyResetError(raw: string): string {
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -88,7 +89,11 @@ export default function Login() {
         toast.error("We couldn't sign you in. Please try again.");
       }
     }
-    else navigate("/");
+    else {
+      const from = (location.state as { from?: { pathname: string; search?: string } } | null)?.from;
+      const dest = from ? `${from.pathname}${from.search ?? ""}` : "/";
+      navigate(dest, { replace: true });
+    }
     setLoading(false);
   };
 
