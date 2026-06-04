@@ -86,6 +86,8 @@ export function TicketEditDialog({ open, onOpenChange, ticket, teamMembers, assi
   const [saving, setSaving] = useState(false);
   const [attachments, setAttachments] = useState<TicketAttachmentItem[]>([]);
   const [previewAtt, setPreviewAtt] = useState<TicketAttachmentItem | null>(null);
+  const [newFiles, setNewFiles] = useState<AttachedFile[]>([]);
+  const [uploadingMore, setUploadingMore] = useState(false);
   const [completionEmail, setCompletionEmail] = useState<{ sentAt: string | null; recipients: number | null; error: string | null }>({ sentAt: null, recipients: null, error: null });
   const [contentApproval, setContentApproval] = useState<{
     preview: any; files: string[]; status: string | null; approvedAt: string | null; changeNotes: string | null; readyAt: string | null;
