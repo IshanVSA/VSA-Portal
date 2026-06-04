@@ -89,7 +89,11 @@ export default function Login() {
         toast.error("We couldn't sign you in. Please try again.");
       }
     }
-    else navigate("/");
+    else {
+      const from = (location.state as { from?: { pathname: string; search?: string } } | null)?.from;
+      const dest = from ? `${from.pathname}${from.search ?? ""}` : "/";
+      navigate(dest, { replace: true });
+    }
     setLoading(false);
   };
 
