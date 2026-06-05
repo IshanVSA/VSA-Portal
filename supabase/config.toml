@@ -132,3 +132,10 @@ verify_jwt = false
 
 [functions.gbp-performance-cron]
 verify_jwt = false
+
+[functions.disconnect-all-google-ads]
+verify_jwt = false
+
+
+[functions.gbp-performance-cron]
+verify_jwt = false
