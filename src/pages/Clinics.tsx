@@ -645,7 +645,9 @@ export default function Clinics() {
                   </div>
                 </DialogContent>
               </Dialog>
+              </div>
             )}
+
         </div>
 
 
