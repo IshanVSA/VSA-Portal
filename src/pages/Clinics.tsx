@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { ClinicLogoUploader } from "@/components/clinic-detail/ClinicLogoUploader";
 import { DepartmentTeamPicker } from "@/components/clinic-detail/DepartmentTeamPicker";
 import { detectComplianceBody, getEffectiveComplianceBody, COMPLIANCE_BODY_OPTIONS } from "@/lib/compliance-body";
+import { DisconnectAllGoogleAdsButton } from "@/components/clinics/DisconnectAllGoogleAdsButton";
 
 interface Clinic {
   id: string;
