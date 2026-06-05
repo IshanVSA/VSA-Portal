@@ -497,10 +497,17 @@ Deno.serve(async (req) => {
         });
       }
 
+      await logSecurityEvent(req, {
+        action: "google_oauth.disconnect",
+        actor_user_id: disconnectUser.id,
+        clinic_id,
+      });
+
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
     return new Response(JSON.stringify({ error: "Unknown action" }), {
       status: 400,
