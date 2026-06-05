@@ -574,10 +574,13 @@ export default function Clinics() {
               <p className="text-muted-foreground mt-1 text-sm">{clinics.length} total clinics registered</p>
             </div>
             {role === "admin" && (
-              <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetAddForm(); }}>
-                <DialogTrigger asChild>
-                  <Button className="rounded-lg shadow-sm w-full sm:w-auto"><Plus className="h-4 w-4 mr-2" /> Add Clinic</Button>
-                </DialogTrigger>
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <DisconnectAllGoogleAdsButton />
+                <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetAddForm(); }}>
+                  <DialogTrigger asChild>
+                    <Button className="rounded-lg shadow-sm w-full sm:w-auto"><Plus className="h-4 w-4 mr-2" /> Add Clinic</Button>
+                  </DialogTrigger>
+
                 <DialogContent className="max-h-[85vh] overflow-y-auto max-w-[95vw] sm:max-w-lg">
                   <DialogHeader><DialogTitle>Add New Clinic</DialogTitle></DialogHeader>
                   <div className="space-y-4 pt-2">
