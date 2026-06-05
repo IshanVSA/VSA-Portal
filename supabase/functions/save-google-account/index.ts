@@ -131,6 +131,13 @@ Deno.serve(async (req) => {
       );
     }
 
+    await logSecurityEvent(req, {
+      action: "google_ads.connect_account",
+      actor_user_id: user.id,
+      clinic_id,
+      metadata: { customer_id, account_name },
+    });
+
     console.log(`Saved Google Ads account for clinic ${clinic_id}`);
     return new Response(
       JSON.stringify({ success: true }),
