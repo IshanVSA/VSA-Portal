@@ -1,4 +1,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  signState,
+  verifyState,
+  tryParseLegacyState,
+  safeRedirectBase,
+  logSecurityEvent,
+} from "../_shared/security.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,7 +34,9 @@ Deno.serve(async (req) => {
     // ── AUTHORIZE ──
     if (action === "authorize") {
       const clinicId = url.searchParams.get("clinic_id");
-      const originUrl = url.searchParams.get("origin") || FRONTEND_URL;
+      const requestedOrigin = url.searchParams.get("origin");
+      // Only accept origins on the allow-list; otherwise force production.
+      const originUrl = safeRedirectBase(requestedOrigin, FRONTEND_URL);
       if (!clinicId) {
         return new Response(JSON.stringify({ error: "clinic_id is required" }), {
           status: 400,
@@ -35,7 +44,15 @@ Deno.serve(async (req) => {
         });
       }
 
-      const state = btoa(JSON.stringify({ clinic_id: clinicId, origin: originUrl }));
+      await logSecurityEvent(req, {
+        action: "google_oauth.authorize",
+        clinic_id: clinicId,
+        metadata: { requested_origin: requestedOrigin, resolved_origin: originUrl },
+      });
+
+      // HMAC-signed, short-lived state. Attacker cannot forge a state with a
+      // different clinic_id or origin without the server's signing secret.
+      const state = await signState({ clinic_id: clinicId, origin: originUrl });
       const authUrl =
         `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${encodeURIComponent(GOOGLE_CLIENT_ID)}` +
@@ -58,26 +75,47 @@ Deno.serve(async (req) => {
       const stateParam = url.searchParams.get("state");
       const errorParam = url.searchParams.get("error");
 
+      // Parse state (signed preferred; legacy base64 fallback for in-flight flows)
+      let parsedState: Record<string, any> | null = null;
+      if (stateParam) {
+        parsedState = await verifyState(stateParam);
+        if (!parsedState) parsedState = tryParseLegacyState(stateParam);
+      }
+      // Re-validate origin from state against allow-list
+      const requestedOrigin = parsedState?.origin as string | undefined;
+      const redirectBase = safeRedirectBase(requestedOrigin, FRONTEND_URL);
+
       if (errorParam) {
         console.error("Google OAuth error:", errorParam);
-        const fallbackUrl = stateParam
-          ? JSON.parse(atob(stateParam)).origin || FRONTEND_URL
-          : FRONTEND_URL;
+        await logSecurityEvent(req, {
+          action: "google_oauth.callback_error",
+          clinic_id: parsedState?.clinic_id ?? null,
+          metadata: { error: errorParam },
+        });
         return new Response(null, {
           status: 302,
-          headers: { Location: `${fallbackUrl}/clinics?error=oauth_denied` },
+          headers: { Location: `${redirectBase}/clinics?error=oauth_denied` },
         });
       }
 
-      if (!code || !stateParam) {
-        return new Response(JSON.stringify({ error: "Missing code or state" }), {
+      if (!code || !stateParam || !parsedState) {
+        await logSecurityEvent(req, {
+          action: "google_oauth.invalid_state",
+          metadata: {
+            had_code: !!code,
+            had_state: !!stateParam,
+            verified: !!parsedState,
+          },
+        });
+        return new Response(JSON.stringify({ error: "Missing or invalid state" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const { clinic_id, origin, provider } = JSON.parse(atob(stateParam));
-      const redirectBase = origin || FRONTEND_URL;
+      const { clinic_id, provider } = parsedState;
+
+
 
       // Exchange code for tokens
       const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
@@ -459,10 +497,17 @@ Deno.serve(async (req) => {
         });
       }
 
+      await logSecurityEvent(req, {
+        action: "google_oauth.disconnect",
+        actor_user_id: disconnectUser.id,
+        clinic_id,
+      });
+
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
     return new Response(JSON.stringify({ error: "Unknown action" }), {
       status: 400,

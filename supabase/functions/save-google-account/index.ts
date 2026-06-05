@@ -1,4 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logSecurityEvent } from "../_shared/security.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -128,6 +130,13 @@ Deno.serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    await logSecurityEvent(req, {
+      action: "google_ads.connect_account",
+      actor_user_id: user.id,
+      clinic_id,
+      metadata: { customer_id, account_name },
+    });
 
     console.log(`Saved Google Ads account for clinic ${clinic_id}`);
     return new Response(
