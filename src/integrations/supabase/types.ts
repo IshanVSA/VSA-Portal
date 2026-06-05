@@ -2640,6 +2640,39 @@ export type Database = {
         }
         Relationships: []
       }
+      security_audit_log: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          clinic_id: string | null
+          created_at: string
+          id: string
+          ip: string | null
+          metadata: Json | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          clinic_id?: string | null
+          created_at?: string
+          id?: string
+          ip?: string | null
+          metadata?: Json | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          clinic_id?: string | null
+          created_at?: string
+          id?: string
+          ip?: string | null
+          metadata?: Json | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       seo_analytics: {
         Row: {
           backlinks: number
