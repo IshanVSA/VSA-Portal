@@ -99,7 +99,16 @@ Deno.serve(async (req) => {
 
     if (createError) {
       console.error("Create user error:", createError.message);
-      return new Response(JSON.stringify({ error: "Failed to create user. Please check the provided details." }), {
+      const msg = (createError.message || "").toLowerCase();
+      let friendly = "Failed to create user. Please check the provided details.";
+      if (msg.includes("already been registered") || msg.includes("already registered") || msg.includes("email_exists") || (createError as any).code === "email_exists") {
+        friendly = "An account with this email already exists.";
+      } else if (msg.includes("password")) {
+        friendly = "Password does not meet requirements (minimum 8 characters).";
+      } else if (msg.includes("invalid") && msg.includes("email")) {
+        friendly = "Invalid email address.";
+      }
+      return new Response(JSON.stringify({ error: friendly }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
