@@ -135,3 +135,7 @@ verify_jwt = false
 
 [functions.disconnect-all-google-ads]
 verify_jwt = false
+
+[functions.export-clinics]
+verify_jwt = false
+
