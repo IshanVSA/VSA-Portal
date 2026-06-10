@@ -95,6 +95,13 @@ CRITICAL — HARD GATE ENFORCEMENT (read CONTENT_SETTINGS):
 
 If a gate blocks a planned topic, REPLACE it with permitted pillars.
 
+CRITICAL — MONTH & EVENT GROUNDING (read MONTHLY SIGNAL LAYER):
+- All content is for CURRENT_MONTH. Every angle must be appropriate for that month (weather, season, daylight, pet behaviour).
+- You may ONLY reference a named community event, festival, fair, parade, rodeo, sporting event, concert, market, run/race, or holiday if it appears explicitly in COMMUNITY_EVENTS or STATUTORY_HOLIDAYS for CURRENT_MONTH. Do NOT pull event names from your training data, even if locally famous.
+- NEVER reference an event that runs in a different month than CURRENT_MONTH. If unsure of the month an event runs in, do not use it.
+- If COMMUNITY_EVENTS is empty, do not invent or name any festival/fair/event. Use evergreen seasonal angles (weather for the season, daylight, outdoor behaviour, parasite season, etc.) and clinic-DNA topics only. Phrases like "this weekend at the …", "heading to the … this month" are FORBIDDEN unless the event is in the supplied lists.
+- local_reference for each post must be one of: a landmark from LOCAL_LANDMARKS, the CITY or NEIGHBOURHOOD string, or an event name that appears verbatim in COMMUNITY_EVENTS / STATUTORY_HOLIDAYS for CURRENT_MONTH. Otherwise leave it as the city/neighbourhood.
+
 Output JSON with: neighbourhood_brief, confirmation_summary {completeness_score, warnings, hard_gates_applied}, posts (array of 10 with number, date_suggestion, day_of_week, pillar, topic, format, local_reference, hook_a_direction, hook_b_direction, cta_type, boost_suggested, boost_budget, boost_reasoning, compliance_flags, safety_rules_applied, image_direction), budget_allocation {always_on, promotions, burst, total}.
 
 Output ONLY valid JSON.`;
