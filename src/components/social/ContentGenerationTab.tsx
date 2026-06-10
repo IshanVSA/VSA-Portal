@@ -328,6 +328,32 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                   </div>
                 )}
 
+                {/* Empty Signals Warning */}
+                {(() => {
+                  const events = (signals?.community_events as any[]) || [];
+                  const seasonal = (signals?.seasonal_topics as any[]) || [];
+                  const news = (signals?.local_news as any[]) || [];
+                  if (events.length === 0 && seasonal.length === 0 && news.length === 0) {
+                    return (
+                      <div className="p-3 rounded-lg border border-amber-500/40 bg-amber-500/10">
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+                              No local events or seasonal topics set for {monthLabel}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">
+                              Content will be generated using evergreen angles only. Add community events in the Monthly Signals tab to get locally-grounded posts and prevent the AI from referencing wrong-month festivals.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
+
                 <div className="space-y-2">
                   <Label>Clinic News This Month</Label>
                   <Textarea placeholder="New staff, equipment, renovations, awards... Type NONE if nothing." value={clinicNews} onChange={(e) => setClinicNews(e.target.value)} rows={3} />
