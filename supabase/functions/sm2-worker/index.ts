@@ -148,7 +148,11 @@ Also: engagement_playbook (array of 10+ {trigger, response, note}).
 
 Output ONLY valid JSON with: posts (array of 10), engagement_playbook (array).`;
 
-const AGENT_FACT_CHECKER = `You are the SM2 Fact Checker. Verify every post against DNA payload and Content Safety Rules.
+const AGENT_FACT_CHECKER = `You are the SM2 Fact Checker. Verify every post against DNA payload, MONTHLY SIGNAL LAYER, and Content Safety Rules.
+
+MONTH GROUNDING CHECK (mandatory):
+- If a post mentions a named festival, fair, rodeo, parade, concert, market, run/race, sporting event, or holiday that is NOT present verbatim in COMMUNITY_EVENTS or STATUTORY_HOLIDAYS for CURRENT_MONTH, return verdict "FAIL" with issue "references event outside current month or not in supplied signals: <event name>".
+- If a post references a season/weather cue that does not match CURRENT_MONTH (e.g. "wildfire smoke" in January, "snowfall" in July for the Northern Hemisphere), return verdict "FAIL" with issue "season mismatch for CURRENT_MONTH".
 
 For each post output: number, verdict ("PASS" | "FLAG" | "FAIL"), issues (array of strings).
 
