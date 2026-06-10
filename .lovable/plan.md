@@ -1,72 +1,39 @@
-# Google Ads Security Hardening Plan
+## Problem
 
-Your org's Google Ads account was compromised. The portal stores Google OAuth refresh tokens, a Google Ads developer token, and OAuth client credentials. Anyone who still holds those secrets can keep reading/writing your Ads data even after the Google account password is reset. This plan locks that down.
+The June post for Apollo Animal Hospital references the **Cloverdale Rodeo & Country Fair**, which actually runs in **May**. I verified in the DB:
 
-## What's at risk in the portal today
+- `clinic_monthly_signals` for Apollo / `2026-06` has **empty** `community_events`, `seasonal_topics`, `local_news`, and `statutory_holidays`.
+- The Planner agent received empty arrays in the `MONTHLY SIGNAL LAYER` and **invented** a local event from its training data — landing on a May festival while writing the June plan.
 
-1. **`GOOGLE_CLIENT_SECRET`** — used by `google-oauth`, `sync-google-ads`, `google-ads-cron`. If exfiltrated, an attacker can mint new tokens.
-2. **`GOOGLE_ADS_DEVELOPER_TOKEN`** — required to call the Google Ads API. If leaked, attackers can pair it with any OAuth tokens.
-3. **Stored refresh tokens** in `clinic_api_credentials.google_ads_refresh_token` (AES-256-GCM encrypted with `ENCRYPTION_KEY`). Still valid until revoked at Google — encryption only helps if `ENCRYPTION_KEY` wasn't also exposed.
-4. **`google-oauth` callback** issues a 302 to whatever `origin` was passed in `state` — currently unvalidated. An attacker with the client secret could craft an OAuth flow that exfiltrates a fresh code/token to their own domain.
-5. **`save-google-account`** and **`retrieve-oauth-data`** are `verify_jwt = false` and rely on in-code admin checks. Fine, but worth re-auditing.
+So this is two issues combined:
+1. The Planner is allowed to fabricate named local events when no signals are provided.
+2. Nothing pre-populates June's community events for the clinic, so the prompt goes in empty.
 
-## Plan
+## Fix
 
-### 1. Rotate everything Google-side (manual, you do this in Google Cloud / Ads)
-- Revoke the existing OAuth client and create a **new** OAuth Client ID + Secret in Google Cloud Console.
-- Rotate the **Google Ads Developer Token** (request a new one; old one becomes unusable).
-- In Google Account → Security → Third-party access, revoke all existing app grants so every stored refresh token dies.
-- Re-confirm MCC user access; remove any unknown users/service accounts.
+### 1. Lock down the Planner prompt (`supabase/functions/sm2-worker/index.ts`)
+Add an explicit rule to `AGENT_PLANNER`:
 
-### 2. Rotate portal secrets (I'll prompt you via the secrets tool)
-- `GOOGLE_CLIENT_ID` (new)
-- `GOOGLE_CLIENT_SECRET` (new)
-- `GOOGLE_ADS_DEVELOPER_TOKEN` (new)
-- `ENCRYPTION_KEY` (new) — since old refresh tokens are now invalid anyway, re-encrypting isn't needed; we'll just clear them.
+- Named community events, festivals, fairs, parades, sporting events, holidays — may **only** be referenced if they appear in the supplied `COMMUNITY_EVENTS` or `STATUTORY_HOLIDAYS` arrays for `CURRENT_MONTH`.
+- Never reference an event from a different month, even if it is locally famous.
+- If `COMMUNITY_EVENTS` is empty, fall back to evergreen seasonal angles (weather, daylight, pet behaviour for the season) and clinic-DNA topics — no invented festival names, no "this weekend at the …".
+- All `local_reference` values must be either: a landmark from `LOCAL_LANDMARKS`, the city/neighbourhood, or an event present in the supplied lists.
 
-### 3. Wipe stored Google Ads credentials
-Migration to null out compromised tokens so no stale data is ever used:
-```sql
-UPDATE clinic_api_credentials
-SET google_ads_refresh_token = NULL,
-    google_ads_customer_id = NULL,
-    google_ads_login_customer_id = NULL,
-    google_ads_account_name = NULL;
-```
-Every clinic will then show "Not connected" and admins reconnect using the new OAuth client.
+### 2. Tighten the Fact Checker (`AGENT_FACT_CHECKER`)
+Add a hard check: if a post mentions a named festival/fair/parade/sporting event not present in `COMMUNITY_EVENTS` or `STATUTORY_HOLIDAYS` for `CURRENT_MONTH`, return verdict **FAIL** with issue `"references event outside current month or not in supplied signals"`. This will surface in the Reviewer batch and block auto-approval until fixed.
 
-### 4. Harden `google-oauth` edge function
-- **Allow-list redirect origins.** Replace the "trust whatever `origin` is in state" behavior with a hardcoded allow-list: `portal.vsavetmedia.com`, `vet-dash-suite.lovable.app`, `*.lovable.app` preview pattern. Reject anything else and fall back to `FRONTEND_URL`.
-- **Sign the `state` param** (HMAC with a server secret) instead of plain base64 JSON, so attackers can't forge `state` to bounce tokens to a different clinic or origin.
-- **Require admin auth on `authorize`** — today anyone who hits `/google-oauth?action=authorize&clinic_id=...` can start a flow. Require a valid admin JWT on that route.
-- **Bind state to the initiating admin user** (store `user_id` in state; verify on callback) so a leaked authorize link can't be hijacked.
+### 3. Surface empty-signal warning in the UI (`src/components/social/MonthlySignalsForm.tsx` and `ContentGenerationTab.tsx`)
+Before kicking off SM2 generation, if `community_events`, `seasonal_topics`, and `local_news` are all empty for the target month, show a non-blocking warning banner:
+> "No local events or seasonal topics set for {Month}. Content will be generated using evergreen angles only — add community events to get locally-grounded posts."
 
-### 5. Audit + tighten related functions
-- `save-google-account` and `retrieve-oauth-data`: already check admin role; add rate-limit (max 10/min per user) and structured audit logging into a new `security_audit_log` table (action, user_id, clinic_id, ip, ua, timestamp).
-- `sync-google-ads` / `google-ads-cron`: ensure they only run with `CRON_SECRET` (cron) or admin JWT (manual). Log every sync.
+This makes it obvious to the concierge why posts feel generic, and stops silent fabrication.
 
-### 6. Add a one-click "Disconnect all Google Ads" admin tool
-New admin-only button on the Clinics page that calls a new edge function to wipe `google_ads_*` columns across every clinic. Useful if this ever happens again.
+### 4. (No DB schema changes, no migrations, no new tables.)
 
-### 7. Document recovery
-Save a `mem://security/google-ads-compromise-response` runbook with the rotation order and SQL above for future incidents.
+## Out of scope
+- Auto-fetching community events from an external calendar — can be a follow-up if you want it. For now we rely on the concierge entering events into Monthly Signals (the existing flow), but the AI will no longer invent them.
 
-## Files that will change (build mode)
-
-- `supabase/functions/google-oauth/index.ts` — signed state, origin allow-list, admin JWT on authorize
-- `supabase/functions/save-google-account/index.ts` — audit logging
-- `supabase/functions/retrieve-oauth-data/index.ts` — audit logging
-- `supabase/functions/sync-google-ads/index.ts` — audit logging
-- New `supabase/functions/disconnect-all-google-ads/index.ts`
-- New migration: clear tokens + create `security_audit_log` table with RLS + GRANTs
-- `src/pages/Clinics.tsx` (or admin settings) — "Disconnect all Google Ads" button
-- New `mem://security/google-ads-compromise-response`
-
-## Order of operations
-
-1. You rotate Google-side credentials + developer token.
-2. I add the secret prompts for the new `GOOGLE_CLIENT_ID/SECRET`, `GOOGLE_ADS_DEVELOPER_TOKEN`, `ENCRYPTION_KEY`.
-3. I ship the migration (wipe tokens) + harden the edge functions + add the audit log + admin disconnect tool.
-4. Admins reconnect each clinic's Google Ads through the new, hardened flow.
-
-Confirm and I'll switch to build mode and execute steps 2–4. Let me know if you want to skip any item (e.g., signed state, audit log table) to keep the change smaller.
+## Verification
+- Re-trigger generation for Apollo June with empty signals → posts must not name any festival/fair.
+- Add a June event (e.g. "Surrey Fusion Festival") to Monthly Signals → that event should appear, Cloverdale Rodeo should not.
+- Spot-check Fact Checker output: a planted "Cloverdale Rodeo" topic should come back as FAIL.
