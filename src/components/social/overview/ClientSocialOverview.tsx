@@ -179,22 +179,22 @@ export function ClientSocialOverview({ clinicId }: ClientSocialOverviewProps) {
     <div className="space-y-6">
       {/* CLIENT CHAT */}
       <Card className="overflow-hidden border-border/50 animate-fade-in">
-        <CardHeader className="border-b border-border/40 bg-muted/20 pb-4 flex flex-row items-center justify-between gap-3">
+        <CardHeader className="border-b border-border/40 bg-muted/20 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="min-w-0">
             <CardTitle className="text-base flex items-center gap-2">
-              <MessageCircle className="h-4 w-4 text-primary" />
-              Chat with your Social Media concierge
+              <MessageCircle className="h-4 w-4 text-primary shrink-0" />
+              <span className="truncate">Chat with your Social Media concierge</span>
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1">
               {greeting()}, {displayName} — message your team directly from here.
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => goTab("client-chat")} className="shrink-0">
+          <Button variant="outline" size="sm" onClick={() => goTab("client-chat")} className="shrink-0 w-full sm:w-auto">
             Open full chat <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
           </Button>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="h-[520px]">
+          <div className="h-[420px] sm:h-[520px]">
             <DepartmentChat variant="client" department="social_media" clinicId={clinicId} />
           </div>
         </CardContent>

@@ -37,7 +37,8 @@ export function ListView({ posts, onPostClick }: ListViewProps) {
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
-      <table className="w-full text-sm">
+      <div className="overflow-x-auto">
+      <table className="w-full text-sm min-w-[640px]">
         <thead>
           <tr className="bg-muted/50 text-muted-foreground text-xs">
             <th className="text-left py-2.5 px-4 font-medium">Title</th>
@@ -74,7 +75,8 @@ export function ListView({ posts, onPostClick }: ListViewProps) {
             </tr>
           ))}
         </tbody>
-      </table>
+     </table>
+      </div>
     </div>
   );
 }

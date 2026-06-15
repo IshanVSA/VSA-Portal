@@ -160,7 +160,7 @@ export default function ClientContentReview({ clinicId }: Props) {
       {/* Calendar Preview Dialog */}
       {viewingGen && (
         <Dialog open onOpenChange={() => setViewingGen(null)}>
-          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-[95vw] max-w-5xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4" />
@@ -500,7 +500,7 @@ function ClientHtmlPreview({
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl h-[85vh]">
+      <DialogContent className="w-[95vw] max-w-5xl h-[85vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-4 w-4" />

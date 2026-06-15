@@ -336,7 +336,7 @@ export default function BrandDNATab({ clinicId }: Props) {
                   <button
                     key={l.key}
                     onClick={() => setActiveLayer(l.key)}
-                    className={`group flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm transition-colors text-left whitespace-nowrap ${
+                    className={`group flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm transition-colors text-left ${
                       active
                         ? "bg-primary/10 text-foreground"
                         : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"

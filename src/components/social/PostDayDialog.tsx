@@ -72,7 +72,7 @@ export default function PostDayDialog({ open, onClose, date, generationId, isCli
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[88vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] max-w-4xl max-h-[88vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{label}</DialogTitle>
         </DialogHeader>
@@ -353,7 +353,7 @@ function PostCard({
                 )}
               </div>
 
-              <div className="grid grid-cols-4 gap-1.5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                 {imageUrls.slice(1).map((img, idx) => {
                   const realIdx = idx + 1;
                   const isVid = isVideoUrl(img.url);

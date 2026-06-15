@@ -152,7 +152,7 @@ export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
       </div>
 
       {/* KPI inline */}
-      <div className="grid grid-cols-3 gap-8 pb-4 border-b border-border/40">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8 pb-4 border-b border-border/40">
         <KpiInline label="ORGANIC KEYWORDS" value={fmt(totalKeywords)} />
         <KpiInline label="ORGANIC TRAFFIC" value={fmt(traffic)} />
         <KpiInline label="ORGANIC TRAFFIC COST" value={`$${fmt(trafficCost)}`} />

@@ -352,7 +352,7 @@ export function AdminSocialOverview({ clinicId }: AdminSocialOverviewProps) {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
                 <p className="text-[10px] uppercase tracking-wide text-blue-600 font-semibold">Scheduled</p>
                 <p className="text-2xl font-bold text-foreground tabular-nums mt-1">{gbpSnapshot.scheduled}</p>
