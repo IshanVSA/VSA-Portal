@@ -18,6 +18,7 @@ import { DNAScoreRing } from "./shared/DNAScoreRing";
 import { computeBrandDNAScore } from "@/lib/brand-dna-score";
 import { RecentPostsPreview } from "./shared/RecentPostsPreview";
 import { resolveDisplayName } from "@/lib/display-name";
+import { DepartmentChat } from "@/components/department/DepartmentChat";
 
 interface ClientSocialOverviewProps {
   clinicId?: string;
@@ -176,49 +177,27 @@ export function ClientSocialOverview({ clinicId }: ClientSocialOverviewProps) {
 
   return (
     <div className="space-y-6">
-      {/* HERO */}
+      {/* CLIENT CHAT */}
       <Card className="overflow-hidden border-border/50 animate-fade-in">
-        <div
-          className="relative p-6 sm:p-8"
-          style={{
-            background:
-              "linear-gradient(135deg, hsl(var(--dept-social) / 0.12) 0%, hsl(var(--card)) 55%, hsl(var(--card)) 100%)",
-          }}
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_auto] gap-6 items-center">
-            <DNAScoreRing score={dnaScore} size={112} label="DNA" />
-
-            <div className="min-w-0">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">{greeting()}</p>
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight mt-1">
-                Welcome back, {displayName}
-              </h1>
-              <p className="text-sm text-muted-foreground mt-2 max-w-xl">
-                {awaitingMyReview > 0
-                  ? `You have ${awaitingMyReview} ${awaitingMyReview === 1 ? "post" : "posts"} ready for your review.`
-                  : postsLiveThisMonth > 0
-                    ? `${postsLiveThisMonth} ${postsLiveThisMonth === 1 ? "post is" : "posts are"} live this month — your audience is hearing from you.`
-                    : "Your brand profile is looking " + dnaTone + ". We'll start prepping content soon."}
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-2 w-full lg:w-auto">
-              {awaitingMyReview > 0 && (
-                <Button size="lg" onClick={() => goTab("content-review")} className="lg:min-w-[200px]">
-                  <Eye className="h-4 w-4 mr-2" /> Review {awaitingMyReview} {awaitingMyReview === 1 ? "post" : "posts"}
-                </Button>
-              )}
-              <Button
-                variant={awaitingMyReview > 0 ? "outline" : "default"}
-                size={awaitingMyReview > 0 ? "default" : "lg"}
-                onClick={() => goTab("brand-dna")}
-                className="lg:min-w-[200px]"
-              >
-                <Sparkles className="h-4 w-4 mr-2" /> Update Brand DNA
-              </Button>
-            </div>
+        <CardHeader className="border-b border-border/40 bg-muted/20 pb-4 flex flex-row items-center justify-between gap-3">
+          <div className="min-w-0">
+            <CardTitle className="text-base flex items-center gap-2">
+              <MessageCircle className="h-4 w-4 text-primary" />
+              Chat with your Social Media concierge
+            </CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              {greeting()}, {displayName} — message your team directly from here.
+            </p>
           </div>
-        </div>
+          <Button variant="outline" size="sm" onClick={() => goTab("client-chat")} className="shrink-0">
+            Open full chat <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+          </Button>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="h-[520px]">
+            <DepartmentChat variant="client" department="social_media" clinicId={clinicId} />
+          </div>
+        </CardContent>
       </Card>
 
       {/* KPI Tiles */}
