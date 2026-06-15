@@ -8,8 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { StatsCard } from "@/components/StatsCard";
 import {
   Inbox, Clock, Ticket, CalendarDays, ShieldAlert, BarChart3, ListChecks, Plus,
-  Sparkles, ArrowRight, Dna, CheckCircle2, AlertTriangle, Workflow,
+  Sparkles, ArrowRight, Dna, CheckCircle2, AlertTriangle, Workflow, MessageCircle,
 } from "lucide-react";
+import { DepartmentChat } from "@/components/department/DepartmentChat";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { format, subDays, startOfDay, formatDistanceToNow, addDays } from "date-fns";
 import { SOCIAL_QUICK_ACTIONS as QUICK_ACTIONS } from "@/lib/quick-actions";
@@ -213,6 +214,29 @@ export function ConciergeSocialOverview({ clinicId }: ConciergeSocialOverviewPro
 
   return (
     <div className="space-y-6">
+      {/* CLIENT CHAT */}
+      <Card className="overflow-hidden border-border/50 animate-fade-in">
+        <CardHeader className="border-b border-border/40 bg-muted/20 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="min-w-0">
+            <CardTitle className="text-base flex items-center gap-2">
+              <MessageCircle className="h-4 w-4 text-primary shrink-0" />
+              <span className="truncate">Client Chat</span>
+            </CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              Message the clinic directly from here.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => goTab("client-chat")} className="shrink-0 w-full sm:w-auto">
+            Open full chat <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+          </Button>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="h-[420px] sm:h-[520px]">
+            <DepartmentChat variant="client" department="social_media" clinicId={clinicId} />
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Row 1 — Action KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 items-stretch">
         <button onClick={() => goTab("generation")} className="text-left h-full">

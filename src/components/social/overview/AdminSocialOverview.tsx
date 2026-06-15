@@ -7,14 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { StatsCard } from "@/components/StatsCard";
 import {
   CalendarDays, Sparkles, AlertTriangle, Ticket, Megaphone, MapPin, BarChart3, Users,
-  Activity, Workflow, MessageSquare, Clock, Dna, FileText,
+  Activity, Workflow, MessageSquare, Clock, Dna, FileText, MessageCircle, ArrowRight,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { format, subDays, startOfDay, formatDistanceToNow } from "date-fns";
 import { PipelineFunnel, type PipelineStage } from "./shared/PipelineFunnel";
 import { HardGatesStatus, type GateStat } from "./shared/HardGatesStatus";
 import { DNAScoreRing } from "./shared/DNAScoreRing";
 import { computeBrandDNAScore } from "@/lib/brand-dna-score";
+import { DepartmentChat } from "@/components/department/DepartmentChat";
 
 interface AdminSocialOverviewProps {
   clinicId?: string;
@@ -216,6 +218,29 @@ export function AdminSocialOverview({ clinicId }: AdminSocialOverviewProps) {
 
   return (
     <div className="space-y-6">
+      {/* CLIENT CHAT */}
+      <Card className="overflow-hidden border-border/50 animate-fade-in">
+        <CardHeader className="border-b border-border/40 bg-muted/20 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="min-w-0">
+            <CardTitle className="text-base flex items-center gap-2">
+              <MessageCircle className="h-4 w-4 text-primary shrink-0" />
+              <span className="truncate">Client Chat</span>
+            </CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              Message the clinic directly from here.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => goTab("client-chat")} className="shrink-0 w-full sm:w-auto">
+            Open full chat <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+          </Button>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="h-[420px] sm:h-[520px]">
+            <DepartmentChat variant="client" department="social_media" clinicId={clinicId} />
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Row 1 — KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
         <div className="relative">
