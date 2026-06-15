@@ -102,6 +102,13 @@ CRITICAL — MONTH & EVENT GROUNDING (read MONTHLY SIGNAL LAYER):
 - If COMMUNITY_EVENTS is empty, do not invent or name any festival/fair/event. Use evergreen seasonal angles (weather for the season, daylight, outdoor behaviour, parasite season, etc.) and clinic-DNA topics only. Phrases like "this weekend at the …", "heading to the … this month" are FORBIDDEN unless the event is in the supplied lists.
 - local_reference for each post must be one of: a landmark from LOCAL_LANDMARKS, the CITY or NEIGHBOURHOOD string, or an event name that appears verbatim in COMMUNITY_EVENTS / STATUTORY_HOLIDAYS for CURRENT_MONTH. Otherwise leave it as the city/neighbourhood.
 
+CRITICAL — DEDUPLICATION VS PRIOR MONTHS (read RECENT POSTS block):
+- Treat the RECENT POSTS (LAST 3 MONTHS) list as a HARD blocklist. Do NOT plan a topic that matches or paraphrases anything in that list.
+- A topic counts as a repeat if it covers the same subject (e.g. "dental health", "tick prevention", "senior pet wellness", "puppy socialization") even with different wording. Pick a fresh subject or a clearly different sub-angle.
+- The 10 new posts must look visibly different from last month's mix: vary pillars, formats, hook angles, and CTA types. Do NOT mirror last month's pillar distribution.
+- Each of the 10 new topics must also be distinct from every other new topic in this batch.
+- If you cannot find 10 fresh topics that fit CURRENT_MONTH and the DNA, prefer evergreen seasonal/educational angles the clinic has not used recently rather than recycling.
+
 Output JSON with: neighbourhood_brief, confirmation_summary {completeness_score, warnings, hard_gates_applied}, posts (array of 10 with number, date_suggestion, day_of_week, pillar, topic, format, local_reference, hook_a_direction, hook_b_direction, cta_type, boost_suggested, boost_budget, boost_reasoning, compliance_flags, safety_rules_applied, image_direction), budget_allocation {always_on, promotions, burst, total}.
 
 Output ONLY valid JSON.`;
@@ -153,6 +160,10 @@ const AGENT_FACT_CHECKER = `You are the SM2 Fact Checker. Verify every post agai
 MONTH GROUNDING CHECK (mandatory):
 - If a post mentions a named festival, fair, rodeo, parade, concert, market, run/race, sporting event, or holiday that is NOT present verbatim in COMMUNITY_EVENTS or STATUTORY_HOLIDAYS for CURRENT_MONTH, return verdict "FAIL" with issue "references event outside current month or not in supplied signals: <event name>".
 - If a post references a season/weather cue that does not match CURRENT_MONTH (e.g. "wildfire smoke" in January, "snowfall" in July for the Northern Hemisphere), return verdict "FAIL" with issue "season mismatch for CURRENT_MONTH".
+
+DEDUPLICATION CHECK (mandatory, read RECENT POSTS block if present):
+- If a post's topic, hook, or caption opening matches or paraphrases anything in RECENT POSTS (LAST 3 MONTHS), return verdict "FAIL" with issue "duplicates prior-month content: <recent topic>".
+- Same subject covered with different wording still counts as a duplicate.
 
 For each post output: number, verdict ("PASS" | "FLAG" | "FAIL"), issues (array of strings).
 
@@ -367,22 +378,41 @@ async function runOneStage(supabase: any, job: any): Promise<{ done: boolean; st
     supabase.from("clinic_gbp_config").select("*").eq("clinic_id", clinic_id).maybeSingle(),
   ]);
 
-  // ── DUPLICATE PREVENTION: pull last 3 months of SM2 posts (excluding current month) ──
-  const priorPostsRes = await supabase
-    .from("sm2_posts")
-    .select("topic, hook, hook_b, caption, theme, scheduled_date")
+  // ── DUPLICATE PREVENTION: pull prior 3 months of SM2 posts (excluding current month) ──
+  // Resolve prior month_years via sm2_generations so we don't depend on scheduled_date being populated.
+  const priorMonths: string[] = [];
+  {
+    const [y, m] = month_year.split("-").map((n: string) => parseInt(n));
+    for (let i = 1; i <= 3; i++) {
+      const d = new Date(Date.UTC(y, m - 1 - i, 1));
+      priorMonths.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`);
+    }
+  }
+  const priorGensRes = await supabase
+    .from("sm2_generations")
+    .select("id, month_year")
     .eq("clinic_id", clinic_id)
-    .neq("scheduled_date", null)
-    .order("scheduled_date", { ascending: false })
-    .limit(40);
-  const priorPosts = (priorPostsRes.data || []).filter((p: any) => {
-    if (!p.scheduled_date) return false;
-    const ym = String(p.scheduled_date).slice(0, 7);
-    return ym !== month_year; // exclude current month so retries don't self-poison
-  }).slice(0, 30);
+    .in("month_year", priorMonths);
+  const priorGenIds = (priorGensRes.data || []).map((g: any) => g.id);
+  const genMonthMap = new Map<string, string>((priorGensRes.data || []).map((g: any) => [g.id, g.month_year]));
+  let priorPosts: any[] = [];
+  if (priorGenIds.length > 0) {
+    const priorPostsRes = await supabase
+      .from("sm2_posts")
+      .select("topic, hook, hook_b, caption, theme, scheduled_date, generation_id")
+      .in("generation_id", priorGenIds)
+      .limit(120);
+    priorPosts = (priorPostsRes.data || []).map((p: any) => ({
+      ...p,
+      month_year: genMonthMap.get(p.generation_id) || (p.scheduled_date ? String(p.scheduled_date).slice(0, 7) : ""),
+    })).filter((p: any) => p.month_year !== month_year);
+  }
+  // Sort newest month first, then by scheduled_date
+  priorPosts.sort((a, b) => (b.month_year || "").localeCompare(a.month_year || "") || String(b.scheduled_date || "").localeCompare(String(a.scheduled_date || "")));
+  priorPosts = priorPosts.slice(0, 60);
   const recentContentBlock = priorPosts.length === 0
     ? "\n\n=== RECENT POSTS (LAST 3 MONTHS) ===\nNONE"
-    : `\n\n=== RECENT POSTS (LAST 3 MONTHS) — DO NOT REPEAT TOPIC, HOOK, OR CAPTION OPENING ===\n${priorPosts.map((p: any, i: number) => `${i+1}. [${p.scheduled_date}] theme="${p.theme || ""}" topic="${p.topic || ""}" hookA="${(p.hook || "").slice(0, 120)}" hookB="${(p.hook_b || "").slice(0, 120)}" captionStart="${(p.caption || "").slice(0, 140)}"`).join("\n")}\n\nRULES: Pick fresh topics, fresh angles, fresh opening lines. No reused metaphors, no near-duplicate hooks, no recycled captions.`;
+    : `\n\n=== RECENT POSTS (LAST 3 MONTHS) — DO NOT REPEAT TOPIC, ANGLE, HOOK, OR CAPTION OPENING ===\n${priorPosts.map((p: any, i: number) => `${i+1}. [${p.month_year}] theme="${p.theme || ""}" topic="${p.topic || ""}" hookA="${(p.hook || "").slice(0, 120)}" hookB="${(p.hook_b || "").slice(0, 120)}" captionStart="${(p.caption || "").slice(0, 140)}"`).join("\n")}\n\nDEDUP RULES (mandatory):\n- Do NOT reuse any topic from the list above, even rephrased. If last month covered "dental health", this month must take a different angle (e.g. nutrition, parasite prevention, behaviour, senior care, etc.) or a clearly different sub-angle.\n- Do NOT reuse hook openings, metaphors, or caption first lines.\n- Aim for a visibly different pillar mix vs last month: if last month was heavy on dental/education, shift toward seasonal care, team/clinic stories, client education on a different system, or community.\n- Each new topic must be distinct from every other new topic AND from every topic in the list above.`;
 
   const clinic = clinicRes.data;
   const dna = dnaRes.data;
@@ -454,7 +484,7 @@ async function runOneStage(supabase: any, job: any): Promise<{ done: boolean; st
     }
     case "fact_check": {
       const r = await callAgent(AGENT_FACT_CHECKER,
-        `${dnaPayload}\n\n=== POSTS ===\n${JSON.stringify(data.write, null, 2)}`,
+        `${dnaPayload}\n\n=== POSTS ===\n${JSON.stringify(data.write, null, 2)}${recentContentBlock}`,
         2500, "Fact Checker");
       stageOutput = r.parsed; tokens = r.tokens;
       break;
