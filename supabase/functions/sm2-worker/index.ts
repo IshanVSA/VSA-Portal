@@ -172,6 +172,9 @@ DEDUPLICATION CHECK (mandatory, read RECENT POSTS block if present):
 - If a post's topic, hook, or caption opening matches or paraphrases anything in RECENT POSTS (LAST 3 MONTHS), return verdict "FAIL" with issue "duplicates prior-month content: <recent topic>".
 - Same subject covered with different wording still counts as a duplicate.
 
+SIGNAL COVERAGE CHECK (mandatory, batch-level):
+- Inspect COMMUNITY_EVENTS, LOCAL_ALERTS, LOCAL_NEWS, CLINIC_NEWS_THIS_MONTH. For each non-empty, non-"NONE" item, verify at least ONE post in the batch references it by name. If a supplied signal item has zero coverage, append a post-level FAIL on post number 1 with issue "supplied signal not used: <item>" (one issue per missed signal).
+
 For each post output: number, verdict ("PASS" | "FLAG" | "FAIL"), issues (array of strings).
 
 Output ONLY valid JSON array of 10 objects.`;
