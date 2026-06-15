@@ -102,6 +102,13 @@ CRITICAL — MONTH & EVENT GROUNDING (read MONTHLY SIGNAL LAYER):
 - If COMMUNITY_EVENTS is empty, do not invent or name any festival/fair/event. Use evergreen seasonal angles (weather for the season, daylight, outdoor behaviour, parasite season, etc.) and clinic-DNA topics only. Phrases like "this weekend at the …", "heading to the … this month" are FORBIDDEN unless the event is in the supplied lists.
 - local_reference for each post must be one of: a landmark from LOCAL_LANDMARKS, the CITY or NEIGHBOURHOOD string, or an event name that appears verbatim in COMMUNITY_EVENTS / STATUTORY_HOLIDAYS for CURRENT_MONTH. Otherwise leave it as the city/neighbourhood.
 
+MANDATORY SIGNAL UTILIZATION (read MONTHLY SIGNAL LAYER):
+- COMMUNITY_EVENTS, LOCAL_ALERTS, LOCAL_NEWS, CLINIC_NEWS_THIS_MONTH, FACEBOOK_SPECIFIC_THIS_MONTH, and STATUTORY_HOLIDAYS were supplied by the concierge specifically so this month's calendar reflects them. They are NOT optional context.
+- For EACH non-empty signal item supplied, you MUST plan at least ONE dedicated post that references it by name (e.g. a community event in COMMUNITY_EVENTS gets its own pet-safety / preparedness / community-presence post tied to that event; a LOCAL_ALERT gets a timely awareness post; CLINIC_NEWS_THIS_MONTH gets an announcement post).
+- These signal-driven posts COUNT toward the 10. Allocate the remaining slots to evergreen seasonal + DNA-driven topics.
+- In confirmation_summary.warnings, list any supplied signal item you could not turn into a post and why. Empty-string or "NONE"/"none" entries are not signals and should be ignored.
+- Pet-relevance bridge: if the supplied event is not inherently pet-related (e.g. a music festival, fair, market), still build a pet/clinic angle around it (crowd-and-noise prep, leaving pets safely at home, hydration in summer crowds, lost-pet ID before busy weekends, etc.).
+
 CRITICAL — DEDUPLICATION VS PRIOR MONTHS (read RECENT POSTS block):
 - Treat the RECENT POSTS (LAST 3 MONTHS) list as a HARD blocklist. Do NOT plan a topic that matches or paraphrases anything in that list.
 - A topic counts as a repeat if it covers the same subject (e.g. "dental health", "tick prevention", "senior pet wellness", "puppy socialization") even with different wording. Pick a fresh subject or a clearly different sub-angle.
