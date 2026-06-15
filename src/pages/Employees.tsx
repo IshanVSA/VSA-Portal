@@ -363,6 +363,7 @@ export default function Employees() {
                 })}
               </TableBody>
             </Table>
+            </div>
           </Card>
         )}
           </TabsContent>
