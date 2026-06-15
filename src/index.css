@@ -425,3 +425,40 @@
 /* Hide scrollbar but keep horizontal scroll functionality */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ============================================================
+   Global mobile/tablet safety net — Pass 2
+   Prevents horizontal overflow, long-word overflow, and tap-zoom on inputs.
+   ============================================================ */
+@layer base {
+  /* Stop iOS from auto-zooming when focusing inputs (font < 16px triggers zoom) */
+  @media (max-width: 640px) {
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
+
+  /* Long URLs, emails, IDs wrap instead of forcing horizontal scroll.
+     Table cells keep single-line behavior because tables already live inside
+     overflow-auto containers (see ui/table.tsx). */
+  p, li, dd, dt, label, h1, h2, h3, h4, h5, h6 {
+    overflow-wrap: anywhere;
+  }
+
+  /* Images and media never exceed their container */
+  img, video, canvas, svg, iframe {
+    max-width: 100%;
+  }
+}
+
+@layer utilities {
+  /* Page header pattern: title row + actions row, stacks on mobile */
+  .page-header-row {
+    @apply flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4;
+  }
+  .page-header-actions {
+    @apply flex flex-wrap items-center gap-2;
+  }
+}
