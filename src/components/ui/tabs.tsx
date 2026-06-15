@@ -9,14 +9,18 @@ const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
 >(({ className, ...props }, ref) => (
-  <TabsPrimitive.List
-    ref={ref}
-    className={cn(
-      "inline-flex h-9 items-center justify-center rounded-full bg-muted/80 p-[3px] text-muted-foreground",
-      className,
-    )}
-    {...props}
-  />
+  // Wrapper makes any TabsList horizontally scrollable on small screens when it
+  // overflows, preventing layout breaks without changing desktop behavior.
+  <div className="max-w-full overflow-x-auto no-scrollbar">
+    <TabsPrimitive.List
+      ref={ref}
+      className={cn(
+        "inline-flex h-9 items-center justify-center rounded-full bg-muted/80 p-[3px] text-muted-foreground w-max",
+        className,
+      )}
+      {...props}
+    />
+  </div>
 ));
 TabsList.displayName = TabsPrimitive.List.displayName;
 
