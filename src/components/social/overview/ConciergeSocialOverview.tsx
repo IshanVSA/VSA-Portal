@@ -8,8 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { StatsCard } from "@/components/StatsCard";
 import {
   Inbox, Clock, Ticket, CalendarDays, ShieldAlert, BarChart3, ListChecks, Plus,
-  Sparkles, ArrowRight, Dna, CheckCircle2, AlertTriangle, Workflow,
+  Sparkles, ArrowRight, Dna, CheckCircle2, AlertTriangle, Workflow, MessageCircle,
 } from "lucide-react";
+import { DepartmentChat } from "@/components/department/DepartmentChat";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { format, subDays, startOfDay, formatDistanceToNow, addDays } from "date-fns";
 import { SOCIAL_QUICK_ACTIONS as QUICK_ACTIONS } from "@/lib/quick-actions";
