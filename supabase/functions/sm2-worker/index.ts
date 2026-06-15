@@ -367,22 +367,41 @@ async function runOneStage(supabase: any, job: any): Promise<{ done: boolean; st
     supabase.from("clinic_gbp_config").select("*").eq("clinic_id", clinic_id).maybeSingle(),
   ]);
 
-  // ── DUPLICATE PREVENTION: pull last 3 months of SM2 posts (excluding current month) ──
-  const priorPostsRes = await supabase
-    .from("sm2_posts")
-    .select("topic, hook, hook_b, caption, theme, scheduled_date")
+  // ── DUPLICATE PREVENTION: pull prior 3 months of SM2 posts (excluding current month) ──
+  // Resolve prior month_years via sm2_generations so we don't depend on scheduled_date being populated.
+  const priorMonths: string[] = [];
+  {
+    const [y, m] = month_year.split("-").map((n: string) => parseInt(n));
+    for (let i = 1; i <= 3; i++) {
+      const d = new Date(Date.UTC(y, m - 1 - i, 1));
+      priorMonths.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`);
+    }
+  }
+  const priorGensRes = await supabase
+    .from("sm2_generations")
+    .select("id, month_year")
     .eq("clinic_id", clinic_id)
-    .neq("scheduled_date", null)
-    .order("scheduled_date", { ascending: false })
-    .limit(40);
-  const priorPosts = (priorPostsRes.data || []).filter((p: any) => {
-    if (!p.scheduled_date) return false;
-    const ym = String(p.scheduled_date).slice(0, 7);
-    return ym !== month_year; // exclude current month so retries don't self-poison
-  }).slice(0, 30);
+    .in("month_year", priorMonths);
+  const priorGenIds = (priorGensRes.data || []).map((g: any) => g.id);
+  const genMonthMap = new Map<string, string>((priorGensRes.data || []).map((g: any) => [g.id, g.month_year]));
+  let priorPosts: any[] = [];
+  if (priorGenIds.length > 0) {
+    const priorPostsRes = await supabase
+      .from("sm2_posts")
+      .select("topic, hook, hook_b, caption, theme, scheduled_date, generation_id")
+      .in("generation_id", priorGenIds)
+      .limit(120);
+    priorPosts = (priorPostsRes.data || []).map((p: any) => ({
+      ...p,
+      month_year: genMonthMap.get(p.generation_id) || (p.scheduled_date ? String(p.scheduled_date).slice(0, 7) : ""),
+    })).filter((p: any) => p.month_year !== month_year);
+  }
+  // Sort newest month first, then by scheduled_date
+  priorPosts.sort((a, b) => (b.month_year || "").localeCompare(a.month_year || "") || String(b.scheduled_date || "").localeCompare(String(a.scheduled_date || "")));
+  priorPosts = priorPosts.slice(0, 60);
   const recentContentBlock = priorPosts.length === 0
     ? "\n\n=== RECENT POSTS (LAST 3 MONTHS) ===\nNONE"
-    : `\n\n=== RECENT POSTS (LAST 3 MONTHS) — DO NOT REPEAT TOPIC, HOOK, OR CAPTION OPENING ===\n${priorPosts.map((p: any, i: number) => `${i+1}. [${p.scheduled_date}] theme="${p.theme || ""}" topic="${p.topic || ""}" hookA="${(p.hook || "").slice(0, 120)}" hookB="${(p.hook_b || "").slice(0, 120)}" captionStart="${(p.caption || "").slice(0, 140)}"`).join("\n")}\n\nRULES: Pick fresh topics, fresh angles, fresh opening lines. No reused metaphors, no near-duplicate hooks, no recycled captions.`;
+    : `\n\n=== RECENT POSTS (LAST 3 MONTHS) — DO NOT REPEAT TOPIC, ANGLE, HOOK, OR CAPTION OPENING ===\n${priorPosts.map((p: any, i: number) => `${i+1}. [${p.month_year}] theme="${p.theme || ""}" topic="${p.topic || ""}" hookA="${(p.hook || "").slice(0, 120)}" hookB="${(p.hook_b || "").slice(0, 120)}" captionStart="${(p.caption || "").slice(0, 140)}"`).join("\n")}\n\nDEDUP RULES (mandatory):\n- Do NOT reuse any topic from the list above, even rephrased. If last month covered "dental health", this month must take a different angle (e.g. nutrition, parasite prevention, behaviour, senior care, etc.) or a clearly different sub-angle.\n- Do NOT reuse hook openings, metaphors, or caption first lines.\n- Aim for a visibly different pillar mix vs last month: if last month was heavy on dental/education, shift toward seasonal care, team/clinic stories, client education on a different system, or community.\n- Each new topic must be distinct from every other new topic AND from every topic in the list above.`;
 
   const clinic = clinicRes.data;
   const dna = dnaRes.data;
