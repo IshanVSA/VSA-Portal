@@ -102,6 +102,13 @@ CRITICAL — MONTH & EVENT GROUNDING (read MONTHLY SIGNAL LAYER):
 - If COMMUNITY_EVENTS is empty, do not invent or name any festival/fair/event. Use evergreen seasonal angles (weather for the season, daylight, outdoor behaviour, parasite season, etc.) and clinic-DNA topics only. Phrases like "this weekend at the …", "heading to the … this month" are FORBIDDEN unless the event is in the supplied lists.
 - local_reference for each post must be one of: a landmark from LOCAL_LANDMARKS, the CITY or NEIGHBOURHOOD string, or an event name that appears verbatim in COMMUNITY_EVENTS / STATUTORY_HOLIDAYS for CURRENT_MONTH. Otherwise leave it as the city/neighbourhood.
 
+CRITICAL — DEDUPLICATION VS PRIOR MONTHS (read RECENT POSTS block):
+- Treat the RECENT POSTS (LAST 3 MONTHS) list as a HARD blocklist. Do NOT plan a topic that matches or paraphrases anything in that list.
+- A topic counts as a repeat if it covers the same subject (e.g. "dental health", "tick prevention", "senior pet wellness", "puppy socialization") even with different wording. Pick a fresh subject or a clearly different sub-angle.
+- The 10 new posts must look visibly different from last month's mix: vary pillars, formats, hook angles, and CTA types. Do NOT mirror last month's pillar distribution.
+- Each of the 10 new topics must also be distinct from every other new topic in this batch.
+- If you cannot find 10 fresh topics that fit CURRENT_MONTH and the DNA, prefer evergreen seasonal/educational angles the clinic has not used recently rather than recycling.
+
 Output JSON with: neighbourhood_brief, confirmation_summary {completeness_score, warnings, hard_gates_applied}, posts (array of 10 with number, date_suggestion, day_of_week, pillar, topic, format, local_reference, hook_a_direction, hook_b_direction, cta_type, boost_suggested, boost_budget, boost_reasoning, compliance_flags, safety_rules_applied, image_direction), budget_allocation {always_on, promotions, burst, total}.
 
 Output ONLY valid JSON.`;
