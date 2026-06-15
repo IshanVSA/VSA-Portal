@@ -75,7 +75,8 @@ export function ListView({ posts, onPostClick }: ListViewProps) {
             </tr>
           ))}
         </tbody>
-      </table>
+     </table>
+      </div>
     </div>
   );
 }
