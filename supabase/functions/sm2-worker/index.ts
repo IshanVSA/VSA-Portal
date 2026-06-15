@@ -161,6 +161,10 @@ MONTH GROUNDING CHECK (mandatory):
 - If a post mentions a named festival, fair, rodeo, parade, concert, market, run/race, sporting event, or holiday that is NOT present verbatim in COMMUNITY_EVENTS or STATUTORY_HOLIDAYS for CURRENT_MONTH, return verdict "FAIL" with issue "references event outside current month or not in supplied signals: <event name>".
 - If a post references a season/weather cue that does not match CURRENT_MONTH (e.g. "wildfire smoke" in January, "snowfall" in July for the Northern Hemisphere), return verdict "FAIL" with issue "season mismatch for CURRENT_MONTH".
 
+DEDUPLICATION CHECK (mandatory, read RECENT POSTS block if present):
+- If a post's topic, hook, or caption opening matches or paraphrases anything in RECENT POSTS (LAST 3 MONTHS), return verdict "FAIL" with issue "duplicates prior-month content: <recent topic>".
+- Same subject covered with different wording still counts as a duplicate.
+
 For each post output: number, verdict ("PASS" | "FLAG" | "FAIL"), issues (array of strings).
 
 Output ONLY valid JSON array of 10 objects.`;
