@@ -311,7 +311,8 @@ export default function Employees() {
           </CardContent></Card>
         ) : (
           <Card className="overflow-hidden border-border/60">
-            <Table className="data-table">
+            <div className="overflow-x-auto">
+            <Table className="data-table min-w-[760px]">
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead>Name</TableHead>

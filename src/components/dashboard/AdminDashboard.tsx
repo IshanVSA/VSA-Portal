@@ -585,7 +585,7 @@ export default function AdminDashboard() {
         )}
 
         {/* Hero stats grid */}
-        <div className="relative mt-7 grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <div className="relative mt-7 grid grid-cols-2 sm:grid-cols-3 gap-3 lg:grid-cols-5">
           <HeroStat
             label="Active Clinics"
             value={activeClinics}

@@ -832,9 +832,9 @@ export function NotificationBell() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8, scale: 0.97 }}
               transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-              style={{ position: "fixed", top: pos.top, right: pos.right }}
+              style={{ position: "fixed", top: pos.top, right: Math.max(8, Math.min(pos.right, typeof window !== "undefined" ? window.innerWidth - 16 : pos.right)) }}
               className={cn(
-                "w-[360px] sm:w-[400px] rounded-2xl overflow-hidden z-[100]",
+                "w-[min(360px,calc(100vw-16px))] sm:w-[400px] rounded-2xl overflow-hidden z-[100]",
                 "bg-card/95 backdrop-blur-xl border border-border/60",
                 "shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3),0_8px_20px_-8px_rgba(0,0,0,0.2)]"
               )}

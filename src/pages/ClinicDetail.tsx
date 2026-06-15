@@ -436,7 +436,7 @@ export default function ClinicDetail() {
   return (
     <>
       <div className="space-y-6">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 min-w-0">
           <Link to="/clinics"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button></Link>
           {id && (
             <ClinicLogoUploader
@@ -774,9 +774,9 @@ export default function ClinicDetail() {
 
           <TabsContent value="ai" className="space-y-4 mt-4">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <CardTitle className="text-base">Tony AI Monthly Insights</CardTitle>
-                <Button variant="outline" size="sm"><RefreshCw className="h-4 w-4 mr-1" /> Regenerate</Button>
+                <Button variant="outline" size="sm" className="w-full sm:w-auto shrink-0"><RefreshCw className="h-4 w-4 mr-1" /> Regenerate</Button>
               </CardHeader>
               <CardContent className="space-y-4 text-sm text-foreground leading-relaxed">
                 <p className="text-muted-foreground">

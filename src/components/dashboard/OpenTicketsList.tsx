@@ -166,7 +166,7 @@ export default function OpenTicketsList({ open, onOpenChange }: OpenTicketsListP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl p-0 gap-0 overflow-hidden">
+      <DialogContent className="w-[95vw] max-w-3xl p-0 gap-0 overflow-hidden">
         <DialogHeader className="border-b border-border/50 px-5 py-4 space-y-0">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">

@@ -886,7 +886,7 @@ function HtmlPreviewDialog({ generationId, onClose }: { generationId: string; on
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl h-[85vh]">
+      <DialogContent className="w-[95vw] max-w-5xl h-[85vh]">
         <DialogHeader>
           <DialogTitle>Generated Content Preview</DialogTitle>
         </DialogHeader>
