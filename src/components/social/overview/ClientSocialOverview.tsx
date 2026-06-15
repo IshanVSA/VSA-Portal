@@ -18,6 +18,7 @@ import { DNAScoreRing } from "./shared/DNAScoreRing";
 import { computeBrandDNAScore } from "@/lib/brand-dna-score";
 import { RecentPostsPreview } from "./shared/RecentPostsPreview";
 import { resolveDisplayName } from "@/lib/display-name";
+import { DepartmentChat } from "@/components/department/DepartmentChat";
 
 interface ClientSocialOverviewProps {
   clinicId?: string;
