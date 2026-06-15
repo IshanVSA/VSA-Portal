@@ -7,14 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { StatsCard } from "@/components/StatsCard";
 import {
   CalendarDays, Sparkles, AlertTriangle, Ticket, Megaphone, MapPin, BarChart3, Users,
-  Activity, Workflow, MessageSquare, Clock, Dna, FileText,
+  Activity, Workflow, MessageSquare, Clock, Dna, FileText, MessageCircle, ArrowRight,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { format, subDays, startOfDay, formatDistanceToNow } from "date-fns";
 import { PipelineFunnel, type PipelineStage } from "./shared/PipelineFunnel";
 import { HardGatesStatus, type GateStat } from "./shared/HardGatesStatus";
 import { DNAScoreRing } from "./shared/DNAScoreRing";
 import { computeBrandDNAScore } from "@/lib/brand-dna-score";
+import { DepartmentChat } from "@/components/department/DepartmentChat";
 
 interface AdminSocialOverviewProps {
   clinicId?: string;
