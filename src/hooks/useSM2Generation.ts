@@ -312,5 +312,6 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
     currentMonth,
     pollForCompletion,
     cancelGeneration,
+    deleteGeneration,
   };
 }
