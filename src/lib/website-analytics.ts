@@ -275,7 +275,7 @@ export function computeWebsiteMetrics(
 
   const dailyCounts = Object.fromEntries(dateKeys.map((dateKey) => [dateKey, 0]));
   filteredViews.forEach((view) => {
-    const dateKey = getZonedDateKey(view.created_at, timeZone);
+    const dateKey = (view as any).__dateKey ?? getZonedDateKey(view.created_at, timeZone);
     if (dateKey in dailyCounts) dailyCounts[dateKey] += 1;
   });
 
