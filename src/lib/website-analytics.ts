@@ -292,7 +292,7 @@ export function computeWebsiteMetrics(
   }));
 
   filteredViews.forEach((view) => {
-    const hour = getZonedHour(view.created_at, timeZone);
+    const hour = (view as any).__hour ?? getZonedHour(view.created_at, timeZone);
     if (hourly[hour]) hourly[hour].views += 1;
   });
 
