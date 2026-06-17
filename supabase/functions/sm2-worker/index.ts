@@ -481,23 +481,19 @@ async function runOneStage(supabase: any, job: any): Promise<{ done: boolean; st
       break;
     }
     case "write_a":
-    case "write_b":
-    case "write": {
+    case "write_b": {
       // Split into 2 batches of 5 to keep each Anthropic call comfortably under
       // the edge function wall-clock timeout. 10 posts in one call regularly
       // hit ~200s and were killed mid-stream; 5 posts run in ~80-100s.
-      // The legacy "write" case is kept so any in-flight job whose pipeline_stage
-      // is still "write" from a previous deploy can re-run as a single batch.
       const allPlan = Array.isArray(data.plan?.posts) ? data.plan.posts : [];
-      let subset = allPlan;
-      let label = "Writer";
-      if (stageToRun === "write_a") { subset = allPlan.slice(0, 5); label = "Writer (1-5)"; }
-      else if (stageToRun === "write_b") { subset = allPlan.slice(5, 10); label = "Writer (6-10)"; }
+      const subset = stageToRun === "write_a" ? allPlan.slice(0, 5) : allPlan.slice(5, 10);
+      const label = stageToRun === "write_a" ? "Writer (1-5)" : "Writer (6-10)";
+      const batchLabel = stageToRun === "write_a" ? "POSTS 1-5 OF 10" : "POSTS 6-10 OF 10";
       // 8000 tokens per 5-post batch leaves plenty of headroom for caption + hashtags
       // + hooks + alt_text + stories_hook + script JSON.
       const r = await callAgent(AGENT_WRITER,
-        `${dnaPayload}\n\n=== CONTENT PLAN (${stageToRun === "write_a" ? "POSTS 1-5 OF 10" : stageToRun === "write_b" ? "POSTS 6-10 OF 10" : "ALL POSTS"}) ===\n${JSON.stringify({ ...data.plan, posts: subset }, null, 2)}${recentContentBlock}`,
-        stageToRun === "write" ? 16000 : 8000, label);
+        `${dnaPayload}\n\n=== CONTENT PLAN (${batchLabel}) ===\n${JSON.stringify({ ...data.plan, posts: subset }, null, 2)}${recentContentBlock}`,
+        8000, label);
       stageOutput = r.parsed; tokens = r.tokens;
       break;
     }
