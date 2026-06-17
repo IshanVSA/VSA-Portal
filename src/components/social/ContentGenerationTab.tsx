@@ -74,8 +74,10 @@ export default function ContentGenerationTab({ clinicId }: Props) {
   const { role } = useUserRole();
   const { user } = useAuth();
   const isAdmin = role === "admin";
-  const canDeleteGeneration = (gen: { triggered_by: string | null }) =>
-    isAdmin || (!!user?.id && gen.triggered_by === user.id);
+  const canDeleteGeneration = (gen: { triggered_by: string | null; approval_status: string }) => {
+    if (gen.approval_status === "approved_client" || gen.approval_status === "approved_auto") return false;
+    return isAdmin || (!!user?.id && gen.triggered_by === user.id);
+  };
   const [stopTargetId, setStopTargetId] = useState<string | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
