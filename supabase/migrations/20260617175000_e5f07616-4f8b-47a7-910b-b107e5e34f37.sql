@@ -1,0 +1,1 @@
+CREATE POLICY "Owners can delete their sm2_generations" ON public.sm2_generations FOR DELETE USING (triggered_by = (SELECT auth.uid()));

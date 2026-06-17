@@ -21,6 +21,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { computeBrandDNAScore } from "@/lib/brand-dna-score";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Props {
   clinicId: string | undefined;
@@ -69,6 +71,11 @@ const ACTIVE_GEN_STATUSES = ["queued", "processing", "retrying"];
 export default function ContentGenerationTab({ clinicId }: Props) {
   const { dna } = useBrandDNA(clinicId);
   const { generations, currentGeneration, generate, sendForApproval, isLoading, pollForCompletion, cancelGeneration, deleteGeneration } = useSM2Generation(clinicId);
+  const { role } = useUserRole();
+  const { user } = useAuth();
+  const isAdmin = role === "admin";
+  const canDeleteGeneration = (gen: { triggered_by: string | null }) =>
+    isAdmin || (!!user?.id && gen.triggered_by === user.id);
   const [stopTargetId, setStopTargetId] = useState<string | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
@@ -615,16 +622,18 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                       {gen.client_feedback && (
                         <Badge variant="destructive" className="text-[10px]">Has Feedback</Badge>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDeleteTargetId(gen.id)}
-                        disabled={deleteGeneration.isPending}
-                        title="Delete generation"
-                        className="text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {canDeleteGeneration(gen) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleteTargetId(gen.id)}
+                          disabled={deleteGeneration.isPending}
+                          title={isAdmin ? "Delete generation (admin)" : "Delete your generation"}
+                          className="text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                   {gen.approval_status === "generation_failed" && (gen as any).failure_reason && (
