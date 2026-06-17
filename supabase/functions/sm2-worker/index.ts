@@ -469,9 +469,13 @@ async function runOneStage(supabase: any, job: any): Promise<{ done: boolean; st
       break;
     }
     case "plan": {
+      // Planner emits a long JSON object (neighbourhood_brief + 10 post objects with
+      // hooks/image_direction/compliance_flags). 4000 tokens truncated mid-JSON,
+      // causing the parser to fall back to a raw string and downstream sm2_posts
+      // inserts to produce 0 rows (empty calendar / "no structured posts" UI).
       const r = await callAgent(AGENT_PLANNER,
         `${dnaPayload}\n\n=== TREND REPORT ===\n${JSON.stringify(data.research, null, 2)}${recentContentBlock}`,
-        4000, "Planner");
+        12000, "Planner");
       stageOutput = r.parsed; tokens = r.tokens;
       break;
     }
