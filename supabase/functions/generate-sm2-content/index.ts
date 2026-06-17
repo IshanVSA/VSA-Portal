@@ -12,7 +12,7 @@ const requestSchema = z.object({
   month_year: z.string().regex(/^\d{4}-\d{2}$/),
 });
 
-const SM2_MODEL = "claude-sonnet-4-20250514";
+const SM2_MODEL = "claude-sonnet-4-5-20250929";
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
