@@ -615,6 +615,16 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                       {gen.client_feedback && (
                         <Badge variant="destructive" className="text-[10px]">Has Feedback</Badge>
                       )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeleteTargetId(gen.id)}
+                        disabled={deleteGeneration.isPending}
+                        title="Delete generation"
+                        className="text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                   {gen.approval_status === "generation_failed" && (gen as any).failure_reason && (
@@ -669,6 +679,29 @@ export default function ContentGenerationTab({ clinicId }: Props) {
               }}
             >
               Stop generation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!deleteTargetId} onOpenChange={(o) => !o && setDeleteTargetId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this generation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove the generation and all its posts from the history. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteTargetId(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deleteTargetId) deleteGeneration.mutate(deleteTargetId);
+                setDeleteTargetId(null);
+              }}
+            >
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
