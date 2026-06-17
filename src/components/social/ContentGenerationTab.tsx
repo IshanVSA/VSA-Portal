@@ -68,8 +68,9 @@ const ACTIVE_GEN_STATUSES = ["queued", "processing", "retrying"];
 
 export default function ContentGenerationTab({ clinicId }: Props) {
   const { dna } = useBrandDNA(clinicId);
-  const { generations, currentGeneration, generate, sendForApproval, isLoading, pollForCompletion, cancelGeneration } = useSM2Generation(clinicId);
+  const { generations, currentGeneration, generate, sendForApproval, isLoading, pollForCompletion, cancelGeneration, deleteGeneration } = useSM2Generation(clinicId);
   const [stopTargetId, setStopTargetId] = useState<string | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const monthOptions = useMemo(() => buildMonthOptions(), []);
   const [targetMonth, setTargetMonth] = useState<string>(monthOptions[1]?.value || monthOptions[0].value);
