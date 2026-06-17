@@ -1,37 +1,51 @@
 import { useState, useEffect, useMemo } from "react";
-import { differenceInDays, subDays } from "date-fns";
+import { differenceInDays, format, subDays } from "date-fns";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar } from "recharts";
 import { Eye, Users, TrendingUp, FileText, Globe, Clock, Layers3, MapPin } from "lucide-react";
-import { Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
 import { StatsCard } from "@/components/StatsCard";
 import { Badge } from "@/components/ui/badge";
 import { useUserRole } from "@/hooks/useUserRole";
 import { DateRangeFilter } from "@/components/department/DateRangeFilter";
 import {
-  buildDateKeys,
-  computeWebsiteMetrics,
   DEFAULT_CLINIC_TIMEZONE,
-  fetchAllPageviews,
-  getBufferedRange,
+  formatPageName,
   getSafeTimeZone,
   getTodayDateForTimeZone,
   getZonedDateKey,
-  precomputeViewKeys,
 } from "@/lib/website-analytics";
 
 interface Props {
   clinicId: string;
 }
 
+interface AnalyticsPayload {
+  timezone: string;
+  kpi: {
+    cur_sessions: number;
+    prev_sessions: number;
+    cur_engaged: number;
+    prev_engaged: number;
+    cur_avg_dur: number;
+    prev_avg_dur: number;
+    cur_views: number;
+    prev_views: number;
+  };
+  daily: { date_key: string; views: number }[];
+  hourly: { hour: number; views: number }[];
+  top_pages: { path: string; views: number; visitors: number }[];
+  session_depth: { one_page: number; two_three: number; four_plus: number; total: number };
+  geo_total: number;
+  geo: { country: string; visitors: number; top_regions: { name: string; count: number }[] }[];
+}
+
 export function WebsiteAnalyticsTab({ clinicId }: Props) {
   const { role } = useUserRole();
   const isStaff = role === "admin" || role === "concierge";
-  const [pageviews, setPageviews] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [timeZone, setTimeZone] = useState(DEFAULT_CLINIC_TIMEZONE);
   const [timezoneReady, setTimezoneReady] = useState(false);
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
@@ -41,111 +55,117 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
 
   const clinicToday = useMemo(() => getTodayDateForTimeZone(timeZone), [timeZone]);
 
-  const selectedDateKeys = useMemo(() => buildDateKeys(dateRange.from, dateRange.to), [dateRange]);
-
+  // Resolve clinic timezone once per clinic
   useEffect(() => {
     setTimezoneReady(false);
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.from("clinics").select("timezone").eq("id", clinicId).maybeSingle();
+      if (cancelled) return;
+      const tz = getSafeTimeZone((data as any)?.timezone);
+      setTimeZone(tz);
+      const today = getTodayDateForTimeZone(tz);
+      setDateRange((cur) => {
+        const days = Math.max(differenceInDays(cur.to, cur.from) + 1, 1);
+        return { from: subDays(today, days - 1), to: today };
+      });
+      setTimezoneReady(true);
+    })();
+    return () => { cancelled = true; };
   }, [clinicId]);
 
+  // Roll forward when day changes
   useEffect(() => {
     if (!timezoneReady) return;
-
     const previousToKey = getZonedDateKey(dateRange.to, timeZone);
     const nextToKey = getZonedDateKey(clinicToday, timeZone);
-
-    // Only roll forward when the day has actually changed (e.g. crossed midnight).
-    // Without this guard, the effect re-sets dateRange to fresh Date objects on
-    // every render, which retriggers the fetch effect and causes a skeleton flash loop.
     if (previousToKey === nextToKey) return;
-
     const days = Math.max(differenceInDays(dateRange.to, dateRange.from) + 1, 1);
-    setDateRange({
-      from: subDays(clinicToday, days - 1),
-      to: clinicToday,
-    });
-  }, [clinicToday, timeZone, timezoneReady]);
+    setDateRange({ from: subDays(clinicToday, days - 1), to: clinicToday });
+  }, [clinicToday, timeZone, timezoneReady, dateRange]);
 
-  useEffect(() => {
-    if (!clinicId) { setLoading(false); return; }
+  const fromKey = useMemo(() => format(dateRange.from, "yyyy-MM-dd"), [dateRange.from]);
+  const toKey = useMemo(() => format(dateRange.to, "yyyy-MM-dd"), [dateRange.to]);
 
-    const fetchData = async () => {
-      setLoading(true);
-      const bufferedRange = getBufferedRange(dateRange.from, dateRange.to);
-      const [{ data: clinic }, data] = await Promise.all([
-        supabase.from("clinics").select("timezone").eq("id", clinicId).maybeSingle(),
-        fetchAllPageviews<any>(supabase, {
-          clinicId,
-          from: bufferedRange.from,
-          to: bufferedRange.to,
-          columns: "session_id, path, referrer, created_at, country_code, region",
-        }),
-      ]);
-      const resolvedTimeZone = getSafeTimeZone(clinic?.timezone);
-      setTimeZone(resolvedTimeZone);
-      if (!timezoneReady) {
-        const clinicTodayDate = getTodayDateForTimeZone(resolvedTimeZone);
-        setDateRange((current) => {
-          const days = Math.max(differenceInDays(current.to, current.from) + 1, 1);
-          return {
-            from: subDays(clinicTodayDate, days - 1),
-            to: clinicTodayDate,
-          };
-        });
-        setTimezoneReady(true);
-      }
-      setPageviews(precomputeViewKeys((data as any[] | null) || [], resolvedTimeZone));
-      setLoading(false);
-    };
-    fetchData();
-  }, [clinicId, dateRange, timezoneReady]);
+  const { data: payload, isLoading } = useQuery({
+    queryKey: ["website-analytics", clinicId, fromKey, toKey, timeZone],
+    enabled: !!clinicId && timezoneReady,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    placeholderData: keepPreviousData,
+    queryFn: async (): Promise<AnalyticsPayload | null> => {
+      const fromIso = new Date(`${fromKey}T00:00:00Z`).toISOString();
+      const toIso = new Date(`${toKey}T23:59:59Z`).toISOString();
+      const { data, error } = await (supabase as any).rpc("get_website_analytics", {
+        _clinic_id: clinicId,
+        _from: fromIso,
+        _to: toIso,
+        _timezone: timeZone,
+      });
+      if (error) throw error;
+      return data as AnalyticsPayload;
+    },
+  });
 
-  const analytics = useMemo(() => {
-    const splitIndex = selectedDateKeys.length > 1 ? Math.floor(selectedDateKeys.length / 2) : 0;
-    const previousDateKeys = selectedDateKeys.slice(0, splitIndex);
-    const currentDateKeys = selectedDateKeys.slice(splitIndex || 0);
-    const current = computeWebsiteMetrics(pageviews, currentDateKeys.length > 0 ? currentDateKeys : selectedDateKeys, timeZone);
-    const prev = computeWebsiteMetrics(pageviews, previousDateKeys, timeZone);
-    const fullPeriod = computeWebsiteMetrics(pageviews, selectedDateKeys, timeZone);
+  const loading = isLoading || !timezoneReady;
+
+  const view = useMemo(() => {
+    if (!payload) return null;
+    const { kpi, daily, hourly, top_pages, session_depth, geo } = payload;
+
+    const totalDepth = session_depth?.total || 0;
+    const sessionDepthMix = [
+      { label: "1 page", sessions: session_depth?.one_page || 0 },
+      { label: "2–3 pages", sessions: session_depth?.two_three || 0 },
+      { label: "4+ pages", sessions: session_depth?.four_plus || 0 },
+    ].map((b) => ({ ...b, share: totalDepth > 0 ? Math.round((b.sessions / totalDepth) * 1000) / 10 : 0 }));
+
+    const dailyTraffic = (daily || []).map((d) => ({
+      date: format(new Date(`${d.date_key}T12:00:00`), "MMM d"),
+      views: d.views,
+    }));
+
+    const hourlyData = (hourly || []).map((h) => ({
+      label: `${String(h.hour).padStart(2, "0")}:00`,
+      views: h.views,
+    }));
+
+    const topPages = (top_pages || []).map((p) => ({
+      path: p.path,
+      pageName: formatPageName(p.path),
+      views: p.views,
+      visitors: p.visitors,
+    }));
+
+    const curViews = kpi?.cur_views || 0;
+    const prevViews = kpi?.prev_views || 0;
+    const totalSessions = kpi?.cur_sessions || 0;
+    const pagesPerSession = totalSessions > 0 ? Math.round((curViews / totalSessions) * 10) / 10 : 0;
 
     return {
-      current,
-      prev,
-      dailyTraffic: fullPeriod.dailyTraffic,
-      topPages: fullPeriod.topPages,
-      sessionDepthMix: fullPeriod.sessionDepthMix,
-      hourly: fullPeriod.hourly,
+      current: {
+        totalViews: curViews,
+        totalSessions,
+        engagedSessions: kpi?.cur_engaged || 0,
+        avgDuration: kpi?.cur_avg_dur || 0,
+        pagesPerSession,
+      },
+      prev: {
+        totalViews: prevViews,
+        totalSessions: kpi?.prev_sessions || 0,
+        engagedSessions: kpi?.prev_engaged || 0,
+        avgDuration: kpi?.prev_avg_dur || 0,
+      },
+      dailyTraffic,
+      hourlyData,
+      topPages,
+      sessionDepthMix,
+      geo: geo || [],
+      geoTotal: payload.geo_total || 0,
     };
-  }, [pageviews, selectedDateKeys, timeZone]);
+  }, [payload]);
 
-  const geoData = useMemo(() => {
-    const filteredViews = pageviews.filter(
-      (pv) => pv.country_code && selectedDateKeys.includes(getZonedDateKey(pv.created_at, timeZone))
-    );
-    const countryMap = new Map<string, { country: string; regions: Map<string, number>; count: number }>();
-    for (const pv of filteredViews) {
-      const cc = pv.country_code as string;
-      if (!countryMap.has(cc)) countryMap.set(cc, { country: cc, regions: new Map(), count: 0 });
-      const entry = countryMap.get(cc)!;
-      entry.count++;
-      const r = (pv.region as string) || "Unknown";
-      entry.regions.set(r, (entry.regions.get(r) || 0) + 1);
-    }
-    const total = filteredViews.length;
-    const countries = Array.from(countryMap.values())
-      .sort((a, b) => b.count - a.count)
-      .map((c) => ({
-        country: c.country,
-        visitors: c.count,
-        pct: total > 0 ? Math.round((c.count / total) * 1000) / 10 : 0,
-        topRegions: Array.from(c.regions.entries())
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 3)
-          .map(([name, cnt]) => ({ name, count: cnt })),
-      }));
-    return { countries, total, hasData: total > 0 };
-  }, [pageviews, selectedDateKeys, timeZone]);
-
-  if (loading) {
+  if (loading && !view) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {Array.from({ length: 4 }).map((_, i) => (
@@ -159,7 +179,9 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
     return <p className="text-muted-foreground text-sm text-center py-12">Select a clinic to view analytics.</p>;
   }
 
-  if (!analytics || (analytics.current.totalViews === 0 && analytics.prev.totalViews === 0)) {
+  const selectedDays = differenceInDays(dateRange.to, dateRange.from) + 1;
+
+  if (!view || (view.current.totalViews === 0 && view.prev.totalViews === 0)) {
     return (
       <div className="space-y-6">
         <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} referenceDate={clinicToday} />
@@ -171,22 +193,7 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
     );
   }
 
-  const { current, prev, dailyTraffic, topPages, sessionDepthMix, hourly } = analytics;
-
-  const pctChange = (cur: number, prv: number, invertBetter = false) => {
-    if (prv === 0 && cur === 0) return { text: "No change", type: "neutral" as const };
-    if (prv === 0) return { text: `+${cur} (new)`, type: "positive" as const };
-    const pct = Math.round(((cur - prv) / prv) * 1000) / 10;
-    const sign = pct >= 0 ? "+" : "";
-    let type: "positive" | "negative" | "neutral" = pct > 0 ? "positive" : pct < 0 ? "negative" : "neutral";
-    if (invertBetter) type = type === "positive" ? "negative" : type === "negative" ? "positive" : "neutral";
-    return { text: `${sign}${pct}% vs prev`, type };
-  };
-
-  const viewsChange = pctChange(current.totalViews, prev.totalViews);
-  const visitorsChange = pctChange(current.totalSessions, prev.totalSessions);
-  const engagementChange = pctChange(current.engagedSessions, prev.engagedSessions);
-  const durationChange = pctChange(current.avgDuration, prev.avgDuration);
+  const { current, prev, dailyTraffic, hourlyData, topPages, sessionDepthMix, geo, geoTotal } = view;
 
   const formatDuration = (s: number) => {
     if (s <= 0) return "0s";
@@ -204,7 +211,6 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
         )}
       </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard title="Page Views" value={current.totalViews.toLocaleString()} icon={Eye} index={0} />
         <StatsCard title="Unique Visitors" value={current.totalSessions.toLocaleString()} icon={Users} index={1} />
@@ -212,14 +218,13 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
         <StatsCard title="Avg. Session" value={formatDuration(current.avgDuration)} icon={Clock} index={3} />
       </div>
 
-      {/* Daily Traffic Chart */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Daily Traffic ({selectedDateKeys.length} Days)</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">Daily Traffic ({selectedDays} Days)</CardTitle>
         </CardHeader>
         <CardContent>
           <ChartContainer config={{ views: { label: "Page Views", color: "hsl(var(--primary))" } }} className="h-[260px] w-full">
-            <AreaChart data={dailyTraffic.map((item) => ({ date: item.label, views: item.count }))}>
+            <AreaChart data={dailyTraffic}>
               <defs>
                 <linearGradient id="fillViews" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
@@ -237,7 +242,6 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Pages */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -254,7 +258,7 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {topPages.map(p => (
+                {topPages.map((p) => (
                   <TableRow key={p.path}>
                     <TableCell className="max-w-[260px]">
                       <div className="truncate text-xs font-medium">{p.pageName}</div>
@@ -269,7 +273,6 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
           </CardContent>
         </Card>
 
-        {/* Pages / Session Mix */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -299,14 +302,13 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
         </Card>
       </div>
 
-      {/* Hourly Breakdown */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">Traffic by Hour ({timeZone})</CardTitle>
         </CardHeader>
         <CardContent>
           <ChartContainer config={{ views: { label: "Page Views", color: "hsl(var(--primary))" } }} className="h-[200px] w-full">
-            <BarChart data={hourly}>
+            <BarChart data={hourlyData}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
               <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={2} className="text-muted-foreground" />
               <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" />
@@ -317,8 +319,7 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
         </CardContent>
       </Card>
 
-      {/* Visitor Geography */}
-      {geoData.hasData && (
+      {geoTotal > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader className="pb-2">
@@ -337,16 +338,19 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {geoData.countries.slice(0, 15).map((c) => (
-                    <TableRow key={c.country}>
-                      <TableCell className="text-xs font-medium">{c.country}</TableCell>
-                      <TableCell className="text-[10px] text-muted-foreground">
-                        {c.topRegions.map((r) => r.name).join(", ")}
-                      </TableCell>
-                      <TableCell className="text-xs text-right tabular-nums">{c.visitors}</TableCell>
-                      <TableCell className="text-xs text-right tabular-nums">{c.pct}%</TableCell>
-                    </TableRow>
-                  ))}
+                  {geo.slice(0, 15).map((c) => {
+                    const pct = geoTotal > 0 ? Math.round((c.visitors / geoTotal) * 1000) / 10 : 0;
+                    return (
+                      <TableRow key={c.country}>
+                        <TableCell className="text-xs font-medium">{c.country}</TableCell>
+                        <TableCell className="text-[10px] text-muted-foreground">
+                          {c.top_regions.map((r) => r.name).join(", ")}
+                        </TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{c.visitors}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{pct}%</TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </CardContent>
@@ -360,7 +364,7 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
             </CardHeader>
             <CardContent>
               <ChartContainer config={{ visitors: { label: "Visitors", color: "hsl(var(--chart-2))" } }} className="h-[260px] w-full">
-                <BarChart data={geoData.countries.slice(0, 10)} layout="vertical">
+                <BarChart data={geo.slice(0, 10)} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
                   <XAxis type="number" tick={{ fontSize: 11 }} className="text-muted-foreground" />
                   <YAxis type="category" dataKey="country" tick={{ fontSize: 11 }} width={40} className="text-muted-foreground" />
