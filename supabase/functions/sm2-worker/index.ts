@@ -515,7 +515,7 @@ async function runOneStage(supabase: any, job: any): Promise<{ done: boolean; st
     case "review": {
       const r = await callAgent(AGENT_REVIEWER,
         `${dnaPayload}\n\n=== POSTS ===\n${JSON.stringify(data.write, null, 2)}\n\n=== FACT CHECK ===\n${JSON.stringify(data.fact_check, null, 2)}`,
-        2500, "Reviewer");
+        6000, "Reviewer");
       stageOutput = r.parsed; tokens = r.tokens;
       break;
     }
