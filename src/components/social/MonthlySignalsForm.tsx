@@ -139,7 +139,9 @@ export default function MonthlySignalsForm({ clinicId }: Props) {
             <CalendarClock className="h-4 w-4 text-primary" />
             Monthly Signals
           </CardTitle>
-          <Badge variant="outline" className="text-xs">{monthLabel}</Badge>
+          <Badge variant="secondary" className="text-xs font-semibold bg-primary/10 text-primary border-primary/20">
+            Saving for: {monthLabel}
+          </Badge>
         </div>
         <p className="text-xs text-muted-foreground">
           Configure campaign parameters and contextual signals for Tony AI's content engine this month.
