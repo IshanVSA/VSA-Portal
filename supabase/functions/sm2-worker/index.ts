@@ -141,9 +141,9 @@ Write a ready-to-shoot "script" tailored to the post format (carousel, reel, sto
 
 Use the clinic's actual name, city / landmark and phone from the DNA payload. Plain text with line breaks (\\n). No markdown asterisks, no emojis, no em dashes. The script is the visual / voice-over flow, NOT a copy of the caption.
 
-For each of the 10 posts output JSON with: number, hook_a, hook_b, caption, hashtags, disclaimer, alt_text, stories_hook, script.
+For each post in the supplied subset of the plan, output JSON with: number (must match the plan post's number exactly), hook_a, hook_b, caption, hashtags, disclaimer, alt_text, stories_hook, script.
 
-Output ONLY valid JSON array of 10 post objects.`;
+Output ONLY a valid JSON array of post objects — one object per supplied plan post, no more, no fewer. No markdown, no commentary.`;
 
 const AGENT_ART_DIRECTOR = `You are the SM2 Art Director v2. Typography-first.
 
