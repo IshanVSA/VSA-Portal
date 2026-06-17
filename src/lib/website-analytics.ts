@@ -40,14 +40,19 @@ export const COMMON_TIMEZONES = [
   "Australia/Sydney",
 ];
 
+const formatterCache = new Map<string, Intl.DateTimeFormat>();
 function getFormatter(
   timeZone: string,
   options: Intl.DateTimeFormatOptions,
 ) {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: getSafeTimeZone(timeZone),
-    ...options,
-  });
+  const safeTz = getSafeTimeZone(timeZone);
+  const key = `${safeTz}|${JSON.stringify(options)}`;
+  let fmt = formatterCache.get(key);
+  if (!fmt) {
+    fmt = new Intl.DateTimeFormat("en-CA", { timeZone: safeTz, ...options });
+    formatterCache.set(key, fmt);
+  }
+  return fmt;
 }
 
 function getPart(parts: Intl.DateTimeFormatPart[], type: Intl.DateTimeFormatPartTypes) {
