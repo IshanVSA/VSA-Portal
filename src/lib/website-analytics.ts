@@ -177,13 +177,40 @@ export function formatPageName(path: string): string {
     .join(" / ");
 }
 
+export function precomputeViewKeys<T extends { created_at: string }>(
+  views: T[],
+  timeZone: string,
+): (T & { __dateKey: string; __hour: number })[] {
+  const safeTz = getSafeTimeZone(timeZone);
+  // Cache by timestamp string so repeated created_at values reuse the same parse.
+  const dateKeyCache = new Map<string, string>();
+  const hourCache = new Map<string, number>();
+  return views.map((v) => {
+    const ts = v.created_at;
+    let dk = dateKeyCache.get(ts);
+    if (!dk) {
+      dk = getZonedDateKey(ts, safeTz);
+      dateKeyCache.set(ts, dk);
+    }
+    let hr = hourCache.get(ts);
+    if (hr === undefined) {
+      hr = getZonedHour(ts, safeTz);
+      hourCache.set(ts, hr);
+    }
+    return Object.assign(v as any, { __dateKey: dk, __hour: hr });
+  });
+}
+
 export function computeWebsiteMetrics(
   views: WebsitePageview[],
   dateKeys: string[],
   timeZone: string,
 ): WebsiteMetrics {
   const activeDateKeys = new Set(dateKeys);
-  const filteredViews = views.filter((view) => activeDateKeys.has(getZonedDateKey(view.created_at, timeZone)));
+  const filteredViews = views.filter((view) => {
+    const dk = (view as any).__dateKey ?? getZonedDateKey(view.created_at, timeZone);
+    return activeDateKeys.has(dk);
+  });
 
   const sessions: Record<string, WebsitePageview[]> = {};
   filteredViews.forEach((view) => {
