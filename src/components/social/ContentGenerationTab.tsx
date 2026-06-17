@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sparkles, RefreshCw, FileText, Eye, AlertTriangle, CheckCircle, Clock, Send, TrendingUp, Heart, Share2, MessageCircle, CalendarDays, Pencil, ShieldAlert, ShieldCheck, ChevronLeft, ChevronRight, StopCircle } from "lucide-react";
+import { Sparkles, RefreshCw, FileText, Eye, AlertTriangle, CheckCircle, Clock, Send, TrendingUp, Heart, Share2, MessageCircle, CalendarDays, Pencil, ShieldAlert, ShieldCheck, ChevronLeft, ChevronRight, StopCircle, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import HtmlEditorDialog from "./HtmlEditorDialog";
 import SM2CalendarView from "./SM2CalendarView";
@@ -68,8 +68,9 @@ const ACTIVE_GEN_STATUSES = ["queued", "processing", "retrying"];
 
 export default function ContentGenerationTab({ clinicId }: Props) {
   const { dna } = useBrandDNA(clinicId);
-  const { generations, currentGeneration, generate, sendForApproval, isLoading, pollForCompletion, cancelGeneration } = useSM2Generation(clinicId);
+  const { generations, currentGeneration, generate, sendForApproval, isLoading, pollForCompletion, cancelGeneration, deleteGeneration } = useSM2Generation(clinicId);
   const [stopTargetId, setStopTargetId] = useState<string | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const monthOptions = useMemo(() => buildMonthOptions(), []);
   const [targetMonth, setTargetMonth] = useState<string>(monthOptions[1]?.value || monthOptions[0].value);
@@ -614,6 +615,16 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                       {gen.client_feedback && (
                         <Badge variant="destructive" className="text-[10px]">Has Feedback</Badge>
                       )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeleteTargetId(gen.id)}
+                        disabled={deleteGeneration.isPending}
+                        title="Delete generation"
+                        className="text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                   {gen.approval_status === "generation_failed" && (gen as any).failure_reason && (
@@ -668,6 +679,29 @@ export default function ContentGenerationTab({ clinicId }: Props) {
               }}
             >
               Stop generation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!deleteTargetId} onOpenChange={(o) => !o && setDeleteTargetId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this generation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove the generation and all its posts from the history. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteTargetId(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deleteTargetId) deleteGeneration.mutate(deleteTargetId);
+                setDeleteTargetId(null);
+              }}
+            >
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
