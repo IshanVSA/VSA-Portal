@@ -58,7 +58,14 @@ function TagInput({ label, tags, onChange, placeholder }: { label: string; tags:
 }
 
 export default function MonthlySignalsForm({ clinicId }: Props) {
-  const { signals, isLoading, upsertSignals, currentMonth } = useMonthlySignals(clinicId);
+  // Target the NEXT calendar month — that's the month SM2 will generate for,
+  // so saved signals must land on that row (not the current/past month).
+  const nextMonthYear = (() => {
+    const d = new Date();
+    const n = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`;
+  })();
+  const { signals, isLoading, upsertSignals, currentMonth } = useMonthlySignals(clinicId, nextMonthYear);
   const [saving, setSaving] = useState(false);
 
   const [campaignMonth, setCampaignMonth] = useState<number>(1);

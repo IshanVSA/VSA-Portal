@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-5-20250929",
         max_tokens: 5000,
         system: "You are a VSA Vet Media blog editor. You receive a published blog post and a specific client remark. Apply the remark to the blog. Maintain all compliance rules, VSA voice, word count targets, and internal link placeholders. Do not change content the client did not remark on. Output the complete adjusted blog in the same format as the original.",
         messages: [{
@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-5-20250929",
         max_tokens: 1000,
         system: "You are a VSA Vet Media compliance checker. Check the provided blog text for any violations of the rules listed. Output only: PASS or FAIL. If FAIL: list each violation with the exact text that violates and the rule it breaks. Nothing else.",
         messages: [{
