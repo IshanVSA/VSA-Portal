@@ -93,7 +93,7 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
         });
         setTimezoneReady(true);
       }
-      setPageviews((data as any[] | null) || []);
+      setPageviews(precomputeViewKeys((data as any[] | null) || [], resolvedTimeZone));
       setLoading(false);
     };
     fetchData();
