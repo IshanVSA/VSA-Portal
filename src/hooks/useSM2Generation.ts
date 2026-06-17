@@ -272,6 +272,23 @@ export function useSM2Generation(clinicId: string | undefined, monthYear?: strin
     },
   });
 
+  const deleteGeneration = useMutation({
+    mutationFn: async (generationId: string) => {
+      const { error } = await supabase
+        .from("sm2_generations")
+        .delete()
+        .eq("id", generationId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sm2-generations", clinicId] });
+      toast.success("Generation deleted");
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to delete generation", { description: error.message });
+    },
+  });
+
   const getHtmlUrl = (filePath: string) => {
     const { data } = supabase.storage.from("department-files").getPublicUrl(filePath);
     return data.publicUrl;
