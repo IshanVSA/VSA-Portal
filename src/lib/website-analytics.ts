@@ -340,21 +340,39 @@ export async function fetchAllPageviews<T = any>(
     pageSize = 1000,
     maxPages = 50,
   } = params;
-  const all: T[] = [];
-  let offset = 0;
-  for (let i = 0; i < maxPages; i++) {
+
+  const fromIso = from.toISOString();
+  const toIso = to.toISOString();
+
+  const fetchPage = async (offset: number) => {
     const { data, error } = await supabase
       .from("website_pageviews")
       .select(columns)
       .eq("clinic_id", clinicId)
-      .gte("created_at", from.toISOString())
-      .lte("created_at", to.toISOString())
+      .gte("created_at", fromIso)
+      .lte("created_at", toIso)
       .order("created_at", { ascending: true })
       .range(offset, offset + pageSize - 1);
-    if (error || !data || data.length === 0) break;
-    all.push(...(data as T[]));
-    if (data.length < pageSize) break;
-    offset += pageSize;
-  }
-  return all;
+    if (error) return [] as T[];
+    return (data || []) as T[];
+  };
+
+  // Fetch first page + exact count in parallel.
+  const [firstPage, countResp] = await Promise.all([
+    fetchPage(0),
+    supabase
+      .from("website_pageviews")
+      .select("session_id", { count: "exact", head: true })
+      .eq("clinic_id", clinicId)
+      .gte("created_at", fromIso)
+      .lte("created_at", toIso),
+  ]);
+
+  const total = (countResp as any)?.count ?? firstPage.length;
+  if (total <= pageSize) return firstPage;
+
+  const remainingPages = Math.min(Math.ceil(total / pageSize) - 1, maxPages - 1);
+  const offsets = Array.from({ length: remainingPages }, (_, i) => (i + 1) * pageSize);
+  const rest = await Promise.all(offsets.map(fetchPage));
+  return firstPage.concat(...rest);
 }
