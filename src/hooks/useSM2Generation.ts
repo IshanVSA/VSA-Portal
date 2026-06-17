@@ -37,6 +37,8 @@ export const STAGE_LABELS: Record<string, string> = {
   queued: "Queued",
   research: "Researching trends",
   plan: "Planning posts",
+  write_a: "Writing captions (1-5)",
+  write_b: "Writing captions (6-10)",
   write: "Writing captions",
   art: "Designing visuals",
   stories: "Building Stories",
@@ -49,7 +51,7 @@ export const STAGE_LABELS: Record<string, string> = {
 
 export function nextStageLabel(stage: string | null | undefined): string {
   if (!stage || stage === "queued") return "Researching trends";
-  const order = ["queued","research","plan","write","art","stories","concierge","fact_check","review","assemble","completed"];
+  const order = ["queued","research","plan","write_a","write_b","write","art","stories","concierge","fact_check","review","assemble","completed"];
   const i = order.indexOf(stage);
   const next = order[Math.min(i + 1, order.length - 1)];
   return STAGE_LABELS[next] || "Working";

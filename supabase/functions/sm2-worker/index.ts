@@ -24,8 +24,9 @@ const MAX_RETRIES = 5;
 const STAGES = [
   "queued",       // -> next: research
   "research",     // -> next: plan
-  "plan",         // -> next: write
-  "write",        // -> next: art
+  "plan",         // -> next: write_a
+  "write_a",      // -> next: write_b  (writes posts 1-5 to stay under edge-fn timeout)
+  "write_b",      // -> next: art      (writes posts 6-10, merges into data.write)
   "art",          // -> next: stories
   "stories",      // -> next: concierge
   "concierge",    // -> next: fact_check
@@ -139,9 +140,9 @@ Write a ready-to-shoot "script" tailored to the post format (carousel, reel, sto
 
 Use the clinic's actual name, city / landmark and phone from the DNA payload. Plain text with line breaks (\\n). No markdown asterisks, no emojis, no em dashes. The script is the visual / voice-over flow, NOT a copy of the caption.
 
-For each of the 10 posts output JSON with: number, hook_a, hook_b, caption, hashtags, disclaimer, alt_text, stories_hook, script.
+For each post in the supplied subset of the plan, output JSON with: number (must match the plan post's number exactly), hook_a, hook_b, caption, hashtags, disclaimer, alt_text, stories_hook, script.
 
-Output ONLY valid JSON array of 10 post objects.`;
+Output ONLY a valid JSON array of post objects — one object per supplied plan post, no more, no fewer. No markdown, no commentary.`;
 
 const AGENT_ART_DIRECTOR = `You are the SM2 Art Director v2. Typography-first.
 
@@ -479,12 +480,20 @@ async function runOneStage(supabase: any, job: any): Promise<{ done: boolean; st
       stageOutput = r.parsed; tokens = r.tokens;
       break;
     }
-    case "write": {
-      // 16000 tokens: 10 posts × ~1.5KB JSON each (caption + hashtags + hooks + alt_text + stories_hook)
-      // Previously 4000 caused JSON truncation, leaving captions/hashtags empty in sm2_posts.
+    case "write_a":
+    case "write_b": {
+      // Split into 2 batches of 5 to keep each Anthropic call comfortably under
+      // the edge function wall-clock timeout. 10 posts in one call regularly
+      // hit ~200s and were killed mid-stream; 5 posts run in ~80-100s.
+      const allPlan = Array.isArray(data.plan?.posts) ? data.plan.posts : [];
+      const subset = stageToRun === "write_a" ? allPlan.slice(0, 5) : allPlan.slice(5, 10);
+      const label = stageToRun === "write_a" ? "Writer (1-5)" : "Writer (6-10)";
+      const batchLabel = stageToRun === "write_a" ? "POSTS 1-5 OF 10" : "POSTS 6-10 OF 10";
+      // 8000 tokens per 5-post batch leaves plenty of headroom for caption + hashtags
+      // + hooks + alt_text + stories_hook + script JSON.
       const r = await callAgent(AGENT_WRITER,
-        `${dnaPayload}\n\n=== CONTENT PLAN ===\n${JSON.stringify(data.plan, null, 2)}${recentContentBlock}`,
-        16000, "Writer");
+        `${dnaPayload}\n\n=== CONTENT PLAN (${batchLabel}) ===\n${JSON.stringify({ ...data.plan, posts: subset }, null, 2)}${recentContentBlock}`,
+        8000, label);
       stageOutput = r.parsed; tokens = r.tokens;
       break;
     }
@@ -659,7 +668,15 @@ async function runOneStage(supabase: any, job: any): Promise<{ done: boolean; st
 
   // Persist intermediate stage output and advance pipeline_stage.
   // Keep approval_status="processing" so the cron picks it up next tick.
-  const newData = { ...data, [stageToRun]: stageOutput };
+  const newData: Record<string, any> = { ...data, [stageToRun]: stageOutput };
+  // After either writer batch, merge into a single data.write array so every
+  // downstream stage (art, stories, concierge, fact_check, review, assemble)
+  // keeps reading data.write unchanged.
+  if (stageToRun === "write_a" || stageToRun === "write_b") {
+    const a = Array.isArray(newData.write_a) ? newData.write_a : [];
+    const b = Array.isArray(newData.write_b) ? newData.write_b : [];
+    newData.write = [...a, ...b];
+  }
   await supabase
     .from("sm2_generations")
     .update({
