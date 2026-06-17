@@ -673,7 +673,15 @@ async function runOneStage(supabase: any, job: any): Promise<{ done: boolean; st
 
   // Persist intermediate stage output and advance pipeline_stage.
   // Keep approval_status="processing" so the cron picks it up next tick.
-  const newData = { ...data, [stageToRun]: stageOutput };
+  const newData: Record<string, any> = { ...data, [stageToRun]: stageOutput };
+  // After either writer batch, merge into a single data.write array so every
+  // downstream stage (art, stories, concierge, fact_check, review, assemble)
+  // keeps reading data.write unchanged.
+  if (stageToRun === "write_a" || stageToRun === "write_b") {
+    const a = Array.isArray(newData.write_a) ? newData.write_a : [];
+    const b = Array.isArray(newData.write_b) ? newData.write_b : [];
+    newData.write = [...a, ...b];
+  }
   await supabase
     .from("sm2_generations")
     .update({
