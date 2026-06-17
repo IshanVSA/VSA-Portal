@@ -3584,6 +3584,15 @@ export type Database = {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      get_website_analytics: {
+        Args: {
+          _clinic_id: string
+          _from: string
+          _timezone?: string
+          _to: string
+        }
+        Returns: Json
+      }
       has_accepted_current_terms: {
         Args: { p_user_id: string }
         Returns: boolean
