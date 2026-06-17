@@ -27,7 +27,6 @@ const STAGES = [
   "plan",         // -> next: write_a
   "write_a",      // -> next: write_b  (writes posts 1-5 to stay under edge-fn timeout)
   "write_b",      // -> next: art      (writes posts 6-10, merges into data.write)
-  "write",        // legacy marker: kept so older in-flight jobs that completed "write" still advance to "art"
   "art",          // -> next: stories
   "stories",      // -> next: concierge
   "concierge",    // -> next: fact_check
