@@ -20,6 +20,7 @@ import {
   getSafeTimeZone,
   getTodayDateForTimeZone,
   getZonedDateKey,
+  precomputeViewKeys,
 } from "@/lib/website-analytics";
 
 interface Props {
