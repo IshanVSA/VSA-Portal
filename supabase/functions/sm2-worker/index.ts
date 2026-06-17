@@ -222,11 +222,24 @@ async function callAgent(systemPrompt: string, userMessage: string, maxTokens: n
       const elapsed = ((Date.now() - start) / 1000).toFixed(1);
       console.log(`[AGENT] ${agentName} done in ${elapsed}s, tokens=${data.usage?.output_tokens || 0}`);
       let text = textBlock.text.trim();
-      const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (jsonMatch) text = jsonMatch[1].trim();
+      // 1. Closed fenced block: ```json ... ```
+      const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (fenced) {
+        text = fenced[1].trim();
+      } else {
+        // 2. Strip leading ```json / ``` and any trailing ``` (handles unclosed fences from truncation)
+        text = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+      }
       try {
         return { parsed: JSON.parse(text), tokens: data.usage?.output_tokens || 0 };
       } catch {
+        // 3. Last-ditch: extract the first balanced JSON object/array we can find
+        const objMatch = text.match(/[\{\[][\s\S]*[\}\]]/);
+        if (objMatch) {
+          try {
+            return { parsed: JSON.parse(objMatch[0]), tokens: data.usage?.output_tokens || 0 };
+          } catch { /* fall through */ }
+        }
         console.warn(`[AGENT] ${agentName} non-JSON, using raw text`);
         return { parsed: text, tokens: data.usage?.output_tokens || 0 };
       }
