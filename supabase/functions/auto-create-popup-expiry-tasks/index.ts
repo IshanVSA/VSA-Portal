@@ -65,7 +65,6 @@ Deno.serve(async (req) => {
       .select("id, clinic_id, description, status, ticket_type, department")
       .eq("department", "website")
       .eq("ticket_type", "Pop-up Offers")
-      .not("status", "in", "(completed,void)")
       .gte("created_at", since);
 
     if (ticketErr) throw ticketErr;
