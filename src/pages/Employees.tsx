@@ -407,7 +407,36 @@ export default function Employees() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label>Assigned Clinics</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Assigned Clinics</Label>
+                  {(() => {
+                    const q = clinicSearch.trim().toLowerCase();
+                    const visible = q
+                      ? allClinics.filter(c => c.clinic_name.toLowerCase().includes(q))
+                      : allClinics;
+                    const visibleIds = visible.map(c => c.id);
+                    const allSelected = visibleIds.length > 0 && visibleIds.every(id => editForm.clinicIds.includes(id));
+                    return (
+                      <button
+                        type="button"
+                        disabled={visibleIds.length === 0}
+                        onClick={() => {
+                          setEditForm(f => {
+                            if (allSelected) {
+                              return { ...f, clinicIds: f.clinicIds.filter(id => !visibleIds.includes(id)) };
+                            }
+                            const merged = new Set([...f.clinicIds, ...visibleIds]);
+                            return { ...f, clinicIds: Array.from(merged) };
+                          });
+                        }}
+                        className="text-xs font-medium text-primary hover:underline disabled:opacity-50 disabled:no-underline"
+                      >
+                        {allSelected ? "Clear all" : q ? "Select all matching" : "Select all"}
+                      </button>
+                    );
+                  })()}
+                </div>
+
                 <div className="relative">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                   <Input
