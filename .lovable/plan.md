@@ -1,50 +1,51 @@
-# Make Website Analytics Faster
 
-The previous round parallelized pagination and cached formatters. The remaining cost is dominated by **(a) shipping every raw pageview row over the wire**, and **(b) re-fetching from scratch every time you switch clinics or tabs**. This plan removes both.
+# Social Media Department — Tab Redesign Plan
 
-## What to build
+## Problem
+The Social Media page currently shows 11–13 top-level tabs (Overview, Tickets, Active Promotions, Analytics, Files, Generate, GBP Posts, Brand DNA, Preferences, Meta Ads, Client Chat, Tasks, Team Chat). Clients see 11, staff see 13. The row scrolls horizontally and users can't find things.
 
-### 1. Aggregate on the database (biggest win)
-Add a Postgres RPC `get_website_analytics(clinic_id, from, to)` that returns a single JSON payload containing everything the tab needs, computed in SQL:
+## Solution: 5 grouped tabs with sub-tabs inside
 
-- KPI totals: page views, unique sessions, engaged sessions (sessions with >1 view), avg session duration (capped at 15 min), pages/session — for both the current half and previous half of the range
-- Daily traffic series (one row per day, in clinic timezone)
-- Hourly distribution (24 buckets, in clinic timezone)
-- Top 10 pages with views + unique visitors
-- Session-depth mix (1 / 2–3 / 4+ pages)
-- Country + top-3 regions breakdown
+Collapse related surfaces under one parent tab. Sub-tabs render inside each parent (same `Tabs` pattern already used in `GBPPostsTab` / `ClientPostsTab`). Badges (unread chat, pending review, open tasks) bubble up to the parent tab so nothing gets buried.
 
-Clinics with 5–20k pageviews currently transfer 5–20k JSON rows (~1–5 MB). The aggregated payload is ~5–20 KB and computes in Postgres in tens of ms. Net effect: ~10× faster initial load, ~100× less bandwidth.
+### New top-level structure
 
-The RPC will be `SECURITY DEFINER` with the same access check the table RLS already enforces (admin, concierge member of clinic, or client of clinic).
+| Tab | Icon | Sub-tabs (Admin / Staff) | Sub-tabs (Client) |
+|---|---|---|---|
+| **Overview** | LayoutGrid | — | — |
+| **Content** | Sparkles | Generate · GBP Posts · Brand DNA · Preferences · Promotions | My Posts · GBP Posts · Brand DNA · Preferences · Promotions |
+| **Performance** | ChartColumn | Analytics · Meta Ads · Files | Analytics · Meta Ads · Files |
+| **Work** | Ticket | Tickets · Tasks | Tickets |
+| **Messages** | MessageCircle | Team Chat · Client Chat | Client Chat |
 
-### 2. Confirm/add the supporting index
-Ensure `website_pageviews(clinic_id, created_at)` is indexed (create it if missing). This is what makes the aggregation cheap.
+Result: **5 tabs for everyone** instead of 11–13.
 
-### 3. Move the tab to React Query with caching
-Replace the raw `useEffect` + `useState` fetch in `WebsiteAnalyticsTab.tsx` and `useWebsiteKPIs.ts` with `useQuery`:
+### URL & deep-link compatibility
+- Keep existing `?tab=` values working (e.g. `?tab=generation`, `?tab=brand-dna`, `?tab=chat`) by mapping legacy values → `{parent, sub}` on read. So existing links from notifications, dashboard cards, and the new `DepartmentStatusStrip` continue to work.
+- Writing new state uses `?tab=<parent>&sub=<child>`.
 
-- `queryKey: ["website-analytics", clinicId, fromKey, toKey]`
-- `staleTime: 5 minutes`, `gcTime: 30 minutes`
-- `placeholderData: keepPreviousData` so changing the date range keeps the old chart visible while new data loads (no skeleton flash)
+### Badge bubbling
+- "Content" parent shows amber badge when `socialPending > 0` (currently on My Posts / Generate).
+- "Work" parent shows primary badge when `myOpenTasks > 0`.
+- "Messages" parent shows destructive badge for `unreadCount + clientUnreadCount`, and the badge persists on the inner sub-tab too.
 
-Effect: switching back to the tab, toggling between 7/14/30/90-day ranges that overlap, or revisiting a clinic is instant from cache.
+### Files & components touched
+- `src/pages/SocialMedia.tsx` — replace flat `visibleTabs` array with grouped config; render parent `TabsList` + a thin inner `TabsList` for the active group. Keep all existing `<TabsContent>` bodies; just move them under the right parent.
+- No changes to `TicketsTab`, `TasksTab`, `DepartmentChat`, `BrandDNATab`, `ContentGenerationTab`, `GBPPostsTab`, `ClientPostsTab`, `PromotionModule`, `SocialAnalyticsTab`, `UploadsTab`, `MetaAdsTab`, `ContentThemeSliders`, `SocialOverview`.
+- No DB / schema / dependency changes.
+- Left sidebar untouched.
 
-### 4. Small client-side cleanups
-- In `WebsiteAnalyticsTab.tsx`, the `geoData` memo still calls `getZonedDateKey` per row instead of reading `__dateKey`. Switch it to use the precomputed key (skip if we move to the RPC — geo will be server-aggregated).
-- Keep `fetchAllPageviews` as a fallback only (no longer the hot path).
+### Visual treatment
+- Parent tabs: same `bg-muted/50 h-10` strip already in use, sticky under the page header.
+- Sub-tabs: smaller `h-9` strip directly under the parent strip, only visible when that parent is active. Matches the look of `GBPPostsTab`'s inner tabs so it feels native.
+- Mobile: parent strip stays 5 items (fits without scrolling); sub-strip scrolls horizontally if needed.
 
-## Files touched
+## Acceptance
+- Admin, staff, and client each see exactly 5 top-level tabs.
+- Every current feature is still reachable in ≤ 2 clicks.
+- Old `?tab=` URLs still land on the right surface.
+- Badges for unread chat / pending review / open tasks remain visible at the parent level.
+- App builds with zero TypeScript errors; no new deps, no schema changes.
 
-- `supabase/migrations/*` (new): create `get_website_analytics` RPC + index if missing
-- `src/lib/website-analytics.ts`: add a thin `fetchWebsiteAnalytics(clinicId, from, to)` wrapper around the RPC, keep existing helpers
-- `src/components/department/WebsiteAnalyticsTab.tsx`: switch to `useQuery`, consume RPC payload directly, remove client-side recomputation
-- `src/hooks/useWebsiteKPIs.ts`: switch to `useQuery` against the same RPC (request a 14-day window)
-
-## Expected result
-
-- First load of a clinic with thousands of pageviews: ~300–500 ms instead of 3–8 s
-- Tab/clinic re-visits within 5 min: instant (cache hit)
-- Date-range changes: previous chart stays visible, new data fades in (no full skeleton)
-
-Reply "go" to implement, or tell me to skip any step (e.g. keep client-side compute and only add caching).
+## Open question
+Grouping above is my recommendation. If you'd prefer a different split (e.g. keep **Promotions** under **Performance** instead of **Content**, or break **Brand DNA + Preferences** into their own "Setup" tab), say the word before I build and I'll adjust.
