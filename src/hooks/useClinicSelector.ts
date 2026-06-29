@@ -17,8 +17,9 @@ export function useClinicSelector() {
   const [clinics, setClinics] = useState<ClinicOption[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const selectedClinicId = searchParams.get("clinic") || "";
-  const selectedClinic = clinics.find((clinic) => clinic.id === selectedClinicId);
+  const requestedClinicId = searchParams.get("clinic") || "";
+  const selectedClinic = clinics.find((clinic) => clinic.id === requestedClinicId);
+  const selectedClinicId = selectedClinic?.id || (!loading && clinics.length > 0 ? clinics[0].id : requestedClinicId);
 
   useEffect(() => {
     const fetch = async () => {
@@ -29,8 +30,9 @@ export function useClinicSelector() {
         .order("clinic_name");
       if (!error && data) {
         setClinics(data);
-        // Auto-select first clinic if none selected
-        if (!searchParams.get("clinic") && data.length > 0) {
+        const hasRequestedClinic = requestedClinicId && data.some((clinic: ClinicOption) => clinic.id === requestedClinicId);
+        // Auto-select the first clinic when the URL is empty or points to a clinic this user cannot access.
+        if ((!requestedClinicId || !hasRequestedClinic) && data.length > 0) {
           setSearchParams((prev) => {
             const next = new URLSearchParams(prev);
             next.set("clinic", data[0].id);
@@ -41,7 +43,7 @@ export function useClinicSelector() {
       setLoading(false);
     };
     fetch();
-  }, []);
+  }, [requestedClinicId, setSearchParams]);
 
   const setSelectedClinicId = (id: string) => {
     setSearchParams((prev) => {
