@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Clock, CheckCircle2, Inbox, MessageSquare,
   ChevronLeft, ChevronRight, ArrowRight, BarChart3, Sparkles, LucideIcon,
+  Globe, SearchCode, Megaphone, Share2, Activity,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -28,6 +29,21 @@ import { SOCIAL_QUICK_ACTIONS } from "@/lib/quick-actions";
 interface Clinic { id: string; clinic_name: string; }
 interface PostRow { id: string; title: string; platform: string; status: string; scheduled_date: string; }
 interface ChatRow { id: string; message: string; user_id: string | null; created_at: string; }
+interface UpdateRow { id: string; title: string; status: string; department: string; updated_at: string; }
+
+const DEPT_META: Record<string, { label: string; icon: LucideIcon; color: string; bg: string; route: string }> = {
+  website: { label: "Website", icon: Globe, color: "text-[hsl(var(--dept-website))]", bg: "bg-[hsl(var(--dept-website))]/10", route: "/website" },
+  seo: { label: "SEO", icon: SearchCode, color: "text-[hsl(var(--dept-seo))]", bg: "bg-[hsl(var(--dept-seo))]/10", route: "/seo" },
+  google_ads: { label: "Google Ads", icon: Megaphone, color: "text-[hsl(var(--dept-google-ads))]", bg: "bg-[hsl(var(--dept-google-ads))]/10", route: "/google-ads" },
+  social_media: { label: "Social", icon: Share2, color: "text-[hsl(var(--dept-social))]", bg: "bg-[hsl(var(--dept-social))]/10", route: "/social" },
+};
+
+const STATUS_LABEL: Record<string, { label: string; tone: string }> = {
+  open: { label: "Opened", tone: "text-primary" },
+  in_progress: { label: "In progress", tone: "text-warning" },
+  completed: { label: "Completed", tone: "text-success" },
+  emergency: { label: "Emergency", tone: "text-destructive" },
+};
 
 const SOCIAL_SERVICES = SOCIAL_QUICK_ACTIONS.map(a => a.type);
 
