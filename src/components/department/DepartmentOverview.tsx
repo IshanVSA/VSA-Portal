@@ -121,12 +121,6 @@ export function DepartmentOverview({
       initial="hidden"
       animate="show"
     >
-      {/* At-a-glance ticket status strip */}
-      <DepartmentStatusStrip
-        department={department}
-        clinicId={clinicId}
-        counts={ticketSummary}
-      />
 
       {/* KPI Row */}
       {kpis.length > 0 && (
