@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Clock, CheckCircle2, Inbox, MessageSquare,
   ChevronLeft, ChevronRight, ArrowRight, BarChart3, Sparkles, LucideIcon,
+  Globe, SearchCode, Megaphone, Share2, Activity,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -28,6 +29,21 @@ import { SOCIAL_QUICK_ACTIONS } from "@/lib/quick-actions";
 interface Clinic { id: string; clinic_name: string; }
 interface PostRow { id: string; title: string; platform: string; status: string; scheduled_date: string; }
 interface ChatRow { id: string; message: string; user_id: string | null; created_at: string; }
+interface UpdateRow { id: string; title: string; status: string; department: string; updated_at: string; }
+
+const DEPT_META: Record<string, { label: string; icon: LucideIcon; color: string; bg: string; route: string }> = {
+  website: { label: "Website", icon: Globe, color: "text-[hsl(var(--dept-website))]", bg: "bg-[hsl(var(--dept-website))]/10", route: "/website" },
+  seo: { label: "SEO", icon: SearchCode, color: "text-[hsl(var(--dept-seo))]", bg: "bg-[hsl(var(--dept-seo))]/10", route: "/seo" },
+  google_ads: { label: "Google Ads", icon: Megaphone, color: "text-[hsl(var(--dept-google-ads))]", bg: "bg-[hsl(var(--dept-google-ads))]/10", route: "/google-ads" },
+  social_media: { label: "Social", icon: Share2, color: "text-[hsl(var(--dept-social))]", bg: "bg-[hsl(var(--dept-social))]/10", route: "/social" },
+};
+
+const STATUS_LABEL: Record<string, { label: string; tone: string }> = {
+  open: { label: "Opened", tone: "text-primary" },
+  in_progress: { label: "In progress", tone: "text-warning" },
+  completed: { label: "Completed", tone: "text-success" },
+  emergency: { label: "Emergency", tone: "text-destructive" },
+};
 
 const SOCIAL_SERVICES = SOCIAL_QUICK_ACTIONS.map(a => a.type);
 
@@ -52,6 +68,7 @@ export default function ClientDashboard() {
   const [latestChat, setLatestChat] = useState<ChatRow | null>(null);
   const [chatAuthor, setChatAuthor] = useState<string>("");
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
+  const [recentUpdates, setRecentUpdates] = useState<UpdateRow[]>([]);
 
   const selectedClinicId = searchParams.get("clinic") || clinics[0]?.id || "";
   const selectedClinic = clinics.find(c => c.id === selectedClinicId);
@@ -150,6 +167,15 @@ export default function ClientDashboard() {
       } else {
         setChatAuthor("Team");
       }
+
+      // Recent ticket activity across all departments for this clinic
+      const { data: updates } = await supabase
+        .from("department_tickets")
+        .select("id, title, status, department, updated_at")
+        .eq("clinic_id", selectedClinicId)
+        .order("updated_at", { ascending: false })
+        .limit(6);
+      setRecentUpdates((updates || []) as UpdateRow[]);
     })();
   }, [selectedClinicId, user, monthCursor]);
 
@@ -394,7 +420,51 @@ export default function ClientDashboard() {
         </motion.div>
       </div>
 
-      {/* QUICK ACTIONS */}
+      {/* RECENT UPDATES — cross-department activity at-a-glance */}
+      <motion.div variants={item}>
+        <Card className="border-border/60">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <Activity className="h-4 w-4 text-primary" />
+                Recent updates
+              </h3>
+              <span className="text-[11px] text-muted-foreground">All departments</span>
+            </div>
+            {recentUpdates.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-4 text-center">No recent activity yet.</p>
+            ) : (
+              <ul className="divide-y divide-border/40">
+                {recentUpdates.map((u) => {
+                  const meta = DEPT_META[u.department] || DEPT_META.website;
+                  const Icon = meta.icon;
+                  const status = STATUS_LABEL[u.status] || { label: u.status, tone: "text-muted-foreground" };
+                  return (
+                    <li key={u.id}>
+                      <button
+                        onClick={() => navigate(`${meta.route}?clinic=${selectedClinicId}&tab=tickets`)}
+                        className="w-full flex items-center gap-3 py-2.5 text-left hover:bg-accent/40 -mx-2 px-2 rounded-md transition-colors"
+                      >
+                        <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", meta.bg)}>
+                          <Icon className={cn("h-4 w-4", meta.color)} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-foreground truncate">{u.title}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {meta.label} · <span className={status.tone}>{status.label}</span> · {formatDistanceToNow(parseISO(u.updated_at), { addSuffix: true })}
+                          </p>
+                        </div>
+                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+
       <motion.div variants={item} className="flex flex-wrap gap-2">
         <Button onClick={() => setTicketDialogOpen(true)} className="gap-2">
           <Sparkles className="h-4 w-4" /> Request content

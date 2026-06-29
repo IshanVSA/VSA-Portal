@@ -391,36 +391,42 @@ export function ClientSocialOverview({ clinicId }: ClientSocialOverviewProps) {
           <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
             <CardTitle className="text-base flex items-center gap-2">
               <HelpCircle className="h-4 w-4 text-primary" />
-              Your Concierge
+              Your Social Media Team
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-5">
-            {concierge ? (
+            {team.length > 0 ? (
               <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-14 w-14 rounded-full bg-gradient-to-br from-primary/30 to-primary/5 flex items-center justify-center ring-2 ring-border">
-                    <span className="text-lg font-bold text-primary">{concierge.name.charAt(0).toUpperCase()}</span>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-foreground truncate">{concierge.name}</p>
-                    <p className="text-xs text-muted-foreground capitalize">{concierge.role}</p>
-                    <Badge variant="outline" className="text-[9px] mt-1 border-emerald-500/30 text-emerald-600">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 mr-1" /> Available
-                    </Badge>
-                  </div>
-                </div>
+                <ul className="space-y-2.5">
+                  {team.map((m, idx) => (
+                    <li key={m.name + idx} className="flex items-center gap-3 rounded-lg border border-border/40 bg-card/60 px-3 py-2.5">
+                      <div className="h-10 w-10 shrink-0 rounded-full bg-gradient-to-br from-primary/25 to-primary/5 flex items-center justify-center ring-1 ring-primary/10">
+                        <span className="text-sm font-bold text-primary">{m.name.charAt(0).toUpperCase()}</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-foreground truncate">{m.name}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">{m.teamRole || m.role}</p>
+                      </div>
+                      {idx === 0 && (
+                        <Badge variant="outline" className="text-[9px] border-emerald-500/30 text-emerald-600 shrink-0">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 mr-1" /> Lead
+                        </Badge>
+                      )}
+                    </li>
+                  ))}
+                </ul>
                 <div className="grid grid-cols-2 gap-2">
                   <Button size="sm" variant="outline" onClick={() => { setActiveQuickAction("Others"); setTicketDialogOpen(true); }}>
                     <Plus className="h-3.5 w-3.5 mr-1" /> Ticket
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => goTab("tickets")}>
-                    <MessageCircle className="h-3.5 w-3.5 mr-1" /> Messages
+                  <Button size="sm" variant="outline" onClick={() => goTab("client-chat")}>
+                    <MessageCircle className="h-3.5 w-3.5 mr-1" /> Message
                   </Button>
                 </div>
               </div>
             ) : (
               <div className="text-sm text-muted-foreground py-2 text-center">
-                Your concierge will appear here once assigned.
+                Your team will appear here once assigned.
               </div>
             )}
           </CardContent>
