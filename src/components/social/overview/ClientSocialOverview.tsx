@@ -407,11 +407,6 @@ export function ClientSocialOverview({ clinicId }: ClientSocialOverviewProps) {
                         <p className="text-sm font-semibold text-foreground truncate">{m.name}</p>
                         <p className="text-[11px] text-muted-foreground truncate">{m.teamRole || m.role}</p>
                       </div>
-                      {idx === 0 && (
-                        <Badge variant="outline" className="text-[9px] border-emerald-500/30 text-emerald-600 shrink-0">
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 mr-1" /> Lead
-                        </Badge>
-                      )}
                     </li>
                   ))}
                 </ul>
