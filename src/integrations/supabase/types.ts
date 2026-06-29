@@ -3515,6 +3515,15 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_clinic_department_team: {
+        Args: { _clinic_id: string; _team_roles: string[] }
+        Returns: {
+          app_role: string
+          full_name: string
+          team_role: string
+          user_id: string
+        }[]
+      }
       get_concierge_clinic_ids: {
         Args: { _user_id: string }
         Returns: string[]
