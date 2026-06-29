@@ -420,7 +420,51 @@ export default function ClientDashboard() {
         </motion.div>
       </div>
 
-      {/* QUICK ACTIONS */}
+      {/* RECENT UPDATES — cross-department activity at-a-glance */}
+      <motion.div variants={item}>
+        <Card className="border-border/60">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <Activity className="h-4 w-4 text-primary" />
+                Recent updates
+              </h3>
+              <span className="text-[11px] text-muted-foreground">All departments</span>
+            </div>
+            {recentUpdates.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-4 text-center">No recent activity yet.</p>
+            ) : (
+              <ul className="divide-y divide-border/40">
+                {recentUpdates.map((u) => {
+                  const meta = DEPT_META[u.department] || DEPT_META.website;
+                  const Icon = meta.icon;
+                  const status = STATUS_LABEL[u.status] || { label: u.status, tone: "text-muted-foreground" };
+                  return (
+                    <li key={u.id}>
+                      <button
+                        onClick={() => navigate(`${meta.route}?clinic=${selectedClinicId}&tab=tickets`)}
+                        className="w-full flex items-center gap-3 py-2.5 text-left hover:bg-accent/40 -mx-2 px-2 rounded-md transition-colors"
+                      >
+                        <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", meta.bg)}>
+                          <Icon className={cn("h-4 w-4", meta.color)} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-foreground truncate">{u.title}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {meta.label} · <span className={status.tone}>{status.label}</span> · {formatDistanceToNow(parseISO(u.updated_at), { addSuffix: true })}
+                          </p>
+                        </div>
+                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+
       <motion.div variants={item} className="flex flex-wrap gap-2">
         <Button onClick={() => setTicketDialogOpen(true)} className="gap-2">
           <Sparkles className="h-4 w-4" /> Request content
