@@ -10,7 +10,6 @@ import { getTicketTypeLabel } from "@/lib/ticket-display-labels";
 import { getQuickActionMeta } from "@/lib/quick-actions";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { DepartmentStatusStrip } from "@/components/department/DepartmentStatusStrip";
 
 interface KPI {
   label: string;
