@@ -68,6 +68,7 @@ export default function ClientDashboard() {
   const [latestChat, setLatestChat] = useState<ChatRow | null>(null);
   const [chatAuthor, setChatAuthor] = useState<string>("");
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
+  const [recentUpdates, setRecentUpdates] = useState<UpdateRow[]>([]);
 
   const selectedClinicId = searchParams.get("clinic") || clinics[0]?.id || "";
   const selectedClinic = clinics.find(c => c.id === selectedClinicId);
