@@ -167,6 +167,15 @@ export default function ClientDashboard() {
       } else {
         setChatAuthor("Team");
       }
+
+      // Recent ticket activity across all departments for this clinic
+      const { data: updates } = await supabase
+        .from("department_tickets")
+        .select("id, title, status, department, updated_at")
+        .eq("clinic_id", selectedClinicId)
+        .order("updated_at", { ascending: false })
+        .limit(6);
+      setRecentUpdates((updates || []) as UpdateRow[]);
     })();
   }, [selectedClinicId, user, monthCursor]);
 
