@@ -5,6 +5,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Share2, LayoutGrid, ChartColumn, Ticket, Upload, MessageCircle, Dna, Sparkles, Eye, SlidersHorizontal, MapPin, Tag, Megaphone, FileText, ListChecks, Users, Briefcase } from "lucide-react";
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { GBPPostsTab } from "@/components/seo/gbp/GBPPostsTab";
@@ -245,14 +246,19 @@ export default function SocialMedia() {
               {/* Parent tabs */}
               <Tabs value={currentGroup} onValueChange={handleGroupChange} className="w-full">
                 <div className="sticky top-14 z-20 -mx-3 sm:-mx-4 lg:-mx-8 px-3 sm:px-4 lg:px-8 py-2 bg-background/85 backdrop-blur-md border-b border-border/40 space-y-2">
-                  <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto flex-nowrap tabs-scroll">
+                  <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 flex-nowrap">
                     {groups.map((g) => {
                       const badge = groupBadges[g.value];
                       const showBadge = badge && badge.count > 0 && currentGroup !== g.value;
                       return (
-                        <TabsTrigger key={g.value} value={g.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm relative flex-1 min-w-[88px]">
-                          <g.icon className="h-3.5 w-3.5 shrink-0" />
-                          <span className="whitespace-nowrap">{g.label}</span>
+                        <TabsTrigger
+                          key={g.value}
+                          value={g.value}
+                          aria-label={g.label}
+                          className="gap-1.5 text-xs data-[state=active]:shadow-sm relative flex-1 min-w-0 px-2 sm:px-3"
+                        >
+                          <g.icon className="h-4 w-4 shrink-0" />
+                          <span className="hidden sm:inline whitespace-nowrap">{g.label}</span>
                           {showBadge && (
                             <span className={`absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full text-[10px] font-bold flex items-center justify-center px-1 ${toneClass(badge.tone)}`}>
                               {badge.count > 99 ? "99+" : badge.count}
@@ -263,27 +269,67 @@ export default function SocialMedia() {
                     })}
                   </TabsList>
 
+                  {/* Mobile-only active group label */}
+                  {activeGroup && (
+                    <div className="sm:hidden flex items-center gap-1.5 px-1 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                      <activeGroup.icon className="h-3 w-3" />
+                      {activeGroup.label}
+                    </div>
+                  )}
+
                   {/* Sub tabs (only if the active group has any) */}
                   {activeGroup && activeGroup.subs.length > 0 && (
-                    <Tabs value={currentSub} onValueChange={handleSubChange} className="w-full">
-                      <TabsList className="w-full justify-start bg-muted/30 h-9 p-0.5 overflow-x-auto flex-nowrap tabs-scroll border border-border/40">
-                        {activeGroup.subs.map((s) => {
-                          const sb = subBadgeFor(s.value);
-                          const showSb = sb && currentSub !== s.value;
-                          return (
-                            <TabsTrigger key={s.value} value={s.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm relative">
-                              <s.icon className="h-3.5 w-3.5 shrink-0" />
-                              <span className="whitespace-nowrap">{s.label}</span>
-                              {showSb && (
-                                <span className={`absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full text-[10px] font-bold flex items-center justify-center px-1 ${toneClass(sb!.tone)}`}>
-                                  {sb!.count > 99 ? "99+" : sb!.count}
-                                </span>
-                              )}
-                            </TabsTrigger>
-                          );
-                        })}
-                      </TabsList>
-                    </Tabs>
+                    <>
+                      {/* Mobile: dropdown */}
+                      <div className="sm:hidden">
+                        <Select value={currentSub} onValueChange={handleSubChange}>
+                          <SelectTrigger className="h-9 text-xs bg-muted/30 border-border/40">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {activeGroup.subs.map((s) => {
+                              const sb = subBadgeFor(s.value);
+                              return (
+                                <SelectItem key={s.value} value={s.value} className="text-xs">
+                                  <span className="flex items-center gap-2">
+                                    <s.icon className="h-3.5 w-3.5" />
+                                    <span>{s.label}</span>
+                                    {sb && sb.count > 0 && (
+                                      <span className={`ml-auto min-w-[16px] h-4 rounded-full text-[10px] font-bold flex items-center justify-center px-1 ${toneClass(sb.tone)}`}>
+                                        {sb.count > 99 ? "99+" : sb.count}
+                                      </span>
+                                    )}
+                                  </span>
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Tablet/Desktop: pill tabs */}
+                      <div className="hidden sm:block">
+                        <Tabs value={currentSub} onValueChange={handleSubChange} className="w-full">
+                          <TabsList className="w-full justify-start bg-muted/30 h-9 p-0.5 overflow-x-auto flex-nowrap tabs-scroll border border-border/40">
+                            {activeGroup.subs.map((s) => {
+                              const sb = subBadgeFor(s.value);
+                              const showSb = sb && currentSub !== s.value;
+                              return (
+                                <TabsTrigger key={s.value} value={s.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm relative">
+                                  <s.icon className="h-3.5 w-3.5 shrink-0" />
+                                  <span className="whitespace-nowrap">{s.label}</span>
+                                  {showSb && (
+                                    <span className={`absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full text-[10px] font-bold flex items-center justify-center px-1 ${toneClass(sb!.tone)}`}>
+                                      {sb!.count > 99 ? "99+" : sb!.count}
+                                    </span>
+                                  )}
+                                </TabsTrigger>
+                              );
+                            })}
+                          </TabsList>
+                        </Tabs>
+                      </div>
+                    </>
                   )}
                 </div>
 
