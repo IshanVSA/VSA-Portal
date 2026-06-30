@@ -890,7 +890,7 @@ export default function AdminDashboard() {
         </section>
       </div>
 
-      <OpenTicketsList open={ticketsOpen} onOpenChange={setTicketsOpen} />
+      <OpenTicketsList open={ticketsOpen} onOpenChange={setTicketsOpen} initialDepartment={ticketsDeptFilter} />
       <OpenTasksList open={tasksOpen} onOpenChange={setTasksOpen} />
 
       <Dialog open={!!pipelineDialogStage} onOpenChange={(o) => { if (!o) setPipelineDialogStage(null); }}>
