@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 interface OpenTicketsListProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialDepartment?: string | null;
 }
 
 interface OpenTicket {
