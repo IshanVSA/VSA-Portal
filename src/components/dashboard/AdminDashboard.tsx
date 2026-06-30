@@ -671,7 +671,7 @@ export default function AdminDashboard() {
                       <div className="group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-muted/50">
                         <button
                           type="button"
-                          onClick={() => setTicketsOpen(true)}
+                          onClick={() => { setTicketsDeptFilter(dept.department); setTicketsOpen(true); }}
                           className="flex min-w-0 flex-1 items-center gap-3 text-left"
                         >
                           <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl", cfg.ring)}>
