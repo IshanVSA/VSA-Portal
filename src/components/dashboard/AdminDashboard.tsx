@@ -602,7 +602,7 @@ export default function AdminDashboard() {
             caption={urgentTickets > 0 ? `${urgentTickets} urgent · click to view` : "click to view all"}
             icon={Ticket}
             tone={urgentTickets > 0 ? "destructive" : "neutral"}
-            onClick={() => setTicketsOpen(true)}
+            onClick={() => { setTicketsDeptFilter(null); setTicketsOpen(true); }}
             index={1}
           />
           <HeroStat
