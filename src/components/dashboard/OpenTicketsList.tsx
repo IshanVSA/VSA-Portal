@@ -81,11 +81,16 @@ function ticketLink(t: OpenTicket): string {
   return `${base}?${params.toString()}`;
 }
 
-export default function OpenTicketsList({ open, onOpenChange }: OpenTicketsListProps) {
+export default function OpenTicketsList({ open, onOpenChange, initialDepartment = null }: OpenTicketsListProps) {
   const [tickets, setTickets] = useState<OpenTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
-  const [deptFilter, setDeptFilter] = useState<string | null>(null);
+  const [deptFilter, setDeptFilter] = useState<string | null>(initialDepartment);
+
+  useEffect(() => {
+    if (open) setDeptFilter(initialDepartment);
+  }, [open, initialDepartment]);
+
 
   useEffect(() => {
     let cancelled = false;
