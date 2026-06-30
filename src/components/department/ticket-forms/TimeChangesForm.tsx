@@ -374,6 +374,24 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
           <p className="text-xs text-destructive pl-2">Close time must be after open time.</p>
         )}
       </div>
+
+      {/* Social Media Bio sync */}
+      <div className="flex items-start gap-2 p-3 rounded-xl bg-muted/30 border border-border/40">
+        <Checkbox
+          id="update-social-bio"
+          checked={updateSocialBio}
+          onCheckedChange={(v) => setUpdateSocialBio(v === true)}
+          className="mt-0.5"
+        />
+        <div className="space-y-0.5">
+          <Label htmlFor="update-social-bio" className="text-sm font-medium cursor-pointer">
+            Change time in Social Media Bio
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            Also send this request to the Social Media team to update bio hours on connected profiles.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
