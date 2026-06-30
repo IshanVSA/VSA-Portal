@@ -4,6 +4,7 @@ import { CalendarIcon } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -62,6 +63,7 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
   const [statHolidayOpen, setStatHolidayOpen] = useState(false);
   const [statHolidayOpenTime, setStatHolidayOpenTime] = useState("00:00");
   const [statHolidayCloseTime, setStatHolidayCloseTime] = useState("00:00");
+  const [updateSocialBio, setUpdateSocialBio] = useState(false);
 
   const toMinutes = (t: string) => {
     const [h, m] = t.split(":").map(Number);
@@ -96,8 +98,11 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
     const statHolidayInfo = statHolidayOpen
       ? `Statutory Holidays: Open (${statHolidayOpenTime} - ${statHolidayCloseTime})`
       : "Statutory Holidays: Closed";
-    onChange(`${datePart}\n\nUpdated Business Hours:\n${lines.join("\n")}\n\n${statHolidayInfo}`);
-  }, [schedule, startDate, endDate, statHolidayOpen, statHolidayOpenTime, statHolidayCloseTime, onChange]);
+    const socialBioInfo = updateSocialBio
+      ? "Update Social Media Bio Hours: Yes\nPromote on Social Media: Yes"
+      : "Update Social Media Bio Hours: No";
+    onChange(`${datePart}\n\nUpdated Business Hours:\n${lines.join("\n")}\n\n${statHolidayInfo}\n\n${socialBioInfo}`);
+  }, [schedule, startDate, endDate, statHolidayOpen, statHolidayOpenTime, statHolidayCloseTime, updateSocialBio, onChange]);
 
   const update = (day: string, field: keyof DaySchedule, value: string | boolean) => {
     setSchedule(prev => ({ ...prev, [day]: { ...prev[day], [field]: value } }));
@@ -368,6 +373,24 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
         {statHolidayError && (
           <p className="text-xs text-destructive pl-2">Close time must be after open time.</p>
         )}
+      </div>
+
+      {/* Social Media Bio sync */}
+      <div className="flex items-start gap-2 p-3 rounded-xl bg-muted/30 border border-border/40">
+        <Checkbox
+          id="update-social-bio"
+          checked={updateSocialBio}
+          onCheckedChange={(v) => setUpdateSocialBio(v === true)}
+          className="mt-0.5"
+        />
+        <div className="space-y-0.5">
+          <Label htmlFor="update-social-bio" className="text-sm font-medium cursor-pointer">
+            Change time in Social Media Bio
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            Also send this request to the Social Media team to update bio hours on connected profiles.
+          </p>
+        </div>
       </div>
     </div>
   );
