@@ -295,6 +295,7 @@ export default function AdminDashboard() {
   // active drill-down filter
   const [filter, setFilter] = useState<DashboardFilter>({});
   const [ticketsOpen, setTicketsOpen] = useState(false);
+  const [ticketsDeptFilter, setTicketsDeptFilter] = useState<string | null>(null);
   const [tasksOpen, setTasksOpen] = useState(false);
 
   useEffect(() => {
@@ -601,7 +602,7 @@ export default function AdminDashboard() {
             caption={urgentTickets > 0 ? `${urgentTickets} urgent · click to view` : "click to view all"}
             icon={Ticket}
             tone={urgentTickets > 0 ? "destructive" : "neutral"}
-            onClick={() => setTicketsOpen(true)}
+            onClick={() => { setTicketsDeptFilter(null); setTicketsOpen(true); }}
             index={1}
           />
           <HeroStat
@@ -670,7 +671,7 @@ export default function AdminDashboard() {
                       <div className="group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-muted/50">
                         <button
                           type="button"
-                          onClick={() => setTicketsOpen(true)}
+                          onClick={() => { setTicketsDeptFilter(dept.department); setTicketsOpen(true); }}
                           className="flex min-w-0 flex-1 items-center gap-3 text-left"
                         >
                           <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl", cfg.ring)}>
@@ -889,7 +890,7 @@ export default function AdminDashboard() {
         </section>
       </div>
 
-      <OpenTicketsList open={ticketsOpen} onOpenChange={setTicketsOpen} />
+      <OpenTicketsList open={ticketsOpen} onOpenChange={setTicketsOpen} initialDepartment={ticketsDeptFilter} />
       <OpenTasksList open={tasksOpen} onOpenChange={setTasksOpen} />
 
       <Dialog open={!!pipelineDialogStage} onOpenChange={(o) => { if (!o) setPipelineDialogStage(null); }}>
