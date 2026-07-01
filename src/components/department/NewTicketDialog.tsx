@@ -253,8 +253,12 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
 
     let finalDescription = isCustomForm ? customDescription : (genericDescription.trim() || null);
     const socialEnabled = clinicServices?.["Social Media"] !== false;
+    const googleAdsEnabled = clinicServices?.["Google Ads"] !== false;
     if ((ticketType === "Add/Remove Team Members" || ticketType === "Pop-up Offers") && promoteSocial && socialEnabled && finalDescription) {
       finalDescription = `${finalDescription}\nPromote on Social Media: Yes`;
+    }
+    if (ticketType === "Add/Remove Team Members" && promoteGoogleAds && googleAdsEnabled && finalDescription) {
+      finalDescription = `${finalDescription}\nPromote on Google Ads: Yes`;
     }
     // Merge additional notes into the description so they're always visible on the ticket
     const trimmedNotes = notes.trim();
