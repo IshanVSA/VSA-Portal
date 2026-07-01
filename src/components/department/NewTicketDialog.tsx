@@ -174,6 +174,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     setFiles([]);
     setPopupConsented(false);
     setPromoteSocial(false);
+    setPromoteGoogleAds(false);
     setContentPreview(null);
     setSubmitted(false);
     setSelectedClinicId("");
