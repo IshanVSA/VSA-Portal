@@ -64,6 +64,7 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
   const [statHolidayOpenTime, setStatHolidayOpenTime] = useState("00:00");
   const [statHolidayCloseTime, setStatHolidayCloseTime] = useState("00:00");
   const [updateSocialBio, setUpdateSocialBio] = useState(false);
+  const [promoteSocial, setPromoteSocial] = useState(false);
 
   const toMinutes = (t: string) => {
     const [h, m] = t.split(":").map(Number);
