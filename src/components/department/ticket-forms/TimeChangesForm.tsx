@@ -64,6 +64,7 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
   const [statHolidayOpenTime, setStatHolidayOpenTime] = useState("00:00");
   const [statHolidayCloseTime, setStatHolidayCloseTime] = useState("00:00");
   const [updateSocialBio, setUpdateSocialBio] = useState(false);
+  const [promoteSocial, setPromoteSocial] = useState(false);
 
   const toMinutes = (t: string) => {
     const [h, m] = t.split(":").map(Number);
@@ -99,10 +100,14 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
       ? `Statutory Holidays: Open (${statHolidayOpenTime} - ${statHolidayCloseTime})`
       : "Statutory Holidays: Closed";
     const socialBioInfo = updateSocialBio
-      ? "Update Social Media Bio Hours: Yes\nPromote on Social Media: Yes"
+      ? "Update Social Media Bio Hours: Yes"
       : "Update Social Media Bio Hours: No";
-    onChange(`${datePart}\n\nUpdated Business Hours:\n${lines.join("\n")}\n\n${statHolidayInfo}\n\n${socialBioInfo}`);
-  }, [schedule, startDate, endDate, statHolidayOpen, statHolidayOpenTime, statHolidayCloseTime, updateSocialBio, onChange]);
+    const promoteInfo = promoteSocial
+      ? "Promote New Hours on Social Media: Yes"
+      : "Promote New Hours on Social Media: No";
+    const fanout = (updateSocialBio || promoteSocial) ? "\nPromote on Social Media: Yes" : "";
+    onChange(`${datePart}\n\nUpdated Business Hours:\n${lines.join("\n")}\n\n${statHolidayInfo}\n\n${socialBioInfo}\n${promoteInfo}${fanout}`);
+  }, [schedule, startDate, endDate, statHolidayOpen, statHolidayOpenTime, statHolidayCloseTime, updateSocialBio, promoteSocial, onChange]);
 
   const update = (day: string, field: keyof DaySchedule, value: string | boolean) => {
     setSchedule(prev => ({ ...prev, [day]: { ...prev[day], [field]: value } }));
@@ -389,6 +394,24 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
           </Label>
           <p className="text-xs text-muted-foreground">
             Also send this request to the Social Media team to update bio hours on connected profiles.
+          </p>
+        </div>
+      </div>
+
+      {/* Promote on Social Media */}
+      <div className="flex items-start gap-2 p-3 rounded-xl bg-muted/30 border border-border/40">
+        <Checkbox
+          id="promote-social"
+          checked={promoteSocial}
+          onCheckedChange={(v) => setPromoteSocial(v === true)}
+          className="mt-0.5"
+        />
+        <div className="space-y-0.5">
+          <Label htmlFor="promote-social" className="text-sm font-medium cursor-pointer">
+            Promote on Social Media
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            Also send this request to the Social Media team to create a promotional post announcing the updated hours.
           </p>
         </div>
       </div>
