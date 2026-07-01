@@ -46,7 +46,7 @@ export function TaskInspector({ task, department, clinicId, open, onOpenChange }
   const isAdmin = role === "admin";
   const isAssignee = task.assigned_to === user?.id;
   const canEditFields = isAdmin;
-  const canChangeStatus = isAdmin || isAssignee;
+  const canChangeStatus = isAdmin || isAssignee || role === "concierge";
 
   const { updateTask, deleteTask } = useDepartmentTasks(department, clinicId);
   const { attachments, upload, remove, getPublicUrl } = useTaskAttachments(task.id);
