@@ -100,10 +100,14 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
       ? `Statutory Holidays: Open (${statHolidayOpenTime} - ${statHolidayCloseTime})`
       : "Statutory Holidays: Closed";
     const socialBioInfo = updateSocialBio
-      ? "Update Social Media Bio Hours: Yes\nPromote on Social Media: Yes"
+      ? "Update Social Media Bio Hours: Yes"
       : "Update Social Media Bio Hours: No";
-    onChange(`${datePart}\n\nUpdated Business Hours:\n${lines.join("\n")}\n\n${statHolidayInfo}\n\n${socialBioInfo}`);
-  }, [schedule, startDate, endDate, statHolidayOpen, statHolidayOpenTime, statHolidayCloseTime, updateSocialBio, onChange]);
+    const promoteInfo = promoteSocial
+      ? "Promote New Hours on Social Media: Yes"
+      : "Promote New Hours on Social Media: No";
+    const fanout = (updateSocialBio || promoteSocial) ? "\nPromote on Social Media: Yes" : "";
+    onChange(`${datePart}\n\nUpdated Business Hours:\n${lines.join("\n")}\n\n${statHolidayInfo}\n\n${socialBioInfo}\n${promoteInfo}${fanout}`);
+  }, [schedule, startDate, endDate, statHolidayOpen, statHolidayOpenTime, statHolidayCloseTime, updateSocialBio, promoteSocial, onChange]);
 
   const update = (day: string, field: keyof DaySchedule, value: string | boolean) => {
     setSchedule(prev => ({ ...prev, [day]: { ...prev[day], [field]: value } }));
