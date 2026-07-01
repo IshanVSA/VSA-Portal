@@ -514,6 +514,19 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
                   </Label>
                 </div>
               )}
+
+              {isAddTeamMember && clinicServices?.["Google Ads"] !== false && (
+                <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 p-3">
+                  <Checkbox
+                    id="promote-google-ads"
+                    checked={promoteGoogleAds}
+                    onCheckedChange={(checked) => setPromoteGoogleAds(checked === true)}
+                  />
+                  <Label htmlFor="promote-google-ads" className="cursor-pointer text-sm font-normal">
+                    Update Google Ads with new team member
+                  </Label>
+                </div>
+              )}
             </div>
 
             <DialogFooter>
