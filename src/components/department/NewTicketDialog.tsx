@@ -96,7 +96,6 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
   const [uploading, setUploading] = useState(false);
   const [popupConsented, setPopupConsented] = useState(false);
   const [promoteSocial, setPromoteSocial] = useState(false);
-  const [promoteGoogleAds, setPromoteGoogleAds] = useState(false);
   const [contentPreview, setContentPreview] = useState<ContentPreviewData | null>(null);
 
   const serviceOptions = getServiceOptions(services);
@@ -174,7 +173,6 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     setFiles([]);
     setPopupConsented(false);
     setPromoteSocial(false);
-    setPromoteGoogleAds(false);
     setContentPreview(null);
     setSubmitted(false);
     setSelectedClinicId("");
@@ -253,12 +251,8 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
 
     let finalDescription = isCustomForm ? customDescription : (genericDescription.trim() || null);
     const socialEnabled = clinicServices?.["Social Media"] !== false;
-    const googleAdsEnabled = clinicServices?.["Google Ads"] !== false;
     if ((ticketType === "Add/Remove Team Members" || ticketType === "Pop-up Offers") && promoteSocial && socialEnabled && finalDescription) {
       finalDescription = `${finalDescription}\nPromote on Social Media: Yes`;
-    }
-    if (ticketType === "Add/Remove Team Members" && promoteGoogleAds && googleAdsEnabled && finalDescription) {
-      finalDescription = `${finalDescription}\nPromote on Google Ads: Yes`;
     }
     // Merge additional notes into the description so they're always visible on the ticket
     const trimmedNotes = notes.trim();
@@ -400,14 +394,10 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
               </div>
               {(() => {
                 const depts = getVisibleDepartmentLabels(ticketType);
-                let finalDepts = [...depts];
-                // Opt-in fan-outs for Add/Remove Team Members / Pop-up Offers
-                if ((isAddTeamMember || isPopupOffer) && promoteSocial && !finalDepts.includes("Social Media")) {
-                  finalDepts.push("Social Media");
-                }
-                if (isAddTeamMember && promoteGoogleAds && !finalDepts.includes("Google Ads")) {
-                  finalDepts.push("Google Ads");
-                }
+                // For Add/Remove Team Members (add action) or Pop-up Offers with social promotion, add Social Media
+                let finalDepts = (isAddTeamMember || isPopupOffer) && promoteSocial
+                  ? [...depts, "Social Media"]
+                  : depts;
                 // Filter out departments that are locked for this clinic so the
                 // confirmation never advertises a forward to a disabled service.
                 if (clinicServices) {
@@ -511,19 +501,6 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
                   />
                   <Label htmlFor="promote-social" className="cursor-pointer text-sm font-normal">
                     {ticketType === "Pop-up Offers" ? "Promote this offer on social media" : "Promote new team member on social media"}
-                  </Label>
-                </div>
-              )}
-
-              {isAddTeamMember && clinicServices?.["Google Ads"] !== false && (
-                <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 p-3">
-                  <Checkbox
-                    id="promote-google-ads"
-                    checked={promoteGoogleAds}
-                    onCheckedChange={(checked) => setPromoteGoogleAds(checked === true)}
-                  />
-                  <Label htmlFor="promote-google-ads" className="cursor-pointer text-sm font-normal">
-                    Update Google Ads with new team member
                   </Label>
                 </div>
               )}
