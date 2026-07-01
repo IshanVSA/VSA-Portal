@@ -9,7 +9,7 @@
  * Each ticket type lists only its originating department.
  */
 export const TICKET_VISIBILITY: Record<string, string[]> = {
-  "Time Changes": ["website"],
+  "Time Changes": ["website", "google_ads"],
   "Pop-up Offers": ["website"],
   "Third Party Integrations": ["website"],
   "Payment Options": ["website"],
