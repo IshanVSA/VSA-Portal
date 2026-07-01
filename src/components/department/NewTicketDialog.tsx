@@ -394,8 +394,15 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
               </div>
               {(() => {
                 const depts = getVisibleDepartmentLabels(ticketType);
-                // For Add/Remove Team Members (add action) or Pop-up Offers with social promotion, add Social Media
-                let finalDepts = (isAddTeamMember || isPopupOffer) && promoteSocial
+                // Social Media fan-out is triggered whenever the description
+                // contains "Promote on Social Media: Yes" (Time Changes checkboxes,
+                // Add/Remove Team Members, Pop-up Offers, etc.).
+                const descHasSocialFanout =
+                  ((isCustomForm ? customDescription : genericDescription) || "").includes(
+                    "Promote on Social Media: Yes"
+                  ) ||
+                  ((isAddTeamMember || isPopupOffer) && promoteSocial);
+                let finalDepts = descHasSocialFanout && !depts.includes("Social Media")
                   ? [...depts, "Social Media"]
                   : depts;
                 // Filter out departments that are locked for this clinic so the
