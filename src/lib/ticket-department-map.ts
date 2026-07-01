@@ -13,7 +13,7 @@ export const TICKET_VISIBILITY: Record<string, string[]> = {
   "Pop-up Offers": ["website"],
   "Third Party Integrations": ["website"],
   "Payment Options": ["website"],
-  "Add/Remove Team Members": ["website"], // social_media is conditional via "Promote on Social Media: Yes"
+  "Add/Remove Team Members": ["website"], // social_media / google_ads are conditional via "Promote on Social Media: Yes" / "Promote on Google Ads: Yes"
   "New Forms": ["website"],
   "Price List Updates": ["website"],
   "Emergency": ["website"],
