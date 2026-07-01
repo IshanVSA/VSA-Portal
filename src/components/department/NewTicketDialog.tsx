@@ -400,10 +400,14 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
               </div>
               {(() => {
                 const depts = getVisibleDepartmentLabels(ticketType);
-                // For Add/Remove Team Members (add action) or Pop-up Offers with social promotion, add Social Media
-                let finalDepts = (isAddTeamMember || isPopupOffer) && promoteSocial
-                  ? [...depts, "Social Media"]
-                  : depts;
+                let finalDepts = [...depts];
+                // Opt-in fan-outs for Add/Remove Team Members / Pop-up Offers
+                if ((isAddTeamMember || isPopupOffer) && promoteSocial && !finalDepts.includes("Social Media")) {
+                  finalDepts.push("Social Media");
+                }
+                if (isAddTeamMember && promoteGoogleAds && !finalDepts.includes("Google Ads")) {
+                  finalDepts.push("Google Ads");
+                }
                 // Filter out departments that are locked for this clinic so the
                 // confirmation never advertises a forward to a disabled service.
                 if (clinicServices) {
