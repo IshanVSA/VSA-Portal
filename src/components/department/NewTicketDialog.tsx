@@ -96,6 +96,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
   const [uploading, setUploading] = useState(false);
   const [popupConsented, setPopupConsented] = useState(false);
   const [promoteSocial, setPromoteSocial] = useState(false);
+  const [promoteGoogleAds, setPromoteGoogleAds] = useState(false);
   const [contentPreview, setContentPreview] = useState<ContentPreviewData | null>(null);
 
   const serviceOptions = getServiceOptions(services);
