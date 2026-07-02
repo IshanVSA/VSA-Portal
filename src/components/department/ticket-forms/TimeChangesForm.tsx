@@ -50,9 +50,10 @@ const defaultSchedule: WeekSchedule = Object.fromEntries(
 
 interface TimeChangesFormProps {
   onChange: (description: string) => void;
+  socialEnabled?: boolean;
 }
 
-export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
+export function TimeChangesForm({ onChange, socialEnabled = true }: TimeChangesFormProps) {
   const [schedule, setSchedule] = useState<WeekSchedule>(defaultSchedule);
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
