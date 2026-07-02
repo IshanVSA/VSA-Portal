@@ -33,11 +33,12 @@ function TagInput({ label, tags, onChange, placeholder }: { label: string; tags:
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addTag(); } }}
+          onBlur={addTag}
           placeholder={placeholder || "Type and press Enter"}
           className="flex-1"
         />
-        <Button type="button" variant="outline" size="sm" onClick={addTag} className="shrink-0">
+        <Button type="button" variant="outline" size="sm" onMouseDown={(e) => e.preventDefault()} onClick={addTag} className="shrink-0">
           <Plus className="h-3.5 w-3.5" />
         </Button>
       </div>
