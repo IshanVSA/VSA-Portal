@@ -51,6 +51,88 @@ class PlacesApiError extends Error {
   }
 }
 
+type PlacesCredentials =
+  | { mode: "gateway"; connectionApiKey: string; lovableApiKey: string }
+  | { mode: "direct"; apiKey: string };
+
+function getPlacesCredentials(): PlacesCredentials | null {
+  const connectionApiKey = Deno.env.get("GOOGLE_MAPS_API_KEY");
+  const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (connectionApiKey && lovableApiKey) {
+    return { mode: "gateway", connectionApiKey, lovableApiKey };
+  }
+
+  const directApiKey = Deno.env.get("GOOGLE_PLACES_API_KEY");
+  if (directApiKey) {
+    return { mode: "direct", apiKey: directApiKey };
+  }
+
+  return null;
+}
+
+async function fetchPlacesApi(
+  path: string,
+  credentials: PlacesCredentials,
+  options: { method?: string; fieldMask: string; body?: unknown },
+) {
+  const url = credentials.mode === "gateway"
+    ? `https://connector-gateway.lovable.dev/google_maps/places${path}`
+    : `https://places.googleapis.com${path}`;
+
+  const headers: Record<string, string> = {
+    "X-Goog-FieldMask": options.fieldMask,
+  };
+
+  if (credentials.mode === "gateway") {
+    headers.Authorization = `Bearer ${credentials.lovableApiKey}`;
+    headers["X-Connection-Api-Key"] = credentials.connectionApiKey;
+  } else {
+    headers["X-Goog-Api-Key"] = credentials.apiKey;
+  }
+
+  if (options.body !== undefined) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  const res = await fetch(url, {
+    method: options.method || (options.body === undefined ? "GET" : "POST"),
+    headers,
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.error) {
+    const googleStatus = data?.error?.status || data?.type || "UNKNOWN";
+    const googleMessage = data?.error?.message || data?.message || res.statusText || "Unknown Places API error";
+    console.log(`Places API error (${res.status}/${googleStatus}):`, JSON.stringify(data).slice(0, 500));
+
+    if (res.status === 401 && credentials.mode === "gateway") {
+      throw new PlacesApiError(
+        "Google Maps connector authentication failed. Please reconnect the Google Maps Platform connector or rotate LOVABLE_API_KEY.",
+        502,
+      );
+    }
+
+    if (res.status === 403 || googleStatus === "PERMISSION_DENIED") {
+      const source = credentials.mode === "gateway"
+        ? "Google Maps connector"
+        : "GOOGLE_PLACES_API_KEY";
+      throw new PlacesApiError(
+        `${source} cannot access Places API (New). Please make sure Places API (New) is enabled and the key is not restricted in a way that blocks Supabase Edge Functions.`,
+        502,
+      );
+    }
+
+    if (res.status >= 500 || res.status === 429) {
+      throw new PlacesApiError(`Google Places API temporarily unavailable: ${googleMessage}`, 502);
+    }
+
+    throw new PlacesApiError(`Google Places API error: ${googleMessage}`, 502);
+  }
+
+  return data;
+}
+
 // ── Places API helpers ─────────────────────────────────────────────
 // Extract "City, ST" from a full address like "2308 Lombard St, San Francisco, CA 94123"
 function extractCityRegion(address: string): string {
@@ -64,7 +146,7 @@ function extractCityRegion(address: string): string {
   return parts.slice(-2).join(", ");
 }
 
-async function searchVetPlace(clinicName: string, address: string, apiKey: string) {
+async function searchVetPlace(clinicName: string, address: string, credentials: PlacesCredentials) {
   const cityRegion = extractCityRegion(address);
   // Progressively broaden the query. Full street address is often too specific
   // and returns zero results from Places API (New) textSearch.
@@ -78,37 +160,14 @@ async function searchVetPlace(clinicName: string, address: string, apiKey: strin
 
   for (const query of queries) {
     console.log(`Searching Places: "${query}"`);
-    const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
+    const data = await fetchPlacesApi("/v1/places:searchText", credentials, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Goog-Api-Key": apiKey,
-        "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.types",
-      },
-      body: JSON.stringify({
+      fieldMask: "places.id,places.displayName,places.formattedAddress,places.types",
+      body: {
         textQuery: query,
         includedType: "veterinary_care",
-      }),
+      },
     });
-    const data = await res.json();
-    if (!res.ok || data.error) {
-      const googleStatus = data?.error?.status || "UNKNOWN";
-      const googleMessage = data?.error?.message || res.statusText || "Unknown Places API error";
-      console.log(`Places API error (${res.status}/${googleStatus}):`, JSON.stringify(data).slice(0, 500));
-
-      if (res.status === 403 || googleStatus === "PERMISSION_DENIED") {
-        throw new PlacesApiError(
-          "Google Places API permission denied. Please make sure GOOGLE_PLACES_API_KEY is configured with Places API (New) enabled and is not restricted in a way that blocks Supabase Edge Functions.",
-          502,
-        );
-      }
-
-      if (res.status >= 500 || res.status === 429) {
-        throw new PlacesApiError(`Google Places API temporarily unavailable: ${googleMessage}`, 502);
-      }
-
-      continue;
-    }
     const places = data.places || [];
     console.log(`  → ${places.length} results`);
     for (const place of places.slice(0, 5)) {
@@ -148,12 +207,12 @@ Deno.serve(async (req) => {
     if (!parsed.success) return jsonRes({ error: "Invalid request" }, 400);
     const { clinic_id } = parsed.data;
 
-    const googleKey = Deno.env.get("GOOGLE_PLACES_API_KEY");
+    const placesCredentials = getPlacesCredentials();
     const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY")!;
 
-    if (!googleKey) {
+    if (!placesCredentials) {
       return jsonRes({
-        error: "Google Places API key not configured. Add GOOGLE_PLACES_API_KEY with Places API (New) enabled to mine reviews.",
+        error: "Google Maps access is not configured. Connect Google Maps Platform or add GOOGLE_PLACES_API_KEY with Places API (New) enabled to mine reviews.",
       }, 500);
     }
 
@@ -185,13 +244,9 @@ Deno.serve(async (req) => {
 
     // If we have a stored Place ID, validate it matches the clinic
     if (placeId) {
-      const detailsRes = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
-        headers: {
-          "X-Goog-Api-Key": googleKey,
-          "X-Goog-FieldMask": "displayName",
-        },
+      const detailsData = await fetchPlacesApi(`/v1/places/${placeId}`, placesCredentials, {
+        fieldMask: "displayName",
       });
-      const detailsData = await detailsRes.json();
       const storedName = detailsData.displayName?.text || detailsData.displayName || "";
       console.log(`Stored Place ID "${placeId}" resolves to: "${storedName}"`);
 
@@ -204,7 +259,7 @@ Deno.serve(async (req) => {
 
     // Search for the correct Place ID
     if (needsSearch) {
-      const result = await searchVetPlace(clinic.clinic_name, clinic.address || "", googleKey);
+      const result = await searchVetPlace(clinic.clinic_name, clinic.address || "", placesCredentials);
       if (result) {
         placeId = result.placeId;
         // Persist corrected Place ID
@@ -218,18 +273,10 @@ Deno.serve(async (req) => {
     }
 
     // Fetch reviews using Places API (New)
-    const detailsRes = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
-      headers: {
-        "X-Goog-Api-Key": googleKey,
-        "X-Goog-FieldMask": "displayName,rating,userRatingCount,reviews",
-      },
+    const detailsData = await fetchPlacesApi(`/v1/places/${placeId}`, placesCredentials, {
+      fieldMask: "displayName,rating,userRatingCount,reviews",
     });
-    const detailsData = await detailsRes.json();
     console.log("Place details keys:", Object.keys(detailsData));
-
-    if (detailsData.error) {
-      return jsonRes({ error: `Google Places API error: ${detailsData.error.message}` }, 502);
-    }
 
     const rawReviews = detailsData.reviews || [];
     const reviews = rawReviews.map((r: any) => ({
