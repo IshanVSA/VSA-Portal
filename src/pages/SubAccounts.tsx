@@ -386,11 +386,13 @@ export default function SubAccounts() {
           <SubAccountForm
             mode="create"
             fullName={fullName} setFullName={setFullName}
-            email={email} setEmail={setEmail}
+            email={email} setEmail={(v) => { setEmail(v); if (emailError) setEmailError(null); }}
             password={password} setPassword={setPassword}
             hideFin={hideFin} setHideFin={setHideFin}
             clinics={formClinics} picked={picked} togglePick={togglePick}
+            emailError={emailError}
           />
+
           <DialogFooter>
             <Button variant="ghost" onClick={() => { setOpenCreate(false); resetForm(); }} disabled={creating}>Cancel</Button>
             <Button onClick={submitCreate} disabled={creating}>{creating ? "Creating…" : "Create"}</Button>
