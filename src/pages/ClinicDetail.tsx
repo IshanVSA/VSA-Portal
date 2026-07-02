@@ -151,7 +151,7 @@ function WebsiteUrlField({ clinicId, currentUrl, onSaved }: { clinicId: string; 
     setSaving(true);
     const { error } = await supabase.from("clinics").update({ website: trimmed || null }).eq("id", clinicId);
     setSaving(false);
-    if (error) { toast.error("Failed to save website URL"); return; }
+    if (error) { toast.error("Failed to save website URL", { description: describeError(error) }); return; }
     onSaved(trimmed);
     toast.success("Website URL saved");
   };
