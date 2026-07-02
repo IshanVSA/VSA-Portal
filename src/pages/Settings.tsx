@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { IOSGroup, IOSRow, IOSFieldRow } from "@/components/ui/ios-list";
 import { toast } from "sonner";
+import { describeError } from "@/lib/edge-function-error";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import {
