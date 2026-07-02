@@ -247,8 +247,7 @@ export default function ClientDashboard() {
   const webKpis = useWebsiteKPIs(flags.website ? selectedClinicId : undefined);
   const adsKpis = useGoogleAdsKPIs(flags.google_ads ? selectedClinicId : "");
   const seoQuery = useSeoAnalytics(flags.seo ? selectedClinicId : undefined);
-  const seoRows = ((seoQuery as any).data ?? []) as any[];
-  const latestSeo = seoRows.length > 0 ? seoRows[seoRows.length - 1] : null;
+  const latestSeo = (seoQuery as any).latest ?? null;
 
   const firstName = useMemo(() => {
     const name = (user?.user_metadata?.full_name as string) || user?.email || "";
