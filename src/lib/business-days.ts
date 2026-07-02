@@ -5,21 +5,28 @@
  * Saturdays and Sundays contribute 0. Partial days are counted in proportion to
  * the time of day actually worked on each weekday.
  */
+// Business hours: 9:00 – 17:00 local (8h/day), Mon–Fri only.
+const BIZ_START_HOUR = 9;
+const BIZ_END_HOUR = 17;
+
 export function businessMsBetween(start: Date, end: Date): number {
   if (end <= start) return 0;
   let total = 0;
-  // Walk day by day from start to end.
   const cursor = new Date(start);
   while (cursor < end) {
     const day = cursor.getDay(); // 0 Sun, 6 Sat
     if (day !== 0 && day !== 6) {
-      // End of this calendar day in local time
+      const dayStart = new Date(cursor);
+      dayStart.setHours(BIZ_START_HOUR, 0, 0, 0);
       const dayEnd = new Date(cursor);
-      dayEnd.setHours(24, 0, 0, 0);
+      dayEnd.setHours(BIZ_END_HOUR, 0, 0, 0);
+      const sliceStart = cursor > dayStart ? cursor : dayStart;
       const sliceEnd = end < dayEnd ? end : dayEnd;
-      total += sliceEnd.getTime() - cursor.getTime();
+      if (sliceEnd > sliceStart) {
+        total += sliceEnd.getTime() - sliceStart.getTime();
+      }
     }
-    // Move to next day at midnight
+    // Advance to next calendar day at midnight
     cursor.setHours(24, 0, 0, 0);
   }
   return total;
