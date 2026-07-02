@@ -76,6 +76,18 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Pre-check: does a user with this email already exist?
+    {
+      const { data: existingProfile } = await admin
+        .from("profiles")
+        .select("id")
+        .ilike("email", email)
+        .maybeSingle();
+      if (existingProfile) {
+        return json({ error: "email_in_use", message: "This email is already in use by another account." }, 409);
+      }
+    }
+
     // Create auth user
     const { data: newUser, error: createError } = await admin.auth.admin.createUser({
       email,
@@ -83,7 +95,17 @@ Deno.serve(async (req) => {
       email_confirm: true,
       user_metadata: { full_name },
     });
-    if (createError || !newUser.user) return json({ error: createError?.message || "Failed to create user" }, 400);
+    if (createError || !newUser.user) {
+      const raw = createError?.message || "";
+      const isDup = /already|registered|exists|duplicate/i.test(raw);
+      return json(
+        {
+          error: isDup ? "email_in_use" : "create_failed",
+          message: isDup ? "This email is already in use by another account." : (raw || "Failed to create user"),
+        },
+        isDup ? 409 : 400,
+      );
+    }
 
     const subUserId = newUser.user.id;
 

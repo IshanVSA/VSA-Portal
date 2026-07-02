@@ -61,10 +61,12 @@ export default function SubAccounts() {
   const [hideFin, setHideFin] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [parentUserId, setParentUserId] = useState<string>(""); // admin-only
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   const resetForm = () => {
     setFullName(""); setEmail(""); setPassword(""); setHideFin(false); setPicked(new Set());
     setParentUserId(parentFilter ?? "");
+    setEmailError(null);
   };
 
   const loadSeq = useRef(0);
@@ -200,6 +202,7 @@ export default function SubAccounts() {
       return;
     }
     setCreating(true);
+    setEmailError(null);
     const body: Record<string, unknown> = {
       full_name: fullName.trim(), email: email.trim(), password,
       hide_financials: hideFin, clinic_ids: Array.from(picked),
@@ -207,8 +210,25 @@ export default function SubAccounts() {
     if (isAdmin) body.parent_user_id = parentUserId;
     const { data, error } = await supabase.functions.invoke("create-sub-account", { body });
     setCreating(false);
-    if (error || (data as any)?.error) {
-      toast({ title: "Failed to create", description: (data as any)?.error || error?.message || "Unknown error", variant: "destructive" });
+
+    // supabase.functions.invoke swallows the response body on non-2xx. Read it from the underlying Response.
+    let errCode: string | null = (data as any)?.error ?? null;
+    let errMsg: string | null = (data as any)?.message ?? null;
+    if (error && (error as any).context?.json) {
+      try {
+        const parsed = await (error as any).context.json();
+        errCode = parsed?.error ?? errCode;
+        errMsg = parsed?.message ?? parsed?.error ?? errMsg;
+      } catch { /* ignore */ }
+    }
+
+    if (errCode || error) {
+      if (errCode === "email_in_use") {
+        setEmailError(errMsg || "This email is already in use by another account.");
+        toast({ title: "Email already in use", description: "Try a different email address.", variant: "destructive" });
+      } else {
+        toast({ title: "Failed to create", description: errMsg || error?.message || "Unknown error", variant: "destructive" });
+      }
       return;
     }
     toast({ title: "Sub-account created", description: `${fullName} can now sign in.` });
@@ -366,11 +386,13 @@ export default function SubAccounts() {
           <SubAccountForm
             mode="create"
             fullName={fullName} setFullName={setFullName}
-            email={email} setEmail={setEmail}
+            email={email} setEmail={(v) => { setEmail(v); if (emailError) setEmailError(null); }}
             password={password} setPassword={setPassword}
             hideFin={hideFin} setHideFin={setHideFin}
             clinics={formClinics} picked={picked} togglePick={togglePick}
+            emailError={emailError}
           />
+
           <DialogFooter>
             <Button variant="ghost" onClick={() => { setOpenCreate(false); resetForm(); }} disabled={creating}>Cancel</Button>
             <Button onClick={submitCreate} disabled={creating}>{creating ? "Creating…" : "Create"}</Button>
@@ -443,8 +465,9 @@ function SubAccountForm(props: {
   password: string; setPassword: (v: string) => void;
   hideFin: boolean; setHideFin: (v: boolean) => void;
   clinics: ClinicLite[]; picked: Set<string>; togglePick: (id: string) => void;
+  emailError?: string | null;
 }) {
-  const { mode, fullName, setFullName, email, setEmail, password, setPassword, hideFin, setHideFin, clinics, picked, togglePick } = props;
+  const { mode, fullName, setFullName, email, setEmail, password, setPassword, hideFin, setHideFin, clinics, picked, togglePick, emailError } = props;
   return (
     <div className="space-y-4">
       {mode === "create" && (
@@ -455,7 +478,18 @@ function SubAccountForm(props: {
           </div>
           <div className="grid gap-2">
             <Label htmlFor="em">Email</Label>
-            <Input id="em" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jane@clinic.com" />
+            <Input
+              id="em"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="jane@clinic.com"
+              aria-invalid={!!emailError}
+              className={emailError ? "border-destructive focus-visible:ring-destructive" : ""}
+            />
+            {emailError && (
+              <p className="text-xs text-destructive">{emailError}</p>
+            )}
           </div>
           <div className="grid gap-2">
             <Label htmlFor="pw">Password (min 8 characters)</Label>
