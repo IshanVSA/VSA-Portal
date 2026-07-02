@@ -202,6 +202,7 @@ export default function SubAccounts() {
       return;
     }
     setCreating(true);
+    setEmailError(null);
     const body: Record<string, unknown> = {
       full_name: fullName.trim(), email: email.trim(), password,
       hide_financials: hideFin, clinic_ids: Array.from(picked),
@@ -209,8 +210,25 @@ export default function SubAccounts() {
     if (isAdmin) body.parent_user_id = parentUserId;
     const { data, error } = await supabase.functions.invoke("create-sub-account", { body });
     setCreating(false);
-    if (error || (data as any)?.error) {
-      toast({ title: "Failed to create", description: (data as any)?.error || error?.message || "Unknown error", variant: "destructive" });
+
+    // supabase.functions.invoke swallows the response body on non-2xx. Read it from the underlying Response.
+    let errCode: string | null = (data as any)?.error ?? null;
+    let errMsg: string | null = (data as any)?.message ?? null;
+    if (error && (error as any).context?.json) {
+      try {
+        const parsed = await (error as any).context.json();
+        errCode = parsed?.error ?? errCode;
+        errMsg = parsed?.message ?? parsed?.error ?? errMsg;
+      } catch { /* ignore */ }
+    }
+
+    if (errCode || error) {
+      if (errCode === "email_in_use") {
+        setEmailError(errMsg || "This email is already in use by another account.");
+        toast({ title: "Email already in use", description: "Try a different email address.", variant: "destructive" });
+      } else {
+        toast({ title: "Failed to create", description: errMsg || error?.message || "Unknown error", variant: "destructive" });
+      }
       return;
     }
     toast({ title: "Sub-account created", description: `${fullName} can now sign in.` });
