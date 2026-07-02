@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { IOSGroup, IOSRow, IOSFieldRow } from "@/components/ui/ios-list";
 import { toast } from "sonner";
+import { describeError } from "@/lib/edge-function-error";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import {
@@ -59,7 +60,7 @@ export default function Settings() {
     if (!user) return;
     setSaving(true);
     const { error } = await supabase.from("profiles").update({ full_name: fullName }).eq("id", user.id);
-    if (error) { toast.error("Failed to save"); setSaving(false); return; }
+    if (error) { toast.error("Failed to save", { description: describeError(error) }); setSaving(false); return; }
     await supabase.auth.updateUser({ data: { full_name: fullName } });
     toast.success("Profile updated");
     setSaving(false);

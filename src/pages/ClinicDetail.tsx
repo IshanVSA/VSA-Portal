@@ -19,7 +19,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { format } from "date-fns";
-import { extractEdgeFunctionError } from "@/lib/edge-function-error";
+import { extractEdgeFunctionError, describeError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 import { MetaConnectionCard } from "@/components/clinic-detail/MetaConnectionCard";
 import { PageSelectionDialog } from "@/components/clinic-detail/PageSelectionDialog";
@@ -88,7 +88,7 @@ function TimezoneField({ clinicId, currentTimezone, onSaved }: { clinicId: strin
     setSaving(true);
     const { error } = await supabase.from("clinics").update({ timezone }).eq("id", clinicId);
     setSaving(false);
-    if (error) { toast.error("Failed to save clinic timezone"); return; }
+    if (error) { toast.error("Failed to save clinic timezone", { description: describeError(error) }); return; }
     onSaved(timezone);
     toast.success("Clinic timezone saved");
   };
@@ -151,7 +151,7 @@ function WebsiteUrlField({ clinicId, currentUrl, onSaved }: { clinicId: string; 
     setSaving(true);
     const { error } = await supabase.from("clinics").update({ website: trimmed || null }).eq("id", clinicId);
     setSaving(false);
-    if (error) { toast.error("Failed to save website URL"); return; }
+    if (error) { toast.error("Failed to save website URL", { description: describeError(error) }); return; }
     onSaved(trimmed);
     toast.success("Website URL saved");
   };
@@ -370,7 +370,7 @@ export default function ClinicDetail() {
 
     if (error) {
       setClinic((prev) => (prev ? { ...prev, [key]: previousValue } : prev));
-      toast.error("Failed to update clinic service access");
+      toast.error("Failed to update clinic service access", { description: describeError(error) });
       return;
     }
 
