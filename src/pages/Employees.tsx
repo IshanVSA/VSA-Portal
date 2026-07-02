@@ -137,14 +137,14 @@ export default function Employees() {
     // Update access level
     if (editForm.role !== currentRole) {
       const { error } = await supabase.from("user_roles").update({ role: editForm.role as any }).eq("user_id", userId);
-      if (error) { toast.error("Failed to update access level"); setSavingEdit(false); return; }
+      if (error) { toast.error("Failed to update access level", { description: describeError(error) }); setSavingEdit(false); return; }
     }
 
     // Update team role
     const newTeamRole = editForm.role === "admin" ? null : (editForm.team_role || null);
     if ((newTeamRole || "") !== currentTeamRole) {
       const { error } = await supabase.from("profiles").update({ team_role: newTeamRole } as any).eq("id", userId);
-      if (error) { toast.error("Failed to update team role"); setSavingEdit(false); return; }
+      if (error) { toast.error("Failed to update team role", { description: describeError(error) }); setSavingEdit(false); return; }
     }
 
     // Update clinic assignments
