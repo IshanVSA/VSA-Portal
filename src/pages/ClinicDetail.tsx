@@ -88,7 +88,7 @@ function TimezoneField({ clinicId, currentTimezone, onSaved }: { clinicId: strin
     setSaving(true);
     const { error } = await supabase.from("clinics").update({ timezone }).eq("id", clinicId);
     setSaving(false);
-    if (error) { toast.error("Failed to save clinic timezone"); return; }
+    if (error) { toast.error("Failed to save clinic timezone", { description: describeError(error) }); return; }
     onSaved(timezone);
     toast.success("Clinic timezone saved");
   };
