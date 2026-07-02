@@ -465,8 +465,9 @@ function SubAccountForm(props: {
   password: string; setPassword: (v: string) => void;
   hideFin: boolean; setHideFin: (v: boolean) => void;
   clinics: ClinicLite[]; picked: Set<string>; togglePick: (id: string) => void;
+  emailError?: string | null;
 }) {
-  const { mode, fullName, setFullName, email, setEmail, password, setPassword, hideFin, setHideFin, clinics, picked, togglePick } = props;
+  const { mode, fullName, setFullName, email, setEmail, password, setPassword, hideFin, setHideFin, clinics, picked, togglePick, emailError } = props;
   return (
     <div className="space-y-4">
       {mode === "create" && (
@@ -477,7 +478,18 @@ function SubAccountForm(props: {
           </div>
           <div className="grid gap-2">
             <Label htmlFor="em">Email</Label>
-            <Input id="em" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jane@clinic.com" />
+            <Input
+              id="em"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="jane@clinic.com"
+              aria-invalid={!!emailError}
+              className={emailError ? "border-destructive focus-visible:ring-destructive" : ""}
+            />
+            {emailError && (
+              <p className="text-xs text-destructive">{emailError}</p>
+            )}
           </div>
           <div className="grid gap-2">
             <Label htmlFor="pw">Password (min 8 characters)</Label>
