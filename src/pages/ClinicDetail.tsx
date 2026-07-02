@@ -19,7 +19,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { format } from "date-fns";
-import { extractEdgeFunctionError } from "@/lib/edge-function-error";
+import { extractEdgeFunctionError, describeError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 import { MetaConnectionCard } from "@/components/clinic-detail/MetaConnectionCard";
 import { PageSelectionDialog } from "@/components/clinic-detail/PageSelectionDialog";
