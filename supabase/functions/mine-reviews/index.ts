@@ -42,13 +42,29 @@ function namesMatch(clinicName: string, googleName: string): boolean {
 }
 
 // ── Places API helpers ─────────────────────────────────────────────
+// Extract "City, ST" from a full address like "2308 Lombard St, San Francisco, CA 94123"
+function extractCityRegion(address: string): string {
+  const parts = address.split(",").map((s) => s.trim()).filter(Boolean);
+  if (parts.length >= 3) {
+    // e.g. ["2308 Lombard St", "San Francisco", "CA 94123"] -> "San Francisco, CA"
+    const city = parts[parts.length - 2];
+    const stateZip = parts[parts.length - 1].split(/\s+/)[0];
+    return `${city}, ${stateZip}`;
+  }
+  return parts.slice(-2).join(", ");
+}
+
 async function searchVetPlace(clinicName: string, address: string, apiKey: string) {
-  // Build a query that emphasizes veterinary context
+  const cityRegion = extractCityRegion(address);
+  // Progressively broaden the query. Full street address is often too specific
+  // and returns zero results from Places API (New) textSearch.
   const queries = [
-    `${clinicName} veterinary ${address}`.trim(),
-    `${clinicName} animal hospital ${address}`.trim(),
+    `${clinicName} ${cityRegion}`.trim(),
+    `${clinicName} veterinary ${cityRegion}`.trim(),
+    `${clinicName} animal hospital ${cityRegion}`.trim(),
     `${clinicName} ${address}`.trim(),
-  ];
+    clinicName.trim(),
+  ].filter((q, i, arr) => q && arr.indexOf(q) === i);
 
   for (const query of queries) {
     console.log(`Searching Places: "${query}"`);
@@ -57,23 +73,27 @@ async function searchVetPlace(clinicName: string, address: string, apiKey: strin
       headers: {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": apiKey,
-        "X-Goog-FieldMask": "places.id,places.displayName",
+        "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.types",
       },
-      body: JSON.stringify({ textQuery: query }),
+      body: JSON.stringify({
+        textQuery: query,
+        includedType: "veterinary_care",
+      }),
     });
     const data = await res.json();
-    if (data.places?.length > 0) {
-      const place = data.places[0];
+    if (!res.ok || data.error) {
+      console.log(`Places API error (${res.status}):`, JSON.stringify(data).slice(0, 300));
+      continue;
+    }
+    const places = data.places || [];
+    console.log(`  → ${places.length} results`);
+    for (const place of places.slice(0, 5)) {
       const displayName = place.displayName?.text || place.displayName || "";
-      console.log(`Found: "${displayName}" (id: ${place.id})`);
-      // Check if the result is plausibly a vet clinic
-      const vetKeywords = ["animal", "vet", "veterinary", "pet", "clinic"];
-      const nameTokens = tokenize(displayName);
-      const isVet = vetKeywords.some(k => nameTokens.has(k)) || namesMatch(clinicName, displayName);
-      if (isVet) {
+      if (namesMatch(clinicName, displayName)) {
+        console.log(`Matched: "${displayName}" (id: ${place.id})`);
         return { placeId: place.id, displayName };
       }
-      console.log(`Skipping "${displayName}" — doesn't match "${clinicName}"`);
+      console.log(`  skip "${displayName}" — no name overlap with "${clinicName}"`);
     }
   }
   return null;
