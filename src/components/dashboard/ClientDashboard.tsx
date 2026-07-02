@@ -26,7 +26,7 @@ import {
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { SOCIAL_QUICK_ACTIONS } from "@/lib/quick-actions";
 
-interface Clinic { id: string; clinic_name: string; }
+interface Clinic { id: string; clinic_name: string; social_media_enabled: boolean | null; }
 interface PostRow { id: string; title: string; platform: string; status: string; scheduled_date: string; }
 interface ChatRow { id: string; message: string; user_id: string | null; created_at: string; }
 interface UpdateRow { id: string; title: string; status: string; department: string; updated_at: string; }
@@ -72,12 +72,13 @@ export default function ClientDashboard() {
 
   const selectedClinicId = searchParams.get("clinic") || clinics[0]?.id || "";
   const selectedClinic = clinics.find(c => c.id === selectedClinicId);
+  const socialEnabled = selectedClinic?.social_media_enabled !== false;
 
   // Load clinics
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data } = await supabase.from("clinics").select("id, clinic_name").order("clinic_name");
+      const { data } = await supabase.from("clinics").select("id, clinic_name, social_media_enabled").order("clinic_name");
       setClinics(data || []);
       setLoading(false);
     })();
@@ -274,24 +275,27 @@ export default function ClientDashboard() {
         )}
       </motion.div>
 
-      {/* STATUS STRIP */}
-      <motion.div variants={item} className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {statusCards.map((c) => (
-          <button
-            key={c.label}
-            onClick={c.onClick}
-            className="text-left rounded-2xl bg-card border border-border/60 shadow-sm p-4 hover:shadow-md hover:border-primary/40 transition-all"
-          >
-            <div className={cn("h-8 w-8 rounded-xl flex items-center justify-center", c.bg)}>
-              <c.icon className={cn("h-4 w-4", c.color)} />
-            </div>
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mt-3">{c.label}</p>
-            <p className="text-2xl font-bold text-foreground tabular-nums mt-0.5">{c.value}</p>
-          </button>
-        ))}
-      </motion.div>
+      {/* STATUS STRIP — social-only metrics */}
+      {socialEnabled && (
+        <motion.div variants={item} className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {statusCards.map((c) => (
+            <button
+              key={c.label}
+              onClick={c.onClick}
+              className="text-left rounded-2xl bg-card border border-border/60 shadow-sm p-4 hover:shadow-md hover:border-primary/40 transition-all"
+            >
+              <div className={cn("h-8 w-8 rounded-xl flex items-center justify-center", c.bg)}>
+                <c.icon className={cn("h-4 w-4", c.color)} />
+              </div>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mt-3">{c.label}</p>
+              <p className="text-2xl font-bold text-foreground tabular-nums mt-0.5">{c.value}</p>
+            </button>
+          ))}
+        </motion.div>
+      )}
 
       {/* CALENDAR + RIGHT COLUMN */}
+      {socialEnabled && (
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* Calendar */}
         <motion.div variants={item} className="lg:col-span-3">
@@ -419,6 +423,7 @@ export default function ClientDashboard() {
           </Card>
         </motion.div>
       </div>
+      )}
 
       {/* RECENT UPDATES — cross-department activity at-a-glance */}
       <motion.div variants={item}>
@@ -465,21 +470,23 @@ export default function ClientDashboard() {
         </Card>
       </motion.div>
 
-      <motion.div variants={item} className="flex flex-wrap gap-2">
-        <Button onClick={() => setTicketDialogOpen(true)} className="gap-2">
-          <Sparkles className="h-4 w-4" /> Request content
-        </Button>
-        <Button variant="outline"
-          onClick={() => navigate(`/social?clinic=${selectedClinicId}&tab=my-posts`)}
-          className="gap-2">
-          <Inbox className="h-4 w-4" /> Review posts ({toReviewCount})
-        </Button>
-        <Button variant="outline"
-          onClick={() => navigate(`/social?clinic=${selectedClinicId}&tab=analytics`)}
-          className="gap-2">
-          <BarChart3 className="h-4 w-4" /> Analytics
-        </Button>
-      </motion.div>
+      {socialEnabled && (
+        <motion.div variants={item} className="flex flex-wrap gap-2">
+          <Button onClick={() => setTicketDialogOpen(true)} className="gap-2">
+            <Sparkles className="h-4 w-4" /> Request content
+          </Button>
+          <Button variant="outline"
+            onClick={() => navigate(`/social?clinic=${selectedClinicId}&tab=my-posts`)}
+            className="gap-2">
+            <Inbox className="h-4 w-4" /> Review posts ({toReviewCount})
+          </Button>
+          <Button variant="outline"
+            onClick={() => navigate(`/social?clinic=${selectedClinicId}&tab=analytics`)}
+            className="gap-2">
+            <BarChart3 className="h-4 w-4" /> Analytics
+          </Button>
+        </motion.div>
+      )}
 
       <NewTicketDialog
         open={ticketDialogOpen}
