@@ -133,6 +133,83 @@ async function fetchPlacesApi(
   return data;
 }
 
+async function fetchLegacyPlacesApi(
+  endpoint: "textsearch" | "details",
+  credentials: Extract<PlacesCredentials, { mode: "direct" }>,
+  params: Record<string, string>,
+) {
+  const url = new URL(`https://maps.googleapis.com/maps/api/place/${endpoint}/json`);
+  url.searchParams.set("key", credentials.apiKey);
+  for (const [key, value] of Object.entries(params)) {
+    if (value) url.searchParams.set(key, value);
+  }
+
+  const res = await fetch(url.toString());
+  const data = await res.json().catch(() => ({}));
+  const status = data.status || (res.ok ? "OK" : "HTTP_ERROR");
+
+  if (!res.ok || (status !== "OK" && status !== "ZERO_RESULTS")) {
+    const message = data.error_message || res.statusText || "Unknown legacy Places API error";
+    console.log(`Legacy Places API error (${res.status}/${status}):`, JSON.stringify(data).slice(0, 500));
+
+    if (status === "REQUEST_DENIED" || res.status === 403) {
+      throw new PlacesApiError(
+        "GOOGLE_PLACES_API_KEY cannot access the legacy Google Places API either. Please confirm the key has Places API enabled and is allowed for server-side requests from Supabase Edge Functions.",
+        502,
+      );
+    }
+
+    if (status === "OVER_QUERY_LIMIT" || res.status === 429) {
+      throw new PlacesApiError(`Google Places API quota limit reached: ${message}`, 502);
+    }
+
+    throw new PlacesApiError(`Google Places API error: ${message}`, 502);
+  }
+
+  return data;
+}
+
+function normalizePlaceDisplayName(place: any): string {
+  return place?.displayName?.text || place?.displayName || place?.name || "";
+}
+
+async function fetchPlaceDetails(placeId: string, credentials: PlacesCredentials) {
+  if (credentials.mode === "direct") {
+    const data = await fetchLegacyPlacesApi("details", credentials, {
+      place_id: placeId,
+      fields: "place_id,name,rating,user_ratings_total,reviews",
+    });
+    const result = data.result || {};
+    return {
+      id: result.place_id || placeId,
+      displayName: result.name || "",
+      rating: result.rating || 0,
+      userRatingCount: result.user_ratings_total || 0,
+      reviews: (result.reviews || []).map((review: any) => ({
+        text: review.text || "",
+        rating: review.rating || 0,
+        author: review.author_name || "Anonymous",
+      })),
+    };
+  }
+
+  const data = await fetchPlacesApi(`/v1/places/${placeId}`, credentials, {
+    fieldMask: "displayName,rating,userRatingCount,reviews",
+  });
+
+  return {
+    id: placeId,
+    displayName: normalizePlaceDisplayName(data),
+    rating: data.rating || 0,
+    userRatingCount: data.userRatingCount || 0,
+    reviews: (data.reviews || []).map((review: any) => ({
+      text: review.text?.text || review.originalText?.text || "",
+      rating: review.rating || 0,
+      author: review.authorAttribution?.displayName || "Anonymous",
+    })),
+  };
+}
+
 // ── Places API helpers ─────────────────────────────────────────────
 // Extract "City, ST" from a full address like "2308 Lombard St, San Francisco, CA 94123"
 function extractCityRegion(address: string): string {
@@ -160,21 +237,28 @@ async function searchVetPlace(clinicName: string, address: string, credentials: 
 
   for (const query of queries) {
     console.log(`Searching Places: "${query}"`);
-    const data = await fetchPlacesApi("/v1/places:searchText", credentials, {
-      method: "POST",
-      fieldMask: "places.id,places.displayName,places.formattedAddress,places.types",
-      body: {
-        textQuery: query,
-        includedType: "veterinary_care",
-      },
-    });
-    const places = data.places || [];
+
+    const places = credentials.mode === "direct"
+      ? (await fetchLegacyPlacesApi("textsearch", credentials, {
+        query,
+        type: "veterinary_care",
+      })).results || []
+      : (await fetchPlacesApi("/v1/places:searchText", credentials, {
+        method: "POST",
+        fieldMask: "places.id,places.displayName,places.formattedAddress,places.types",
+        body: {
+          textQuery: query,
+          includedType: "veterinary_care",
+        },
+      })).places || [];
+
     console.log(`  → ${places.length} results`);
     for (const place of places.slice(0, 5)) {
-      const displayName = place.displayName?.text || place.displayName || "";
+      const displayName = normalizePlaceDisplayName(place);
       if (namesMatch(clinicName, displayName)) {
-        console.log(`Matched: "${displayName}" (id: ${place.id})`);
-        return { placeId: place.id, displayName };
+        const foundPlaceId = place.id || place.place_id;
+        console.log(`Matched: "${displayName}" (id: ${foundPlaceId})`);
+        return { placeId: foundPlaceId, displayName };
       }
       console.log(`  skip "${displayName}" — no name overlap with "${clinicName}"`);
     }
@@ -244,10 +328,8 @@ Deno.serve(async (req) => {
 
     // If we have a stored Place ID, validate it matches the clinic
     if (placeId) {
-      const detailsData = await fetchPlacesApi(`/v1/places/${placeId}`, placesCredentials, {
-        fieldMask: "displayName",
-      });
-      const storedName = detailsData.displayName?.text || detailsData.displayName || "";
+      const detailsData = await fetchPlaceDetails(placeId, placesCredentials);
+      const storedName = detailsData.displayName || "";
       console.log(`Stored Place ID "${placeId}" resolves to: "${storedName}"`);
 
       if (!namesMatch(clinic.clinic_name, storedName)) {
@@ -272,17 +354,16 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fetch reviews using Places API (New)
-    const detailsData = await fetchPlacesApi(`/v1/places/${placeId}`, placesCredentials, {
-      fieldMask: "displayName,rating,userRatingCount,reviews",
-    });
+    // Fetch reviews. Direct API keys use the legacy Places Details endpoint first because
+    // many existing keys were created before Places API (New) and still work there.
+    const detailsData = await fetchPlaceDetails(placeId, placesCredentials);
     console.log("Place details keys:", Object.keys(detailsData));
 
     const rawReviews = detailsData.reviews || [];
     const reviews = rawReviews.map((r: any) => ({
-      text: r.text?.text || r.originalText?.text || "",
+      text: r.text?.text || r.originalText?.text || r.text || "",
       rating: r.rating || 0,
-      author: r.authorAttribution?.displayName || "Anonymous",
+      author: r.authorAttribution?.displayName || r.author || "Anonymous",
     })).filter((r: any) => r.text);
     const avgRating = detailsData.rating || 0;
     const totalReviews = detailsData.userRatingCount || 0;
@@ -397,7 +478,7 @@ Deno.serve(async (req) => {
     }
 
     const extracted = toolBlock.input;
-    const placeName = detailsData.displayName?.text || detailsData.displayName || "";
+    const placeName = detailsData.displayName || "";
     const miningResult = {
       ...extracted,
       review_count: reviews.length,
