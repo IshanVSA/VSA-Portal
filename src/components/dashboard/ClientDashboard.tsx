@@ -246,11 +246,9 @@ export default function ClientDashboard() {
   // KPI hooks — safely no-op when the department isn't enabled
   const webKpis = useWebsiteKPIs(flags.website ? selectedClinicId : undefined);
   const adsKpis = useGoogleAdsKPIs(flags.google_ads ? selectedClinicId : "");
-  const { rows: seoRows } = (() => {
-    const q = useSeoAnalytics(flags.seo ? selectedClinicId : undefined);
-    return { rows: (q as any).data ?? [] };
-  })();
-  const latestSeo = seoRows && seoRows.length > 0 ? seoRows[seoRows.length - 1] : null;
+  const seoQuery = useSeoAnalytics(flags.seo ? selectedClinicId : undefined);
+  const seoRows = ((seoQuery as any).data ?? []) as any[];
+  const latestSeo = seoRows.length > 0 ? seoRows[seoRows.length - 1] : null;
 
   const firstName = useMemo(() => {
     const name = (user?.user_metadata?.full_name as string) || user?.email || "";
