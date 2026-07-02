@@ -148,10 +148,14 @@ Deno.serve(async (req) => {
     if (!parsed.success) return jsonRes({ error: "Invalid request" }, 400);
     const { clinic_id } = parsed.data;
 
-    const googleKey = Deno.env.get("GOOGLE_PLACES_API_KEY") || Deno.env.get("GOOGLE_PAGESPEED_API_KEY");
+    const googleKey = Deno.env.get("GOOGLE_PLACES_API_KEY");
     const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY")!;
 
-    if (!googleKey) return jsonRes({ error: "Google API key not configured" }, 500);
+    if (!googleKey) {
+      return jsonRes({
+        error: "Google Places API key not configured. Add GOOGLE_PLACES_API_KEY with Places API (New) enabled to mine reviews.",
+      }, 500);
+    }
 
     // Fetch clinic
     const { data: clinic, error: clinicErr } = await sb
