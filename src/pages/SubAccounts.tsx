@@ -61,10 +61,12 @@ export default function SubAccounts() {
   const [hideFin, setHideFin] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [parentUserId, setParentUserId] = useState<string>(""); // admin-only
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   const resetForm = () => {
     setFullName(""); setEmail(""); setPassword(""); setHideFin(false); setPicked(new Set());
     setParentUserId(parentFilter ?? "");
+    setEmailError(null);
   };
 
   const loadSeq = useRef(0);
