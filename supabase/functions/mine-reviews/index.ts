@@ -56,15 +56,15 @@ type PlacesCredentials =
   | { mode: "direct"; apiKey: string };
 
 function getPlacesCredentials(): PlacesCredentials | null {
+  const directApiKey = Deno.env.get("GOOGLE_PLACES_API_KEY");
+  if (directApiKey) {
+    return { mode: "direct", apiKey: directApiKey };
+  }
+
   const connectionApiKey = Deno.env.get("GOOGLE_MAPS_API_KEY");
   const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
   if (connectionApiKey && lovableApiKey) {
     return { mode: "gateway", connectionApiKey, lovableApiKey };
-  }
-
-  const directApiKey = Deno.env.get("GOOGLE_PLACES_API_KEY");
-  if (directApiKey) {
-    return { mode: "direct", apiKey: directApiKey };
   }
 
   return null;
