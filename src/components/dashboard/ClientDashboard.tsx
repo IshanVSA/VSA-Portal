@@ -26,7 +26,7 @@ import {
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { SOCIAL_QUICK_ACTIONS } from "@/lib/quick-actions";
 
-interface Clinic { id: string; clinic_name: string; }
+interface Clinic { id: string; clinic_name: string; social_media_enabled: boolean | null; }
 interface PostRow { id: string; title: string; platform: string; status: string; scheduled_date: string; }
 interface ChatRow { id: string; message: string; user_id: string | null; created_at: string; }
 interface UpdateRow { id: string; title: string; status: string; department: string; updated_at: string; }
@@ -77,7 +77,7 @@ export default function ClientDashboard() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data } = await supabase.from("clinics").select("id, clinic_name").order("clinic_name");
+      const { data } = await supabase.from("clinics").select("id, clinic_name, social_media_enabled").order("clinic_name");
       setClinics(data || []);
       setLoading(false);
     })();
