@@ -41,6 +41,16 @@ function namesMatch(clinicName: string, googleName: string): boolean {
   return overlap >= 1;
 }
 
+class PlacesApiError extends Error {
+  status: number;
+
+  constructor(message: string, status = 502) {
+    super(message);
+    this.name = "PlacesApiError";
+    this.status = status;
+  }
+}
+
 // ── Places API helpers ─────────────────────────────────────────────
 // Extract "City, ST" from a full address like "2308 Lombard St, San Francisco, CA 94123"
 function extractCityRegion(address: string): string {
@@ -82,7 +92,21 @@ async function searchVetPlace(clinicName: string, address: string, apiKey: strin
     });
     const data = await res.json();
     if (!res.ok || data.error) {
-      console.log(`Places API error (${res.status}):`, JSON.stringify(data).slice(0, 300));
+      const googleStatus = data?.error?.status || "UNKNOWN";
+      const googleMessage = data?.error?.message || res.statusText || "Unknown Places API error";
+      console.log(`Places API error (${res.status}/${googleStatus}):`, JSON.stringify(data).slice(0, 500));
+
+      if (res.status === 403 || googleStatus === "PERMISSION_DENIED") {
+        throw new PlacesApiError(
+          "Google Places API permission denied. Please make sure GOOGLE_PLACES_API_KEY is configured with Places API (New) enabled and is not restricted in a way that blocks Supabase Edge Functions.",
+          502,
+        );
+      }
+
+      if (res.status >= 500 || res.status === 429) {
+        throw new PlacesApiError(`Google Places API temporarily unavailable: ${googleMessage}`, 502);
+      }
+
       continue;
     }
     const places = data.places || [];
@@ -124,7 +148,7 @@ Deno.serve(async (req) => {
     if (!parsed.success) return jsonRes({ error: "Invalid request" }, 400);
     const { clinic_id } = parsed.data;
 
-    const googleKey = Deno.env.get("GOOGLE_PAGESPEED_API_KEY") || Deno.env.get("GOOGLE_PLACES_API_KEY");
+    const googleKey = Deno.env.get("GOOGLE_PLACES_API_KEY") || Deno.env.get("GOOGLE_PAGESPEED_API_KEY");
     const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY")!;
 
     if (!googleKey) return jsonRes({ error: "Google API key not configured" }, 500);
@@ -357,6 +381,9 @@ Deno.serve(async (req) => {
     return jsonRes({ success: true, extracted: miningResult });
   } catch (err) {
     console.error("mine-reviews error:", err);
+    if (err instanceof PlacesApiError) {
+      return jsonRes({ error: err.message }, err.status);
+    }
     return jsonRes({ error: (err as Error).message || "Internal error" }, 500);
   }
 });
