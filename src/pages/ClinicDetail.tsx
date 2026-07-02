@@ -370,7 +370,7 @@ export default function ClinicDetail() {
 
     if (error) {
       setClinic((prev) => (prev ? { ...prev, [key]: previousValue } : prev));
-      toast.error("Failed to update clinic service access");
+      toast.error("Failed to update clinic service access", { description: describeError(error) });
       return;
     }
 
