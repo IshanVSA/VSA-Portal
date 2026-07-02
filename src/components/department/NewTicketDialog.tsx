@@ -331,7 +331,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
   const renderCustomForm = () => {
     switch (ticketType) {
       case "Time Changes":
-        return <TimeChangesForm onChange={handleCustomFormChange} />;
+        return <TimeChangesForm onChange={handleCustomFormChange} socialEnabled={clinicServices?.["Social Media"] !== false} />;
       case "Pop-up Offers":
         return <PopupOffersForm onChange={handleCustomFormChange} onConsentChange={setPopupConsented} clinicId={clinicId} />;
       case "Third Party Integrations":
