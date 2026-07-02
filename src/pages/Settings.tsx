@@ -60,7 +60,7 @@ export default function Settings() {
     if (!user) return;
     setSaving(true);
     const { error } = await supabase.from("profiles").update({ full_name: fullName }).eq("id", user.id);
-    if (error) { toast.error("Failed to save"); setSaving(false); return; }
+    if (error) { toast.error("Failed to save", { description: describeError(error) }); setSaving(false); return; }
     await supabase.auth.updateUser({ data: { full_name: fullName } });
     toast.success("Profile updated");
     setSaving(false);
