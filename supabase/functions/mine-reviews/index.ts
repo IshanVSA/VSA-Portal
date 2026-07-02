@@ -207,12 +207,12 @@ Deno.serve(async (req) => {
     if (!parsed.success) return jsonRes({ error: "Invalid request" }, 400);
     const { clinic_id } = parsed.data;
 
-    const googleKey = Deno.env.get("GOOGLE_PLACES_API_KEY");
+    const placesCredentials = getPlacesCredentials();
     const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY")!;
 
-    if (!googleKey) {
+    if (!placesCredentials) {
       return jsonRes({
-        error: "Google Places API key not configured. Add GOOGLE_PLACES_API_KEY with Places API (New) enabled to mine reviews.",
+        error: "Google Maps access is not configured. Connect Google Maps Platform or add GOOGLE_PLACES_API_KEY with Places API (New) enabled to mine reviews.",
       }, 500);
     }
 
@@ -244,13 +244,9 @@ Deno.serve(async (req) => {
 
     // If we have a stored Place ID, validate it matches the clinic
     if (placeId) {
-      const detailsRes = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
-        headers: {
-          "X-Goog-Api-Key": googleKey,
-          "X-Goog-FieldMask": "displayName",
-        },
+      const detailsData = await fetchPlacesApi(`/v1/places/${placeId}`, placesCredentials, {
+        fieldMask: "displayName",
       });
-      const detailsData = await detailsRes.json();
       const storedName = detailsData.displayName?.text || detailsData.displayName || "";
       console.log(`Stored Place ID "${placeId}" resolves to: "${storedName}"`);
 
@@ -263,7 +259,7 @@ Deno.serve(async (req) => {
 
     // Search for the correct Place ID
     if (needsSearch) {
-      const result = await searchVetPlace(clinic.clinic_name, clinic.address || "", googleKey);
+      const result = await searchVetPlace(clinic.clinic_name, clinic.address || "", placesCredentials);
       if (result) {
         placeId = result.placeId;
         // Persist corrected Place ID
@@ -277,18 +273,10 @@ Deno.serve(async (req) => {
     }
 
     // Fetch reviews using Places API (New)
-    const detailsRes = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
-      headers: {
-        "X-Goog-Api-Key": googleKey,
-        "X-Goog-FieldMask": "displayName,rating,userRatingCount,reviews",
-      },
+    const detailsData = await fetchPlacesApi(`/v1/places/${placeId}`, placesCredentials, {
+      fieldMask: "displayName,rating,userRatingCount,reviews",
     });
-    const detailsData = await detailsRes.json();
     console.log("Place details keys:", Object.keys(detailsData));
-
-    if (detailsData.error) {
-      return jsonRes({ error: `Google Places API error: ${detailsData.error.message}` }, 502);
-    }
 
     const rawReviews = detailsData.reviews || [];
     const reviews = rawReviews.map((r: any) => ({
