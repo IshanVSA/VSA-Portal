@@ -356,13 +356,45 @@ export default function Clinics() {
     }
   };
 
+  const newClientSchema = z.object({
+    full_name: z.string().trim().min(1, "Full name is required").max(100),
+    email: z.string().trim().min(1, "Email is required").email("Invalid email address").max(255),
+    password: z.string().min(8, "Password must be at least 8 characters").max(128),
+  });
+
   const addClinic = async () => {
-    if (!newName.trim()) return;
+    if (!newName.trim()) {
+      toast.error("Clinic name is required");
+      return;
+    }
 
     const trimmedWebsite = newWebsite.trim();
     if (trimmedWebsite && !isHttpsClinicWebsiteUrl(trimmedWebsite)) {
       toast.error("Website URL must start with https://");
       return;
+    }
+
+    // Enforce client owner (mandatory)
+    let ownerIdToUse: string | null = null;
+    if (clientMode === "existing") {
+      if (!newOwnerId || newOwnerId === "none") {
+        toast.error("Please select an existing client or switch to Create new client");
+        return;
+      }
+      ownerIdToUse = newOwnerId;
+    } else {
+      const parsed = newClientSchema.safeParse(newClientForm);
+      if (!parsed.success) {
+        const errs: { full_name?: string; email?: string; password?: string } = {};
+        for (const issue of parsed.error.issues) {
+          const key = issue.path[0] as "full_name" | "email" | "password";
+          if (key && !errs[key]) errs[key] = issue.message;
+        }
+        setNewClientErrors(errs);
+        toast.error(parsed.error.issues[0]?.message || "Please fix the highlighted client fields");
+        return;
+      }
+      setNewClientErrors({});
     }
 
     // Check for duplicate clinic by website
@@ -378,6 +410,35 @@ export default function Clinics() {
       }
     }
 
+    setSavingClinic(true);
+
+    // Create new client account first if needed
+    if (clientMode === "new") {
+      const parsed = newClientSchema.safeParse(newClientForm);
+      if (!parsed.success) { setSavingClinic(false); return; }
+      const { data: cData, error: cErr } = await supabase.functions.invoke("create-team-member", {
+        body: { ...parsed.data, role: "client" },
+      });
+      if (cErr || cData?.error) {
+        setSavingClinic(false);
+        const msg = await extractEdgeFunctionError(cErr, cData, "Failed to create client");
+        // Surface duplicate-email inline
+        if (/already/i.test(msg) || /in use/i.test(msg) || /exists/i.test(msg)) {
+          setNewClientErrors((p) => ({ ...p, email: "This email is already in use by another account." }));
+        }
+        toast.error(msg);
+        return;
+      }
+      ownerIdToUse = (cData as any)?.id as string;
+      if (!ownerIdToUse) {
+        setSavingClinic(false);
+        toast.error("Client was created but no user id was returned");
+        return;
+      }
+      // Refresh clients list so it appears in future dropdowns
+      fetchUsers();
+    }
+
     const { data: clinicData, error } = await (supabase.from("clinics" as any).insert({
       clinic_name: newName.trim(),
       phone: newPhone || null,
@@ -385,12 +446,17 @@ export default function Clinics() {
       address: newAddress || null,
       website: trimmedWebsite || null,
       timezone: newTimezone || null,
-      owner_user_id: newOwnerId && newOwnerId !== "none" ? newOwnerId : null,
+      owner_user_id: ownerIdToUse,
       ...newAccess,
     } as any).select("id").single() as any);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      setSavingClinic(false);
+      toast.error(error.message);
+      return;
+    }
 
-    toast.success("Clinic added!");
+    setSavingClinic(false);
+    toast.success(clientMode === "new" ? "Client and clinic created!" : "Clinic added!");
     setDialogOpen(false);
     resetAddForm();
     fetchClinics();
