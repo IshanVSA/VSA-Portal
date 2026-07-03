@@ -232,12 +232,19 @@ export default function SubAccounts() {
       return;
     }
     const merged = (data as any)?.merged === true;
+    const linkedNewParent = (data as any)?.linked_new_parent === true;
     const added: string[] = (data as any)?.added_clinic_ids ?? [];
     toast({
-      title: merged ? "Sub-account updated" : "Sub-account created",
-      description: merged
-        ? (added.length > 0 ? `Added ${added.length} clinic${added.length === 1 ? "" : "s"} to the existing sub-account.` : "No new clinics to add — this sub-account already had them all.")
-        : `${fullName} can now sign in.`,
+      title: linkedNewParent
+        ? "Sub-account linked to this client"
+        : merged
+          ? "Sub-account updated"
+          : "Sub-account created",
+      description: linkedNewParent
+        ? `${fullName} already had a login — attached ${added.length} clinic${added.length === 1 ? "" : "s"} under this client.`
+        : merged
+          ? (added.length > 0 ? `Added ${added.length} clinic${added.length === 1 ? "" : "s"} to the existing sub-account.` : "No new clinics to add — this sub-account already had them all.")
+          : `${fullName} can now sign in.`,
     });
     setOpenCreate(false); resetForm(); load();
   };
