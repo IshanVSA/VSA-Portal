@@ -224,16 +224,22 @@ export default function SubAccounts() {
 
     if (errCode || error) {
       if (errCode === "email_in_use") {
-        setEmailError(errMsg || "This email is already in use by another account.");
-        toast({ title: "Email already in use", description: "Try a different email address.", variant: "destructive" });
+        setEmailError(errMsg || "This email is already in use by another account. If it's an existing sub-account, edit it (pencil icon) to add more clinics.");
+        toast({ title: "Email already in use", description: "Use the edit button on the existing sub-account to attach more clinics, or pick a different email.", variant: "destructive" });
       } else {
         toast({ title: "Failed to create", description: errMsg || error?.message || "Unknown error", variant: "destructive" });
       }
       return;
     }
-    toast({ title: "Sub-account created", description: `${fullName} can now sign in.` });
+    const merged = (data as any)?.merged === true;
+    const added: string[] = (data as any)?.added_clinic_ids ?? [];
+    toast({
+      title: merged ? "Sub-account updated" : "Sub-account created",
+      description: merged
+        ? (added.length > 0 ? `Added ${added.length} clinic${added.length === 1 ? "" : "s"} to the existing sub-account.` : "No new clinics to add — this sub-account already had them all.")
+        : `${fullName} can now sign in.`,
+    });
     setOpenCreate(false); resetForm(); load();
-  };
 
   const openEdit = (s: SubAccount) => {
     setEditTarget(s);
