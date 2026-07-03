@@ -95,7 +95,7 @@ const App = () => (
                 <Route path="/clinics" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}>{guard(<Clinics />, "clinics")}</ProtectedRoute>} />
                 <Route path="/clinics/:id" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}>{guard(<ClinicDetail />, "clinic-detail")}</ProtectedRoute>} />
                 <Route path="/employees" element={<ProtectedRoute allowedRoles={["admin"]}>{guard(<Employees />, "employees")}</ProtectedRoute>} />
-                <Route path="/clients" element={<ProtectedRoute allowedRoles={["admin"]}>{guard(<ClientsPage />, "clients")}</ProtectedRoute>} />
+                <Route path="/clients" element={<Navigate to="/clinics" replace />} />
                 <Route path="/review" element={<ProtectedRoute allowedRoles={["admin"]}>{guard(<AdminReview />, "review")}</ProtectedRoute>} />
                 <Route path="/settings" element={guard(<Settings />, "settings")} />
                 <Route path="/reports" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}>{guard(<Reports />, "reports")}</ProtectedRoute>} />
