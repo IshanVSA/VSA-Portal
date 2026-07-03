@@ -49,9 +49,22 @@ Deno.serve(async (req) => {
       return json({ error: "Forbidden" }, 403);
     }
 
-    // Clean up dependents first so nothing is left orphaned if auth deletion fails.
+    // Remove this parent's clinic assignments and the client_sub_accounts row.
     await admin.from("sub_account_clinics").delete().eq("sub_account_id", sub_account_id);
     await admin.from("client_sub_accounts").delete().eq("id", sub_account_id);
+
+    // If this sub-user still has other parent links, keep the auth user alive
+    // so those parents' access continues to work.
+    const { data: remainingLinks } = await admin
+      .from("client_sub_accounts")
+      .select("id")
+      .eq("sub_user_id", row.sub_user_id)
+      .limit(1);
+    if (remainingLinks && remainingLinks.length > 0) {
+      return json({ success: true, kept_login: true });
+    }
+
+    // Last link → fully delete the login.
     await admin.from("user_roles").delete().eq("user_id", row.sub_user_id);
 
     const { error: authDelErr } = await admin.auth.admin.deleteUser(row.sub_user_id);
@@ -61,6 +74,7 @@ Deno.serve(async (req) => {
     }
 
     return json({ success: true });
+
   } catch (e) {
     console.error("delete-sub-account error", e);
     return json({ error: (e as Error).message }, 500);
