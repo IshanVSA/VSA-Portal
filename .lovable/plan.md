@@ -1,67 +1,55 @@
-## Goal
+# WhatsApp Photo & Chat Sync — Plan
 
-Make the client dashboard useful even when Social Media is locked, by turning it into a cross-department at-a-glance view of everything the client cares about — pulling in whichever departments (Website, SEO, Google Ads, AI SEO, Social) are enabled for the selected clinic, plus general clinic info.
+## My recommendation
 
-## New layout (top to bottom)
+Go with the **official WhatsApp Business Cloud API (Meta)**, one dedicated business number, one WhatsApp group per clinic. Here's the honest tradeoff so you can decide with eyes open:
 
-1. **Header** (unchanged)
-   - `Dr.'s Portal`, clinic name, date, clinic switcher pills.
+| Option | Works with your existing groups? | Risk | Cost | Fits Lovable/Supabase? |
+|---|---|---|---|---|
+| **Official Business Cloud API** (recommended) | No — clients must be moved into a new group that includes your business number | None (fully compliant) | ~$0 for first 1,000 conversations/mo, then ~$0.005–0.05 per message | Yes — webhook → Supabase edge function |
+| Unofficial bridge (whatsapp-web.js, Baileys) | Yes — mirrors your current personal groups | High — violates WhatsApp ToS, number can be banned without warning, breaks every WA update | Server cost only | No — needs a persistent 24/7 Node process holding a QR session; Supabase edge functions can't do this, would need a separate VPS |
 
-2. **Cross-department status strip** (replaces the current social-only 4-card strip)
-   Adaptive tiles — only rendered for enabled departments:
-   - **Open tickets** (all depts, all-time open + in_progress) → clicking scrolls to Recent updates.
-   - **In review** (content awaiting your approval; only if Social enabled).
-   - **Website health** (latest mobile PageSpeed score; only if Website enabled).
-   - **SEO traffic** (last 30d organic sessions delta; only if SEO enabled).
-   - **Ad spend / clicks** (last 30d; only if Google Ads enabled).
-   - **AI SEO score** (only if AI SEO enabled).
-   - **Unread VSA messages** across all department chats (not just social).
-   Tiles collapse gracefully — a clinic with only Website + Ads shows 3–4 tiles instead of a huge empty strip.
+The unofficial route is tempting because it "just works" with your current groups, but a ban wipes out the entire clinic's chat history and takes your team's phone number down with it. Not worth it for a client-facing product.
 
-3. **Two-column body**
-   - **Left (3/5): Department snapshots**
-     A vertical stack of small cards, one per enabled department, each with 2–3 KPIs + a `Open →` link. Examples:
-     - Website: visitors (30d), avg engagement, PageSpeed score.
-     - SEO: keywords ranking top-10, latest blog post title, monthly report link.
-     - Google Ads: spend, clicks, CTR.
-     - AI SEO: overall score, backlinks delta.
-     - Social: upcoming post count, in-review count, published this month.
-     Only enabled departments render; each card uses that department's semantic color.
-   - **Right (2/5):**
-     - **Content calendar mini** — shows only when Social enabled (existing calendar reused).
-     - **Upcoming posts** — only when Social enabled.
-     - **VSA team** latest message — sourced from whichever department chat has the newest message the client can see (Website chat when only Website is on, etc.), not hard-coded to `social_media`.
-     - **Book a meeting** shortcut card — always visible (general link everyone should see).
+## What we'll build (official path)
 
-4. **Recent updates** (kept, moved up when Social is off)
-   Existing cross-department ticket activity list. This is already dept-agnostic and is the main content when only non-social depts are enabled.
+**One WhatsApp group per clinic**, each group includes your VSA business number as a participant. Every photo/video/message sent in the group is delivered to a Meta webhook, which our edge function stores against that clinic.
 
-5. **Quick actions row** (adaptive)
-   - `New Ticket` (always, opens NewTicketDialog with dept auto-picked from first enabled dept).
-   - `Request content` (only Social enabled).
-   - `Book a meeting` (always).
-   - `Analytics` deep-link per enabled department.
+### User-visible additions
+- **Clinic Detail → new "WhatsApp" tab**: shows the group's linked status, invite instructions, and a live media grid (photos/videos with sender name + timestamp) plus a text chat log.
+- **Media library filter** on the existing clinic media pages so WhatsApp-sourced files are browsable alongside uploads.
+- **Admin setup screen** to paste the Meta credentials once and to link each clinic to its WhatsApp group ID.
 
-## Behavioral rules
+### Backend
+- New Supabase table `clinic_whatsapp_groups` (clinic_id, wa_group_id, group_name, linked_at) with RLS + grants.
+- New table `whatsapp_messages` (clinic_id, wa_message_id, sender_name, sender_wa_id, body, media_path, media_type, sent_at) with RLS + grants.
+- Storage: reuse the existing public `department-files` bucket under `whatsapp/{clinic_id}/…`.
+- Edge function `whatsapp-webhook` (verify_jwt = false, verifies Meta's `X-Hub-Signature-256`): handles verification handshake, receives message events, downloads media via Meta's media endpoint, uploads to Supabase Storage, inserts row.
+- Edge function `whatsapp-link-group`: admin-only, associates an incoming group with a clinic.
+- Realtime enabled on `whatsapp_messages` so the tab updates live.
 
-- All sections read `selectedClinic` service flags (`website_enabled`, `seo_enabled`, `google_ads_enabled`, `ai_seo_enabled`, `social_media_enabled`) and render conditionally — never show a locked-dept KPI to the client.
-- If a KPI query fails or returns no data, the tile shows an em-dash, not an error.
-- Empty state fallback: if a clinic somehow has zero enabled departments, show a single card with "Contact your account manager" (matches existing pattern).
+### Secrets to add (I'll request when we start building)
+- `WHATSAPP_ACCESS_TOKEN`
+- `WHATSAPP_PHONE_NUMBER_ID`
+- `WHATSAPP_APP_SECRET` (for webhook signature verification)
+- `WHATSAPP_VERIFY_TOKEN` (any random string we generate)
 
-## Technical notes
+## What you need to do on Meta's side (one-time, ~30 min)
+1. Create a Meta Business account + WhatsApp Business App at developers.facebook.com.
+2. Add a phone number (a fresh one, not tied to a personal WhatsApp).
+3. Generate a permanent access token and note the Phone Number ID + App Secret.
+4. Point the webhook to the edge function URL I'll give you after step 1 of the build.
+5. For each clinic: create a group, add the business number, then from admin UI paste the group ID once.
 
-- File: `src/components/dashboard/ClientDashboard.tsx`.
-- Extend the `Clinic` interface + select to include `website_enabled, seo_enabled, google_ads_enabled, ai_seo_enabled, social_media_enabled` (matches `AdminDashboard` pattern).
-- Reuse existing hooks/utilities where possible:
-  - `useWebsiteKPIs`, `useSeoAnalytics`, `useGoogleAdsKPIs`, `useSearchAtlas` for per-department KPIs.
-  - `department_client_chats` query generalized to `.in("department", enabledDepts)` for latest-message + unread counts.
-  - `department_tickets` for open-ticket count (already fetched — extend to a count).
-- Extract department snapshot cards into small sub-components inside the same file (or a new `src/components/dashboard/client/` folder) to keep the main file readable.
-- Preserve existing motion patterns (`container` / `item` variants, `framer-motion`).
-- No schema changes, no new migrations, no new tables.
+## Limitations you should know
+- Meta only forwards **group messages that include the business number as a member** — we can't read arbitrary existing groups.
+- Message history before the number joins is not backfilled — only forward from link time.
+- Voice notes, docs, images, videos all supported; stickers and location pins supported too.
 
-## Out of scope
+## Technical notes (for reference)
+- Webhook uses Meta Cloud API v20+ payload shape (`entry[].changes[].value.messages[]`).
+- Media fetched via `GET /{media-id}` → signed URL → download with bearer token → upload to Storage.
+- Deduplication via unique index on `wa_message_id`.
+- No PII stored beyond WhatsApp display name + wa_id (already visible to group members).
 
-- No redesign of the sidebar (locked chips already work).
-- No changes to individual department pages.
-- No new backend endpoints.
+Approve this and I'll start with the migration + edge function, then walk you through the Meta console step-by-step.
