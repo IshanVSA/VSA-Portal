@@ -14,6 +14,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { z } from "zod";
 import { COMMON_TIMEZONES, getSafeTimeZone } from "@/lib/website-analytics";
 import { isHttpsClinicWebsiteUrl, normalizeClinicWebsiteUrl } from "@/lib/clinic-website";
 import { Plus, Search, Eye, Trash2, Pencil, Building2, Users, X, Loader2, Sparkles, Lock, ShieldCheck, RefreshCw, RotateCcw } from "lucide-react";
@@ -23,6 +26,7 @@ import { ClinicLogoUploader } from "@/components/clinic-detail/ClinicLogoUploade
 import { DepartmentTeamPicker } from "@/components/clinic-detail/DepartmentTeamPicker";
 import { detectComplianceBody, getEffectiveComplianceBody, COMPLIANCE_BODY_OPTIONS } from "@/lib/compliance-body";
 import { DisconnectAllGoogleAdsButton } from "@/components/clinics/DisconnectAllGoogleAdsButton";
+import { ClientAccountsTab } from "@/components/clinics/ClientAccountsTab";
 
 interface Clinic {
   id: string;
@@ -166,6 +170,12 @@ export default function Clinics() {
   const [extractingWebsite, setExtractingWebsite] = useState(false);
   const [websiteDuplicate, setWebsiteDuplicate] = useState<string | null>(null);
   const [checkingDuplicate, setCheckingDuplicate] = useState(false);
+  const [clientMode, setClientMode] = useState<"existing" | "new">("existing");
+  const [newClientForm, setNewClientForm] = useState({ full_name: "", email: "", password: "" });
+  const [newClientErrors, setNewClientErrors] = useState<{ full_name?: string; email?: string; password?: string }>({});
+  const [savingClinic, setSavingClinic] = useState(false);
+
+  const [activeTab, setActiveTab] = useState<"clinics" | "clients">("clinics");
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editClinic, setEditClinic] = useState<Clinic | null>(null);
@@ -228,6 +238,10 @@ export default function Clinics() {
     setExtractingWebsite(false);
     setWebsiteDuplicate(null);
     setCheckingDuplicate(false);
+    setClientMode("existing");
+    setNewClientForm({ full_name: "", email: "", password: "" });
+    setNewClientErrors({});
+    setSavingClinic(false);
   };
 
   // Debounced duplicate website check
@@ -342,13 +356,45 @@ export default function Clinics() {
     }
   };
 
+  const newClientSchema = z.object({
+    full_name: z.string().trim().min(1, "Full name is required").max(100),
+    email: z.string().trim().min(1, "Email is required").email("Invalid email address").max(255),
+    password: z.string().min(8, "Password must be at least 8 characters").max(128),
+  });
+
   const addClinic = async () => {
-    if (!newName.trim()) return;
+    if (!newName.trim()) {
+      toast.error("Clinic name is required");
+      return;
+    }
 
     const trimmedWebsite = newWebsite.trim();
     if (trimmedWebsite && !isHttpsClinicWebsiteUrl(trimmedWebsite)) {
       toast.error("Website URL must start with https://");
       return;
+    }
+
+    // Enforce client owner (mandatory)
+    let ownerIdToUse: string | null = null;
+    if (clientMode === "existing") {
+      if (!newOwnerId || newOwnerId === "none") {
+        toast.error("Please select an existing client or switch to Create new client");
+        return;
+      }
+      ownerIdToUse = newOwnerId;
+    } else {
+      const parsed = newClientSchema.safeParse(newClientForm);
+      if (!parsed.success) {
+        const errs: { full_name?: string; email?: string; password?: string } = {};
+        for (const issue of parsed.error.issues) {
+          const key = issue.path[0] as "full_name" | "email" | "password";
+          if (key && !errs[key]) errs[key] = issue.message;
+        }
+        setNewClientErrors(errs);
+        toast.error(parsed.error.issues[0]?.message || "Please fix the highlighted client fields");
+        return;
+      }
+      setNewClientErrors({});
     }
 
     // Check for duplicate clinic by website
@@ -364,6 +410,35 @@ export default function Clinics() {
       }
     }
 
+    setSavingClinic(true);
+
+    // Create new client account first if needed
+    if (clientMode === "new") {
+      const parsed = newClientSchema.safeParse(newClientForm);
+      if (!parsed.success) { setSavingClinic(false); return; }
+      const { data: cData, error: cErr } = await supabase.functions.invoke("create-team-member", {
+        body: { ...parsed.data, role: "client" },
+      });
+      if (cErr || cData?.error) {
+        setSavingClinic(false);
+        const msg = await extractEdgeFunctionError(cErr, cData, "Failed to create client");
+        // Surface duplicate-email inline
+        if (/already/i.test(msg) || /in use/i.test(msg) || /exists/i.test(msg)) {
+          setNewClientErrors((p) => ({ ...p, email: "This email is already in use by another account." }));
+        }
+        toast.error(msg);
+        return;
+      }
+      ownerIdToUse = (cData as any)?.id as string;
+      if (!ownerIdToUse) {
+        setSavingClinic(false);
+        toast.error("Client was created but no user id was returned");
+        return;
+      }
+      // Refresh clients list so it appears in future dropdowns
+      fetchUsers();
+    }
+
     const { data: clinicData, error } = await (supabase.from("clinics" as any).insert({
       clinic_name: newName.trim(),
       phone: newPhone || null,
@@ -371,12 +446,17 @@ export default function Clinics() {
       address: newAddress || null,
       website: trimmedWebsite || null,
       timezone: newTimezone || null,
-      owner_user_id: newOwnerId && newOwnerId !== "none" ? newOwnerId : null,
+      owner_user_id: ownerIdToUse,
       ...newAccess,
     } as any).select("id").single() as any);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      setSavingClinic(false);
+      toast.error(error.message);
+      return;
+    }
 
-    toast.success("Clinic added!");
+    setSavingClinic(false);
+    toast.success(clientMode === "new" ? "Client and clinic created!" : "Clinic added!");
     setDialogOpen(false);
     resetAddForm();
     fetchClinics();
@@ -625,15 +705,67 @@ export default function Clinics() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Client Owner (Optional)</Label>
-                      <Select value={newOwnerId} onValueChange={setNewOwnerId}>
-                        <SelectTrigger><SelectValue placeholder="Select client..." /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">No owner</SelectItem>
-                          {clients.map(c => (<SelectItem key={c.user_id} value={c.user_id}>{c.full_name}</SelectItem>))}
-                        </SelectContent>
-                      </Select>
+                    <div className="space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-3">
+                      <Label className="text-sm font-medium">Client Owner <span className="text-destructive">*</span></Label>
+                      <p className="text-xs text-muted-foreground">Every clinic must be owned by a client account.</p>
+                      <RadioGroup
+                        value={clientMode}
+                        onValueChange={(v) => setClientMode(v as "existing" | "new")}
+                        className="grid grid-cols-2 gap-2 pt-1"
+                      >
+                        <label className={`flex items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer text-sm ${clientMode === "existing" ? "border-primary bg-primary/10" : "border-border"}`}>
+                          <RadioGroupItem value="existing" id="mode-existing" />
+                          Assign existing client
+                        </label>
+                        <label className={`flex items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer text-sm ${clientMode === "new" ? "border-primary bg-primary/10" : "border-border"}`}>
+                          <RadioGroupItem value="new" id="mode-new" />
+                          Create new client
+                        </label>
+                      </RadioGroup>
+                      {clientMode === "existing" ? (
+                        <Select value={newOwnerId} onValueChange={setNewOwnerId}>
+                          <SelectTrigger><SelectValue placeholder="Select client..." /></SelectTrigger>
+                          <SelectContent>
+                            {clients.length === 0 && <SelectItem value="none" disabled>No clients yet — switch to Create new client</SelectItem>}
+                            {clients.map(c => (<SelectItem key={c.user_id} value={c.user_id}>{c.full_name}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <div className="space-y-2 pt-1">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Full name</Label>
+                            <Input
+                              value={newClientForm.full_name}
+                              onChange={(e) => { setNewClientForm(f => ({ ...f, full_name: e.target.value })); if (newClientErrors.full_name) setNewClientErrors(p => ({ ...p, full_name: undefined })); }}
+                              placeholder="Jane Doe"
+                              aria-invalid={!!newClientErrors.full_name}
+                            />
+                            {newClientErrors.full_name && <p className="text-xs text-destructive">{newClientErrors.full_name}</p>}
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Email</Label>
+                            <Input
+                              type="email"
+                              value={newClientForm.email}
+                              onChange={(e) => { setNewClientForm(f => ({ ...f, email: e.target.value })); if (newClientErrors.email) setNewClientErrors(p => ({ ...p, email: undefined })); }}
+                              placeholder="jane@example.com"
+                              aria-invalid={!!newClientErrors.email}
+                            />
+                            {newClientErrors.email && <p className="text-xs text-destructive">{newClientErrors.email}</p>}
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Password</Label>
+                            <Input
+                              type="password"
+                              value={newClientForm.password}
+                              onChange={(e) => { setNewClientForm(f => ({ ...f, password: e.target.value })); if (newClientErrors.password) setNewClientErrors(p => ({ ...p, password: undefined })); }}
+                              placeholder="Min 8 characters"
+                              aria-invalid={!!newClientErrors.password}
+                            />
+                            {newClientErrors.password && <p className="text-xs text-destructive">{newClientErrors.password}</p>}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <ServiceAccessSelector
                       title="Service Access"
@@ -641,7 +773,9 @@ export default function Clinics() {
                       value={newAccess}
                       onToggle={toggleAddAccess}
                     />
-                    <Button onClick={addClinic} className="w-full" disabled={!!websiteDuplicate || checkingDuplicate}>Add Clinic</Button>
+                    <Button onClick={addClinic} className="w-full" disabled={savingClinic || !!websiteDuplicate || checkingDuplicate}>
+                      {savingClinic ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving…</> : "Add Clinic"}
+                    </Button>
                   </div>
                 </DialogContent>
               </Dialog>
@@ -650,7 +784,19 @@ export default function Clinics() {
 
         </div>
 
+        {role === "admin" && (
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "clinics" | "clients")}>
+            <TabsList>
+              <TabsTrigger value="clinics">Clinics</TabsTrigger>
+              <TabsTrigger value="clients">Client Accounts</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        )}
 
+        {activeTab === "clients" && role === "admin" ? (
+          <ClientAccountsTab />
+        ) : (
+        <>
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -781,6 +927,8 @@ export default function Clinics() {
           </div>
           )}
         </Card>
+        </>
+        )}
 
         {/* Edit Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
