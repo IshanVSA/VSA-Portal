@@ -170,6 +170,12 @@ export default function Clinics() {
   const [extractingWebsite, setExtractingWebsite] = useState(false);
   const [websiteDuplicate, setWebsiteDuplicate] = useState<string | null>(null);
   const [checkingDuplicate, setCheckingDuplicate] = useState(false);
+  const [clientMode, setClientMode] = useState<"existing" | "new">("existing");
+  const [newClientForm, setNewClientForm] = useState({ full_name: "", email: "", password: "" });
+  const [newClientErrors, setNewClientErrors] = useState<{ full_name?: string; email?: string; password?: string }>({});
+  const [savingClinic, setSavingClinic] = useState(false);
+
+  const [activeTab, setActiveTab] = useState<"clinics" | "clients">("clinics");
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editClinic, setEditClinic] = useState<Clinic | null>(null);
