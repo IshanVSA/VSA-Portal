@@ -1,48 +1,40 @@
 ## Goal
-Eliminate the separate Clients section. Everything lives under **Clinics**, and creating a clinic requires picking or creating a client owner in the same dialog.
+Let the same sub-account email be attached to different parent clients (e.g. Parent A gives access to Clinic X, Parent B gives access to Clinic Y — one login, two owners, two clinics). Today a UNIQUE constraint on `client_sub_accounts.sub_user_id` blocks this.
 
-## 1. Nav & routing
-- Remove the "Clients" item from the sidebar (`DashboardLayout`).
-- Delete the `/clients` route from `App.tsx` and redirect `/clients` → `/clinics` for any bookmarks.
-- Delete `src/pages/Clients.tsx` after its still-useful pieces are absorbed (below).
+## 1. Database migration
+- Drop `client_sub_accounts_sub_user_id_key` (unique on `sub_user_id`).
+- Add composite unique `(parent_user_id, sub_user_id)` — a given sub-account can only be linked to a parent once, but can be linked to many parents.
+- Update three security-definer helpers that currently assume one row per sub-user:
+  - `is_sub_account(_user_id)` — already uses `EXISTS`, no change.
+  - `get_sub_account_clinic_ids(_user_id)` — already unions across all rows via the join, no change.
+  - `sub_account_hides_financials(_user_id)` — currently `LIMIT 1`. Change to return `true` if **any** of the user's sub-account rows has `hide_financials = true` (safer default: if any owner asked to hide, hide).
+- No RLS policy changes needed — existing policies already scope by `parent_user_id` per row.
 
-## 2. Clinics page becomes the single hub
-Turn `src/pages/Clinics.tsx` into a tabbed page (admin only sees the tabs; concierge keeps the current single view):
+## 2. `create-sub-account` edge function
+Extend the current "email exists" branch:
+- If the existing user is already a sub-account of the **same** parent → merge new clinics into that row (current behavior, unchanged).
+- If the existing user is a sub-account of a **different** parent (or not yet a sub-account at all but not a top-level client) → insert a new `client_sub_accounts` row for `(this parent, existing sub_user_id)` with the requested `hide_financials`, then insert the clinic assignments. Skip auth-user creation (it already exists) and skip the welcome email (they've already onboarded).
+- If the existing user is a top-level `client` or `admin` → still reject with `email_in_use` (won't demote a real client into someone else's sub-account).
 
-- **Tab 1 — Clinics** (default): the existing table, unchanged.
-- **Tab 2 — Client Accounts**: absorbs everything currently on `/clients` that isn't duplicated — login activity metrics, "Last seen" list, welcome-email status/resend, edit name, delete client, Partnerships dialog. This keeps admin tooling intact without a separate top-level page.
+Return `{ merged: true, linked_new_parent: true|false, added_clinic_ids }` so the UI can show the right toast.
 
-No feature loss; just relocated.
+## 3. `delete-sub-account` edge function
+Currently deletes the auth user unconditionally. Change to:
+- Delete the `sub_account_clinics` rows and the one `client_sub_accounts` row being targeted.
+- Only delete the `user_roles` entry and the auth user if this was that sub-user's **last** `client_sub_accounts` row (i.e. no other parent still links to them). Otherwise leave the login intact so the other parent's access keeps working.
 
-## 3. "Add Clinic" dialog — client becomes mandatory
-Rework the Add Clinic dialog in `Clinics.tsx` so a client owner is required before the clinic can be saved. Replace the current optional "Client Owner" select with a required block:
-
-```text
-Client Owner *
-( ) Assign existing client   [ searchable dropdown of clients ]
-( ) Create new client        Full name*  Email*  Password*
-```
-
-- Radio toggles which sub-form is active; the inactive one is ignored.
-- Save flow:
-  1. If "new client": call the existing `create-team-member` edge function with `role: "client"` and capture the new `user_id`. Surface duplicate-email errors inline (same pattern as sub-accounts).
-  2. Insert the clinic with `owner_user_id` set to that user (existing or newly created).
-  3. If step 2 fails after creating a new user, show a clear toast; do not attempt to delete the user (kept simple, matches current app behavior).
-- Save button stays disabled until: website OK, clinic name present, AND either an existing client is selected or the new-client fields pass the same Zod schema currently used in `Clients.tsx` (`full_name`, `email`, `password ≥ 8`).
-- "Extract from Website" button behavior is unchanged.
-
-## 4. Client edit / delete / partnerships
-Reachable from the new **Client Accounts** tab (Tab 2). No inline client editing added to the Clinics table itself — keeps that table readable.
-
-## 5. Docs / memory
-Update `mem://features/admin/client-login-activity` and the clinic-management memory to reflect: Clients page merged into Clinics; Add Clinic requires a client owner.
-
-## Technical notes
-- Files touched: `src/pages/Clinics.tsx` (major), `src/App.tsx` (route removal + redirect), `src/components/DashboardLayout.tsx` (nav item removal), `src/pages/Clients.tsx` (deleted — logic split into a new `src/components/clinics/ClientAccountsTab.tsx` extracted from the current page).
-- No DB migration needed — `clinics.owner_user_id` already exists and is already how ownership works; we're just enforcing it at the UI layer.
-- RLS unchanged.
-- Sub-accounts flow (`/sub-accounts`) is untouched.
+## 4. UI (`SubAccounts.tsx`)
+- The listing already groups per `client_sub_accounts` row, so a sub-account with two parents naturally shows up twice (once per parent) with each parent's clinic set. That's the desired view — no code change needed.
+- Adjust the create-flow toast copy to cover the new "linked to a new parent" case.
+- Keep the existing `email_in_use` inline error for the true collision case (email belongs to an admin/top-level client).
 
 ## Out of scope
-- Backfilling `owner_user_id` for existing clinics that don't have one (they keep working; requirement only applies to new clinics).
-- Changing what a "client" can see/do.
+- Merging identity across parents in the UI (e.g. "this login has 2 parents" badge). Can add later if useful.
+- Per-parent password reset flows.
+
+## Technical notes
+Files touched:
+- New migration: drop old unique, add composite unique, update `sub_account_hides_financials`.
+- `supabase/functions/create-sub-account/index.ts` — extend existing-email branch.
+- `supabase/functions/delete-sub-account/index.ts` — conditional auth-user deletion.
+- `src/pages/SubAccounts.tsx` — toast copy only.
