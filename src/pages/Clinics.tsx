@@ -14,6 +14,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { z } from "zod";
 import { COMMON_TIMEZONES, getSafeTimeZone } from "@/lib/website-analytics";
 import { isHttpsClinicWebsiteUrl, normalizeClinicWebsiteUrl } from "@/lib/clinic-website";
 import { Plus, Search, Eye, Trash2, Pencil, Building2, Users, X, Loader2, Sparkles, Lock, ShieldCheck, RefreshCw, RotateCcw } from "lucide-react";
@@ -23,6 +26,7 @@ import { ClinicLogoUploader } from "@/components/clinic-detail/ClinicLogoUploade
 import { DepartmentTeamPicker } from "@/components/clinic-detail/DepartmentTeamPicker";
 import { detectComplianceBody, getEffectiveComplianceBody, COMPLIANCE_BODY_OPTIONS } from "@/lib/compliance-body";
 import { DisconnectAllGoogleAdsButton } from "@/components/clinics/DisconnectAllGoogleAdsButton";
+import { ClientAccountsTab } from "@/components/clinics/ClientAccountsTab";
 
 interface Clinic {
   id: string;
