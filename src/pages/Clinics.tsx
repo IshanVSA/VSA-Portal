@@ -238,6 +238,10 @@ export default function Clinics() {
     setExtractingWebsite(false);
     setWebsiteDuplicate(null);
     setCheckingDuplicate(false);
+    setClientMode("existing");
+    setNewClientForm({ full_name: "", email: "", password: "" });
+    setNewClientErrors({});
+    setSavingClinic(false);
   };
 
   // Debounced duplicate website check
