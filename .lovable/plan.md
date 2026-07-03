@@ -1,55 +1,48 @@
-# WhatsApp Photo & Chat Sync — Plan
+## Goal
+Eliminate the separate Clients section. Everything lives under **Clinics**, and creating a clinic requires picking or creating a client owner in the same dialog.
 
-## My recommendation
+## 1. Nav & routing
+- Remove the "Clients" item from the sidebar (`DashboardLayout`).
+- Delete the `/clients` route from `App.tsx` and redirect `/clients` → `/clinics` for any bookmarks.
+- Delete `src/pages/Clients.tsx` after its still-useful pieces are absorbed (below).
 
-Go with the **official WhatsApp Business Cloud API (Meta)**, one dedicated business number, one WhatsApp group per clinic. Here's the honest tradeoff so you can decide with eyes open:
+## 2. Clinics page becomes the single hub
+Turn `src/pages/Clinics.tsx` into a tabbed page (admin only sees the tabs; concierge keeps the current single view):
 
-| Option | Works with your existing groups? | Risk | Cost | Fits Lovable/Supabase? |
-|---|---|---|---|---|
-| **Official Business Cloud API** (recommended) | No — clients must be moved into a new group that includes your business number | None (fully compliant) | ~$0 for first 1,000 conversations/mo, then ~$0.005–0.05 per message | Yes — webhook → Supabase edge function |
-| Unofficial bridge (whatsapp-web.js, Baileys) | Yes — mirrors your current personal groups | High — violates WhatsApp ToS, number can be banned without warning, breaks every WA update | Server cost only | No — needs a persistent 24/7 Node process holding a QR session; Supabase edge functions can't do this, would need a separate VPS |
+- **Tab 1 — Clinics** (default): the existing table, unchanged.
+- **Tab 2 — Client Accounts**: absorbs everything currently on `/clients` that isn't duplicated — login activity metrics, "Last seen" list, welcome-email status/resend, edit name, delete client, Partnerships dialog. This keeps admin tooling intact without a separate top-level page.
 
-The unofficial route is tempting because it "just works" with your current groups, but a ban wipes out the entire clinic's chat history and takes your team's phone number down with it. Not worth it for a client-facing product.
+No feature loss; just relocated.
 
-## What we'll build (official path)
+## 3. "Add Clinic" dialog — client becomes mandatory
+Rework the Add Clinic dialog in `Clinics.tsx` so a client owner is required before the clinic can be saved. Replace the current optional "Client Owner" select with a required block:
 
-**One WhatsApp group per clinic**, each group includes your VSA business number as a participant. Every photo/video/message sent in the group is delivered to a Meta webhook, which our edge function stores against that clinic.
+```text
+Client Owner *
+( ) Assign existing client   [ searchable dropdown of clients ]
+( ) Create new client        Full name*  Email*  Password*
+```
 
-### User-visible additions
-- **Clinic Detail → new "WhatsApp" tab**: shows the group's linked status, invite instructions, and a live media grid (photos/videos with sender name + timestamp) plus a text chat log.
-- **Media library filter** on the existing clinic media pages so WhatsApp-sourced files are browsable alongside uploads.
-- **Admin setup screen** to paste the Meta credentials once and to link each clinic to its WhatsApp group ID.
+- Radio toggles which sub-form is active; the inactive one is ignored.
+- Save flow:
+  1. If "new client": call the existing `create-team-member` edge function with `role: "client"` and capture the new `user_id`. Surface duplicate-email errors inline (same pattern as sub-accounts).
+  2. Insert the clinic with `owner_user_id` set to that user (existing or newly created).
+  3. If step 2 fails after creating a new user, show a clear toast; do not attempt to delete the user (kept simple, matches current app behavior).
+- Save button stays disabled until: website OK, clinic name present, AND either an existing client is selected or the new-client fields pass the same Zod schema currently used in `Clients.tsx` (`full_name`, `email`, `password ≥ 8`).
+- "Extract from Website" button behavior is unchanged.
 
-### Backend
-- New Supabase table `clinic_whatsapp_groups` (clinic_id, wa_group_id, group_name, linked_at) with RLS + grants.
-- New table `whatsapp_messages` (clinic_id, wa_message_id, sender_name, sender_wa_id, body, media_path, media_type, sent_at) with RLS + grants.
-- Storage: reuse the existing public `department-files` bucket under `whatsapp/{clinic_id}/…`.
-- Edge function `whatsapp-webhook` (verify_jwt = false, verifies Meta's `X-Hub-Signature-256`): handles verification handshake, receives message events, downloads media via Meta's media endpoint, uploads to Supabase Storage, inserts row.
-- Edge function `whatsapp-link-group`: admin-only, associates an incoming group with a clinic.
-- Realtime enabled on `whatsapp_messages` so the tab updates live.
+## 4. Client edit / delete / partnerships
+Reachable from the new **Client Accounts** tab (Tab 2). No inline client editing added to the Clinics table itself — keeps that table readable.
 
-### Secrets to add (I'll request when we start building)
-- `WHATSAPP_ACCESS_TOKEN`
-- `WHATSAPP_PHONE_NUMBER_ID`
-- `WHATSAPP_APP_SECRET` (for webhook signature verification)
-- `WHATSAPP_VERIFY_TOKEN` (any random string we generate)
+## 5. Docs / memory
+Update `mem://features/admin/client-login-activity` and the clinic-management memory to reflect: Clients page merged into Clinics; Add Clinic requires a client owner.
 
-## What you need to do on Meta's side (one-time, ~30 min)
-1. Create a Meta Business account + WhatsApp Business App at developers.facebook.com.
-2. Add a phone number (a fresh one, not tied to a personal WhatsApp).
-3. Generate a permanent access token and note the Phone Number ID + App Secret.
-4. Point the webhook to the edge function URL I'll give you after step 1 of the build.
-5. For each clinic: create a group, add the business number, then from admin UI paste the group ID once.
+## Technical notes
+- Files touched: `src/pages/Clinics.tsx` (major), `src/App.tsx` (route removal + redirect), `src/components/DashboardLayout.tsx` (nav item removal), `src/pages/Clients.tsx` (deleted — logic split into a new `src/components/clinics/ClientAccountsTab.tsx` extracted from the current page).
+- No DB migration needed — `clinics.owner_user_id` already exists and is already how ownership works; we're just enforcing it at the UI layer.
+- RLS unchanged.
+- Sub-accounts flow (`/sub-accounts`) is untouched.
 
-## Limitations you should know
-- Meta only forwards **group messages that include the business number as a member** — we can't read arbitrary existing groups.
-- Message history before the number joins is not backfilled — only forward from link time.
-- Voice notes, docs, images, videos all supported; stickers and location pins supported too.
-
-## Technical notes (for reference)
-- Webhook uses Meta Cloud API v20+ payload shape (`entry[].changes[].value.messages[]`).
-- Media fetched via `GET /{media-id}` → signed URL → download with bearer token → upload to Storage.
-- Deduplication via unique index on `wa_message_id`.
-- No PII stored beyond WhatsApp display name + wa_id (already visible to group members).
-
-Approve this and I'll start with the migration + edge function, then walk you through the Meta console step-by-step.
+## Out of scope
+- Backfilling `owner_user_id` for existing clinics that don't have one (they keep working; requirement only applies to new clinics).
+- Changing what a "client" can see/do.
