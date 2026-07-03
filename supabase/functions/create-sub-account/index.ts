@@ -84,6 +84,43 @@ Deno.serve(async (req) => {
         .ilike("email", email)
         .maybeSingle();
       if (existingProfile) {
+        // If the existing user is already a sub-account of the same parent,
+        // merge the requested clinics into it instead of erroring. This lets
+        // a client (or admin) attach the same sub-account to additional
+        // clinics by re-submitting the form with the same email.
+        const { data: existingSub } = await admin
+          .from("client_sub_accounts")
+          .select("id, parent_user_id, hide_financials")
+          .eq("sub_user_id", existingProfile.id)
+          .maybeSingle();
+
+        if (existingSub && existingSub.parent_user_id === parentUserId) {
+          const { data: currentAssigns } = await admin
+            .from("sub_account_clinics")
+            .select("clinic_id")
+            .eq("sub_account_id", existingSub.id);
+          const have = new Set((currentAssigns ?? []).map((r: any) => r.clinic_id));
+          const toAdd = clinic_ids.filter((id) => !have.has(id));
+          if (toAdd.length > 0) {
+            const { error: addErr } = await admin
+              .from("sub_account_clinics")
+              .insert(toAdd.map((cid) => ({ sub_account_id: existingSub.id, clinic_id: cid })));
+            if (addErr) return json({ error: addErr.message }, 500);
+          }
+          if (typeof body.hide_financials === "boolean" && body.hide_financials !== existingSub.hide_financials) {
+            await admin.from("client_sub_accounts").update({ hide_financials }).eq("id", existingSub.id);
+          }
+          return json({
+            success: true,
+            merged: true,
+            added_clinic_ids: toAdd,
+            sub_account_id: existingSub.id,
+            sub_user_id: existingProfile.id,
+            welcome_email_sent: false,
+            welcome_email_error: null,
+          });
+        }
+
         return json({ error: "email_in_use", message: "This email is already in use by another account." }, 409);
       }
     }
