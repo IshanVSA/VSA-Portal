@@ -46,7 +46,7 @@ const clientSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters").max(128, "Password must be less than 128 characters"),
 });
 
-export default function ClientsPage() {
+export function ClientAccountsTab() {
   const { role } = useUserRole();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [roles, setRoles] = useState<UserRole[]>([]);
@@ -223,8 +223,8 @@ export default function ClientsPage() {
       <div className="space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0">
-              <h1 className="text-[28px] sm:text-[34px] font-bold text-foreground tracking-tight leading-tight">Clients</h1>
-              <p className="text-muted-foreground mt-1 text-sm">Manage your clinic clients</p>
+              <h2 className="text-lg font-semibold text-foreground">Client Accounts</h2>
+              <p className="text-muted-foreground mt-1 text-sm">Login activity, welcome emails, partnerships and per-client access</p>
             </div>
             <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setFormErrors({}); setSelectedClinicIds([]); } }}>
               <DialogTrigger asChild>
