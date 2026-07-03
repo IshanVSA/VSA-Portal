@@ -784,7 +784,19 @@ export default function Clinics() {
 
         </div>
 
+        {role === "admin" && (
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "clinics" | "clients")}>
+            <TabsList>
+              <TabsTrigger value="clinics">Clinics</TabsTrigger>
+              <TabsTrigger value="clients">Client Accounts</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        )}
 
+        {activeTab === "clients" && role === "admin" ? (
+          <ClientAccountsTab />
+        ) : (
+        <>
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
