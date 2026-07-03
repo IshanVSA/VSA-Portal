@@ -84,46 +84,94 @@ Deno.serve(async (req) => {
         .ilike("email", email)
         .maybeSingle();
       if (existingProfile) {
-        // If the existing user is already a sub-account of the same parent,
-        // merge the requested clinics into it instead of erroring. This lets
-        // a client (or admin) attach the same sub-account to additional
-        // clinics by re-submitting the form with the same email.
-        const { data: existingSub } = await admin
+        const existingUserId = existingProfile.id;
+
+        // If the existing user is a top-level client or admin, refuse — we
+        // won't demote a real client/admin into someone else's sub-account.
+        const { data: existingUserRole } = await admin
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", existingUserId)
+          .maybeSingle();
+        if (existingUserRole?.role === "admin" || existingUserRole?.role === "client") {
+          return json({ error: "email_in_use", message: "This email belongs to a top-level account and cannot be added as a sub-account." }, 409);
+        }
+
+        // Is there already a sub-account row for THIS parent + this user?
+        const { data: sameParentSub } = await admin
           .from("client_sub_accounts")
-          .select("id, parent_user_id, hide_financials")
-          .eq("sub_user_id", existingProfile.id)
+          .select("id, hide_financials")
+          .eq("sub_user_id", existingUserId)
+          .eq("parent_user_id", parentUserId)
           .maybeSingle();
 
-        if (existingSub && existingSub.parent_user_id === parentUserId) {
+        if (sameParentSub) {
+          // Merge new clinics into that row.
           const { data: currentAssigns } = await admin
             .from("sub_account_clinics")
             .select("clinic_id")
-            .eq("sub_account_id", existingSub.id);
+            .eq("sub_account_id", sameParentSub.id);
           const have = new Set((currentAssigns ?? []).map((r: any) => r.clinic_id));
           const toAdd = clinic_ids.filter((id) => !have.has(id));
           if (toAdd.length > 0) {
             const { error: addErr } = await admin
               .from("sub_account_clinics")
-              .insert(toAdd.map((cid) => ({ sub_account_id: existingSub.id, clinic_id: cid })));
+              .insert(toAdd.map((cid) => ({ sub_account_id: sameParentSub.id, clinic_id: cid })));
             if (addErr) return json({ error: addErr.message }, 500);
           }
-          if (typeof body.hide_financials === "boolean" && body.hide_financials !== existingSub.hide_financials) {
-            await admin.from("client_sub_accounts").update({ hide_financials }).eq("id", existingSub.id);
+          if (typeof body.hide_financials === "boolean" && body.hide_financials !== sameParentSub.hide_financials) {
+            await admin.from("client_sub_accounts").update({ hide_financials }).eq("id", sameParentSub.id);
           }
           return json({
             success: true,
             merged: true,
+            linked_new_parent: false,
             added_clinic_ids: toAdd,
-            sub_account_id: existingSub.id,
-            sub_user_id: existingProfile.id,
+            sub_account_id: sameParentSub.id,
+            sub_user_id: existingUserId,
             welcome_email_sent: false,
             welcome_email_error: null,
           });
         }
 
-        return json({ error: "email_in_use", message: "This email is already in use by another account." }, 409);
+        // Existing sub_client (or unassigned) user, different parent → link a
+        // new client_sub_accounts row so this parent can also grant clinic
+        // access to the same login. Skip auth-user creation and welcome email.
+        const { data: newLinkRow, error: linkErr } = await admin
+          .from("client_sub_accounts")
+          .insert({ parent_user_id: parentUserId, sub_user_id: existingUserId, hide_financials })
+          .select("id")
+          .single();
+        if (linkErr || !newLinkRow) {
+          return json({ error: linkErr?.message || "Failed to link sub-account to this parent" }, 500);
+        }
+
+        // Ensure role is sub_client (in case the user existed with no role row).
+        if (existingUserRole?.role !== "sub_client") {
+          await admin.from("user_roles").upsert({ user_id: existingUserId, role: "sub_client" }, { onConflict: "user_id" });
+        }
+
+        const { error: assignErr } = await admin
+          .from("sub_account_clinics")
+          .insert(clinic_ids.map((cid) => ({ sub_account_id: newLinkRow.id, clinic_id: cid })));
+        if (assignErr) {
+          await admin.from("client_sub_accounts").delete().eq("id", newLinkRow.id);
+          return json({ error: assignErr.message }, 500);
+        }
+
+        return json({
+          success: true,
+          merged: true,
+          linked_new_parent: true,
+          added_clinic_ids: clinic_ids,
+          sub_account_id: newLinkRow.id,
+          sub_user_id: existingUserId,
+          welcome_email_sent: false,
+          welcome_email_error: null,
+        });
       }
     }
+
 
     // Create auth user
     const { data: newUser, error: createError } = await admin.auth.admin.createUser({
