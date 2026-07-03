@@ -927,6 +927,8 @@ export default function Clinics() {
           </div>
           )}
         </Card>
+        </>
+        )}
 
         {/* Edit Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
