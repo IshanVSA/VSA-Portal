@@ -26,7 +26,7 @@ const AiSeoDepartment = lazy(() => import("./pages/AiSeoDepartment"));
 const GoogleAdsDepartment = lazy(() => import("./pages/GoogleAdsDepartment"));
 const AdminReview = lazy(() => import("./pages/AdminReview"));
 const Employees = lazy(() => import("./pages/Employees"));
-const ClientsPage = lazy(() => import("./pages/Clients"));
+// Clients page merged into Clinics as a tab
 const Settings = lazy(() => import("./pages/Settings"));
 const SubAccounts = lazy(() => import("./pages/SubAccounts"));
 const Reports = lazy(() => import("./pages/Reports"));
