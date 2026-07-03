@@ -240,6 +240,8 @@ export default function SubAccounts() {
         : `${fullName} can now sign in.`,
     });
     setOpenCreate(false); resetForm(); load();
+  };
+
 
   const openEdit = (s: SubAccount) => {
     setEditTarget(s);
