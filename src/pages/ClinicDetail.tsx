@@ -30,6 +30,8 @@ import { GBPConnectionCard } from "@/components/clinic-detail/GBPConnectionCard"
 import { GBPLocationSelectionDialog } from "@/components/clinic-detail/GBPLocationSelectionDialog";
 import { GA4ConnectionCard } from "@/components/clinic-detail/GA4ConnectionCard";
 import { GA4PropertySelectionDialog, type GA4Property } from "@/components/clinic-detail/GA4PropertySelectionDialog";
+import { GSCConnectionCard } from "@/components/clinic-detail/GSCConnectionCard";
+import { GSCPropertySelectionDialog, type GSCSite } from "@/components/clinic-detail/GSCPropertySelectionDialog";
 import { TrackingSetupCard } from "@/components/clinic-detail/TrackingSetupCard";
 import { CtaTrackingSetupCard } from "@/components/clinic-detail/CtaTrackingSetupCard";
 import { SearchAtlasSetupCard } from "@/components/clinic-detail/SearchAtlasSetupCard";
