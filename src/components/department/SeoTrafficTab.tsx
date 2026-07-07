@@ -2,12 +2,16 @@ import { useMemo, useState, useEffect } from "react";
 import { subDays } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, BarChart3, TrendingUp, Clock, Sparkles, Activity, Link as LinkIcon, Leaf, RefreshCw } from "lucide-react";
+import { Loader2, BarChart3, TrendingUp, Clock, Sparkles, Activity, Link as LinkIcon, Leaf, RefreshCw, Users, MousePointerClick, Search as SearchIcon, Target, Award, Percent, Eye } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend, BarChart, Bar } from "recharts";
 import { DateRangeFilter, type DateRange } from "@/components/department/DateRangeFilter";
 import { useGa4Traffic } from "@/hooks/useGa4Traffic";
 import { useGa4Cta, CTA_LABELS, CTA_ORDER, type CtaType } from "@/hooks/useGa4Cta";
 import { useCtaTracking, TRACKED_CTA_ORDER, TRACKED_CTA_LABELS } from "@/hooks/useCtaTracking";
+import { useGa4Compare, positiveDelta, type CompareMode } from "@/hooks/useGa4Compare";
+import { useSearchConsole } from "@/hooks/useSearchConsole";
+import { SeoKpiTile } from "@/components/department/seo/SeoKpiTile";
+import { SearchConsolePanels } from "@/components/department/seo/SearchConsolePanels";
 import { CalendarCheck, MapPin, Phone, UserPlus, Mail } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Link } from "react-router-dom";
@@ -18,6 +22,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { useQueryClient } from "@tanstack/react-query";
+import { cn } from "@/lib/utils";
+
 
 
 interface Props {
