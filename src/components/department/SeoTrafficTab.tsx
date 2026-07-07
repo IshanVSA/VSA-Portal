@@ -165,10 +165,91 @@ export function SeoTrafficTab({ clinicId }: Props) {
     { label: "Events / Session", value: totals.eventsPerSession.toFixed(2), icon: Sparkles, color: "text-pink-500" },
   ];
 
+  // Top-level KPI strip (positive metrics only, YoY-aware)
+  const cur = ga4Cmp?.current;
+  const prev = ga4Cmp?.previous;
+  const gscTotals = gsc?.totals;
+  const gscPrev = gsc?.prevTotals;
+
+  const topKpis = [
+    {
+      key: "sessions", label: "Organic Sessions", icon: BarChart3, color: "text-blue-500",
+      value: formatNumber(cur?.sessions ?? 0),
+      delta: cur && prev ? positiveDelta(cur.sessions, prev.sessions) : null,
+    },
+    {
+      key: "users", label: "Engaged Users", icon: Users, color: "text-emerald-500",
+      value: formatNumber(cur?.users ?? 0),
+      delta: cur && prev ? positiveDelta(cur.users, prev.users) : null,
+    },
+    {
+      key: "impressions", label: "Impressions", icon: Eye, color: "text-indigo-500",
+      value: formatNumber(gscTotals?.impressions ?? 0),
+      delta: gscTotals && gscPrev ? positiveDelta(gscTotals.impressions, gscPrev.impressions) : null,
+    },
+    {
+      key: "clicks", label: "Search Clicks", icon: MousePointerClick, color: "text-cyan-500",
+      value: formatNumber(gscTotals?.clicks ?? 0),
+      delta: gscTotals && gscPrev ? positiveDelta(gscTotals.clicks, gscPrev.clicks) : null,
+    },
+    {
+      key: "ctr", label: "CTR", icon: Percent, color: "text-violet-500",
+      value: `${((gscTotals?.ctr ?? 0) * 100).toFixed(1)}%`,
+      delta: gscTotals && gscPrev ? positiveDelta(gscTotals.ctr, gscPrev.ctr) : null,
+    },
+    {
+      key: "position", label: "Avg. Position", icon: Award, color: "text-amber-500",
+      value: gscTotals && gscTotals.avgPosition > 0 ? gscTotals.avgPosition.toFixed(1) : "—",
+      // Position improves when it decreases (lower rank number is better) — flip sign
+      delta: gscTotals && gscPrev && gscPrev.avgPosition > 0
+        ? positiveDelta(gscPrev.avgPosition, gscTotals.avgPosition)
+        : null,
+    },
+    {
+      key: "engagement", label: "Engagement Rate", icon: TrendingUp, color: "text-pink-500",
+      value: `${((cur?.engagementRate ?? 0) * 100).toFixed(1)}%`,
+      delta: cur && prev ? positiveDelta(cur.engagementRate, prev.engagementRate) : null,
+    },
+    {
+      key: "avgTime", label: "Avg. Engagement Time", icon: Clock, color: "text-orange-500",
+      value: formatSeconds(cur?.avgEngagementTimeSeconds ?? 0),
+      delta: cur && prev ? positiveDelta(cur.avgEngagementTimeSeconds, prev.avgEngagementTimeSeconds) : null,
+    },
+  ];
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
+      <div className="flex flex-wrap items-center gap-3">
+        <DateRangeFilter
+          dateRange={dateRange}
+          onDateRangeChange={setDateRange}
+          presets={[
+            { label: "30D", days: 30 },
+            { label: "60D", days: 60 },
+            { label: "90D", days: 90 },
+            { label: "365D", days: 365 },
+          ]}
+        />
+        <div className="inline-flex items-center rounded-full border border-border/60 bg-background/60 p-0.5 text-xs">
+          <button
+            onClick={() => setCompareMode("yoy")}
+            className={cn(
+              "px-2.5 py-1 rounded-full font-medium transition",
+              compareMode === "yoy" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Year over year
+          </button>
+          <button
+            onClick={() => setCompareMode("prev")}
+            className={cn(
+              "px-2.5 py-1 rounded-full font-medium transition",
+              compareMode === "prev" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Previous period
+          </button>
+        </div>
         <span className="ml-auto text-[11px] text-muted-foreground whitespace-nowrap">
           {lastSyncAt
             ? `Last synced: ${format(new Date(lastSyncAt), "MMM d, yyyy 'at' h:mm a")}`
@@ -188,6 +269,24 @@ export function SeoTrafficTab({ clinicId }: Props) {
           {syncing ? "Syncing…" : "Sync Data"}
         </Button>
       </div>
+
+      {/* Top-level positive KPI strip — sourced from GA4 + Search Console */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2.5">
+        {topKpis.map((k) => (
+          <SeoKpiTile
+            key={k.key}
+            label={k.label}
+            value={k.value}
+            icon={k.icon}
+            color={k.color}
+            deltaPct={k.delta}
+          />
+        ))}
+      </div>
+
+      {/* Google Search Console panels (positive metrics only) */}
+      <SearchConsolePanels clinicId={clinicId} clinicName={clinicName} dateRange={dateRange} />
+
 
       {!hasData ? (
         <Card>
