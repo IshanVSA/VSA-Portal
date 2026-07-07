@@ -350,6 +350,20 @@ export default function ClinicDetail() {
       });
     }
 
+    // Check for gsc_token_ref URL parameter
+    const gscTokenRef = searchParams.get("gsc_token_ref");
+    if (gscTokenRef) {
+      setActiveTab("connections");
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("gsc_token_ref");
+      setSearchParams(newParams, { replace: true });
+      fetchOAuthData(gscTokenRef).then((result) => {
+        if (result?.payload?.sites) {
+          setGscPicker({ sites: result.payload.sites, refresh_token: result.payload.refresh_token });
+        }
+      });
+    }
+
   }, [id]);
 
   const fetchCredentials = async () => {
