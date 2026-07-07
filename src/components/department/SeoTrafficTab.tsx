@@ -57,12 +57,23 @@ export function SeoTrafficTab({ clinicId }: Props) {
   const { role } = useUserRole();
   const today = new Date();
   const [dateRange, setDateRange] = useState<DateRange>({ from: subDays(today, 29), to: today });
+  const [compareMode, setCompareMode] = useState<CompareMode>("yoy");
   const { data, isLoading } = useGa4Traffic(clinicId, dateRange);
   const { data: ctaData } = useGa4Cta(clinicId, dateRange);
   const { data: organic } = useCtaTracking(clinicId, dateRange);
+  const { data: ga4Cmp } = useGa4Compare(clinicId, dateRange, compareMode);
+  const [clinicName, setClinicName] = useState<string>("");
+  const { data: gsc } = useSearchConsole(clinicId, dateRange, clinicName);
   const queryClient = useQueryClient();
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+
+  useEffect(() => {
+    if (!clinicId) { setClinicName(""); return; }
+    (supabase.from("clinics" as any).select("clinic_name").eq("id", clinicId).maybeSingle() as any)
+      .then(({ data }: { data: { clinic_name?: string } | null }) => setClinicName(data?.clinic_name || ""));
+  }, [clinicId]);
+
 
   useEffect(() => {
     if (!clinicId) { setLastSyncAt(null); return; }
