@@ -205,10 +205,11 @@ export default function ClinicDetail() {
   const [metaPages, setMetaPages] = useState<any[] | null>(null);
   const [googleAccounts, setGoogleAccounts] = useState<{ accounts: any[]; refresh_token: string } | null>(null);
   const [ga4Picker, setGa4Picker] = useState<{ properties: GA4Property[]; refresh_token: string } | null>(null);
+  const [gscPicker, setGscPicker] = useState<{ sites: GSCSite[]; refresh_token: string } | null>(null);
   const [teamMembers, setTeamMembers] = useState<{ full_name: string | null; team_role: string | null }[]>([]);
 
   // Determine initial tab based on OAuth URL params
-  const hasOAuthParams = searchParams.has("google") || searchParams.has("meta") || searchParams.has("google_token_ref") || searchParams.has("meta_token_ref") || searchParams.has("gbp_token_ref") || searchParams.has("ga4_token_ref");
+  const hasOAuthParams = searchParams.has("google") || searchParams.has("meta") || searchParams.has("google_token_ref") || searchParams.has("meta_token_ref") || searchParams.has("gbp_token_ref") || searchParams.has("ga4_token_ref") || searchParams.has("gsc_token_ref");
   const [activeTab, setActiveTab] = useState(hasOAuthParams ? "connections" : "instagram");
 
   // Snap back to a permitted tab if user lands on a hidden one (e.g. concierge)
