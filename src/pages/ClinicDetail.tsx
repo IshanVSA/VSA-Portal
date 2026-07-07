@@ -975,6 +975,19 @@ export default function ClinicDetail() {
           />
         )}
 
+        {gscPicker && id && (
+          <GSCPropertySelectionDialog
+            open={!!gscPicker}
+            sites={gscPicker.sites}
+            refreshToken={gscPicker.refresh_token}
+            clinicId={id}
+            clinicWebsite={clinic?.website || ""}
+            onClose={() => { setGscPicker(null); setSearchParams({}, { replace: true }); }}
+            onConnected={() => { setGscPicker(null); setSearchParams({}, { replace: true }); }}
+          />
+        )}
+
+
       </div>
     </>
   );
