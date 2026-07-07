@@ -919,7 +919,7 @@ export function DepartmentChat({ department, clinicId, onVisible, variant = "tea
           </div>
         )}
 
-        <div className="flex gap-2 p-3 border-t border-border/40">
+        <div className="flex gap-2 p-3 pr-20 sm:pr-3 border-t border-border/40">
           <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileSelect} accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip" />
           <Button type="button" variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} disabled={sending} className="h-9 w-9 p-0 shrink-0">
             <Paperclip className="h-4 w-4 text-muted-foreground" />
