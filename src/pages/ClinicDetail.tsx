@@ -30,6 +30,8 @@ import { GBPConnectionCard } from "@/components/clinic-detail/GBPConnectionCard"
 import { GBPLocationSelectionDialog } from "@/components/clinic-detail/GBPLocationSelectionDialog";
 import { GA4ConnectionCard } from "@/components/clinic-detail/GA4ConnectionCard";
 import { GA4PropertySelectionDialog, type GA4Property } from "@/components/clinic-detail/GA4PropertySelectionDialog";
+import { GSCConnectionCard } from "@/components/clinic-detail/GSCConnectionCard";
+import { GSCPropertySelectionDialog, type GSCSite } from "@/components/clinic-detail/GSCPropertySelectionDialog";
 import { TrackingSetupCard } from "@/components/clinic-detail/TrackingSetupCard";
 import { CtaTrackingSetupCard } from "@/components/clinic-detail/CtaTrackingSetupCard";
 import { SearchAtlasSetupCard } from "@/components/clinic-detail/SearchAtlasSetupCard";
@@ -203,10 +205,11 @@ export default function ClinicDetail() {
   const [metaPages, setMetaPages] = useState<any[] | null>(null);
   const [googleAccounts, setGoogleAccounts] = useState<{ accounts: any[]; refresh_token: string } | null>(null);
   const [ga4Picker, setGa4Picker] = useState<{ properties: GA4Property[]; refresh_token: string } | null>(null);
+  const [gscPicker, setGscPicker] = useState<{ sites: GSCSite[]; refresh_token: string } | null>(null);
   const [teamMembers, setTeamMembers] = useState<{ full_name: string | null; team_role: string | null }[]>([]);
 
   // Determine initial tab based on OAuth URL params
-  const hasOAuthParams = searchParams.has("google") || searchParams.has("meta") || searchParams.has("google_token_ref") || searchParams.has("meta_token_ref") || searchParams.has("gbp_token_ref") || searchParams.has("ga4_token_ref");
+  const hasOAuthParams = searchParams.has("google") || searchParams.has("meta") || searchParams.has("google_token_ref") || searchParams.has("meta_token_ref") || searchParams.has("gbp_token_ref") || searchParams.has("ga4_token_ref") || searchParams.has("gsc_token_ref");
   const [activeTab, setActiveTab] = useState(hasOAuthParams ? "connections" : "instagram");
 
   // Snap back to a permitted tab if user lands on a hidden one (e.g. concierge)
@@ -343,6 +346,20 @@ export default function ClinicDetail() {
       fetchOAuthData(ga4TokenRef).then((result) => {
         if (result?.payload?.properties) {
           setGa4Picker({ properties: result.payload.properties, refresh_token: result.payload.refresh_token });
+        }
+      });
+    }
+
+    // Check for gsc_token_ref URL parameter
+    const gscTokenRef = searchParams.get("gsc_token_ref");
+    if (gscTokenRef) {
+      setActiveTab("connections");
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("gsc_token_ref");
+      setSearchParams(newParams, { replace: true });
+      fetchOAuthData(gscTokenRef).then((result) => {
+        if (result?.payload?.sites) {
+          setGscPicker({ sites: result.payload.sites, refresh_token: result.payload.refresh_token });
         }
       });
     }
@@ -817,6 +834,8 @@ export default function ClinicDetail() {
                 onRefresh={() => { fetchCredentials(); }}
               />
               <GA4ConnectionCard clinicId={id!} />
+              <GSCConnectionCard clinicId={id!} />
+
               
               {(role === "admin" || isDebraj) && <TrackingSetupCard clinicId={id!} />}
               {(role === "admin" || isDebraj) && <CtaTrackingSetupCard clinicId={id!} />}
@@ -955,6 +974,19 @@ export default function ClinicDetail() {
             onConnected={() => { setGa4Picker(null); setSearchParams({}, { replace: true }); }}
           />
         )}
+
+        {gscPicker && id && (
+          <GSCPropertySelectionDialog
+            open={!!gscPicker}
+            sites={gscPicker.sites}
+            refreshToken={gscPicker.refresh_token}
+            clinicId={id}
+            clinicWebsite={clinic?.website || ""}
+            onClose={() => { setGscPicker(null); setSearchParams({}, { replace: true }); }}
+            onConnected={() => { setGscPicker(null); setSearchParams({}, { replace: true }); }}
+          />
+        )}
+
 
       </div>
     </>
