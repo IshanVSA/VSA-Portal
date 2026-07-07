@@ -1,4 +1,4 @@
-// Persist chosen GA4 property + encrypted refresh token to clinic_ga4_credentials
+// Persist chosen Search Console site + encrypted refresh token to clinic_gsc_credentials
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -51,9 +51,9 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { clinic_id, property_id, property_display_name, account_display_name, refresh_token } = body || {};
-    if (!clinic_id || !property_id || !refresh_token) {
-      return new Response(JSON.stringify({ error: "clinic_id, property_id and refresh_token required" }), {
+    const { clinic_id, site_url, permission_level, refresh_token } = body || {};
+    if (!clinic_id || !site_url || !refresh_token) {
+      return new Response(JSON.stringify({ error: "clinic_id, site_url and refresh_token required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -65,25 +65,25 @@ Deno.serve(async (req) => {
 
     const encryptedRefresh = await encryptToken(String(refresh_token));
 
-    const { error: upsertErr } = await supabase.from("clinic_ga4_credentials").upsert({
+    const { error: upsertErr } = await supabase.from("clinic_gsc_credentials").upsert({
       clinic_id,
-      ga4_property_id: String(property_id),
-      ga4_property_display_name: property_display_name ? String(property_display_name).slice(0, 200) : null,
-      ga4_account_display_name: account_display_name ? String(account_display_name).slice(0, 200) : null,
+      site_url: String(site_url),
+      site_display_name: String(site_url).replace(/^sc-domain:/, "").replace(/^https?:\/\//, "").replace(/\/$/, ""),
+      permission_level: permission_level ? String(permission_level).slice(0, 60) : null,
       refresh_token_enc: encryptedRefresh,
       connected_by: user.id,
     }, { onConflict: "clinic_id" });
 
     if (upsertErr) {
-      console.error("Save GA4 property failed:", upsertErr);
-      return new Response(JSON.stringify({ error: "Failed to save GA4 property" }), {
+      console.error("Save GSC site failed:", upsertErr);
+      return new Response(JSON.stringify({ error: "Failed to save Search Console site" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Best-effort initial sync (don't fail the request if sync errors)
+    // Best-effort initial sync
     try {
-      await fetch(`${SUPABASE_URL}/functions/v1/sync-ga4-traffic`, {
+      await fetch(`${SUPABASE_URL}/functions/v1/sync-gsc-data`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -92,14 +92,14 @@ Deno.serve(async (req) => {
         body: JSON.stringify({ clinic_id, initial: true }),
       });
     } catch (e) {
-      console.warn("Initial GA4 sync trigger failed:", e);
+      console.warn("Initial GSC sync trigger failed:", e);
     }
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("ga4-save-property error:", err);
+    console.error("gsc-save-property error:", err);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

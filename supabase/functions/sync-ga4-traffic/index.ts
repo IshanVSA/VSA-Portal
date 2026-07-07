@@ -27,12 +27,12 @@ async function decryptToken(encryptedText: string): Promise<string> {
   return decoder.decode(decrypted);
 }
 
-export async function syncClinicGA4(clinicId: string): Promise<{ status: string; rows?: number; error?: string }> {
+export async function syncClinicGA4(clinicId: string, initial = false): Promise<{ status: string; rows?: number; error?: string }> {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   const { data: cred } = await supabase
     .from("clinic_ga4_credentials")
-    .select("ga4_property_id, refresh_token_enc")
+    .select("ga4_property_id, refresh_token_enc, last_sync_at")
     .eq("clinic_id", clinicId)
     .maybeSingle();
 
@@ -64,10 +64,11 @@ export async function syncClinicGA4(clinicId: string): Promise<{ status: string;
   }
   const accessToken = tokenData.access_token;
 
-  // Last 90 days
+  // Backfill 400 days on first sync (for YoY); otherwise refresh last 90.
   const today = new Date();
+  const daysBack = (initial || !cred.last_sync_at) ? 400 : 90;
   const start = new Date();
-  start.setUTCDate(today.getUTCDate() - 89);
+  start.setUTCDate(today.getUTCDate() - (daysBack - 1));
   const fmt = (d: Date) => d.toISOString().slice(0, 10);
 
   const reportRes = await fetch(
@@ -256,14 +257,14 @@ Deno.serve(async (req) => {
       authed = true;
     }
 
-    const { clinic_id } = await req.json();
+    const { clinic_id, initial } = await req.json();
     if (!clinic_id) {
       return new Response(JSON.stringify({ error: "clinic_id required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const result = await syncClinicGA4(clinic_id);
+    const result = await syncClinicGA4(clinic_id, !!initial);
     const status = result.status === "ok" ? 200 : 500;
     return new Response(JSON.stringify(result), {
       status, headers: { ...corsHeaders, "Content-Type": "application/json" },

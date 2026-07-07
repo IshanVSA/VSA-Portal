@@ -981,6 +981,109 @@ export type Database = {
           },
         ]
       }
+      clinic_gsc_credentials: {
+        Row: {
+          clinic_id: string
+          connected_by: string | null
+          created_at: string
+          id: string
+          last_sync_at: string | null
+          last_sync_error: string | null
+          last_sync_status: string | null
+          permission_level: string | null
+          refresh_token_enc: string | null
+          site_display_name: string | null
+          site_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          clinic_id: string
+          connected_by?: string | null
+          created_at?: string
+          id?: string
+          last_sync_at?: string | null
+          last_sync_error?: string | null
+          last_sync_status?: string | null
+          permission_level?: string | null
+          refresh_token_enc?: string | null
+          site_display_name?: string | null
+          site_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string
+          connected_by?: string | null
+          created_at?: string
+          id?: string
+          last_sync_at?: string | null
+          last_sync_error?: string | null
+          last_sync_status?: string | null
+          permission_level?: string | null
+          refresh_token_enc?: string | null
+          site_display_name?: string | null
+          site_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_gsc_credentials_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: true
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinic_gsc_daily: {
+        Row: {
+          bucket_type: string
+          bucket_value: string
+          clicks: number
+          clinic_id: string
+          created_at: string
+          ctr: number
+          date: string
+          id: string
+          impressions: number
+          position: number
+          updated_at: string
+        }
+        Insert: {
+          bucket_type: string
+          bucket_value?: string
+          clicks?: number
+          clinic_id: string
+          created_at?: string
+          ctr?: number
+          date: string
+          id?: string
+          impressions?: number
+          position?: number
+          updated_at?: string
+        }
+        Update: {
+          bucket_type?: string
+          bucket_value?: string
+          clicks?: number
+          clinic_id?: string
+          created_at?: string
+          ctr?: number
+          date?: string
+          id?: string
+          impressions?: number
+          position?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_gsc_daily_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_monthly_signals: {
         Row: {
           active_promotions: Json | null
