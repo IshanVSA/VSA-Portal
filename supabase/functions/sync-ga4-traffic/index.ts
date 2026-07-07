@@ -257,14 +257,14 @@ Deno.serve(async (req) => {
       authed = true;
     }
 
-    const { clinic_id } = await req.json();
+    const { clinic_id, initial } = await req.json();
     if (!clinic_id) {
       return new Response(JSON.stringify({ error: "clinic_id required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const result = await syncClinicGA4(clinic_id);
+    const result = await syncClinicGA4(clinic_id, !!initial);
     const status = result.status === "ok" ? 200 : 500;
     return new Response(JSON.stringify(result), {
       status, headers: { ...corsHeaders, "Content-Type": "application/json" },
