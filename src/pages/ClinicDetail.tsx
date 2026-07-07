@@ -834,6 +834,8 @@ export default function ClinicDetail() {
                 onRefresh={() => { fetchCredentials(); }}
               />
               <GA4ConnectionCard clinicId={id!} />
+              <GSCConnectionCard clinicId={id!} />
+
               
               {(role === "admin" || isDebraj) && <TrackingSetupCard clinicId={id!} />}
               {(role === "admin" || isDebraj) && <CtaTrackingSetupCard clinicId={id!} />}
