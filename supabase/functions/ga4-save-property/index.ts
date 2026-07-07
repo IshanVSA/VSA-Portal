@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
         },
-        body: JSON.stringify({ clinic_id, _internal: true }),
+        body: JSON.stringify({ clinic_id, initial: true }),
       });
     } catch (e) {
       console.warn("Initial GA4 sync trigger failed:", e);
