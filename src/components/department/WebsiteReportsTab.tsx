@@ -132,7 +132,10 @@ export function WebsiteReportsTab({ clinicId }: Props) {
       setLoading(true);
       const currentBufferedRange = getBufferedRange(range.from, range.to);
       const previousBufferedRange = getBufferedRange(prevRange.from, prevRange.to);
-      const [pvData, prevData] = await Promise.all([
+      const fromIso = new Date(`${format(range.from, "yyyy-MM-dd")}T00:00:00Z`).toISOString();
+      const toIso = new Date(`${format(range.to, "yyyy-MM-dd")}T23:59:59Z`).toISOString();
+
+      const [pvData, prevData, geoRes] = await Promise.all([
         fetchAllPageviews<any>(supabase, {
           clinicId,
           from: currentBufferedRange.from,
@@ -145,14 +148,23 @@ export function WebsiteReportsTab({ clinicId }: Props) {
           to: previousBufferedRange.to,
           columns: "session_id, path, referrer, created_at",
         }),
+        (supabase as any).rpc("get_website_analytics", {
+          _clinic_id: clinicId,
+          _from: fromIso,
+          _to: toIso,
+          _timezone: timeZone,
+        }),
       ]);
       setPageviews(pvData);
       setPrevPageviews(prevData);
+      const g = geoRes?.data as any;
+      setGeoRows((g?.geo || []) as GeoRow[]);
+      setGeoTotal(Number(g?.geo_total || 0));
       setLoading(false);
     };
 
     fetchAll();
-  }, [clinicId, prevRange, range, timezoneReady]);
+  }, [clinicId, prevRange, range, timezoneReady, timeZone]);
 
   const metrics = useMemo<WebsiteMetrics | null>(() => (pageviews.length > 0 ? computeWebsiteMetrics(pageviews, rangeDateKeys, timeZone) : null), [pageviews, rangeDateKeys, timeZone]);
   const prevMetrics = useMemo<WebsiteMetrics | null>(() => (prevPageviews.length > 0 ? computeWebsiteMetrics(prevPageviews, prevRangeDateKeys, timeZone) : null), [prevPageviews, prevRangeDateKeys, timeZone]);
