@@ -681,7 +681,7 @@ export function SeoReportsTab({ clinicId }: Props) {
     } finally {
       setGenerating(false);
     }
-  }, [activeMonth, current, prevMonth, rows, clinicName, ga4]);
+  }, [activeMonth, current, prevMonth, rows, clinicName, ga4, gsc]);
 
   if (!clinicId) {
     return <p className="text-muted-foreground text-sm text-center py-12">Select a clinic to generate reports.</p>;
