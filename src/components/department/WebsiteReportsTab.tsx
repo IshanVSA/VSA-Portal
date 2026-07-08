@@ -256,6 +256,38 @@ export function WebsiteReportsTab({ clinicId }: Props) {
         ...getTableStyles(PDF_COLORS.website),
         columnStyles: { 0: { cellWidth: 100 } },
       });
+      y = (doc as any).lastAutoTable?.finalY || y + 50;
+
+      // ── Traffic by Hour ──
+      if (metrics.hourly && metrics.hourly.length > 0) {
+        y = ensureSpace(doc, y + 8, 70);
+        y = renderSectionHeader(doc, `Traffic by Hour (${timeZone})`, y, PDF_COLORS.website);
+        const rowsHourly = metrics.hourly.filter(h => h.views > 0);
+        autoTable(doc, {
+          startY: y,
+          head: [["Hour", "Page Views"]],
+          body: (rowsHourly.length > 0 ? rowsHourly : metrics.hourly).map(h => [h.label, h.views.toString()]),
+          ...getTableStyles(PDF_COLORS.website),
+        });
+        y = (doc as any).lastAutoTable?.finalY || y + 50;
+      }
+
+      // ── Visitor Geography ──
+      if (geoRows.length > 0 && geoTotal > 0) {
+        y = ensureSpace(doc, y + 8, 70);
+        y = renderSectionHeader(doc, "Visitor Geography", y, PDF_COLORS.website, `${geoTotal.toLocaleString()} visitors located`);
+        autoTable(doc, {
+          startY: y,
+          head: [["Country", "Top Regions", "Visitors", "Share"]],
+          body: geoRows.slice(0, 15).map(g => {
+            const pct = geoTotal > 0 ? `${Math.round((g.visitors / geoTotal) * 1000) / 10}%` : "0%";
+            const regions = (g.top_regions || []).map(r => r.name).slice(0, 3).join(", ") || "—";
+            return [g.country, regions, g.visitors.toLocaleString(), pct];
+          }),
+          ...getTableStyles(PDF_COLORS.website),
+          columnStyles: { 0: { cellWidth: 40 }, 1: { cellWidth: 80 } },
+        });
+      }
 
       await finalizePDF(doc);
       doc.save(`${clinicName.replace(/\s+/g, "_")}_Website_Report_${format(range.from, "yyyy-MM-dd")}.pdf`);
