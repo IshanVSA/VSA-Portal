@@ -142,10 +142,6 @@ export function SeoTrafficTab({ clinicId }: Props) {
   const totals = data.totals;
   const hasData = totals.sessions > 0;
 
-  const kpis = [
-    { label: "Sessions", value: formatNumber(totals.sessions), icon: BarChart3, color: "text-blue-500" },
-  ];
-
   // Top-level KPI strip (selected range only — no comparison)
   const cur = ga4Cmp?.current;
   const gscTotals = gsc?.totals;
