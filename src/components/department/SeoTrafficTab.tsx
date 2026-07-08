@@ -142,10 +142,6 @@ export function SeoTrafficTab({ clinicId }: Props) {
   const totals = data.totals;
   const hasData = totals.sessions > 0;
 
-  const kpis = [
-    { label: "Sessions", value: formatNumber(totals.sessions), icon: BarChart3, color: "text-blue-500" },
-  ];
-
   // Top-level KPI strip (selected range only — no comparison)
   const cur = ga4Cmp?.current;
   const gscTotals = gsc?.totals;
@@ -242,21 +238,6 @@ export function SeoTrafficTab({ clinicId }: Props) {
         </Card>
       ) : (
         <>
-          {/* KPI Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5">
-            {kpis.map((k) => (
-              <Card key={k.label} className="border-border/60">
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">{k.label}</span>
-                    <k.icon className={`h-3.5 w-3.5 ${k.color}`} />
-                  </div>
-                  <div className="text-xl font-bold text-foreground tabular-nums">{k.value}</div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
           {/* Trend chart */}
           <Card className="border-border/60">
             <div className="px-4 py-3 border-b border-border/40 flex items-center gap-2">
