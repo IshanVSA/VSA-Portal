@@ -33,7 +33,7 @@ import { GA4PropertySelectionDialog, type GA4Property } from "@/components/clini
 import { GSCConnectionCard } from "@/components/clinic-detail/GSCConnectionCard";
 import { GSCPropertySelectionDialog, type GSCSite } from "@/components/clinic-detail/GSCPropertySelectionDialog";
 import { TrackingSetupCard } from "@/components/clinic-detail/TrackingSetupCard";
-import { CtaTrackingSetupCard } from "@/components/clinic-detail/CtaTrackingSetupCard";
+
 import { SearchAtlasSetupCard } from "@/components/clinic-detail/SearchAtlasSetupCard";
 import { ClinicLogoUploader } from "@/components/clinic-detail/ClinicLogoUploader";
 import { COMMON_TIMEZONES, DEFAULT_CLINIC_TIMEZONE, getSafeTimeZone } from "@/lib/website-analytics";
