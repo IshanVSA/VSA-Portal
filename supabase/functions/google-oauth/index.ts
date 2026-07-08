@@ -220,6 +220,68 @@ Deno.serve(async (req) => {
         });
       }
 
+      if (provider === "gsc") {
+        const sitesRes = await fetch("https://www.googleapis.com/webmasters/v3/sites", {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        const sitesText = await sitesRes.text();
+        if (!sitesRes.ok) {
+          console.error("GSC sites.list failed:", sitesRes.status, sitesText.substring(0, 500));
+          return new Response(null, {
+            status: 302,
+            headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=list_sites` },
+          });
+        }
+
+        let sitesData: any;
+        try {
+          sitesData = JSON.parse(sitesText);
+        } catch {
+          return new Response(null, {
+            status: 302,
+            headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=list_sites` },
+          });
+        }
+
+        const sites: Array<{ site_url: string; permission_level: string }> = [];
+        for (const site of sitesData.siteEntry || []) {
+          if (["siteOwner", "siteFullUser", "siteRestrictedUser"].includes(site.permissionLevel)) {
+            sites.push({ site_url: site.siteUrl, permission_level: site.permissionLevel });
+          }
+        }
+
+        if (sites.length === 0) {
+          return new Response(null, {
+            status: 302,
+            headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=no_sites` },
+          });
+        }
+
+        const supabaseStore = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        const { data: tempToken, error: storeError } = await supabaseStore
+          .from("oauth_temp_tokens")
+          .insert({
+            clinic_id,
+            provider: "gsc",
+            payload: { sites, refresh_token: refreshToken },
+          })
+          .select("id")
+          .single();
+
+        if (storeError || !tempToken) {
+          console.error("Failed to store GSC OAuth temp token:", storeError);
+          return new Response(null, {
+            status: 302,
+            headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=token_store` },
+          });
+        }
+
+        return new Response(null, {
+          status: 302,
+          headers: { Location: `${redirectBase}/clinics/${clinic_id}?gsc_token_ref=${tempToken.id}` },
+        });
+      }
+
       // List accessible customer accounts
       const customersRes = await fetch(
         "https://googleads.googleapis.com/v23/customers:listAccessibleCustomers",

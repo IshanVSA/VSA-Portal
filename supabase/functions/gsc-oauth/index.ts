@@ -11,7 +11,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID")!;
 const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET")!;
 
-const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/gsc-oauth/callback`;
+const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/google-oauth?action=callback`;
 const FRONTEND_URL = Deno.env.get("SITE_URL") || "https://portal.vsavetmedia.com";
 
 Deno.serve(async (req) => {
