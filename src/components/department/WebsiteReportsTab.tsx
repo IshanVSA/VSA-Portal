@@ -77,10 +77,18 @@ function pctChange(cur: number, prev: number, invertBetter = false): { pct: numb
   return { pct, text: `${sign}${pct}%`, type };
 }
 
+interface GeoRow {
+  country: string;
+  visitors: number;
+  top_regions: { name: string; count: number }[];
+}
+
 export function WebsiteReportsTab({ clinicId }: Props) {
   const [period, setPeriod] = useState<ReportPeriod>("last30");
   const [pageviews, setPageviews] = useState<any[]>([]);
   const [prevPageviews, setPrevPageviews] = useState<any[]>([]);
+  const [geoRows, setGeoRows] = useState<GeoRow[]>([]);
+  const [geoTotal, setGeoTotal] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [clinicName, setClinicName] = useState("");
   const [timeZone, setTimeZone] = useState(DEFAULT_CLINIC_TIMEZONE);
