@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileText, Download, Globe, Link2, Hash, TrendingUp, BarChart3 } from "lucide-react";
 import { useSeoAnalytics, type SeoKeyword, type SeoExtendedData } from "@/hooks/useSeoAnalytics";
 import { useGa4Traffic } from "@/hooks/useGa4Traffic";
-import { useGa4Cta, CTA_LABELS, CTA_ORDER } from "@/hooks/useGa4Cta";
+
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import {
@@ -53,7 +53,7 @@ export function SeoReportsTab({ clinicId }: Props) {
     return { from, to };
   }, [activeMonth]);
   const { data: ga4 } = useGa4Traffic(clinicId, monthRange || { from: new Date(), to: new Date() });
-  const { data: ctaData } = useGa4Cta(clinicId, monthRange || { from: new Date(), to: new Date() });
+  
 
 
   const [clinicName, setClinicName] = useState("");
@@ -531,22 +531,8 @@ export function SeoReportsTab({ clinicId }: Props) {
           y += 4;
       }
 
-      // ── CTA Performance ──
-      if (ctaData && ctaData.grandTotal > 0) {
-        const fmtNum = (n: number) => new Intl.NumberFormat("en-US").format(Math.round(n));
-        y = ensureSpace(doc, y, 60);
-        y = renderSectionHeader(doc, "Call-to-Action Performance", y, PDF_COLORS.seo, `Source: Google Analytics 4 (${activeMonth})`);
 
-        autoTable(doc, {
-          startY: y,
-          head: [["Call-to-Action", "Clicks"]],
-          body: CTA_ORDER.map((k) => [CTA_LABELS[k], fmtNum(ctaData.totals[k])])
-            .concat([["Total", fmtNum(ctaData.grandTotal)]]),
-          ...getTableStyles(PDF_COLORS.seo),
-        });
-        y = (doc as any).lastAutoTable?.finalY || y + 50;
-        y += 4;
-      }
+
 
       }
 
@@ -570,7 +556,7 @@ export function SeoReportsTab({ clinicId }: Props) {
     } finally {
       setGenerating(false);
     }
-  }, [activeMonth, current, prevMonth, rows, clinicName, ga4, ctaData]);
+  }, [activeMonth, current, prevMonth, rows, clinicName, ga4]);
 
   if (!clinicId) {
     return <p className="text-muted-foreground text-sm text-center py-12">Select a clinic to generate reports.</p>;
