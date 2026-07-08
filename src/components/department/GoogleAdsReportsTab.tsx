@@ -210,6 +210,34 @@ export function GoogleAdsReportsTab({ clinicId }: Props) {
         });
       }
 
+      // ── Top Search Terms ──
+      if (computed.searchTerms.length > 0) {
+        y = ensureSpace(doc, y + 8, 60);
+        y = renderSectionHeader(doc, "Top Search Terms", y, PDF_COLORS.googleAds, `Top ${computed.searchTerms.length} search terms by spend`);
+
+        autoTable(doc, {
+          startY: y,
+          head: [["#", "Search Term", "Matched Keyword", "Clicks", "Impr.", "Cost", "CTR", "CPC"]],
+          body: computed.searchTerms.map((s, i) => {
+            const ctr = s.impressions > 0 ? `${Math.round((s.clicks / s.impressions) * 10000) / 100}%` : "0%";
+            const cpc = s.clicks > 0 ? fmtCurrency(Math.round((s.cost / s.clicks) * 100) / 100) : "$0.00";
+            return [
+              (i + 1).toString(),
+              s.term,
+              s.keyword || "—",
+              s.clicks.toLocaleString(),
+              s.impressions.toLocaleString(),
+              fmtCurrency(s.cost),
+              ctr,
+              cpc,
+            ];
+          }),
+          ...getTableStyles(PDF_COLORS.googleAds),
+          columnStyles: { 0: { cellWidth: 10 }, 1: { cellWidth: 55 }, 2: { cellWidth: 40 } },
+        });
+      }
+
+
       await finalizePDF(doc);
       doc.save(`${clinicName.replace(/\s+/g, "_")}_Google_Ads_Report_${format(new Date(), "yyyy-MM-dd")}.pdf`);
     } finally {
