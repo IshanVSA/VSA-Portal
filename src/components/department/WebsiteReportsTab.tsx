@@ -294,7 +294,7 @@ export function WebsiteReportsTab({ clinicId }: Props) {
     } finally {
       setGenerating(false);
     }
-  }, [metrics, prevMetrics, changes, clinicName, range, prevRange]);
+  }, [metrics, prevMetrics, changes, clinicName, range, prevRange, geoRows, geoTotal, timeZone]);
 
   if (!clinicId) {
     return <p className="text-muted-foreground text-sm text-center py-12">Select a clinic to generate reports.</p>;
