@@ -54,8 +54,6 @@ export function SeoReportsTab({ clinicId }: Props) {
     return { from, to };
   }, [activeMonth]);
   const { data: ga4 } = useGa4Traffic(clinicId, monthRange || { from: new Date(), to: new Date() });
-  
-
 
   const [clinicName, setClinicName] = useState("");
   useMemo(() => {
@@ -66,6 +64,8 @@ export function SeoReportsTab({ clinicId }: Props) {
       });
     });
   }, [clinicId]);
+
+  const { data: gsc } = useSearchConsole(clinicId, monthRange || { from: new Date(), to: new Date() }, clinicName);
 
   function pctChange(cur: number, prev: number | undefined, invertBetter = false) {
     if (prev === undefined || prev === null) return { text: "—", color: "text-muted-foreground" };
