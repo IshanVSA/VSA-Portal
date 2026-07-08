@@ -56,8 +56,6 @@ export function SeoTrafficTab({ clinicId }: Props) {
   const [dateRange, setDateRange] = useState<DateRange>({ from: subDays(today, 29), to: today });
   const [compareMode, setCompareMode] = useState<CompareMode>("yoy");
   const { data, isLoading } = useGa4Traffic(clinicId, dateRange);
-  const { data: ctaData } = useGa4Cta(clinicId, dateRange);
-  const { data: organic } = useCtaTracking(clinicId, dateRange);
   const { data: ga4Cmp } = useGa4Compare(clinicId, dateRange, compareMode);
   const [clinicName, setClinicName] = useState<string>("");
   const { data: gsc } = useSearchConsole(clinicId, dateRange, clinicName);
