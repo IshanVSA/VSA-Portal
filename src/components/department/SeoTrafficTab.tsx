@@ -92,7 +92,7 @@ export function SeoTrafficTab({ clinicId }: Props) {
       if (res.error) throw new Error(await extractEdgeFunctionError(res.error, res.data, "GA4 sync failed"));
       toast.success("Google Analytics synced");
       queryClient.invalidateQueries({ queryKey: ["ga4-traffic"] });
-      queryClient.invalidateQueries({ queryKey: ["ga4-cta"] });
+      
     } catch (e: any) {
       toast.error(e.message || "Sync failed");
     } finally {
