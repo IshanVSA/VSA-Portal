@@ -226,7 +226,7 @@ Deno.serve(async (req) => {
             site_display_name: String(m.site_url).replace(/^sc-domain:/, "").replace(/^https?:\/\//, "").replace(/\/$/, ""),
             permission_level: m.permission_level ? String(m.permission_level).slice(0, 60) : null,
             refresh_token_enc: enc,
-            connected_by: user.id,
+            connected_by: userId,
           }, { onConflict: "clinic_id" });
           if (error) { writeErrors.push({ clinic_id: m.clinic_id, error: error.message }); continue; }
           written.push(m.clinic_id);
