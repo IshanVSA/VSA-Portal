@@ -25,12 +25,31 @@ interface DailyTrend {
   cost: number;
 }
 
+interface SearchTermDaily {
+  date: string;
+  clicks: number;
+  impressions: number;
+  cost: number;
+  conversions: number;
+}
+
+interface SearchTerm {
+  term: string;
+  keyword: string;
+  clicks: number;
+  impressions: number;
+  cost: number;
+  conversions: number;
+  daily?: SearchTermDaily[];
+}
+
 interface MetricsJson {
   clicks: number;
   impressions: number;
   cost: number;
   daily_trends: DailyTrend[];
   campaigns: Campaign[];
+  search_terms?: SearchTerm[];
 }
 
 interface Props {
@@ -45,14 +64,19 @@ interface ComputedMetrics {
   cpc: number;
   campaigns: Campaign[];
   dailyTrends: DailyTrend[];
+  searchTerms: SearchTerm[];
 }
 
 function computeMetrics(m: MetricsJson): ComputedMetrics {
-  const { clicks, impressions, cost, daily_trends, campaigns } = m;
+  const { clicks, impressions, cost, daily_trends, campaigns, search_terms } = m;
   const ctr = impressions > 0 ? Math.round((clicks / impressions) * 10000) / 100 : 0;
   const cpc = clicks > 0 ? Math.round((cost / clicks) * 100) / 100 : 0;
   const sortedCampaigns = [...campaigns].sort((a, b) => b.cost - a.cost);
-  return { clicks, impressions, cost, ctr, cpc, campaigns: sortedCampaigns, dailyTrends: daily_trends || [] };
+  const searchTerms = (search_terms || [])
+    .filter(s => s.impressions > 0 || s.clicks > 0)
+    .sort((a, b) => b.cost - a.cost || b.clicks - a.clicks)
+    .slice(0, 25);
+  return { clicks, impressions, cost, ctr, cpc, campaigns: sortedCampaigns, dailyTrends: daily_trends || [], searchTerms };
 }
 
 function fmtCurrency(v: number): string {
