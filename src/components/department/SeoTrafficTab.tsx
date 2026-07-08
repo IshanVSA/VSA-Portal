@@ -6,7 +6,7 @@ import { Loader2, BarChart3, TrendingUp, Clock, Sparkles, Activity, Link as Link
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { DateRangeFilter, type DateRange } from "@/components/department/DateRangeFilter";
 import { useGa4Traffic } from "@/hooks/useGa4Traffic";
-import { useGa4Compare, positiveDelta, type CompareMode } from "@/hooks/useGa4Compare";
+import { useGa4Compare } from "@/hooks/useGa4Compare";
 import { useSearchConsole } from "@/hooks/useSearchConsole";
 import { SeoKpiTile } from "@/components/department/seo/SeoKpiTile";
 import { SearchConsolePanels } from "@/components/department/seo/SearchConsolePanels";
@@ -160,55 +160,50 @@ export function SeoTrafficTab({ clinicId }: Props) {
     { label: "Events / Session", value: totals.eventsPerSession.toFixed(2), icon: Sparkles, color: "text-pink-500" },
   ];
 
-  // Top-level KPI strip (positive metrics only, YoY-aware)
+  // Top-level KPI strip (selected range only — no comparison)
   const cur = ga4Cmp?.current;
-  const prev = ga4Cmp?.previous;
   const gscTotals = gsc?.totals;
-  const gscPrev = gsc?.prevTotals;
 
   const topKpis = [
     {
       key: "sessions", label: "Organic Sessions", icon: BarChart3, color: "text-blue-500",
       value: formatNumber(cur?.sessions ?? 0),
-      delta: cur && prev ? positiveDelta(cur.sessions, prev.sessions) : null,
+      delta: null,
     },
     {
       key: "users", label: "Engaged Users", icon: Users, color: "text-emerald-500",
       value: formatNumber(cur?.users ?? 0),
-      delta: cur && prev ? positiveDelta(cur.users, prev.users) : null,
+      delta: null,
     },
     {
       key: "impressions", label: "Impressions", icon: Eye, color: "text-indigo-500",
       value: formatNumber(gscTotals?.impressions ?? 0),
-      delta: gscTotals && gscPrev ? positiveDelta(gscTotals.impressions, gscPrev.impressions) : null,
+      delta: null,
     },
     {
       key: "clicks", label: "Search Clicks", icon: MousePointerClick, color: "text-cyan-500",
       value: formatNumber(gscTotals?.clicks ?? 0),
-      delta: gscTotals && gscPrev ? positiveDelta(gscTotals.clicks, gscPrev.clicks) : null,
+      delta: null,
     },
     {
       key: "ctr", label: "CTR", icon: Percent, color: "text-violet-500",
       value: `${((gscTotals?.ctr ?? 0) * 100).toFixed(1)}%`,
-      delta: gscTotals && gscPrev ? positiveDelta(gscTotals.ctr, gscPrev.ctr) : null,
+      delta: null,
     },
     {
       key: "position", label: "Avg. Position", icon: Award, color: "text-amber-500",
       value: gscTotals && gscTotals.avgPosition > 0 ? gscTotals.avgPosition.toFixed(1) : "—",
-      // Position improves when it decreases (lower rank number is better) — flip sign
-      delta: gscTotals && gscPrev && gscPrev.avgPosition > 0
-        ? positiveDelta(gscPrev.avgPosition, gscTotals.avgPosition)
-        : null,
+      delta: null,
     },
     {
       key: "engagement", label: "Engagement Rate", icon: TrendingUp, color: "text-pink-500",
       value: `${((cur?.engagementRate ?? 0) * 100).toFixed(1)}%`,
-      delta: cur && prev ? positiveDelta(cur.engagementRate, prev.engagementRate) : null,
+      delta: null,
     },
     {
       key: "avgTime", label: "Avg. Engagement Time", icon: Clock, color: "text-orange-500",
       value: formatSeconds(cur?.avgEngagementTimeSeconds ?? 0),
-      delta: cur && prev ? positiveDelta(cur.avgEngagementTimeSeconds, prev.avgEngagementTimeSeconds) : null,
+      delta: null,
     },
   ];
 
@@ -225,26 +220,6 @@ export function SeoTrafficTab({ clinicId }: Props) {
             { label: "365D", days: 365 },
           ]}
         />
-        <div className="inline-flex items-center rounded-full border border-border/60 bg-background/60 p-0.5 text-xs">
-          <button
-            onClick={() => setCompareMode("yoy")}
-            className={cn(
-              "px-2.5 py-1 rounded-full font-medium transition",
-              compareMode === "yoy" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            Year over year
-          </button>
-          <button
-            onClick={() => setCompareMode("prev")}
-            className={cn(
-              "px-2.5 py-1 rounded-full font-medium transition",
-              compareMode === "prev" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            Previous period
-          </button>
-        </div>
         <span className="ml-auto text-[11px] text-muted-foreground whitespace-nowrap">
           {lastSyncAt
             ? `Last synced: ${format(new Date(lastSyncAt), "MMM d, yyyy 'at' h:mm a")}`
