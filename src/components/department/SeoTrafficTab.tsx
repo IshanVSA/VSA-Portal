@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 import { subDays } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, BarChart3, TrendingUp, Clock, Sparkles, Activity, Link as LinkIcon, RefreshCw, Users, MousePointerClick, Search as SearchIcon, Target, Award, Percent, Eye } from "lucide-react";
+import { Loader2, BarChart3, TrendingUp, Link as LinkIcon, RefreshCw, Users, MousePointerClick, Award, Percent, Eye } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { DateRangeFilter, type DateRange } from "@/components/department/DateRangeFilter";
 import { useGa4Traffic } from "@/hooks/useGa4Traffic";
@@ -12,14 +12,13 @@ import { SeoKpiTile } from "@/components/department/seo/SeoKpiTile";
 import { SearchConsolePanels } from "@/components/department/seo/SearchConsolePanels";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Link } from "react-router-dom";
-import { format, formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { useQueryClient } from "@tanstack/react-query";
-import { cn } from "@/lib/utils";
 
 
 
@@ -37,14 +36,6 @@ const CHANNEL_COLORS = [
   "hsl(330, 70%, 55%)",  // pink
   "hsl(220, 15%, 50%)",  // gray
 ];
-
-function formatSeconds(s: number): string {
-  if (!s || !isFinite(s)) return "0s";
-  const m = Math.floor(s / 60);
-  const sec = Math.round(s % 60);
-  if (m === 0) return `${sec}s`;
-  return `${m}m ${sec}s`;
-}
 
 function formatNumber(n: number): string {
   return new Intl.NumberFormat("en-US").format(Math.round(n));
@@ -91,7 +82,7 @@ export function SeoTrafficTab({ clinicId }: Props) {
       if (res.error) throw new Error(await extractEdgeFunctionError(res.error, res.data, "GA4 sync failed"));
       toast.success("Google Analytics synced");
       queryClient.invalidateQueries({ queryKey: ["ga4-traffic"] });
-      
+
     } catch (e: any) {
       toast.error(e.message || "Sync failed");
     } finally {
@@ -133,7 +124,7 @@ export function SeoTrafficTab({ clinicId }: Props) {
           </div>
           <h3 className="text-base font-semibold text-foreground">Google Analytics not connected</h3>
           <p className="text-sm text-muted-foreground max-w-md">
-            Connect this clinic's Google Analytics 4 property to see Traffic Acquisition (Sessions, Engagement, and channel breakdown).
+            Connect this clinic's Google Analytics 4 property to see Traffic Acquisition (Sessions and channel breakdown).
           </p>
           {role === "admin" && (
             <Link
@@ -153,10 +144,6 @@ export function SeoTrafficTab({ clinicId }: Props) {
 
   const kpis = [
     { label: "Sessions", value: formatNumber(totals.sessions), icon: BarChart3, color: "text-blue-500" },
-    { label: "Engaged Sessions", value: formatNumber(totals.engagedSessions), icon: Activity, color: "text-emerald-500" },
-    { label: "Engagement Rate", value: `${(totals.engagementRate * 100).toFixed(1)}%`, icon: TrendingUp, color: "text-violet-500" },
-    { label: "Avg. Engagement Time", value: formatSeconds(totals.avgEngagementTimeSeconds), icon: Clock, color: "text-amber-500" },
-    { label: "Events / Session", value: totals.eventsPerSession.toFixed(2), icon: Sparkles, color: "text-pink-500" },
   ];
 
   // Top-level KPI strip (selected range only — no comparison)
@@ -194,16 +181,6 @@ export function SeoTrafficTab({ clinicId }: Props) {
       value: gscTotals && gscTotals.avgPosition > 0 ? gscTotals.avgPosition.toFixed(1) : "—",
       delta: null,
     },
-    {
-      key: "engagement", label: "Engagement Rate", icon: TrendingUp, color: "text-pink-500",
-      value: `${((cur?.engagementRate ?? 0) * 100).toFixed(1)}%`,
-      delta: null,
-    },
-    {
-      key: "avgTime", label: "Avg. Engagement Time", icon: Clock, color: "text-orange-500",
-      value: formatSeconds(cur?.avgEngagementTimeSeconds ?? 0),
-      delta: null,
-    },
   ];
 
   return (
@@ -239,8 +216,8 @@ export function SeoTrafficTab({ clinicId }: Props) {
         </Button>
       </div>
 
-      {/* Top-level positive KPI strip — sourced from GA4 + Search Console */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2.5">
+      {/* Top-level KPI strip — sourced from GA4 + Search Console */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5">
         {topKpis.map((k) => (
           <SeoKpiTile
             key={k.key}
@@ -253,7 +230,7 @@ export function SeoTrafficTab({ clinicId }: Props) {
         ))}
       </div>
 
-      {/* Google Search Console panels (positive metrics only) */}
+      {/* Google Search Console panels */}
       <SearchConsolePanels clinicId={clinicId} clinicName={clinicName} dateRange={dateRange} />
 
 
@@ -336,10 +313,6 @@ export function SeoTrafficTab({ clinicId }: Props) {
                     <TableHead className="w-10">#</TableHead>
                     <TableHead>Channel</TableHead>
                     <TableHead className="text-right">Sessions</TableHead>
-                    <TableHead className="text-right">Engaged sessions</TableHead>
-                    <TableHead className="text-right">Engagement rate</TableHead>
-                    <TableHead className="text-right">Avg. engagement time</TableHead>
-                    <TableHead className="text-right">Events / session</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -347,10 +320,6 @@ export function SeoTrafficTab({ clinicId }: Props) {
                     <TableCell></TableCell>
                     <TableCell className="font-semibold">Total</TableCell>
                     <TableCell className="text-right tabular-nums">{formatNumber(totals.sessions)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatNumber(totals.engagedSessions)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{(totals.engagementRate * 100).toFixed(1)}%</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatSeconds(totals.avgEngagementTimeSeconds)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{totals.eventsPerSession.toFixed(2)}</TableCell>
                   </TableRow>
                   {data.channels.map((c, i) => (
                     <TableRow key={c.channel}>
@@ -367,10 +336,6 @@ export function SeoTrafficTab({ clinicId }: Props) {
                           ({totals.sessions > 0 ? ((c.sessions / totals.sessions) * 100).toFixed(1) : 0}%)
                         </span>
                       </TableCell>
-                      <TableCell className="text-right tabular-nums">{formatNumber(c.engagedSessions)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{(c.engagementRate * 100).toFixed(1)}%</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatSeconds(c.avgEngagementTimeSeconds)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{c.eventsPerSession.toFixed(2)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
