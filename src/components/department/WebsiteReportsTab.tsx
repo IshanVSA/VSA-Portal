@@ -77,10 +77,18 @@ function pctChange(cur: number, prev: number, invertBetter = false): { pct: numb
   return { pct, text: `${sign}${pct}%`, type };
 }
 
+interface GeoRow {
+  country: string;
+  visitors: number;
+  top_regions: { name: string; count: number }[];
+}
+
 export function WebsiteReportsTab({ clinicId }: Props) {
   const [period, setPeriod] = useState<ReportPeriod>("last30");
   const [pageviews, setPageviews] = useState<any[]>([]);
   const [prevPageviews, setPrevPageviews] = useState<any[]>([]);
+  const [geoRows, setGeoRows] = useState<GeoRow[]>([]);
+  const [geoTotal, setGeoTotal] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [clinicName, setClinicName] = useState("");
   const [timeZone, setTimeZone] = useState(DEFAULT_CLINIC_TIMEZONE);
@@ -124,7 +132,10 @@ export function WebsiteReportsTab({ clinicId }: Props) {
       setLoading(true);
       const currentBufferedRange = getBufferedRange(range.from, range.to);
       const previousBufferedRange = getBufferedRange(prevRange.from, prevRange.to);
-      const [pvData, prevData] = await Promise.all([
+      const fromIso = new Date(`${format(range.from, "yyyy-MM-dd")}T00:00:00Z`).toISOString();
+      const toIso = new Date(`${format(range.to, "yyyy-MM-dd")}T23:59:59Z`).toISOString();
+
+      const [pvData, prevData, geoRes] = await Promise.all([
         fetchAllPageviews<any>(supabase, {
           clinicId,
           from: currentBufferedRange.from,
@@ -137,14 +148,23 @@ export function WebsiteReportsTab({ clinicId }: Props) {
           to: previousBufferedRange.to,
           columns: "session_id, path, referrer, created_at",
         }),
+        (supabase as any).rpc("get_website_analytics", {
+          _clinic_id: clinicId,
+          _from: fromIso,
+          _to: toIso,
+          _timezone: timeZone,
+        }),
       ]);
       setPageviews(pvData);
       setPrevPageviews(prevData);
+      const g = geoRes?.data as any;
+      setGeoRows((g?.geo || []) as GeoRow[]);
+      setGeoTotal(Number(g?.geo_total || 0));
       setLoading(false);
     };
 
     fetchAll();
-  }, [clinicId, prevRange, range, timezoneReady]);
+  }, [clinicId, prevRange, range, timezoneReady, timeZone]);
 
   const metrics = useMemo<WebsiteMetrics | null>(() => (pageviews.length > 0 ? computeWebsiteMetrics(pageviews, rangeDateKeys, timeZone) : null), [pageviews, rangeDateKeys, timeZone]);
   const prevMetrics = useMemo<WebsiteMetrics | null>(() => (prevPageviews.length > 0 ? computeWebsiteMetrics(prevPageviews, prevRangeDateKeys, timeZone) : null), [prevPageviews, prevRangeDateKeys, timeZone]);
@@ -236,13 +256,45 @@ export function WebsiteReportsTab({ clinicId }: Props) {
         ...getTableStyles(PDF_COLORS.website),
         columnStyles: { 0: { cellWidth: 100 } },
       });
+      y = (doc as any).lastAutoTable?.finalY || y + 50;
+
+      // ── Traffic by Hour ──
+      if (metrics.hourly && metrics.hourly.length > 0) {
+        y = ensureSpace(doc, y + 8, 70);
+        y = renderSectionHeader(doc, `Traffic by Hour (${timeZone})`, y, PDF_COLORS.website);
+        const rowsHourly = metrics.hourly.filter(h => h.views > 0);
+        autoTable(doc, {
+          startY: y,
+          head: [["Hour", "Page Views"]],
+          body: (rowsHourly.length > 0 ? rowsHourly : metrics.hourly).map(h => [h.label, h.views.toString()]),
+          ...getTableStyles(PDF_COLORS.website),
+        });
+        y = (doc as any).lastAutoTable?.finalY || y + 50;
+      }
+
+      // ── Visitor Geography ──
+      if (geoRows.length > 0 && geoTotal > 0) {
+        y = ensureSpace(doc, y + 8, 70);
+        y = renderSectionHeader(doc, "Visitor Geography", y, PDF_COLORS.website, `${geoTotal.toLocaleString()} visitors located`);
+        autoTable(doc, {
+          startY: y,
+          head: [["Country", "Top Regions", "Visitors", "Share"]],
+          body: geoRows.slice(0, 15).map(g => {
+            const pct = geoTotal > 0 ? `${Math.round((g.visitors / geoTotal) * 1000) / 10}%` : "0%";
+            const regions = (g.top_regions || []).map(r => r.name).slice(0, 3).join(", ") || "—";
+            return [g.country, regions, g.visitors.toLocaleString(), pct];
+          }),
+          ...getTableStyles(PDF_COLORS.website),
+          columnStyles: { 0: { cellWidth: 40 }, 1: { cellWidth: 80 } },
+        });
+      }
 
       await finalizePDF(doc);
       doc.save(`${clinicName.replace(/\s+/g, "_")}_Website_Report_${format(range.from, "yyyy-MM-dd")}.pdf`);
     } finally {
       setGenerating(false);
     }
-  }, [metrics, prevMetrics, changes, clinicName, range, prevRange]);
+  }, [metrics, prevMetrics, changes, clinicName, range, prevRange, geoRows, geoTotal, timeZone]);
 
   if (!clinicId) {
     return <p className="text-muted-foreground text-sm text-center py-12">Select a clinic to generate reports.</p>;

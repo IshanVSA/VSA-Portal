@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileText, Download, Globe, Link2, Hash, TrendingUp, BarChart3 } from "lucide-react";
 import { useSeoAnalytics, type SeoKeyword, type SeoExtendedData } from "@/hooks/useSeoAnalytics";
 import { useGa4Traffic } from "@/hooks/useGa4Traffic";
+import { useSearchConsole } from "@/hooks/useSearchConsole";
 
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -53,8 +54,6 @@ export function SeoReportsTab({ clinicId }: Props) {
     return { from, to };
   }, [activeMonth]);
   const { data: ga4 } = useGa4Traffic(clinicId, monthRange || { from: new Date(), to: new Date() });
-  
-
 
   const [clinicName, setClinicName] = useState("");
   useMemo(() => {
@@ -65,6 +64,8 @@ export function SeoReportsTab({ clinicId }: Props) {
       });
     });
   }, [clinicId]);
+
+  const { data: gsc } = useSearchConsole(clinicId, monthRange || { from: new Date(), to: new Date() }, clinicName);
 
   function pctChange(cur: number, prev: number | undefined, invertBetter = false) {
     if (prev === undefined || prev === null) return { text: "—", color: "text-muted-foreground" };
@@ -536,6 +537,130 @@ export function SeoReportsTab({ clinicId }: Props) {
 
       }
 
+      // ── Search Console (GSC) sections ──
+      if (gsc && gsc.isConnected && gsc.totals.impressions > 0) {
+        const fmtN = (n: number) => new Intl.NumberFormat("en-US").format(Math.round(n));
+        const fmtPct = (n: number) => `${(n * 100).toFixed(1)}%`;
+        const fmtPos = (n: number) => (n > 0 ? n.toFixed(1) : "—");
+
+        // Search Console totals
+        y = ensureSpace(doc, y, 60);
+        y = renderSectionHeader(doc, "Search Console Performance", y, PDF_COLORS.seo, `Source: Google Search Console (${activeMonth})`);
+        autoTable(doc, {
+          startY: y,
+          head: [["Metric", "Value"]],
+          body: [
+            ["Impressions", fmtN(gsc.totals.impressions)],
+            ["Clicks", fmtN(gsc.totals.clicks)],
+            ["CTR", fmtPct(gsc.totals.ctr)],
+            ["Avg. Position", fmtPos(gsc.totals.avgPosition)],
+          ],
+          ...getTableStyles(PDF_COLORS.seo),
+        });
+        y = (doc as any).lastAutoTable?.finalY || y + 50;
+        y += 4;
+
+        // Top Queries
+        if (gsc.topQueries.length > 0) {
+          y = ensureSpace(doc, y, 60);
+          y = renderSectionHeader(doc, "Top Performing Queries", y, PDF_COLORS.seo, `${Math.min(gsc.topQueries.length, 15)} queries`);
+          autoTable(doc, {
+            startY: y,
+            head: [["#", "Query", "Clicks", "Impr.", "CTR", "Pos."]],
+            body: gsc.topQueries.slice(0, 15).map((q, i) => [
+              (i + 1).toString(), q.query, fmtN(q.clicks), fmtN(q.impressions), fmtPct(q.ctr), fmtPos(q.position),
+            ]),
+            ...getTableStyles(PDF_COLORS.seo),
+            columnStyles: { 0: { cellWidth: 10 }, 1: { cellWidth: 90 } },
+          });
+          y = (doc as any).lastAutoTable?.finalY || y + 50;
+          y += 4;
+        }
+
+        // Top Pages (GSC)
+        if (gsc.topPages.length > 0) {
+          y = ensureSpace(doc, y, 60);
+          y = renderSectionHeader(doc, "Top Performing Pages", y, PDF_COLORS.seo, `${Math.min(gsc.topPages.length, 15)} pages`);
+          autoTable(doc, {
+            startY: y,
+            head: [["#", "Page", "Clicks", "Impr.", "CTR"]],
+            body: gsc.topPages.slice(0, 15).map((p, i) => {
+              const path = p.page.replace(/^https?:\/\/[^/]+/, "") || "/";
+              return [(i + 1).toString(), path, fmtN(p.clicks), fmtN(p.impressions), fmtPct(p.ctr)];
+            }),
+            ...getTableStyles(PDF_COLORS.seo),
+            columnStyles: { 0: { cellWidth: 10 }, 1: { cellWidth: 100 } },
+          });
+          y = (doc as any).lastAutoTable?.finalY || y + 50;
+          y += 4;
+        }
+
+        // Growth Opportunities
+        if (gsc.opportunityQueries.length > 0) {
+          y = ensureSpace(doc, y, 50);
+          y = renderSectionHeader(doc, "Growth Opportunities", y, PDF_COLORS.seo, "Ranking positions 11–20 — quick wins to page 1");
+          autoTable(doc, {
+            startY: y,
+            head: [["Query", "Impressions", "Position"]],
+            body: gsc.opportunityQueries.map(q => [q.query, fmtN(q.impressions), fmtPos(q.position)]),
+            ...getTableStyles(PDF_COLORS.seo),
+          });
+          y = (doc as any).lastAutoTable?.finalY || y + 50;
+          y += 4;
+        }
+
+        // Brand vs Non-Brand
+        const bTotal = gsc.brandVsNonBrand.brand + gsc.brandVsNonBrand.nonBrand;
+        if (bTotal > 0) {
+          y = ensureSpace(doc, y, 40);
+          y = renderSectionHeader(doc, "Brand vs Non-Brand", y, PDF_COLORS.seo);
+          autoTable(doc, {
+            startY: y,
+            head: [["Segment", "Clicks", "Share"]],
+            body: [
+              ["Non-Branded", fmtN(gsc.brandVsNonBrand.nonBrand), `${Math.round((gsc.brandVsNonBrand.nonBrand / bTotal) * 100)}%`],
+              ["Branded", fmtN(gsc.brandVsNonBrand.brand), `${Math.round((gsc.brandVsNonBrand.brand / bTotal) * 100)}%`],
+            ],
+            ...getTableStyles(PDF_COLORS.seo),
+          });
+          y = (doc as any).lastAutoTable?.finalY || y + 50;
+          y += 4;
+        }
+
+        // Device Performance
+        if (gsc.devices.length > 0) {
+          y = ensureSpace(doc, y, 40);
+          y = renderSectionHeader(doc, "Device Performance", y, PDF_COLORS.seo);
+          autoTable(doc, {
+            startY: y,
+            head: [["Device", "Clicks", "Impressions"]],
+            body: gsc.devices.map(d => [
+              d.device.charAt(0).toUpperCase() + d.device.slice(1),
+              fmtN(d.clicks),
+              fmtN(d.impressions),
+            ]),
+            ...getTableStyles(PDF_COLORS.seo),
+          });
+          y = (doc as any).lastAutoTable?.finalY || y + 50;
+          y += 4;
+        }
+
+        // Geographic Performance (GSC)
+        if (gsc.countries.length > 0) {
+          y = ensureSpace(doc, y, 50);
+          y = renderSectionHeader(doc, "Geographic Performance (Search)", y, PDF_COLORS.seo);
+          autoTable(doc, {
+            startY: y,
+            head: [["Country", "Clicks", "Impressions"]],
+            body: gsc.countries.slice(0, 10).map(g => [g.country, fmtN(g.clicks), fmtN(g.impressions)]),
+            ...getTableStyles(PDF_COLORS.seo),
+          });
+          y = (doc as any).lastAutoTable?.finalY || y + 50;
+          y += 4;
+        }
+      }
+
+
       // ── Historical Traffic Trend ──
       if (rows.length > 1) {
         y = ensureSpace(doc, y, 60);
@@ -556,7 +681,7 @@ export function SeoReportsTab({ clinicId }: Props) {
     } finally {
       setGenerating(false);
     }
-  }, [activeMonth, current, prevMonth, rows, clinicName, ga4]);
+  }, [activeMonth, current, prevMonth, rows, clinicName, ga4, gsc]);
 
   if (!clinicId) {
     return <p className="text-muted-foreground text-sm text-center py-12">Select a clinic to generate reports.</p>;
