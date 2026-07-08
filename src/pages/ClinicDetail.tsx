@@ -838,7 +838,7 @@ export default function ClinicDetail() {
 
               
               {(role === "admin" || isDebraj) && <TrackingSetupCard clinicId={id!} />}
-              {(role === "admin" || isDebraj) && <CtaTrackingSetupCard clinicId={id!} />}
+              
               {(role === "admin" || isDebraj) && <SearchAtlasSetupCard clinicId={id!} />}
 
               {/* Website URL Card */}
