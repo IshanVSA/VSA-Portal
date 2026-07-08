@@ -38,13 +38,6 @@ const CHANNEL_COLORS = [
   "hsl(220, 15%, 50%)",  // gray
 ];
 
-function formatSeconds(s: number): string {
-  if (!s || !isFinite(s)) return "0s";
-  const m = Math.floor(s / 60);
-  const sec = Math.round(s % 60);
-  if (m === 0) return `${sec}s`;
-  return `${m}m ${sec}s`;
-}
 
 function formatNumber(n: number): string {
   return new Intl.NumberFormat("en-US").format(Math.round(n));
