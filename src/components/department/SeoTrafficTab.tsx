@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 import { subDays } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, BarChart3, TrendingUp, Clock, Sparkles, Activity, Link as LinkIcon, RefreshCw, Users, MousePointerClick, Search as SearchIcon, Target, Award, Percent, Eye } from "lucide-react";
+import { Loader2, BarChart3, TrendingUp, Link as LinkIcon, RefreshCw, Users, MousePointerClick, Search as SearchIcon, Target, Award, Percent, Eye } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { DateRangeFilter, type DateRange } from "@/components/department/DateRangeFilter";
 import { useGa4Traffic } from "@/hooks/useGa4Traffic";
