@@ -6,6 +6,7 @@ import { useUserDepartments } from "@/hooks/useUserDepartments";
 import { useAuth } from "@/hooks/useAuth";
 
 const DEBRAJ_USER_ID = "ac32880b-4a29-4617-9ab9-d4b28ed7b998";
+const AYUSHI_USER_ID = "78e4adba-2a5f-4e5d-91cd-a32a72137062";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -189,7 +190,9 @@ export default function ClinicDetail() {
   const { user } = useAuth();
   const isDebraj =
     user?.id === DEBRAJ_USER_ID ||
-    (user?.email?.toLowerCase() === "debraj@vsavetmedia.ca");
+    user?.email?.toLowerCase() === "debraj@vsavetmedia.ca" ||
+    user?.id === AYUSHI_USER_ID ||
+    user?.email?.toLowerCase() === "ayushi@vsavetmedia.com";
   const [clinic, setClinic] = useState<ClinicData | null>(null);
   const [creds, setCreds] = useState<ClinicCredentials>({
     meta_page_id: null, meta_instagram_business_id: null, meta_page_name: null, meta_granted_scopes: null,
