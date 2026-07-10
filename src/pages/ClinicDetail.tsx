@@ -190,7 +190,9 @@ export default function ClinicDetail() {
   const { user } = useAuth();
   const isDebraj =
     user?.id === DEBRAJ_USER_ID ||
-    (user?.email?.toLowerCase() === "debraj@vsavetmedia.ca");
+    user?.email?.toLowerCase() === "debraj@vsavetmedia.ca" ||
+    user?.id === AYUSHI_USER_ID ||
+    user?.email?.toLowerCase() === "ayushi@vsavetmedia.com";
   const [clinic, setClinic] = useState<ClinicData | null>(null);
   const [creds, setCreds] = useState<ClinicCredentials>({
     meta_page_id: null, meta_instagram_business_id: null, meta_page_name: null, meta_granted_scopes: null,
