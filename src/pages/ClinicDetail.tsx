@@ -6,6 +6,7 @@ import { useUserDepartments } from "@/hooks/useUserDepartments";
 import { useAuth } from "@/hooks/useAuth";
 
 const DEBRAJ_USER_ID = "ac32880b-4a29-4617-9ab9-d4b28ed7b998";
+const AYUSHI_USER_ID = "78e4adba-2a5f-4e5d-91cd-a32a72137062";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
