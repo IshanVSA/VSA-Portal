@@ -129,8 +129,8 @@ export default function GoogleAdsDepartment() {
                 <div className="sticky top-14 z-20 -mx-3 sm:-mx-4 lg:-mx-8 px-3 sm:px-4 lg:px-8 py-2 bg-background/85 backdrop-blur-md border-b border-border/40">
                 <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto flex-nowrap tabs-scroll">
                   {tabs.map(tab => (
-                    <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm relative">
-                      <tab.icon strokeWidth={1.5} className="h-4 w-4" />
+                    <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm relative min-w-[44px] justify-center">
+                      <tab.icon strokeWidth={1.5} className="h-4 w-4 shrink-0" />
                       <span className="hidden sm:inline">{tab.label}</span>
                       {tab.value === "chat" && unreadCount > 0 && currentTab !== "chat" && (
                         <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
