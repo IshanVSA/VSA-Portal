@@ -604,23 +604,23 @@ export function DepartmentChat({ department, clinicId, onVisible, variant = "tea
         </div>
       )}
 
-      <div className="px-4 py-3 border-b border-border/40 flex items-center gap-2">
-        <MessageSquare className="h-4 w-4 text-muted-foreground" />
-        <h3 className="text-sm font-bold text-foreground">{cfg.headerTitle}</h3>
-        <div className="ml-auto flex items-center gap-1">
+      <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-b border-border/40 flex items-center gap-2 min-w-0">
+        <MessageSquare className="h-4 w-4 text-muted-foreground shrink-0" />
+        <h3 className="text-sm font-bold text-foreground truncate">{cfg.headerTitle}</h3>
+        <div className="ml-auto flex items-center gap-1 min-w-0">
           {searchOpen ? (
             <div className="flex items-center gap-1">
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search messages..."
-                className="h-7 w-48 text-xs"
+                placeholder="Search…"
+                className="h-7 w-32 sm:w-48 text-xs"
                 autoFocus
               />
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 w-7 p-0"
+                className="h-7 w-7 p-0 shrink-0"
                 onClick={() => { setSearchOpen(false); setSearchQuery(""); }}
               >
                 <X className="h-3.5 w-3.5" />
@@ -630,13 +630,14 @@ export function DepartmentChat({ department, clinicId, onVisible, variant = "tea
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 w-7 p-0"
+              className="h-7 w-7 p-0 shrink-0"
               onClick={() => setSearchOpen(true)}
+              aria-label="Search messages"
             >
               <Search className="h-3.5 w-3.5 text-muted-foreground" />
             </Button>
           )}
-          <span className="text-xs text-muted-foreground">{cfg.headerHint}</span>
+          <span className="hidden sm:inline text-xs text-muted-foreground truncate">{cfg.headerHint}</span>
         </div>
       </div>
 
@@ -672,7 +673,7 @@ export function DepartmentChat({ department, clinicId, onVisible, variant = "tea
           </div>
         )}
 
-        <ScrollArea className="h-[300px] px-4 py-3" ref={scrollContainerRef}>
+        <ScrollArea className="h-[380px] sm:h-[300px] px-3 sm:px-4 py-3" ref={scrollContainerRef}>
           {isLoading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
@@ -919,22 +920,26 @@ export function DepartmentChat({ department, clinicId, onVisible, variant = "tea
           </div>
         )}
 
-        <div className="flex gap-2 p-3 pr-20 sm:pr-3 border-t border-border/40">
+        <div className="flex items-end gap-1.5 sm:gap-2 p-2 sm:p-3 border-t border-border/40">
           <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileSelect} accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip" />
-          <Button type="button" variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} disabled={sending} className="h-9 w-9 p-0 shrink-0">
+          <Button type="button" variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} disabled={sending} className="h-9 w-8 sm:w-9 p-0 shrink-0" aria-label="Attach file">
             <Paperclip className="h-4 w-4 text-muted-foreground" />
           </Button>
-          <EmojiPicker onSelect={handleEmojiInsert} side="top" align="start" />
-          <MentionInput
-            value={newMessage}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            department={department}
-            clinicId={clinicId}
-            disabled={sending}
-            placeholder={cfg.placeholder}
-          />
-          <Button size="sm" onClick={handleSend} disabled={(!newMessage.trim() && pendingFiles.length === 0) || sending} className="h-9 px-3">
+          <div className="hidden sm:block">
+            <EmojiPicker onSelect={handleEmojiInsert} side="top" align="start" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <MentionInput
+              value={newMessage}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              department={department}
+              clinicId={clinicId}
+              disabled={sending}
+              placeholder={cfg.placeholder}
+            />
+          </div>
+          <Button size="sm" onClick={handleSend} disabled={(!newMessage.trim() && pendingFiles.length === 0) || sending} className="h-9 w-9 sm:w-auto sm:px-3 p-0 shrink-0" aria-label="Send">
             <Send className="h-3.5 w-3.5" />
           </Button>
         </div>
