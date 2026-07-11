@@ -17,7 +17,7 @@ function ApprovedCard({ run }: { run: BlogRun }) {
   const notes = run.human_gate?.notes;
 
   return (
-    <div className="border rounded-lg">
+    <div className="border border-green-500/30 rounded-lg bg-green-500/5">
       <button
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center justify-between p-3 hover:bg-muted/30 transition text-left"
