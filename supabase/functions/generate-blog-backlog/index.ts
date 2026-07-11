@@ -42,11 +42,15 @@ Deno.serve(async (req) => {
 
     const { data: clinic, error: clinicErr } = await supabase
       .from("clinics")
-      .select("*, clinic_brand_dna(*), clinic_gbp_config(*)")
+      .select("*")
       .eq("id", clinic_id)
       .single();
     if (clinicErr || !clinic) throw new Error("Clinic not found");
-    const gbp = ((clinic as any).clinic_gbp_config?.[0]) || {};
+    const [{ data: gbpRows }, { data: dnaRows }] = await Promise.all([
+      supabase.from("clinic_gbp_config").select("*").eq("clinic_id", clinic_id).limit(1),
+      supabase.from("clinic_brand_dna").select("*").eq("clinic_id", clinic_id).order("updated_at", { ascending: false }).limit(1),
+    ]);
+    const gbp = gbpRows?.[0] || {};
 
     // Check if backlog already exists
     const { count: existingCount } = await supabase
@@ -64,7 +68,7 @@ Deno.serve(async (req) => {
       await supabase.from("blog_clusters").delete().eq("clinic_id", clinic_id).eq("generated_by", "ai");
     }
 
-    const dna = (clinic as any).clinic_brand_dna?.[0] || {};
+    const dna = dnaRows?.[0] || {};
     const system = `You are a veterinary SEO content strategist. Produce a topical map for one clinic: 5 to 8 pillar clusters, each with 6 to 10 spoke ideas (single-intent blog posts). Return STRICT JSON only, no prose, matching:
 {"clusters":[{"cluster_name":"...","cluster_slug":"...","rationale":"...","spokes":[{"title":"...","angle":"...","target_keyword":"...","priority":1}]}]}
 Rules:
