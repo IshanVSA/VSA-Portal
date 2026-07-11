@@ -242,10 +242,10 @@ Run checks: compliance vs rules, em-dash five-form absence, hazard mentions, spe
       const checkerUser = JSON.stringify({
         blog: draft.summary,
         draft_text: (await supabase.from("blog_pipeline_runs").select("draft").eq("id", runId).single()).data?.draft?.text ?? "",
-        compliance_rules: compliance.rules,
+        compliance_rules: (compliance as any).rules,
         high_alert_hazards: (hazards.hazards ?? []).map((h: any) => h.hazard),
-        spelling_mode: compliance.spelling_mode,
-        species_treated: clinic.primary_species,
+        spelling_mode: (compliance as any).spelling_mode,
+        species_treated: (clinic.clinic_gbp_config?.[0] as any)?.species_treated ?? null,
         blog_type: "STANDARD",
       });
       const raw = await claude(checkerSystem, checkerUser, 4000);
