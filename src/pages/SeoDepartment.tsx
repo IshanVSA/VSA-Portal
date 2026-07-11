@@ -22,7 +22,7 @@ import { DepartmentAccessLocked } from "@/components/department/DepartmentAccess
 import { AdminServiceLockNotice } from "@/components/department/AdminServiceLockNotice";
 import { DepartmentChat } from "@/components/department/DepartmentChat";
 import { useDepartmentChatUnread } from "@/hooks/useDepartmentChatUnread";
-import { BlogTab } from "@/components/seo/blog/BlogTab";
+import { BlogPipelineTab as BlogTab } from "@/components/seo/blog/BlogPipelineTab";
 import { TasksTab } from "@/components/department/tasks/TasksTab";
 import { useMyOpenTaskCount } from "@/hooks/useDepartmentTasks";
 import { SeoTrafficTab } from "@/components/department/SeoTrafficTab";
