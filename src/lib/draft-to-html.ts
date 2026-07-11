@@ -155,8 +155,6 @@ function renderMarkdown(raw: string): string {
   flushPara();
   closeList();
 
-  return DOMPurify.sanitize(out.join("\n"), {
-    ALLOWED_TAGS: ["h1","h2","h3","h4","h5","h6","p","strong","em","a","br","hr","ul","ol","li","code","blockquote"],
-    ALLOWED_ATTR: ["href","target","rel"],
-  });
+  return out.join("\n");
 }
+
