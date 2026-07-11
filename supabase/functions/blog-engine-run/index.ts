@@ -316,12 +316,29 @@ Deno.serve(async (req) => {
   try {
     const { clinic_id, spoke_id, action, run_id, human_gate } = await req.json();
 
-    // Human gate action: approve / reject / notes update
+    // Human gate action: approve / request_changes / reject
     if (action === "human_gate" && run_id) {
       const patch: any = { human_gate: human_gate ?? {} };
-      if (human_gate?.decision === "approve") patch.status = "approved";
-      if (human_gate?.decision === "reject") patch.status = "rejected";
+      const decision = human_gate?.decision;
+      if (decision === "approve") patch.status = "approved";
+      if (decision === "reject") patch.status = "rejected";
+      if (decision === "request_changes") patch.status = "changes_requested";
       await supabase.from("blog_pipeline_runs").update(patch).eq("id", run_id);
+
+      // Free the spoke so it can be re-run, or mark it done on approval
+      const { data: runRow } = await supabase
+        .from("blog_pipeline_runs")
+        .select("spoke_id")
+        .eq("id", run_id)
+        .maybeSingle();
+      if (runRow?.spoke_id) {
+        if (decision === "approve") {
+          await supabase.from("blog_spokes").update({ status: "done" }).eq("id", runRow.spoke_id);
+        } else if (decision === "request_changes" || decision === "reject") {
+          await supabase.from("blog_spokes").update({ status: "backlog" }).eq("id", runRow.spoke_id);
+        }
+      }
+
       return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
