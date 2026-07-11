@@ -622,7 +622,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
           </div>
         </header>
 
-        <div className="flex-1 p-3 sm:p-4 lg:p-8 min-w-0">
+        <div className="flex-1 p-3 sm:p-4 lg:p-8 min-w-0 overflow-x-hidden">
           <PageTransition>
             {children || <Outlet />}
           </PageTransition>
