@@ -157,7 +157,7 @@ async function runPipeline(runId: string, clinicId: string, spokeId: string | nu
 
     // Stage: resolve compliance
     const compliance = await run("resolve_compliance", async () => {
-      const juri = clinic.province_state;
+      const juri = clinic._jurisdiction;
       const { data } = await supabase
         .from("blog_compliance_rules")
         .select("*")
@@ -165,12 +165,12 @@ async function runPipeline(runId: string, clinicId: string, spokeId: string | nu
         .maybeSingle();
       if (!data) throw new Error(`No compliance rules for jurisdiction ${juri}`);
       await supabase.from("blog_pipeline_runs").update({ compliance_resolution: data }).eq("id", runId);
-      return { summary: `${data.governing_body} rules loaded` };
+      return { summary: `${data.governing_body} rules loaded`, ...data };
     });
 
     // Stage: hazards
     const hazards = await run("allocate_hazards", async () => {
-      const region = clinic.province_state;
+      const region = clinic._jurisdiction;
       const month = new Date().getMonth() + 1;
       const { data } = await supabase
         .from("blog_seasonal_hazards")
@@ -178,7 +178,7 @@ async function runPipeline(runId: string, clinicId: string, spokeId: string | nu
         .eq("region_code", region)
         .eq("month", month);
       await supabase.from("blog_pipeline_runs").update({ hazards: data ?? [] }).eq("id", runId);
-      return { summary: `${(data ?? []).length} hazards for ${region} month ${month}` };
+      return { summary: `${(data ?? []).length} hazards for ${region} month ${month}`, hazards: data ?? [] };
     });
 
     // Stage 4: write spoke
