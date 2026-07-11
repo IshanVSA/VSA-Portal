@@ -1,0 +1,3 @@
+ALTER TABLE public.blog_spokes DROP CONSTRAINT IF EXISTS blog_spokes_status_check;
+ALTER TABLE public.blog_spokes ADD CONSTRAINT blog_spokes_status_check CHECK (status = ANY (ARRAY['backlog','in_progress','approved','published','retired']));
+UPDATE public.blog_spokes SET status = 'approved' WHERE id IN (SELECT DISTINCT spoke_id FROM public.blog_pipeline_runs WHERE status = 'approved' AND spoke_id IS NOT NULL) AND status <> 'published';
