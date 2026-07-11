@@ -333,7 +333,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
       if (runRow?.spoke_id) {
         if (decision === "approve") {
-          await supabase.from("blog_spokes").update({ status: "done" }).eq("id", runRow.spoke_id);
+          await supabase.from("blog_spokes").update({ status: "approved" }).eq("id", runRow.spoke_id);
         } else if (decision === "request_changes" || decision === "reject") {
           await supabase.from("blog_spokes").update({ status: "backlog" }).eq("id", runRow.spoke_id);
         }
