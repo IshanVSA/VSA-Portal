@@ -214,6 +214,15 @@ async function runPipeline(runId: string, clinicId: string, spokeId: string | nu
 
     const dna = clinic.clinic_brand_dna?.[0] || {};
     const gbp = clinic.clinic_gbp_config?.[0] || {};
+
+    // Species: derived at load, refined by spoke-title keywords
+    const titleLower = `${spoke.spoke.title} ${spoke.spoke.target_keyword ?? ""}`.toLowerCase();
+    const titleSpecies: string[] = [];
+    if (/\b(dog|puppy|puppies|canine)s?\b/.test(titleLower)) titleSpecies.push("dogs");
+    if (/\b(cat|kitten|feline)s?\b/.test(titleLower)) titleSpecies.push("cats");
+    if (/\brabbit|bunny\b/.test(titleLower)) titleSpecies.push("rabbits");
+    const speciesTreated = titleSpecies.length ? titleSpecies : (clinic._species_treated ?? ["dogs", "cats"]);
+
     const injection = {
       INJECTION_COMPLETE: true,
       HOSPITAL_NAME: clinic._name,
@@ -221,6 +230,7 @@ async function runPipeline(runId: string, clinicId: string, spokeId: string | nu
       NEIGHBOURHOOD: (gbp as any).neighbourhood || clinic._city,
       JURISDICTION: clinic._jurisdiction,
       COUNTRY: clinic._country,
+      SPECIES_TREATED: speciesTreated,
       VOICE_FINGERPRINT: (dna as any).voice_fingerprint ?? (gbp as any).voice_fingerprint,
       NARRATIVE_ANCHOR: (dna as any).narrative_anchor ?? (gbp as any).narrative_anchor,
       ENTITY_LIST: (dna as any).entities ?? [],
@@ -248,6 +258,7 @@ async function runPipeline(runId: string, clinicId: string, spokeId: string | nu
       UTM_TEMPLATE: `?utm_source=blog&utm_medium=organic&utm_campaign=${spoke.spoke.blog_clusters?.cluster_slug}`,
       TARGET_SERVICE_PAGE: clinic._website,
     };
+
     await supabase.from("blog_pipeline_runs").update({ injection }).eq("id", runId);
 
     const draft = await run("write_spoke", async () => {
