@@ -920,22 +920,26 @@ export function DepartmentChat({ department, clinicId, onVisible, variant = "tea
           </div>
         )}
 
-        <div className="flex gap-2 p-3 pr-20 sm:pr-3 border-t border-border/40">
+        <div className="flex items-end gap-1.5 sm:gap-2 p-2 sm:p-3 border-t border-border/40">
           <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileSelect} accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip" />
-          <Button type="button" variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} disabled={sending} className="h-9 w-9 p-0 shrink-0">
+          <Button type="button" variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} disabled={sending} className="h-9 w-8 sm:w-9 p-0 shrink-0" aria-label="Attach file">
             <Paperclip className="h-4 w-4 text-muted-foreground" />
           </Button>
-          <EmojiPicker onSelect={handleEmojiInsert} side="top" align="start" />
-          <MentionInput
-            value={newMessage}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            department={department}
-            clinicId={clinicId}
-            disabled={sending}
-            placeholder={cfg.placeholder}
-          />
-          <Button size="sm" onClick={handleSend} disabled={(!newMessage.trim() && pendingFiles.length === 0) || sending} className="h-9 px-3">
+          <div className="hidden sm:block">
+            <EmojiPicker onSelect={handleEmojiInsert} side="top" align="start" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <MentionInput
+              value={newMessage}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              department={department}
+              clinicId={clinicId}
+              disabled={sending}
+              placeholder={cfg.placeholder}
+            />
+          </div>
+          <Button size="sm" onClick={handleSend} disabled={(!newMessage.trim() && pendingFiles.length === 0) || sending} className="h-9 w-9 sm:w-auto sm:px-3 p-0 shrink-0" aria-label="Send">
             <Send className="h-3.5 w-3.5" />
           </Button>
         </div>
