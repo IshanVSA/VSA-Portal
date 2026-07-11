@@ -67,7 +67,16 @@ export function BlogBacklogPanel({ clinicId }: { clinicId: string }) {
                             {s.angle && <span>· {s.angle}</span>}
                           </div>
                         </div>
-                        <Badge variant="secondary" className="text-xs shrink-0 capitalize">{s.status.replace("_", " ")}</Badge>
+                        <Badge
+                          variant="secondary"
+                          className={`text-xs shrink-0 capitalize ${
+                            s.status === "approved"
+                              ? "bg-green-500/10 text-green-700 hover:bg-green-500/20 border-green-500/30"
+                              : ""
+                          }`}
+                        >
+                          {s.status.replace("_", " ")}
+                        </Badge>
                         <Button
                           size="sm"
                           variant="outline"
