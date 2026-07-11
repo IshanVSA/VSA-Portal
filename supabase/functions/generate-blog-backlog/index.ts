@@ -42,10 +42,11 @@ Deno.serve(async (req) => {
 
     const { data: clinic, error: clinicErr } = await supabase
       .from("clinics")
-      .select("*, clinic_brand_dna(*)")
+      .select("*, clinic_brand_dna(*), clinic_gbp_config(*)")
       .eq("id", clinic_id)
       .single();
     if (clinicErr || !clinic) throw new Error("Clinic not found");
+    const gbp = ((clinic as any).clinic_gbp_config?.[0]) || {};
 
     // Check if backlog already exists
     const { count: existingCount } = await supabase
