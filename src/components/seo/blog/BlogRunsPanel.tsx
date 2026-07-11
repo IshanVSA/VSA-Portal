@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle2, XCircle, Clock, Loader2, ChevronDown, ChevronRight, AlertTriangle } from "lucide-react";
 import { useBlogRuns, type BlogRun } from "@/hooks/useBlogRuns";
+import { draftToHtml } from "@/lib/draft-to-html";
 
 const STAGE_LABELS: Record<string, string> = {
   validate_injection: "Validate injection",
