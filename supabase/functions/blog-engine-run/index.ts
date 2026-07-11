@@ -91,8 +91,17 @@ async function loadClinicContext(clinicId: string) {
   normalized._jurisdiction = gbp.jurisdiction || gbp.state_or_province;
   normalized._country = gbp.country;
 
+  // Derive species_treated with fallbacks so injection never ships empty
+  let species: string[] = [];
+  const raw = (gbp as any).species_treated ?? (dna as any).species ?? (dna as any).species_treated;
+  if (Array.isArray(raw)) species = raw.filter(Boolean).map((s: any) => String(s).toLowerCase());
+  else if (typeof raw === "string" && raw.trim()) species = raw.split(/[,;/]/).map((s) => s.trim().toLowerCase()).filter(Boolean);
+  if (!species.length) species = ["dogs", "cats"]; // sensible companion-animal default
+  normalized._species_treated = species;
+
   return normalized;
 }
+
 
 async function runPipeline(runId: string, clinicId: string, spokeId: string | null) {
   const run = async (stage: Stage, fn: () => Promise<any>) => {
