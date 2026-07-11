@@ -57,9 +57,9 @@ export function useBlogBacklog(clinicId: string | null) {
   });
 
   const regenerate = useMutation({
-    mutationFn: async (force = false) => {
+    mutationFn: async (force?: boolean) => {
       const { data, error } = await supabase.functions.invoke("generate-blog-backlog", {
-        body: { clinic_id: clinicId, force },
+        body: { clinic_id: clinicId, force: !!force },
       });
       if (error) throw error;
       return data;
