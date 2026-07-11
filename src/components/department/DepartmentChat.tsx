@@ -604,23 +604,23 @@ export function DepartmentChat({ department, clinicId, onVisible, variant = "tea
         </div>
       )}
 
-      <div className="px-4 py-3 border-b border-border/40 flex items-center gap-2">
-        <MessageSquare className="h-4 w-4 text-muted-foreground" />
-        <h3 className="text-sm font-bold text-foreground">{cfg.headerTitle}</h3>
-        <div className="ml-auto flex items-center gap-1">
+      <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-b border-border/40 flex items-center gap-2 min-w-0">
+        <MessageSquare className="h-4 w-4 text-muted-foreground shrink-0" />
+        <h3 className="text-sm font-bold text-foreground truncate">{cfg.headerTitle}</h3>
+        <div className="ml-auto flex items-center gap-1 min-w-0">
           {searchOpen ? (
             <div className="flex items-center gap-1">
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search messages..."
-                className="h-7 w-48 text-xs"
+                placeholder="Search…"
+                className="h-7 w-32 sm:w-48 text-xs"
                 autoFocus
               />
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 w-7 p-0"
+                className="h-7 w-7 p-0 shrink-0"
                 onClick={() => { setSearchOpen(false); setSearchQuery(""); }}
               >
                 <X className="h-3.5 w-3.5" />
@@ -630,13 +630,14 @@ export function DepartmentChat({ department, clinicId, onVisible, variant = "tea
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 w-7 p-0"
+              className="h-7 w-7 p-0 shrink-0"
               onClick={() => setSearchOpen(true)}
+              aria-label="Search messages"
             >
               <Search className="h-3.5 w-3.5 text-muted-foreground" />
             </Button>
           )}
-          <span className="text-xs text-muted-foreground">{cfg.headerHint}</span>
+          <span className="hidden sm:inline text-xs text-muted-foreground truncate">{cfg.headerHint}</span>
         </div>
       </div>
 
