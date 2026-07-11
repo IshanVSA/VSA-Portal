@@ -283,7 +283,7 @@ Run checks: compliance vs rules, em-dash five-form absence, hazard mentions, spe
         compliance_rules: (compliance as any).rules,
         high_alert_hazards: (hazards.hazards ?? []).map((h: any) => h.hazard),
         spelling_mode: (compliance as any).spelling_mode,
-        species_treated: (clinic.clinic_gbp_config?.[0] as any)?.species_treated ?? null,
+        species_treated: speciesTreated,
         blog_type: "STANDARD",
       });
       const raw = await claude(checkerSystem, checkerUser, 4000);
