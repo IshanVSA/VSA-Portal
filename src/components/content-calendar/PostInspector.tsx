@@ -90,7 +90,7 @@ export function PostInspector({ post, onClose, onSaved, onDeleted }: PostInspect
 
   return (
     <>
-      <div className="w-[360px] border-l border-border bg-card h-full overflow-y-auto flex flex-col">
+      <div className="w-full sm:w-[360px] sm:border-l border-border bg-card h-full overflow-y-auto flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h3 className="font-semibold text-foreground text-sm">Post Details</h3>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
