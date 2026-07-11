@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle2, XCircle, Clock, Loader2, ChevronDown, ChevronRight, AlertTriangle } from "lucide-react";
 import { useBlogRuns, type BlogRun } from "@/hooks/useBlogRuns";
+import { draftToHtml } from "@/lib/draft-to-html";
 
 const STAGE_LABELS: Record<string, string> = {
   validate_injection: "Validate injection",
@@ -30,6 +31,38 @@ function StageDot({ status }: { status?: string }) {
     s === "pending" ? "bg-amber-500" : "bg-muted-foreground/30";
   return <span className={`inline-block w-2 h-2 rounded-full ${cls}`} />;
 }
+function DraftPreview({ text, wordCount }: { text: string; wordCount?: number }) {
+  const [mode, setMode] = useState<"rendered" | "raw">("rendered");
+  const html = useMemo(() => draftToHtml(text), [text]);
+  return (
+    <details className="border rounded p-2" open>
+      <summary className="text-xs font-medium cursor-pointer flex items-center justify-between gap-2">
+        <span>Draft{wordCount ? ` (${wordCount} words)` : ""}</span>
+        <span className="flex gap-1 border rounded p-0.5" onClick={(e) => e.preventDefault()}>
+          <button
+            type="button"
+            onClick={() => setMode("rendered")}
+            className={`px-2 py-0.5 rounded text-[10px] ${mode === "rendered" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+          >Rendered</button>
+          <button
+            type="button"
+            onClick={() => setMode("raw")}
+            className={`px-2 py-0.5 rounded text-[10px] ${mode === "raw" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+          >Raw</button>
+        </span>
+      </summary>
+      {mode === "rendered" ? (
+        <div
+          className="prose prose-sm dark:prose-invert mt-2 max-w-none max-h-96 overflow-auto text-sm"
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      ) : (
+        <pre className="mt-2 whitespace-pre-wrap text-xs max-h-96 overflow-auto">{text}</pre>
+      )}
+    </details>
+  );
+}
+
 
 function RunCard({ run }: { run: BlogRun }) {
   const { humanGate } = useBlogRuns(run.clinic_id);
@@ -86,12 +119,7 @@ function RunCard({ run }: { run: BlogRun }) {
           )}
 
           {/* Draft preview */}
-          {run.draft?.text && (
-            <details className="border rounded p-2">
-              <summary className="text-xs font-medium cursor-pointer">Draft ({run.draft.word_count} words)</summary>
-              <pre className="mt-2 whitespace-pre-wrap text-xs max-h-96 overflow-auto">{run.draft.text}</pre>
-            </details>
-          )}
+          {run.draft?.text && <DraftPreview text={run.draft.text} wordCount={run.draft.word_count} />}
 
           {/* Checker report */}
           {checker && (
