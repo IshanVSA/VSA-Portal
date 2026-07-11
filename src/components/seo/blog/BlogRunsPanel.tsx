@@ -119,13 +119,28 @@ function RunCard({ run }: { run: BlogRun }) {
                 <li>Confirm clinician byline and accreditations are real</li>
                 <li>Confirm compliance rules are honoured for {run.compliance_resolution?.governing_body}</li>
               </ul>
-              <Textarea placeholder="Reviewer notes…" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+              <Textarea
+                placeholder="Reviewer notes (required for Request Changes)…"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={2}
+              />
               <div className="flex gap-2">
-                <Button size="sm" onClick={() => humanGate.mutate({ run_id: run.id, decision: "approve", notes })} disabled={humanGate.isPending}>
+                <Button
+                  size="sm"
+                  onClick={() => humanGate.mutate({ run_id: run.id, decision: "approve", notes })}
+                  disabled={humanGate.isPending}
+                >
                   <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Approve
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => humanGate.mutate({ run_id: run.id, decision: "reject", notes })} disabled={humanGate.isPending}>
-                  <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => humanGate.mutate({ run_id: run.id, decision: "request_changes", notes })}
+                  disabled={humanGate.isPending || notes.trim().length < 5}
+                  title={notes.trim().length < 5 ? "Add reviewer notes first" : "Send back to backlog for a fresh run"}
+                >
+                  <XCircle className="h-3.5 w-3.5 mr-1" /> Request Changes
                 </Button>
               </div>
             </div>

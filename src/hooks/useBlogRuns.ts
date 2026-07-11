@@ -68,7 +68,7 @@ export function useBlogRuns(clinicId: string | null) {
   });
 
   const humanGate = useMutation({
-    mutationFn: async (args: { run_id: string; decision: "approve" | "reject"; notes?: string }) => {
+    mutationFn: async (args: { run_id: string; decision: "approve" | "request_changes" | "reject"; notes?: string }) => {
       const { data, error } = await supabase.functions.invoke("blog-engine-run", {
         body: {
           action: "human_gate",
@@ -81,7 +81,14 @@ export function useBlogRuns(clinicId: string | null) {
     },
     onSuccess: (_d, args) => {
       qc.invalidateQueries({ queryKey: ["blog-runs", clinicId] });
-      toast.success(args.decision === "approve" ? "Approved for publish" : "Rejected");
+      qc.invalidateQueries({ queryKey: ["blog-backlog", clinicId] });
+      toast.success(
+        args.decision === "approve"
+          ? "Approved for publish"
+          : args.decision === "request_changes"
+          ? "Changes requested — spoke returned to backlog"
+          : "Rejected",
+      );
     },
     onError: (e: Error) => toast.error(e.message),
   });
