@@ -28,7 +28,66 @@ function inline(text: string): string {
 
 export function draftToHtml(raw: string): string {
   if (!raw) return "";
-  const lines = raw.replace(/\r\n/g, "\n").split("\n");
+  // Normalize and split off common section separators like "=== SCHEMA ===" so
+  // the writer's raw JSON schema blocks render as collapsible code, not as prose.
+  const normalized = raw.replace(/\r\n/g, "\n");
+  const sectionRe = /^\s*={2,}\s*([A-Z][A-Z0-9 _-]{1,40})\s*={2,}\s*$/gm;
+  const parts: { title: string | null; body: string }[] = [];
+  let lastIdx = 0;
+  let m: RegExpExecArray | null;
+  let currentTitle: string | null = null;
+  while ((m = sectionRe.exec(normalized)) !== null) {
+    parts.push({ title: currentTitle, body: normalized.slice(lastIdx, m.index) });
+    currentTitle = m[1].trim();
+    lastIdx = m.index + m[0].length;
+  }
+  parts.push({ title: currentTitle, body: normalized.slice(lastIdx) });
+
+  const renderMain = (text: string) => renderMarkdown(text);
+  const renderCodeSection = (title: string, text: string) => {
+    // Extract fenced ```json ... ``` or ` ```json ... ``` ` variants, plus bare JSON objects.
+    const chunks: { lang: string; code: string }[] = [];
+    const fenceRe = /```(\w+)?\n?([\s\S]*?)```/g;
+    let fm: RegExpExecArray | null;
+    let matched = false;
+    while ((fm = fenceRe.exec(text)) !== null) {
+      matched = true;
+      chunks.push({ lang: fm[1] || "", code: fm[2].trim() });
+    }
+    if (!matched) {
+      // Try to split concatenated JSON objects heuristically
+      const trimmed = text.trim();
+      if (trimmed.startsWith("{")) {
+        chunks.push({ lang: "json", code: trimmed });
+      } else {
+        chunks.push({ lang: "", code: trimmed });
+      }
+    }
+    const blocks = chunks
+      .map(({ lang, code }) => {
+        let pretty = code;
+        if (/^json$/i.test(lang) || code.trim().startsWith("{")) {
+          try { pretty = JSON.stringify(JSON.parse(code), null, 2); } catch { /* keep raw */ }
+        }
+        return `<pre class="bg-muted/50 border rounded p-2 overflow-auto text-[11px]"><code>${escapeHtml(pretty)}</code></pre>`;
+      })
+      .join("\n");
+    return `<details class="my-3 border rounded p-2"><summary class="text-xs font-medium cursor-pointer text-muted-foreground">${escapeHtml(title)} (${chunks.length} block${chunks.length === 1 ? "" : "s"})</summary>${blocks}</details>`;
+  };
+
+  const html = parts
+    .map((p) => (p.title ? renderCodeSection(p.title, p.body) : renderMain(p.body)))
+    .join("\n");
+
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ["h1","h2","h3","h4","h5","h6","p","strong","em","a","br","hr","ul","ol","li","code","blockquote","pre","details","summary","div"],
+    ALLOWED_ATTR: ["href","target","rel","class"],
+  });
+}
+
+function renderMarkdown(raw: string): string {
+  const lines = raw.split("\n");
+
   const out: string[] = [];
   let paraBuf: string[] = [];
   let inList: "ul" | "ol" | null = null;
