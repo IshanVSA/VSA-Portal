@@ -91,8 +91,17 @@ async function loadClinicContext(clinicId: string) {
   normalized._jurisdiction = gbp.jurisdiction || gbp.state_or_province;
   normalized._country = gbp.country;
 
+  // Derive species_treated with fallbacks so injection never ships empty
+  let species: string[] = [];
+  const raw = (gbp as any).species_treated ?? (dna as any).species ?? (dna as any).species_treated;
+  if (Array.isArray(raw)) species = raw.filter(Boolean).map((s: any) => String(s).toLowerCase());
+  else if (typeof raw === "string" && raw.trim()) species = raw.split(/[,;/]/).map((s) => s.trim().toLowerCase()).filter(Boolean);
+  if (!species.length) species = ["dogs", "cats"]; // sensible companion-animal default
+  normalized._species_treated = species;
+
   return normalized;
 }
+
 
 async function runPipeline(runId: string, clinicId: string, spokeId: string | null) {
   const run = async (stage: Stage, fn: () => Promise<any>) => {
@@ -205,6 +214,15 @@ async function runPipeline(runId: string, clinicId: string, spokeId: string | nu
 
     const dna = clinic.clinic_brand_dna?.[0] || {};
     const gbp = clinic.clinic_gbp_config?.[0] || {};
+
+    // Species: derived at load, refined by spoke-title keywords
+    const titleLower = `${spoke.spoke.title} ${spoke.spoke.target_keyword ?? ""}`.toLowerCase();
+    const titleSpecies: string[] = [];
+    if (/\b(dog|puppy|puppies|canine)s?\b/.test(titleLower)) titleSpecies.push("dogs");
+    if (/\b(cat|kitten|feline)s?\b/.test(titleLower)) titleSpecies.push("cats");
+    if (/\brabbit|bunny\b/.test(titleLower)) titleSpecies.push("rabbits");
+    const speciesTreated = titleSpecies.length ? titleSpecies : (clinic._species_treated ?? ["dogs", "cats"]);
+
     const injection = {
       INJECTION_COMPLETE: true,
       HOSPITAL_NAME: clinic._name,
@@ -212,6 +230,7 @@ async function runPipeline(runId: string, clinicId: string, spokeId: string | nu
       NEIGHBOURHOOD: (gbp as any).neighbourhood || clinic._city,
       JURISDICTION: clinic._jurisdiction,
       COUNTRY: clinic._country,
+      SPECIES_TREATED: speciesTreated,
       VOICE_FINGERPRINT: (dna as any).voice_fingerprint ?? (gbp as any).voice_fingerprint,
       NARRATIVE_ANCHOR: (dna as any).narrative_anchor ?? (gbp as any).narrative_anchor,
       ENTITY_LIST: (dna as any).entities ?? [],
@@ -239,6 +258,7 @@ async function runPipeline(runId: string, clinicId: string, spokeId: string | nu
       UTM_TEMPLATE: `?utm_source=blog&utm_medium=organic&utm_campaign=${spoke.spoke.blog_clusters?.cluster_slug}`,
       TARGET_SERVICE_PAGE: clinic._website,
     };
+
     await supabase.from("blog_pipeline_runs").update({ injection }).eq("id", runId);
 
     const draft = await run("write_spoke", async () => {
@@ -263,7 +283,7 @@ Run checks: compliance vs rules, em-dash five-form absence, hazard mentions, spe
         compliance_rules: (compliance as any).rules,
         high_alert_hazards: (hazards.hazards ?? []).map((h: any) => h.hazard),
         spelling_mode: (compliance as any).spelling_mode,
-        species_treated: (clinic.clinic_gbp_config?.[0] as any)?.species_treated ?? null,
+        species_treated: speciesTreated,
         blog_type: "STANDARD",
       });
       const raw = await claude(checkerSystem, checkerUser, 4000);
