@@ -87,12 +87,7 @@ function RunCard({ run }: { run: BlogRun }) {
           )}
 
           {/* Draft preview */}
-          {run.draft?.text && (
-            <details className="border rounded p-2">
-              <summary className="text-xs font-medium cursor-pointer">Draft ({run.draft.word_count} words)</summary>
-              <pre className="mt-2 whitespace-pre-wrap text-xs max-h-96 overflow-auto">{run.draft.text}</pre>
-            </details>
-          )}
+          {run.draft?.text && <DraftPreview text={run.draft.text} wordCount={run.draft.word_count} />}
 
           {/* Checker report */}
           {checker && (
