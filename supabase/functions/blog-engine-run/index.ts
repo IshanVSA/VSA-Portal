@@ -66,6 +66,34 @@ async function readSite(url: string): Promise<string | null> {
   } catch { return null; }
 }
 
+async function loadClinicContext(clinicId: string) {
+  const { data: clinic, error: clinicError } = await supabase
+    .from("clinics")
+    .select("*")
+    .eq("id", clinicId)
+    .single();
+  if (clinicError || !clinic) throw new Error("Clinic not found");
+
+  const [{ data: gbpRows }, { data: dnaRows }] = await Promise.all([
+    supabase.from("clinic_gbp_config").select("*").eq("clinic_id", clinicId).limit(1),
+    supabase.from("clinic_brand_dna").select("*").eq("clinic_id", clinicId).order("updated_at", { ascending: false }).limit(1),
+  ]);
+
+  const gbp = gbpRows?.[0] || {};
+  const dna = dnaRows?.[0] || {};
+  const normalized = clinic as any;
+
+  normalized.clinic_gbp_config = [gbp];
+  normalized.clinic_brand_dna = [dna];
+  normalized._name = normalized.clinic_name;
+  normalized._website = gbp.website_url || normalized.website;
+  normalized._city = gbp.city;
+  normalized._jurisdiction = gbp.jurisdiction || gbp.state_or_province;
+  normalized._country = gbp.country;
+
+  return normalized;
+}
+
 async function runPipeline(runId: string, clinicId: string, spokeId: string | null) {
   const run = async (stage: Stage, fn: () => Promise<any>) => {
     const started = Date.now();
@@ -83,18 +111,8 @@ async function runPipeline(runId: string, clinicId: string, spokeId: string | nu
   try {
     // Stage 1: load clinic context
     const ctx = await run("load_context", async () => {
-      const { data: clinic } = await supabase
-        .from("clinics")
-        .select("*, clinic_brand_dna(*), clinic_gbp_config(*)")
-        .eq("id", clinicId).single();
-      if (!clinic) throw new Error("Clinic not found");
-      const gbp = (clinic as any).clinic_gbp_config?.[0] || {};
-      (clinic as any)._name = (clinic as any).clinic_name;
-      (clinic as any)._website = gbp.website_url || (clinic as any).website;
-      (clinic as any)._city = gbp.city;
-      (clinic as any)._jurisdiction = gbp.jurisdiction || gbp.state_or_province;
-      (clinic as any)._country = gbp.country;
-      return { summary: `Loaded ${(clinic as any).clinic_name}`, clinic };
+      const clinic = await loadClinicContext(clinicId);
+      return { summary: `Loaded ${clinic.clinic_name}`, clinic };
     });
     const clinic: any = ctx.clinic;
 
