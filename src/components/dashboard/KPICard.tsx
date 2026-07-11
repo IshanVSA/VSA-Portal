@@ -36,20 +36,20 @@ export default function KPICard({ label, value, change, changeType = "neutral", 
       transition={{ duration: 0.4, delay: index * 0.06, ease: [0.16, 1, 0.3, 1] }}
       whileHover={href ? { y: -2, transition: { duration: 0.2 } } : undefined}
       className={cn(
-        "relative bg-card rounded-2xl border border-border/60 p-5 transition-shadow duration-200 group",
+        "relative bg-card rounded-2xl border border-border/60 p-4 sm:p-5 transition-shadow duration-200 group min-w-0",
         href && "cursor-pointer"
       )}
       style={{ boxShadow: "var(--shadow-sm)" }}
       onMouseEnter={(e) => { if (href) (e.currentTarget as HTMLElement).style.boxShadow = "var(--shadow-md)"; }}
       onMouseLeave={(e) => { if (href) (e.currentTarget as HTMLElement).style.boxShadow = "var(--shadow-sm)"; }}
     >
-      <div className="flex items-center justify-between mb-4">
-        <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center", iconBgMap[gradient])}>
-          <Icon className={cn("h-[18px] w-[18px]", iconColorMap[gradient])} />
+      <div className="flex items-center justify-between gap-2 mb-3 sm:mb-4">
+        <div className={cn("h-8 w-8 sm:h-9 sm:w-9 rounded-xl flex items-center justify-center shrink-0", iconBgMap[gradient])}>
+          <Icon className={cn("h-4 w-4 sm:h-[18px] sm:w-[18px]", iconColorMap[gradient])} />
         </div>
         {change && (
           <span className={cn(
-            "text-[11px] font-semibold px-2 py-0.5 rounded-full",
+            "text-[10px] sm:text-[11px] font-semibold px-1.5 sm:px-2 py-0.5 rounded-full truncate max-w-full",
             changeType === "positive" && "bg-success/12 text-success",
             changeType === "negative" && "bg-destructive/12 text-destructive",
             changeType === "neutral" && "bg-muted text-muted-foreground"
@@ -58,8 +58,8 @@ export default function KPICard({ label, value, change, changeType = "neutral", 
           </span>
         )}
       </div>
-      <p className="text-[13px] text-muted-foreground font-medium mb-1">{label}</p>
-      <p className="text-[28px] sm:text-[32px] font-bold text-foreground tracking-tight tabular-nums leading-none">{value}</p>
+      <p className="text-[12px] sm:text-[13px] text-muted-foreground font-medium mb-1 truncate">{label}</p>
+      <p className="text-[20px] sm:text-[28px] lg:text-[32px] font-bold text-foreground tracking-tight tabular-nums leading-tight truncate">{value}</p>
     </motion.div>
   );
 
