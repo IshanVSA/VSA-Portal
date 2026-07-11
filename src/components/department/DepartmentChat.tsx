@@ -673,7 +673,7 @@ export function DepartmentChat({ department, clinicId, onVisible, variant = "tea
           </div>
         )}
 
-        <ScrollArea className="h-[300px] px-4 py-3" ref={scrollContainerRef}>
+        <ScrollArea className="h-[380px] sm:h-[300px] px-3 sm:px-4 py-3" ref={scrollContainerRef}>
           {isLoading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
