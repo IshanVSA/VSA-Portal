@@ -88,25 +88,31 @@ async function runPipeline(runId: string, clinicId: string, spokeId: string | nu
         .select("*, clinic_brand_dna(*), clinic_gbp_config(*)")
         .eq("id", clinicId).single();
       if (!clinic) throw new Error("Clinic not found");
-      return { summary: `Loaded ${clinic.name}`, clinic };
+      const gbp = (clinic as any).clinic_gbp_config?.[0] || {};
+      (clinic as any)._name = (clinic as any).clinic_name;
+      (clinic as any)._website = gbp.website_url || (clinic as any).website;
+      (clinic as any)._city = gbp.city;
+      (clinic as any)._jurisdiction = gbp.jurisdiction || gbp.state_or_province;
+      (clinic as any)._country = gbp.country;
+      return { summary: `Loaded ${(clinic as any).clinic_name}`, clinic };
     });
-    const clinic = ctx.clinic;
+    const clinic: any = ctx.clinic;
 
     // Stage 0: validate injection (basic required fields)
     await run("validate_injection", async () => {
       const missing: string[] = [];
-      if (!clinic.name) missing.push("HOSPITAL_NAME");
-      if (!clinic.city) missing.push("CITY");
-      if (!clinic.province_state) missing.push("JURISDICTION");
-      if (!clinic.website_url) missing.push("CANONICAL_READ_URL");
+      if (!clinic._name) missing.push("HOSPITAL_NAME");
+      if (!clinic._city) missing.push("CITY (GBP config)");
+      if (!clinic._jurisdiction) missing.push("JURISDICTION (GBP config)");
+      if (!clinic._website) missing.push("CANONICAL_READ_URL (clinic website or GBP website_url)");
       if (missing.length) throw new Error(`Missing CRIT: ${missing.join(", ")}`);
       return { summary: "Injection complete" };
     });
 
     // Stage 2: read site
     const site = await run("read_site", async () => {
-      const text = await readSite(clinic.website_url);
-      await supabase.from("blog_pipeline_runs").update({ site_signal: { text, url: clinic.website_url } }).eq("id", runId);
+      const text = await readSite(clinic._website);
+      await supabase.from("blog_pipeline_runs").update({ site_signal: { text, url: clinic._website } }).eq("id", runId);
       return { summary: text ? `Read ${text.length} chars` : "SITE READ UNAVAILABLE" };
     });
 
@@ -151,7 +157,7 @@ async function runPipeline(runId: string, clinicId: string, spokeId: string | nu
 
     // Stage: resolve compliance
     const compliance = await run("resolve_compliance", async () => {
-      const juri = clinic.province_state;
+      const juri = clinic._jurisdiction;
       const { data } = await supabase
         .from("blog_compliance_rules")
         .select("*")
@@ -159,12 +165,12 @@ async function runPipeline(runId: string, clinicId: string, spokeId: string | nu
         .maybeSingle();
       if (!data) throw new Error(`No compliance rules for jurisdiction ${juri}`);
       await supabase.from("blog_pipeline_runs").update({ compliance_resolution: data }).eq("id", runId);
-      return { summary: `${data.governing_body} rules loaded` };
+      return { summary: `${data.governing_body} rules loaded`, ...data };
     });
 
     // Stage: hazards
     const hazards = await run("allocate_hazards", async () => {
-      const region = clinic.province_state;
+      const region = clinic._jurisdiction;
       const month = new Date().getMonth() + 1;
       const { data } = await supabase
         .from("blog_seasonal_hazards")
@@ -172,7 +178,7 @@ async function runPipeline(runId: string, clinicId: string, spokeId: string | nu
         .eq("region_code", region)
         .eq("month", month);
       await supabase.from("blog_pipeline_runs").update({ hazards: data ?? [] }).eq("id", runId);
-      return { summary: `${(data ?? []).length} hazards for ${region} month ${month}` };
+      return { summary: `${(data ?? []).length} hazards for ${region} month ${month}`, hazards: data ?? [] };
     });
 
     // Stage 4: write spoke
@@ -183,24 +189,19 @@ async function runPipeline(runId: string, clinicId: string, spokeId: string | nu
     const gbp = clinic.clinic_gbp_config?.[0] || {};
     const injection = {
       INJECTION_COMPLETE: true,
-      // Block A: identity
-      HOSPITAL_NAME: clinic.name,
-      CITY: clinic.city,
-      NEIGHBOURHOOD: (gbp as any).neighbourhood || clinic.city,
-      JURISDICTION: clinic.province_state,
-      COUNTRY: clinic.country,
-      // Block B: brand
-      VOICE_FINGERPRINT: (dna as any).voice_fingerprint,
-      NARRATIVE_ANCHOR: (dna as any).narrative_anchor,
+      HOSPITAL_NAME: clinic._name,
+      CITY: clinic._city,
+      NEIGHBOURHOOD: (gbp as any).neighbourhood || clinic._city,
+      JURISDICTION: clinic._jurisdiction,
+      COUNTRY: clinic._country,
+      VOICE_FINGERPRINT: (dna as any).voice_fingerprint ?? (gbp as any).voice_fingerprint,
+      NARRATIVE_ANCHOR: (dna as any).narrative_anchor ?? (gbp as any).narrative_anchor,
       ENTITY_LIST: (dna as any).entities ?? [],
-      // Block C: compliance
-      COMPLIANCE_RULES: compliance.rules,
-      SPELLING_MODE: compliance.spelling_mode,
-      RULESET_VERSION: compliance.tier,
-      GOVERNING_BODY: compliance.governing_body,
-      // Block D: hazards
+      COMPLIANCE_RULES: (compliance as any).rules,
+      SPELLING_MODE: (compliance as any).spelling_mode,
+      RULESET_VERSION: (compliance as any).tier,
+      GOVERNING_BODY: (compliance as any).governing_body,
       HIGH_ALERT_HAZARDS: (hazards.hazards ?? []).map((h: any) => h.hazard),
-      // Block E: spoke + cluster
       ASSIGNED_SPOKE: {
         title: spoke.spoke.title,
         angle: spoke.spoke.angle,
@@ -209,19 +210,16 @@ async function runPipeline(runId: string, clinicId: string, spokeId: string | nu
         cluster_slug: spoke.spoke.blog_clusters?.cluster_slug,
       },
       BLOG_TYPE: "STANDARD",
-      // Block F: site read
-      CANONICAL_READ_URL: clinic.website_url,
+      CANONICAL_READ_URL: clinic._website,
       SITE_TEXT: site.summary?.startsWith("Read") ? true : "UNAVAILABLE",
-      // Block G: SERP
       SERP_OPPORTUNITIES: serp.matches ?? [],
-      // Block H: NAP+H
-      HOURS: (gbp as any).business_hours ?? clinic.hours,
+      HOURS: (gbp as any).hours ?? null,
       ADDRESS: clinic.address,
-      PHONE: clinic.phone,
-      GEO: clinic.latitude && clinic.longitude ? { lat: clinic.latitude, lng: clinic.longitude } : "UNVERIFIED",
+      PHONE: clinic.phone ?? (gbp as any).phone_number,
+      GEO: "UNVERIFIED",
       BLOG_PATH: `/blog/${spoke.spoke.blog_clusters?.cluster_slug}/`,
       UTM_TEMPLATE: `?utm_source=blog&utm_medium=organic&utm_campaign=${spoke.spoke.blog_clusters?.cluster_slug}`,
-      TARGET_SERVICE_PAGE: clinic.website_url,
+      TARGET_SERVICE_PAGE: clinic._website,
     };
     await supabase.from("blog_pipeline_runs").update({ injection }).eq("id", runId);
 
@@ -244,10 +242,10 @@ Run checks: compliance vs rules, em-dash five-form absence, hazard mentions, spe
       const checkerUser = JSON.stringify({
         blog: draft.summary,
         draft_text: (await supabase.from("blog_pipeline_runs").select("draft").eq("id", runId).single()).data?.draft?.text ?? "",
-        compliance_rules: compliance.rules,
+        compliance_rules: (compliance as any).rules,
         high_alert_hazards: (hazards.hazards ?? []).map((h: any) => h.hazard),
-        spelling_mode: compliance.spelling_mode,
-        species_treated: clinic.primary_species,
+        spelling_mode: (compliance as any).spelling_mode,
+        species_treated: (clinic.clinic_gbp_config?.[0] as any)?.species_treated ?? null,
         blog_type: "STANDARD",
       });
       const raw = await claude(checkerSystem, checkerUser, 4000);

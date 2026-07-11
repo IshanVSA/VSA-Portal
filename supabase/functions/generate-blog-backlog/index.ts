@@ -42,10 +42,11 @@ Deno.serve(async (req) => {
 
     const { data: clinic, error: clinicErr } = await supabase
       .from("clinics")
-      .select("*, clinic_brand_dna(*)")
+      .select("*, clinic_brand_dna(*), clinic_gbp_config(*)")
       .eq("id", clinic_id)
       .single();
     if (clinicErr || !clinic) throw new Error("Clinic not found");
+    const gbp = ((clinic as any).clinic_gbp_config?.[0]) || {};
 
     // Check if backlog already exists
     const { count: existingCount } = await supabase
@@ -74,9 +75,10 @@ Rules:
 - Priority 1 = highest.`;
     const user = JSON.stringify({
       clinic: {
-        name: clinic.name, city: clinic.city, province_state: clinic.province_state,
-        country: clinic.country, services_offered: clinic.services_offered,
-        primary_species: clinic.primary_species,
+        name: (clinic as any).clinic_name,
+        city: gbp.city, province_state: gbp.jurisdiction || gbp.state_or_province,
+        country: gbp.country, services_offered: gbp.top_services,
+        primary_species: gbp.species_treated,
       },
       brand_dna: {
         differentiators: dna.differentiators, tone: dna.tone,
