@@ -108,6 +108,186 @@ export type Database = {
           },
         ]
       }
+      blog_clusters: {
+        Row: {
+          clinic_id: string
+          cluster_name: string
+          cluster_slug: string
+          created_at: string
+          generated_by: string
+          id: string
+          rationale: string | null
+          sort_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          clinic_id: string
+          cluster_name: string
+          cluster_slug: string
+          created_at?: string
+          generated_by?: string
+          id?: string
+          rationale?: string | null
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string
+          cluster_name?: string
+          cluster_slug?: string
+          created_at?: string
+          generated_by?: string
+          id?: string
+          rationale?: string | null
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_clusters_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      blog_compliance_rules: {
+        Row: {
+          created_at: string
+          governing_body: string
+          id: string
+          jurisdiction_code: string
+          notes: string | null
+          rules: Json
+          spelling_mode: string
+          tier: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          governing_body: string
+          id?: string
+          jurisdiction_code: string
+          notes?: string | null
+          rules?: Json
+          spelling_mode?: string
+          tier?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          governing_body?: string
+          id?: string
+          jurisdiction_code?: string
+          notes?: string | null
+          rules?: Json
+          spelling_mode?: string
+          tier?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      blog_pipeline_runs: {
+        Row: {
+          blog_post_id: string | null
+          checker_report: Json | null
+          clinic_id: string
+          completed_at: string | null
+          compliance_resolution: Json | null
+          created_at: string
+          created_by: string | null
+          current_stage: string | null
+          draft: Json | null
+          error: string | null
+          hazards: Json | null
+          human_gate: Json
+          id: string
+          injection: Json
+          schema_blocks: Json | null
+          serp_scan: Json | null
+          site_signal: Json | null
+          spoke_id: string | null
+          stages: Json
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          blog_post_id?: string | null
+          checker_report?: Json | null
+          clinic_id: string
+          completed_at?: string | null
+          compliance_resolution?: Json | null
+          created_at?: string
+          created_by?: string | null
+          current_stage?: string | null
+          draft?: Json | null
+          error?: string | null
+          hazards?: Json | null
+          human_gate?: Json
+          id?: string
+          injection?: Json
+          schema_blocks?: Json | null
+          serp_scan?: Json | null
+          site_signal?: Json | null
+          spoke_id?: string | null
+          stages?: Json
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          blog_post_id?: string | null
+          checker_report?: Json | null
+          clinic_id?: string
+          completed_at?: string | null
+          compliance_resolution?: Json | null
+          created_at?: string
+          created_by?: string | null
+          current_stage?: string | null
+          draft?: Json | null
+          error?: string | null
+          hazards?: Json | null
+          human_gate?: Json
+          id?: string
+          injection?: Json
+          schema_blocks?: Json | null
+          serp_scan?: Json | null
+          site_signal?: Json | null
+          spoke_id?: string | null
+          stages?: Json
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_pipeline_runs_blog_post_id_fkey"
+            columns: ["blog_post_id"]
+            isOneToOne: false
+            referencedRelation: "blog_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blog_pipeline_runs_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blog_pipeline_runs_spoke_id_fkey"
+            columns: ["spoke_id"]
+            isOneToOne: false
+            referencedRelation: "blog_spokes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blog_posts: {
         Row: {
           active_hazards: Json | null
@@ -135,6 +315,7 @@ export type Database = {
           blog_3_type: string | null
           blog_3_url: string | null
           blog_month_count: number
+          checker_report: Json | null
           clinic_id: string
           created_at: string
           duplicate_risk_flagged: boolean
@@ -146,6 +327,8 @@ export type Database = {
           governing_body_applied: string | null
           high_alert_hazards: Json | null
           hospital_type_detected: string | null
+          human_gate_notes: string | null
+          human_gate_status: string | null
           id: string
           image_filename_1: string | null
           image_filename_2: string | null
@@ -164,8 +347,11 @@ export type Database = {
           raw_output_text: string | null
           remark_round: number
           retry_count: number
+          run_id: string | null
           sitemap_ping_sent: boolean
           spelling_mode: string | null
+          spoke_id: string | null
+          stage_progress: Json | null
           token_count_input: number | null
           token_count_output: number | null
           type_mismatch_flagged: boolean
@@ -199,6 +385,7 @@ export type Database = {
           blog_3_type?: string | null
           blog_3_url?: string | null
           blog_month_count?: number
+          checker_report?: Json | null
           clinic_id: string
           created_at?: string
           duplicate_risk_flagged?: boolean
@@ -210,6 +397,8 @@ export type Database = {
           governing_body_applied?: string | null
           high_alert_hazards?: Json | null
           hospital_type_detected?: string | null
+          human_gate_notes?: string | null
+          human_gate_status?: string | null
           id?: string
           image_filename_1?: string | null
           image_filename_2?: string | null
@@ -228,8 +417,11 @@ export type Database = {
           raw_output_text?: string | null
           remark_round?: number
           retry_count?: number
+          run_id?: string | null
           sitemap_ping_sent?: boolean
           spelling_mode?: string | null
+          spoke_id?: string | null
+          stage_progress?: Json | null
           token_count_input?: number | null
           token_count_output?: number | null
           type_mismatch_flagged?: boolean
@@ -263,6 +455,7 @@ export type Database = {
           blog_3_type?: string | null
           blog_3_url?: string | null
           blog_month_count?: number
+          checker_report?: Json | null
           clinic_id?: string
           created_at?: string
           duplicate_risk_flagged?: boolean
@@ -274,6 +467,8 @@ export type Database = {
           governing_body_applied?: string | null
           high_alert_hazards?: Json | null
           hospital_type_detected?: string | null
+          human_gate_notes?: string | null
+          human_gate_status?: string | null
           id?: string
           image_filename_1?: string | null
           image_filename_2?: string | null
@@ -292,8 +487,11 @@ export type Database = {
           raw_output_text?: string | null
           remark_round?: number
           retry_count?: number
+          run_id?: string | null
           sitemap_ping_sent?: boolean
           spelling_mode?: string | null
+          spoke_id?: string | null
+          stage_progress?: Json | null
           token_count_input?: number | null
           token_count_output?: number | null
           type_mismatch_flagged?: boolean
@@ -314,6 +512,20 @@ export type Database = {
             columns: ["prompt_version_id"]
             isOneToOne: false
             referencedRelation: "blog_prompt_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blog_posts_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "blog_pipeline_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blog_posts_spoke_id_fkey"
+            columns: ["spoke_id"]
+            isOneToOne: false
+            referencedRelation: "blog_spokes"
             referencedColumns: ["id"]
           },
         ]
@@ -356,6 +568,112 @@ export type Database = {
           version_label?: string
         }
         Relationships: []
+      }
+      blog_seasonal_hazards: {
+        Row: {
+          created_at: string
+          hazard: string
+          id: string
+          month: number
+          notes: string | null
+          region_code: string
+          severity: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hazard: string
+          id?: string
+          month: number
+          notes?: string | null
+          region_code: string
+          severity?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hazard?: string
+          id?: string
+          month?: number
+          notes?: string | null
+          region_code?: string
+          severity?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      blog_spokes: {
+        Row: {
+          angle: string | null
+          assigned_month: string | null
+          clinic_id: string
+          cluster_id: string
+          created_at: string
+          generated_by: string
+          id: string
+          notes: string | null
+          priority: number
+          published_post_id: string | null
+          status: string
+          target_keyword: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          angle?: string | null
+          assigned_month?: string | null
+          clinic_id: string
+          cluster_id: string
+          created_at?: string
+          generated_by?: string
+          id?: string
+          notes?: string | null
+          priority?: number
+          published_post_id?: string | null
+          status?: string
+          target_keyword?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          angle?: string | null
+          assigned_month?: string | null
+          clinic_id?: string
+          cluster_id?: string
+          created_at?: string
+          generated_by?: string
+          id?: string
+          notes?: string | null
+          priority?: number
+          published_post_id?: string | null
+          status?: string
+          target_keyword?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_spokes_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blog_spokes_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "blog_clusters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blog_spokes_published_post_id_fkey"
+            columns: ["published_post_id"]
+            isOneToOne: false
+            referencedRelation: "blog_posts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       blog_tracker: {
         Row: {
