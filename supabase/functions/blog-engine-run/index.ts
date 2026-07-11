@@ -88,25 +88,31 @@ async function runPipeline(runId: string, clinicId: string, spokeId: string | nu
         .select("*, clinic_brand_dna(*), clinic_gbp_config(*)")
         .eq("id", clinicId).single();
       if (!clinic) throw new Error("Clinic not found");
-      return { summary: `Loaded ${clinic.name}`, clinic };
+      const gbp = (clinic as any).clinic_gbp_config?.[0] || {};
+      (clinic as any)._name = (clinic as any).clinic_name;
+      (clinic as any)._website = gbp.website_url || (clinic as any).website;
+      (clinic as any)._city = gbp.city;
+      (clinic as any)._jurisdiction = gbp.jurisdiction || gbp.state_or_province;
+      (clinic as any)._country = gbp.country;
+      return { summary: `Loaded ${(clinic as any).clinic_name}`, clinic };
     });
-    const clinic = ctx.clinic;
+    const clinic: any = ctx.clinic;
 
     // Stage 0: validate injection (basic required fields)
     await run("validate_injection", async () => {
       const missing: string[] = [];
-      if (!clinic.name) missing.push("HOSPITAL_NAME");
-      if (!clinic.city) missing.push("CITY");
-      if (!clinic.province_state) missing.push("JURISDICTION");
-      if (!clinic.website_url) missing.push("CANONICAL_READ_URL");
+      if (!clinic._name) missing.push("HOSPITAL_NAME");
+      if (!clinic._city) missing.push("CITY (GBP config)");
+      if (!clinic._jurisdiction) missing.push("JURISDICTION (GBP config)");
+      if (!clinic._website) missing.push("CANONICAL_READ_URL (clinic website or GBP website_url)");
       if (missing.length) throw new Error(`Missing CRIT: ${missing.join(", ")}`);
       return { summary: "Injection complete" };
     });
 
     // Stage 2: read site
     const site = await run("read_site", async () => {
-      const text = await readSite(clinic.website_url);
-      await supabase.from("blog_pipeline_runs").update({ site_signal: { text, url: clinic.website_url } }).eq("id", runId);
+      const text = await readSite(clinic._website);
+      await supabase.from("blog_pipeline_runs").update({ site_signal: { text, url: clinic._website } }).eq("id", runId);
       return { summary: text ? `Read ${text.length} chars` : "SITE READ UNAVAILABLE" };
     });
 
