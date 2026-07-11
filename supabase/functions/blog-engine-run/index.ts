@@ -189,24 +189,19 @@ async function runPipeline(runId: string, clinicId: string, spokeId: string | nu
     const gbp = clinic.clinic_gbp_config?.[0] || {};
     const injection = {
       INJECTION_COMPLETE: true,
-      // Block A: identity
-      HOSPITAL_NAME: clinic.name,
-      CITY: clinic.city,
-      NEIGHBOURHOOD: (gbp as any).neighbourhood || clinic.city,
-      JURISDICTION: clinic.province_state,
-      COUNTRY: clinic.country,
-      // Block B: brand
-      VOICE_FINGERPRINT: (dna as any).voice_fingerprint,
-      NARRATIVE_ANCHOR: (dna as any).narrative_anchor,
+      HOSPITAL_NAME: clinic._name,
+      CITY: clinic._city,
+      NEIGHBOURHOOD: (gbp as any).neighbourhood || clinic._city,
+      JURISDICTION: clinic._jurisdiction,
+      COUNTRY: clinic._country,
+      VOICE_FINGERPRINT: (dna as any).voice_fingerprint ?? (gbp as any).voice_fingerprint,
+      NARRATIVE_ANCHOR: (dna as any).narrative_anchor ?? (gbp as any).narrative_anchor,
       ENTITY_LIST: (dna as any).entities ?? [],
-      // Block C: compliance
-      COMPLIANCE_RULES: compliance.rules,
-      SPELLING_MODE: compliance.spelling_mode,
-      RULESET_VERSION: compliance.tier,
-      GOVERNING_BODY: compliance.governing_body,
-      // Block D: hazards
+      COMPLIANCE_RULES: (compliance as any).rules,
+      SPELLING_MODE: (compliance as any).spelling_mode,
+      RULESET_VERSION: (compliance as any).tier,
+      GOVERNING_BODY: (compliance as any).governing_body,
       HIGH_ALERT_HAZARDS: (hazards.hazards ?? []).map((h: any) => h.hazard),
-      // Block E: spoke + cluster
       ASSIGNED_SPOKE: {
         title: spoke.spoke.title,
         angle: spoke.spoke.angle,
@@ -215,19 +210,16 @@ async function runPipeline(runId: string, clinicId: string, spokeId: string | nu
         cluster_slug: spoke.spoke.blog_clusters?.cluster_slug,
       },
       BLOG_TYPE: "STANDARD",
-      // Block F: site read
-      CANONICAL_READ_URL: clinic.website_url,
+      CANONICAL_READ_URL: clinic._website,
       SITE_TEXT: site.summary?.startsWith("Read") ? true : "UNAVAILABLE",
-      // Block G: SERP
       SERP_OPPORTUNITIES: serp.matches ?? [],
-      // Block H: NAP+H
-      HOURS: (gbp as any).business_hours ?? clinic.hours,
+      HOURS: (gbp as any).hours ?? null,
       ADDRESS: clinic.address,
-      PHONE: clinic.phone,
-      GEO: clinic.latitude && clinic.longitude ? { lat: clinic.latitude, lng: clinic.longitude } : "UNVERIFIED",
+      PHONE: clinic.phone ?? (gbp as any).phone_number,
+      GEO: "UNVERIFIED",
       BLOG_PATH: `/blog/${spoke.spoke.blog_clusters?.cluster_slug}/`,
       UTM_TEMPLATE: `?utm_source=blog&utm_medium=organic&utm_campaign=${spoke.spoke.blog_clusters?.cluster_slug}`,
-      TARGET_SERVICE_PAGE: clinic.website_url,
+      TARGET_SERVICE_PAGE: clinic._website,
     };
     await supabase.from("blog_pipeline_runs").update({ injection }).eq("id", runId);
 
