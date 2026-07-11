@@ -75,9 +75,10 @@ Rules:
 - Priority 1 = highest.`;
     const user = JSON.stringify({
       clinic: {
-        name: clinic.name, city: clinic.city, province_state: clinic.province_state,
-        country: clinic.country, services_offered: clinic.services_offered,
-        primary_species: clinic.primary_species,
+        name: (clinic as any).clinic_name,
+        city: gbp.city, province_state: gbp.jurisdiction || gbp.state_or_province,
+        country: gbp.country, services_offered: gbp.top_services,
+        primary_species: gbp.species_treated,
       },
       brand_dna: {
         differentiators: dna.differentiators, tone: dna.tone,
