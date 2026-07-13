@@ -512,7 +512,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
               )}
             </div>
 
-            <DialogFooter className="flex-col gap-2">
+            <DialogFooter className="!flex-col !items-stretch gap-2 sm:!space-x-0">
               {ticketType === "Content Request" && !contentPreview ? (
                 <>
                   <Button
