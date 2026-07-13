@@ -538,7 +538,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
                     >
                       {uploading ? (
                         <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Uploading…</>
-                      ) : loading ? "Creating…" : "Create without AI preview"}
+                      ) : loading ? "Creating…" : "Create Ticket without AI preview"}
                     </Button>
                   </div>
                 </>
