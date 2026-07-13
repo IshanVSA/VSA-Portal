@@ -23,6 +23,7 @@ interface ContentRequestFormProps {
   onChange: (description: string) => void;
   clinicId?: string;
   onPreviewChange?: (preview: ContentPreviewData | null) => void;
+  onGeneratingChange?: (generating: boolean) => void;
 }
 
 export interface ContentRequestFormRef {
