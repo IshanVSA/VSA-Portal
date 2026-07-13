@@ -45,6 +45,10 @@ export const ContentRequestForm = forwardRef<ContentRequestFormRef, ContentReque
   const [showRegen, setShowRegen] = useState(false);
   const [changeNotes, setChangeNotes] = useState("");
 
+  useImperativeHandle(ref, () => ({
+    generatePreview: () => runGenerate(),
+  }));
+
   useEffect(() => {
     const lines = [
       "Content Request (Social Media):",
