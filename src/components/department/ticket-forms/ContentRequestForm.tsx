@@ -31,7 +31,7 @@ export interface ContentRequestFormRef {
 }
 
 export const ContentRequestForm = forwardRef<ContentRequestFormRef, ContentRequestFormProps>(
-  ({ onChange, clinicId, onPreviewChange }, ref) => {
+  ({ onChange, clinicId, onPreviewChange, onGeneratingChange }, ref) => {
   const [campaign, setCampaign] = useState("");
   const [notes, setNotes] = useState("");
   const [title, setTitle] = useState("");
