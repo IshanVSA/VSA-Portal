@@ -3,7 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw, Wand2 } from "lucide-react";
+import { Loader2, RefreshCw, Wand2, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
@@ -128,9 +128,12 @@ export const ContentRequestForm = forwardRef<ContentRequestFormRef, ContentReque
   };
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-lg border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
-        This request will be created as a <strong className="text-foreground">social media post</strong> for your clinic. Generate an AI preview first, tweak it if you want, then create the ticket. After the team uploads the finished graphic you'll be asked to approve it.
+    <div className="space-y-5">
+      <div className="rounded-2xl border border-border/60 bg-muted/40 p-4 flex gap-3">
+        <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          This request will be created as a <span className="font-semibold text-foreground">social media post</span> for your clinic. Generate an AI preview first, tweak it if you want, then create the ticket. After the team uploads the finished graphic you'll be asked to approve it.
+        </p>
       </div>
 
       <VoiceDictation
@@ -142,23 +145,25 @@ export const ContentRequestForm = forwardRef<ContentRequestFormRef, ContentReque
         }}
       />
 
-      <div className="space-y-1.5">
-        <Label>Campaign / Promotion details *</Label>
+      <div className="space-y-2">
+        <Label className="text-sm font-semibold">Campaign / Promotion details <span className="text-primary">*</span></Label>
         <Textarea
           placeholder="e.g. Free exam with any vaccination appointment this month"
           value={campaign}
           onChange={(e) => setCampaign(e.target.value)}
-          rows={4}
+          rows={3}
+          className="rounded-xl resize-none"
         />
       </div>
 
-      <div className="space-y-1.5">
-        <Label>Additional notes</Label>
+      <div className="space-y-2">
+        <Label className="text-sm font-semibold">Additional notes</Label>
         <Textarea
           placeholder="Dates, audience, tone, links, anything else worth knowing..."
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
+          className="rounded-xl resize-none"
         />
       </div>
 
