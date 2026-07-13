@@ -222,7 +222,7 @@ async function extractWithAi(pages: PageData[]) {
     },
     body: JSON.stringify({
       model: "claude-opus-4-6",
-      max_tokens: 4096,
+      max_tokens: 8192,
       system: [
         "You are an expert at extracting veterinary clinic brand DNA from website content.",
         "Extract all available information about the clinic: name, phone, hours, booking URL, doctors (with credentials), services, founding year, about us content, and brand identity.",
