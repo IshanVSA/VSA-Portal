@@ -374,7 +374,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
 
   return (
     <Dialog open={open} onOpenChange={(val) => { if (!val) handleClose(); else onOpenChange(val); }}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col">
         {submitted ? (
           <>
             <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
@@ -434,7 +434,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
               <DialogDescription>Create a new support ticket for this department.</DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 py-2">
+            <div className="space-y-4 py-2 flex-1 overflow-y-auto min-h-0 pr-1 -mr-1">
               {!isCustomForm && (
                 <VoiceDictation
                   formType="Generic"
@@ -512,7 +512,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
               )}
             </div>
 
-            <DialogFooter className="!flex-col !items-stretch gap-2 sm:!space-x-0">
+            <DialogFooter className="!flex-col !items-stretch gap-2 sm:!space-x-0 border-t pt-3 mt-0 shrink-0">
               {ticketType === "Content Request" && !contentPreview ? (
                 <>
                   <Button
@@ -527,20 +527,12 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
                       <><Sparkles className="h-4 w-4 mr-2" /> Generate AI preview</>
                     )}
                   </Button>
-                  <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-muted-foreground w-full">
-                    <div className="h-px flex-1 bg-border" />
-                    <span>or</span>
-                    <div className="h-px flex-1 bg-border" />
-                  </div>
-                  <p className="text-xs text-muted-foreground text-center w-full">
-                    Skip the AI preview and submit your request as-is. The concierge team will build it from your notes.
-                  </p>
                   <div className="flex w-full gap-2">
                     <Button variant="outline" onClick={handleClose} className="flex-1">Cancel</Button>
                     <Button onClick={handleSubmit} disabled={loading || uploading || contentGenerating} className="flex-1">
                       {uploading ? (
                         <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Uploading…</>
-                      ) : loading ? "Creating…" : "Create Ticket without AI preview"}
+                      ) : loading ? "Creating…" : "Create without AI preview"}
                     </Button>
                   </div>
                 </>
