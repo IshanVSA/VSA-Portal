@@ -7,9 +7,10 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const MAX_PAGES = 6;
-const MAX_PAGE_TEXT_LENGTH = 8000;
-const MAX_COMBINED_TEXT_LENGTH = 30000;
+const MAX_PAGES = 20;
+const MAX_PAGE_TEXT_LENGTH = 12000;
+const MAX_COMBINED_TEXT_LENGTH = 120000;
+const FETCH_CONCURRENCY = 6;
 
 const requestSchema = z.object({
   clinic_id: z.string().uuid(),
