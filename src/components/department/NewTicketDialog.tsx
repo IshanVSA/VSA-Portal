@@ -97,6 +97,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
   const [popupConsented, setPopupConsented] = useState(false);
   const [promoteSocial, setPromoteSocial] = useState(false);
   const [contentPreview, setContentPreview] = useState<ContentPreviewData | null>(null);
+  const contentFormRef = useRef<ContentRequestFormRef>(null);
 
   const serviceOptions = getServiceOptions(services);
 
