@@ -515,13 +515,11 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
 
             <DialogFooter>
               <Button variant="outline" onClick={handleClose}>Cancel</Button>
-              {!(ticketType === "Content Request" && !contentPreview) && (
-                <Button onClick={handleSubmit} disabled={loading || uploading || (ticketType === "Pop-up Offers" && !popupConsented) || (ticketType === "Add/Remove Team Members" && !teamFormValid)}>
-                  {uploading ? (
-                    <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Uploading…</>
-                  ) : loading ? "Creating…" : "Create Ticket"}
-                </Button>
-              )}
+              <Button onClick={handleSubmit} disabled={loading || uploading || (ticketType === "Pop-up Offers" && !popupConsented) || (ticketType === "Add/Remove Team Members" && !teamFormValid)}>
+                {uploading ? (
+                  <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Uploading…</>
+                ) : loading ? "Creating…" : ticketType === "Content Request" && !contentPreview ? "Create Ticket without AI preview" : "Create Ticket"}
+              </Button>
             </DialogFooter>
           </>
         )}
