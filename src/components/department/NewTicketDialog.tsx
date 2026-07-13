@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Loader2, CheckCircle2, Clock } from "lucide-react";
+import { Loader2, CheckCircle2, Clock, Sparkles } from "lucide-react";
 import { FileUploader, type AttachedFile } from "./ticket-forms/FileUploader";
 import { getServiceOptions, getTicketTypeLabel, normalizeTicketType } from "@/lib/ticket-display-labels";
 import { getVisibleDepartmentLabels } from "@/lib/ticket-department-map";
@@ -27,7 +27,7 @@ import { MonthlyReportForm } from "./ticket-forms/MonthlyReportForm";
 import { CallVolumeIssuesForm } from "./ticket-forms/CallVolumeIssuesForm";
 import { WrongCallTrackingForm } from "./ticket-forms/WrongCallTrackingForm";
 import { CampaignAdjustmentsForm } from "./ticket-forms/CampaignAdjustmentsForm";
-import { ContentRequestForm, type ContentPreviewData } from "./ticket-forms/ContentRequestForm";
+import { ContentRequestForm, type ContentPreviewData, type ContentRequestFormRef } from "./ticket-forms/ContentRequestForm";
 import { ClientVisitForm } from "./ticket-forms/ClientVisitForm";
 import { SpecialPromotionForm } from "./ticket-forms/SpecialPromotionForm";
 import { BoostForm } from "./ticket-forms/BoostForm";
@@ -97,6 +97,8 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
   const [popupConsented, setPopupConsented] = useState(false);
   const [promoteSocial, setPromoteSocial] = useState(false);
   const [contentPreview, setContentPreview] = useState<ContentPreviewData | null>(null);
+  const [contentGenerating, setContentGenerating] = useState(false);
+  const contentFormRef = useRef<ContentRequestFormRef>(null);
 
   const serviceOptions = getServiceOptions(services);
 
@@ -174,6 +176,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     setPopupConsented(false);
     setPromoteSocial(false);
     setContentPreview(null);
+    setContentGenerating(false);
     setSubmitted(false);
     setSelectedClinicId("");
   };
@@ -241,10 +244,6 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     }
     if (ticketType === "Emergency" && (customDescription.includes("Issue Type: N/A") || customDescription.includes("Description: N/A"))) {
       toast.error("Issue type and description are required for emergency tickets");
-      return;
-    }
-    if (ticketType === "Content Request" && !contentPreview) {
-      toast.error("Please generate the AI preview before creating the ticket");
       return;
     }
     if (!user) return;
@@ -359,7 +358,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
       case "Campaign Adjustments":
         return <CampaignAdjustmentsForm onChange={handleCustomFormChange} />;
       case "Content Request":
-        return <ContentRequestForm onChange={handleCustomFormChange} clinicId={effectiveClinicId} onPreviewChange={setContentPreview} />;
+        return <ContentRequestForm ref={contentFormRef} onChange={handleCustomFormChange} clinicId={effectiveClinicId} onPreviewChange={setContentPreview} onGeneratingChange={setContentGenerating} />;
       case "Client Visit":
         return <ClientVisitForm onChange={handleCustomFormChange} />;
       case "Special Promotion":
@@ -513,13 +512,48 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
               )}
             </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={handleClose}>Cancel</Button>
-              <Button onClick={handleSubmit} disabled={loading || uploading || (ticketType === "Pop-up Offers" && !popupConsented) || (ticketType === "Add/Remove Team Members" && !teamFormValid)}>
-                {uploading ? (
-                  <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Uploading…</>
-                ) : loading ? "Creating…" : ticketType === "Content Request" && !contentPreview ? "Create Ticket without AI preview" : "Create Ticket"}
-              </Button>
+            <DialogFooter className="flex-col gap-2">
+              {ticketType === "Content Request" && !contentPreview ? (
+                <>
+                  <Button
+                    type="button"
+                    onClick={() => contentFormRef.current?.generatePreview()}
+                    disabled={loading || uploading || contentGenerating}
+                    className="w-full"
+                  >
+                    {contentGenerating ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating preview...</>
+                    ) : (
+                      <><Sparkles className="h-4 w-4 mr-2" /> Generate AI preview</>
+                    )}
+                  </Button>
+                  <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-muted-foreground w-full">
+                    <div className="h-px flex-1 bg-border" />
+                    <span>or</span>
+                    <div className="h-px flex-1 bg-border" />
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center w-full">
+                    Skip the AI preview and submit your request as-is. The concierge team will build it from your notes.
+                  </p>
+                  <div className="flex w-full gap-2">
+                    <Button variant="outline" onClick={handleClose} className="flex-1">Cancel</Button>
+                    <Button onClick={handleSubmit} disabled={loading || uploading || contentGenerating} className="flex-1">
+                      {uploading ? (
+                        <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Uploading…</>
+                      ) : loading ? "Creating…" : "Create Ticket without AI preview"}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={handleClose}>Cancel</Button>
+                  <Button onClick={handleSubmit} disabled={loading || uploading || (ticketType === "Pop-up Offers" && !popupConsented) || (ticketType === "Add/Remove Team Members" && !teamFormValid)}>
+                    {uploading ? (
+                      <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Uploading…</>
+                    ) : loading ? "Creating…" : "Create Ticket"}
+                  </Button>
+                </>
+              )}
             </DialogFooter>
           </>
         )}

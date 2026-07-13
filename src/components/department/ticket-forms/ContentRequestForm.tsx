@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Loader2, RefreshCw, Wand2 } from "lucide-react";
+import { Loader2, RefreshCw, Wand2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
@@ -23,9 +23,15 @@ interface ContentRequestFormProps {
   onChange: (description: string) => void;
   clinicId?: string;
   onPreviewChange?: (preview: ContentPreviewData | null) => void;
+  onGeneratingChange?: (generating: boolean) => void;
 }
 
-export function ContentRequestForm({ onChange, clinicId, onPreviewChange }: ContentRequestFormProps) {
+export interface ContentRequestFormRef {
+  generatePreview: () => Promise<void>;
+}
+
+export const ContentRequestForm = forwardRef<ContentRequestFormRef, ContentRequestFormProps>(
+  ({ onChange, clinicId, onPreviewChange, onGeneratingChange }, ref) => {
   const [campaign, setCampaign] = useState("");
   const [notes, setNotes] = useState("");
   const [title, setTitle] = useState("");
@@ -39,6 +45,14 @@ export function ContentRequestForm({ onChange, clinicId, onPreviewChange }: Cont
   const [hasPreview, setHasPreview] = useState(false);
   const [showRegen, setShowRegen] = useState(false);
   const [changeNotes, setChangeNotes] = useState("");
+
+  useImperativeHandle(ref, () => ({
+    generatePreview: () => runGenerate(),
+  }));
+
+  useEffect(() => {
+    onGeneratingChange?.(generating);
+  }, [generating, onGeneratingChange]);
 
   useEffect(() => {
     const lines = [
@@ -148,31 +162,6 @@ export function ContentRequestForm({ onChange, clinicId, onPreviewChange }: Cont
         />
       </div>
 
-      {!hasPreview && (
-        <div className="space-y-2">
-          <Button
-            type="button"
-            onClick={() => runGenerate()}
-            disabled={generating || !campaign.trim()}
-            className="w-full"
-          >
-            {generating ? (
-              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating preview...</>
-            ) : (
-              <><Sparkles className="h-4 w-4 mr-2" /> Generate AI preview</>
-            )}
-          </Button>
-          <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-muted-foreground">
-            <div className="h-px flex-1 bg-border" />
-            <span>or</span>
-            <div className="h-px flex-1 bg-border" />
-          </div>
-          <p className="text-xs text-muted-foreground text-center">
-            Skip the AI preview and submit your request as-is. The concierge team will build it from your notes.
-          </p>
-        </div>
-      )}
-
       {hasPreview && (
         <div className="space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
           <div className="text-xs font-medium uppercase tracking-wide text-primary">
@@ -269,4 +258,6 @@ export function ContentRequestForm({ onChange, clinicId, onPreviewChange }: Cont
       )}
     </div>
   );
-}
+});
+
+ContentRequestForm.displayName = "ContentRequestForm";
