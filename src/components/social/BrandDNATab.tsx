@@ -20,7 +20,8 @@ import {
   Stethoscope, Building, Star, MessageSquareQuote, Fingerprint,
   TrendingUp, Sparkles, Shield, Scale, BookOpen, Target, Ban,
   Users, Camera, CalendarClock, CheckSquare, AlertTriangle,
-  MapPin, TreePine, Home, Car, Edit2, Save, X,
+  MapPin, TreePine, Home, Car, Edit2, Save, X, Mail,
+  Award, FileText, ExternalLink, Link2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { lazy, Suspense } from "react";
@@ -824,6 +825,22 @@ function SynthesizedProfileCard({ profile, clinicId, canEdit }: { profile: Recor
 function WebsiteExtractionCard({ data, clinicId, canEdit }: { data: Record<string, any> | undefined; clinicId?: string; canEdit?: boolean }) {
   const [editOpen, setEditOpen] = useState(false);
   if (!data) return null;
+
+  const statItems = [
+    { label: "Pages", value: data.extraction_stats?.pages_scraped ?? data.source_urls?.length ?? 0 },
+    { label: "Services", value: data.services_list?.length ?? data.detailed_services?.length ?? 0 },
+    { label: "People", value: (data.doctors?.length ?? 0) + (data.team_members?.length ?? 0) },
+    { label: "Resources", value: data.patient_resources?.length ?? 0 },
+  ];
+
+  const hiddenKeys = new Set([
+    "hospital_name", "phone", "address", "email", "hours", "emergency_info", "founding_year", "booking_url",
+    "doctors", "team_members", "services_list", "detailed_services", "about_us_content", "mission_values",
+    "patient_resources", "accreditations_awards", "social_links", "brand_identity", "page_summaries", "source_pages",
+    "source_urls", "extraction_stats", "confidence", "extracted_at",
+  ]);
+  const extraEntries = Object.entries(data).filter(([key, value]) => !hiddenKeys.has(key) && hasDisplayValue(value));
+
   return (
     <Card className="border-primary/20 bg-primary/5">
       <CardHeader className="pb-3">
@@ -851,7 +868,16 @@ function WebsiteExtractionCard({ data, clinicId, canEdit }: { data: Record<strin
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-5">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+          {statItems.map((item) => (
+            <div key={item.label} className="rounded-xl border border-border/60 bg-background/55 px-3 py-2">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{item.label}</p>
+              <p className="text-lg font-semibold tabular-nums">{item.value}</p>
+            </div>
+          ))}
+        </div>
+
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {data.hospital_name && (
             <div className="space-y-1">
@@ -859,15 +885,27 @@ function WebsiteExtractionCard({ data, clinicId, canEdit }: { data: Record<strin
               <p className="text-sm">{data.hospital_name}</p>
             </div>
           )}
+          {data.address && (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" /> Address</p>
+              <p className="text-sm">{data.address}</p>
+            </div>
+          )}
           {data.phone && (
             <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground">Phone</p>
+              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><PhoneIcon /> Phone</p>
               <p className="text-sm">{data.phone}</p>
+            </div>
+          )}
+          {data.email && (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Mail className="h-3 w-3" /> Email</p>
+              <p className="text-sm break-all">{data.email}</p>
             </div>
           )}
           {data.hours && (
             <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground">Hours</p>
+              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> Hours</p>
               <p className="text-sm">{data.hours}</p>
             </div>
           )}
@@ -884,15 +922,32 @@ function WebsiteExtractionCard({ data, clinicId, canEdit }: { data: Record<strin
             </div>
           )}
         </div>
+
+        {data.emergency_info && (
+          <WebsiteTextBlock title="Emergency / After-hours Info" icon={<AlertTriangle className="h-3 w-3" />} value={data.emergency_info} />
+        )}
+
         {data.doctors?.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><User className="h-3 w-3" /> Doctors & Staff ({data.doctors.length})</p>
-            <div className="flex flex-wrap gap-2">
+          <div className="space-y-2 rounded-xl border border-border/60 bg-background/45 p-3">
+            <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1"><User className="h-3 w-3" /> Doctors ({data.doctors.length})</p>
+            <div className="grid gap-2 md:grid-cols-2">
               {data.doctors.map((doc: any, i: number) => (
-                <Badge key={i} variant="outline" className="text-xs">{doc.name}{doc.credentials ? `, ${doc.credentials}` : ""}{doc.role ? ` (${doc.role})` : ""}</Badge>
+                <div key={i} className="rounded-lg border border-border/50 bg-muted/20 p-2">
+                  <p className="text-sm font-medium">{doc.name}{doc.credentials ? `, ${doc.credentials}` : ""}</p>
+                  {doc.role && <p className="text-xs text-muted-foreground">{doc.role}</p>}
+                </div>
               ))}
             </div>
           </div>
+        )}
+        {data.team_members?.length > 0 && (
+          <WebsiteObjectGrid
+            title={`Team Members (${data.team_members.length})`}
+            icon={<Users className="h-3 w-3" />}
+            items={data.team_members}
+            primaryKey="name"
+            secondaryKeys={["role", "bio_summary"]}
+          />
         )}
         {data.services_list?.length > 0 && (
           <div className="space-y-2">
@@ -904,15 +959,38 @@ function WebsiteExtractionCard({ data, clinicId, canEdit }: { data: Record<strin
             </div>
           </div>
         )}
+        {data.detailed_services?.length > 0 && (
+          <WebsiteObjectGrid
+            title={`Detailed Services (${data.detailed_services.length})`}
+            icon={<Stethoscope className="h-3 w-3" />}
+            items={data.detailed_services}
+            primaryKey="name"
+            secondaryKeys={["description"]}
+            linkKey="source_url"
+          />
+        )}
         {data.about_us_content && (
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground">About Us</p>
-            <p className="text-sm text-muted-foreground">{data.about_us_content}</p>
-          </div>
+          <WebsiteTextBlock title="About Us" icon={<BookOpen className="h-3 w-3" />} value={data.about_us_content} />
+        )}
+        {data.mission_values?.length > 0 && (
+          <WebsiteListBlock title="Mission, Values & Positioning" icon={<Fingerprint className="h-3 w-3" />} items={data.mission_values} />
+        )}
+        {data.patient_resources?.length > 0 && (
+          <WebsiteObjectGrid
+            title={`Patient Resources (${data.patient_resources.length})`}
+            icon={<FileText className="h-3 w-3" />}
+            items={data.patient_resources}
+            primaryKey="title"
+            secondaryKeys={["description"]}
+            linkKey="source_url"
+          />
+        )}
+        {data.accreditations_awards?.length > 0 && (
+          <WebsiteListBlock title="Accreditations, Awards & Memberships" icon={<Award className="h-3 w-3" />} items={data.accreditations_awards} />
         )}
         {data.brand_identity && (
-          <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground">Brand Identity</p>
+          <div className="space-y-2 rounded-xl border border-border/60 bg-background/45 p-3">
+            <p className="text-xs font-semibold text-muted-foreground">Brand Identity</p>
             <div className="grid gap-2 md:grid-cols-3">
               {data.brand_identity.tagline && (
                 <div className="space-y-1">
@@ -936,13 +1014,75 @@ function WebsiteExtractionCard({ data, clinicId, canEdit }: { data: Record<strin
                   </div>
                 </div>
               )}
+              {(data.brand_identity.primary_brand_color || data.brand_identity.secondary_brand_color) && (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Colors</p>
+                  <div className="flex flex-wrap gap-2">
+                    {data.brand_identity.primary_brand_color && <ColorSwatch label="Primary" value={data.brand_identity.primary_brand_color} />}
+                    {data.brand_identity.secondary_brand_color && <ColorSwatch label="Secondary" value={data.brand_identity.secondary_brand_color} />}
+                  </div>
+                </div>
+              )}
+              {data.brand_identity.brand_font && (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Font</p>
+                  <p className="text-sm">{data.brand_identity.brand_font}</p>
+                </div>
+              )}
+              {data.brand_identity.visual_tone && (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Visual Tone</p>
+                  <p className="text-sm capitalize">{data.brand_identity.visual_tone}</p>
+                </div>
+              )}
+              {data.brand_identity.logo_url && (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Logo URL</p>
+                  <WebsiteLink href={data.brand_identity.logo_url}>{data.brand_identity.logo_url}</WebsiteLink>
+                </div>
+              )}
             </div>
           </div>
         )}
+        {data.social_links?.length > 0 && (
+          <WebsiteLinkList title="Social Links" icon={<Link2 className="h-3 w-3" />} links={data.social_links} />
+        )}
+        {data.page_summaries?.length > 0 && (
+          <WebsitePageSummaryList pages={data.page_summaries} />
+        )}
+        {data.source_pages?.length > 0 && (
+          <details className="rounded-xl border border-border/60 bg-background/45 p-3">
+            <summary className="cursor-pointer text-xs font-semibold text-muted-foreground hover:text-foreground">
+              Raw Source Page Previews ({data.source_pages.length})
+            </summary>
+            <div className="mt-3 grid gap-3">
+              {data.source_pages.map((page: any, i: number) => (
+                <div key={`${page.url}-${i}`} className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                  <WebsiteLink href={page.url}>{page.title || page.url}</WebsiteLink>
+                  {page.description && <p className="mt-1 text-xs text-muted-foreground">{page.description}</p>}
+                  {page.text_preview && <p className="mt-2 text-xs leading-relaxed text-muted-foreground whitespace-pre-line">{page.text_preview}</p>}
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
+        {extraEntries.length > 0 && (
+          <details className="rounded-xl border border-border/60 bg-background/45 p-3">
+            <summary className="cursor-pointer text-xs font-semibold text-muted-foreground hover:text-foreground">
+              Additional Extracted Fields ({extraEntries.length})
+            </summary>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              {extraEntries.map(([key, value]) => (
+                <div key={key} className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                  <p className="text-xs font-medium capitalize text-muted-foreground">{key.replace(/_/g, " ")}</p>
+                  <p className="mt-1 text-sm whitespace-pre-wrap break-words">{formatWebsiteValue(value)}</p>
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
         {data.source_urls?.length > 0 && (
-          <div className="space-y-1 pt-2 border-t border-border/50">
-            <p className="text-xs text-muted-foreground">Scraped {data.source_urls.length} page(s)</p>
-          </div>
+          <WebsiteLinkList title={`Scraped Source URLs (${data.source_urls.length})`} icon={<ExternalLink className="h-3 w-3" />} links={data.source_urls} compact />
         )}
       </CardContent>
       <DNAJsonEditDialog
@@ -954,6 +1094,133 @@ function WebsiteExtractionCard({ data, clinicId, canEdit }: { data: Record<strin
         target={{ kind: "additional_field", key: "website_extraction" }}
       />
     </Card>
+  );
+}
+
+function hasDisplayValue(value: unknown) {
+  if (value === null || value === undefined) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === "object") return Object.keys(value as Record<string, unknown>).length > 0;
+  return true;
+}
+
+function formatWebsiteValue(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) {
+    return value.map((item) => (typeof item === "string" ? item : JSON.stringify(item, null, 2))).join("\n\n");
+  }
+  if (typeof value === "object" && value !== null) return JSON.stringify(value, null, 2);
+  return String(value);
+}
+
+function PhoneIcon() {
+  return <span className="inline-block h-3 w-3 rounded-full border border-current" aria-hidden="true" />;
+}
+
+function WebsiteTextBlock({ title, icon, value }: { title: string; icon: React.ReactNode; value: string }) {
+  return (
+    <div className="space-y-1 rounded-xl border border-border/60 bg-background/45 p-3">
+      <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1">{icon} {title}</p>
+      <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">{value}</p>
+    </div>
+  );
+}
+
+function WebsiteListBlock({ title, icon, items }: { title: string; icon: React.ReactNode; items: string[] }) {
+  return (
+    <div className="space-y-2 rounded-xl border border-border/60 bg-background/45 p-3">
+      <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1">{icon} {title}</p>
+      <div className="grid gap-1.5 md:grid-cols-2">
+        {items.map((item, i) => (
+          <div key={`${item}-${i}`} className="rounded-lg bg-muted/30 px-3 py-2 text-sm text-muted-foreground">{item}</div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function WebsiteObjectGrid({
+  title, icon, items, primaryKey, secondaryKeys, linkKey,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  items: Record<string, any>[];
+  primaryKey: string;
+  secondaryKeys: string[];
+  linkKey?: string;
+}) {
+  return (
+    <div className="space-y-2 rounded-xl border border-border/60 bg-background/45 p-3">
+      <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1">{icon} {title}</p>
+      <div className="grid gap-2 md:grid-cols-2">
+        {items.map((item, i) => (
+          <div key={`${item[primaryKey] ?? i}-${i}`} className="rounded-lg border border-border/50 bg-muted/20 p-3">
+            <p className="text-sm font-medium">{item[primaryKey] || "Untitled"}</p>
+            {secondaryKeys.map((key) => item[key] ? (
+              <p key={key} className="mt-1 text-xs leading-relaxed text-muted-foreground">{item[key]}</p>
+            ) : null)}
+            {linkKey && item[linkKey] && <div className="mt-2"><WebsiteLink href={item[linkKey]}>{item[linkKey]}</WebsiteLink></div>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function WebsiteLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="inline-flex max-w-full items-center gap-1 text-xs text-primary underline underline-offset-2">
+      <span className="truncate">{children}</span>
+      <ExternalLink className="h-3 w-3 shrink-0" />
+    </a>
+  );
+}
+
+function WebsiteLinkList({ title, icon, links, compact }: { title: string; icon: React.ReactNode; links: string[]; compact?: boolean }) {
+  return (
+    <details className="rounded-xl border border-border/60 bg-background/45 p-3" open={!compact}>
+      <summary className="cursor-pointer text-xs font-semibold text-muted-foreground hover:text-foreground flex items-center gap-1">
+        {icon} {title}
+      </summary>
+      <div className="mt-3 grid gap-1.5">
+        {links.map((link, i) => (
+          <WebsiteLink key={`${link}-${i}`} href={link}>{link}</WebsiteLink>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+function WebsitePageSummaryList({ pages }: { pages: Record<string, any>[] }) {
+  return (
+    <div className="space-y-2 rounded-xl border border-border/60 bg-background/45 p-3">
+      <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1"><FileText className="h-3 w-3" /> Page-by-page Findings ({pages.length})</p>
+      <div className="grid gap-2">
+        {pages.map((page, i) => (
+          <div key={`${page.url}-${i}`} className="rounded-lg border border-border/50 bg-muted/20 p-3">
+            <WebsiteLink href={page.url}>{page.title || page.url}</WebsiteLink>
+            {page.summary && <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{page.summary}</p>}
+            {page.key_findings?.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {page.key_findings.map((finding: string, idx: number) => (
+                  <Badge key={`${finding}-${idx}`} variant="outline" className="text-xs">{finding}</Badge>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ColorSwatch({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-border/60 px-2 py-1 text-xs">
+      <span className="h-3 w-3 rounded-full border border-border" style={{ backgroundColor: value }} />
+      {label}: {value}
+    </span>
   );
 }
 
