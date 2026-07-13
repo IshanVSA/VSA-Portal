@@ -157,31 +157,6 @@ export const ContentRequestForm = forwardRef<ContentRequestFormRef, ContentReque
         />
       </div>
 
-      {!hasPreview && (
-        <div className="space-y-2">
-          <Button
-            type="button"
-            onClick={() => runGenerate()}
-            disabled={generating || !campaign.trim()}
-            className="w-full"
-          >
-            {generating ? (
-              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating preview...</>
-            ) : (
-              <><Sparkles className="h-4 w-4 mr-2" /> Generate AI preview</>
-            )}
-          </Button>
-          <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-muted-foreground">
-            <div className="h-px flex-1 bg-border" />
-            <span>or</span>
-            <div className="h-px flex-1 bg-border" />
-          </div>
-          <p className="text-xs text-muted-foreground text-center">
-            Skip the AI preview and submit your request as-is. The concierge team will build it from your notes.
-          </p>
-        </div>
-      )}
-
       {hasPreview && (
         <div className="space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
           <div className="text-xs font-medium uppercase tracking-wide text-primary">
