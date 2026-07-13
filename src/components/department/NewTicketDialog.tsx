@@ -537,7 +537,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
                   </p>
                   <div className="flex w-full gap-2">
                     <Button variant="outline" onClick={handleClose} className="flex-1">Cancel</Button>
-                    <Button onClick={handleSubmit} disabled={loading || uploading} className="flex-1">
+                    <Button onClick={handleSubmit} disabled={loading || uploading || contentGenerating} className="flex-1">
                       {uploading ? (
                         <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Uploading…</>
                       ) : loading ? "Creating…" : "Create Ticket without AI preview"}
