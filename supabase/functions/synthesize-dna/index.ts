@@ -249,11 +249,18 @@ Deno.serve(async (req) => {
     const authClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const serviceClient = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
-    const { data: authData, error: authError } = await authClient.auth.getUser(token);
-    if (authError || !authData.user) return json({ error: "Unauthorized" }, 401);
+    let callerUserId: string | null = null;
+    // Service-role bypass for internal batch admin invocations
+    if (token !== serviceRoleKey) {
+      const { data: authData, error: authError } = await authClient.auth.getUser(token);
+      if (authError || !authData.user) return json({ error: "Unauthorized" }, 401);
 
-    const { data: roleRow } = await serviceClient.from("user_roles").select("role").eq("user_id", authData.user.id).maybeSingle();
-    if (!roleRow || roleRow.role === "client") return json({ error: "Only staff can run synthesis" }, 403);
+      const { data: roleRow } = await serviceClient.from("user_roles").select("role").eq("user_id", authData.user.id).maybeSingle();
+      if (!roleRow || roleRow.role === "client") return json({ error: "Only staff can run synthesis" }, 403);
+      callerUserId = authData.user.id;
+    }
+
+
 
     const parsed = requestSchema.safeParse(await req.json());
     if (!parsed.success) return json({ error: parsed.error.issues[0]?.message ?? "Invalid request" }, 400);
@@ -316,7 +323,7 @@ Deno.serve(async (req) => {
 
     const profile = toolBlock.input;
     profile.synthesized_at = new Date().toISOString();
-    profile.synthesized_by = authData.user.id;
+    profile.synthesized_by = callerUserId;
 
     // Milestone-based completeness score (25% each):
     //   1) Collection call notes answered (>=10 questions)

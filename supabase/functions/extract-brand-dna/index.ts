@@ -369,14 +369,21 @@ Deno.serve(async (req) => {
     const authClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const serviceClient = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
-    const { data: authData, error: authError } = await authClient.auth.getUser(token);
-    if (authError || !authData.user) return createJsonResponse({ error: "Unauthorized" }, 401);
+    let callerUserId: string | null = null;
+    // Service-role bypass for internal batch admin invocations
+    if (token !== serviceRoleKey) {
+      const { data: authData, error: authError } = await authClient.auth.getUser(token);
+      if (authError || !authData.user) return createJsonResponse({ error: "Unauthorized" }, 401);
 
-    // Only admin/concierge can run extraction
-    const { data: roleRow } = await serviceClient.from("user_roles").select("role").eq("user_id", authData.user.id).maybeSingle();
-    if (!roleRow || roleRow.role === "client") {
-      return createJsonResponse({ error: "Only staff can run website extraction" }, 403);
+      // Only admin/concierge can run extraction
+      const { data: roleRow } = await serviceClient.from("user_roles").select("role").eq("user_id", authData.user.id).maybeSingle();
+      if (!roleRow || roleRow.role === "client") {
+        return createJsonResponse({ error: "Only staff can run website extraction" }, 403);
+      }
+      callerUserId = authData.user.id;
     }
+
+
 
     // Parse request
     const parsed = requestSchema.safeParse(await req.json());
@@ -490,7 +497,7 @@ Deno.serve(async (req) => {
           additional_fields: additionalFields,
           website_extracted_at: new Date().toISOString(),
           status: "draft",
-          submitted_by: authData.user.id,
+          submitted_by: callerUserId,
         });
       if (insertError) throw insertError;
     }
