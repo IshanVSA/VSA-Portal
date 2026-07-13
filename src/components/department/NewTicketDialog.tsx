@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Loader2, CheckCircle2, Clock } from "lucide-react";
+import { Loader2, CheckCircle2, Clock, Sparkles } from "lucide-react";
 import { FileUploader, type AttachedFile } from "./ticket-forms/FileUploader";
 import { getServiceOptions, getTicketTypeLabel, normalizeTicketType } from "@/lib/ticket-display-labels";
 import { getVisibleDepartmentLabels } from "@/lib/ticket-department-map";
