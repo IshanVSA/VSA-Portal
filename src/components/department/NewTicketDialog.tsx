@@ -27,7 +27,7 @@ import { MonthlyReportForm } from "./ticket-forms/MonthlyReportForm";
 import { CallVolumeIssuesForm } from "./ticket-forms/CallVolumeIssuesForm";
 import { WrongCallTrackingForm } from "./ticket-forms/WrongCallTrackingForm";
 import { CampaignAdjustmentsForm } from "./ticket-forms/CampaignAdjustmentsForm";
-import { ContentRequestForm, type ContentPreviewData } from "./ticket-forms/ContentRequestForm";
+import { ContentRequestForm, type ContentPreviewData, type ContentRequestFormRef } from "./ticket-forms/ContentRequestForm";
 import { ClientVisitForm } from "./ticket-forms/ClientVisitForm";
 import { SpecialPromotionForm } from "./ticket-forms/SpecialPromotionForm";
 import { BoostForm } from "./ticket-forms/BoostForm";
