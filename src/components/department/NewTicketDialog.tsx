@@ -429,8 +429,10 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
           </>
         ) : (
           <>
-            <DialogHeader>
-              <DialogTitle>New Ticket - {ticketType ? getTicketTypeLabel(ticketType) : "Select Type"}</DialogTitle>
+            <DialogHeader className="space-y-1.5 pb-2">
+              <DialogTitle className="font-serif text-2xl font-semibold tracking-tight leading-tight">
+                New Ticket <span className="text-muted-foreground font-normal">— {ticketType ? getTicketTypeLabel(ticketType) : "Select Type"}</span>
+              </DialogTitle>
               <DialogDescription>Create a new support ticket for this department.</DialogDescription>
             </DialogHeader>
 
