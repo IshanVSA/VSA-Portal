@@ -7,9 +7,10 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const MAX_PAGES = 20;
-const MAX_PAGE_TEXT_LENGTH = 12000;
-const MAX_COMBINED_TEXT_LENGTH = 120000;
+const MAX_PAGES = 30;
+const MAX_RAW_HTML_LENGTH = 2_000_000;
+const MAX_PAGE_TEXT_LENGTH = 8000;
+const MAX_COMBINED_TEXT_LENGTH = 160000;
 const FETCH_CONCURRENCY = 6;
 
 const requestSchema = z.object({
@@ -49,6 +50,25 @@ function getTagContent(html: string, pattern: RegExp) {
   return html.match(pattern)?.[1]?.trim() ?? "";
 }
 
+function scoreUrlForExtraction(url: URL) {
+  const pathname = url.pathname.toLowerCase();
+  const pathAndQuery = `${pathname}${url.search.toLowerCase()}`;
+  if (/\.(xml|pdf|jpg|jpeg|png|gif|webp|svg|zip|mp4|mp3|css|js|ico|woff2?)$/i.test(pathname)) return -100;
+  if (/\/(wp-admin|wp-login|wp-json|feed|cart|checkout|my-account|login|signin|register|search|tag\/|category\/|author\/|\?add-to-cart|privacy|terms|cookie|sitemap)/i.test(pathAndQuery)) return -100;
+  if (pathname === "/" || pathname === "") return -10;
+
+  let score = 1;
+  if (/(about|team|staff|doctors|our-team|our-doctors|our-practice|veterinarian|vet|meet)/.test(pathname)) score += 12;
+  if (/(service|what-we-do|offering|specialt|treatment|care|procedure|surgery|dental|wellness|vaccin|nutrition|grooming|boarding|emergency|urgent|diagnostic|anesthesia|monitoring|end-of-life|euthanasia|exotic|dermatology|cardiology|oncology|orthoped|ultrasound|radiology|laser|behavior|pain|senior|puppy|kitten|dog|cat|pet)/.test(pathname)) score += 10;
+  if (/(resource|form|appointment|booking|book|new-client|insurance|payment|faq|travel|poison|license|product-alert|food-alert|guide)/.test(pathname)) score += 7;
+  if (/(contact|location|hours|visit|find-us|directions)/.test(pathname)) score += 6;
+  if (/(history|story|mission|vision|values|philosophy|why|difference|community|awards|reviews|testimon)/.test(pathname)) score += 5;
+  if (/(blog|news|article|education|tip|advice)/.test(pathname)) score += 1;
+  if (/(lorem|ipsum|hello-world)/.test(pathname)) score -= 8;
+  if ((pathname.match(/\//g)?.length ?? 0) > 5) score -= 2;
+  return score;
+}
+
 function extractCandidateLinks(html: string, baseUrl: string) {
   const base = new URL(baseUrl);
   const hrefMatches = [...html.matchAll(/href=["']([^"'#]+)["']/gi)];
@@ -61,18 +81,7 @@ function extractCandidateLinks(html: string, baseUrl: string) {
       const resolved = new URL(rawHref, base);
       if (resolved.origin !== base.origin) return;
       if (!["http:", "https:"].includes(resolved.protocol)) return;
-      if (/\.(pdf|jpg|jpeg|png|gif|webp|svg|zip|mp4|mp3|css|js|ico|woff2?)$/i.test(resolved.pathname)) return;
-      if (/\/(wp-admin|wp-login|wp-json|feed|cart|checkout|my-account|login|signin|register|search|tag\/|category\/|author\/|\?add-to-cart|privacy|terms|cookie|sitemap)/i.test(resolved.pathname + resolved.search)) return;
-
-      const pathname = resolved.pathname.toLowerCase();
-      let score = 1; // baseline: any same-origin internal page is worth a look
-      if (/(about|team|staff|doctors|our-team|our-doctors|our-practice|veterinarian|vet|meet)/.test(pathname)) score += 8;
-      if (/(service|what-we-do|offering|specialt|treatment|care|procedure|surgery|dental|wellness|vaccin|nutrition|grooming|boarding|emergency|urgent|exotic|dermatology|cardiology|oncology|orthoped|ultrasound|radiology|laser|behavior|pain|senior|puppy|kitten|dog|cat|pet)/.test(pathname)) score += 6;
-      if (/(contact|location|hours|visit|find-us|directions|appointment|booking|book)/.test(pathname)) score += 5;
-      if (/(history|story|mission|vision|values|philosophy|why|difference|community|awards|reviews|testimon)/.test(pathname)) score += 4;
-      if (/(faq|resource|blog|news|article|education|guide|tip|advice|price|cost|financing|insurance|payment)/.test(pathname)) score += 2;
-      if (pathname === "/" || pathname === "") score = -10;
-      if ((pathname.match(/\//g)?.length ?? 0) > 5) score -= 2; // deep archive pages
+      const score = scoreUrlForExtraction(resolved);
 
       if (score > 0) {
         resolved.hash = "";
@@ -119,10 +128,9 @@ async function fetchSitemapUrls(origin: string): Promise<string[]> {
     try {
       const url = new URL(u);
       if (url.origin !== origin) return false;
-      if (/\.(xml|pdf|jpg|jpeg|png|gif|webp|svg|zip|mp4|mp3|css|js|ico|woff2?)$/i.test(url.pathname)) return false;
-      return true;
+      return scoreUrlForExtraction(url) > 0;
     } catch { return false; }
-  });
+  }).sort((a, b) => scoreUrlForExtraction(new URL(b)) - scoreUrlForExtraction(new URL(a)));
 }
 
 type PageData = { url: string; title: string; description: string; html: string; text: string };
@@ -143,7 +151,7 @@ async function fetchPage(url: string): Promise<PageData | null> {
     if (!response.ok) return null;
     const contentType = response.headers.get("content-type") ?? "";
     if (!contentType.includes("text/html") && !contentType.includes("text/plain")) return null;
-    const html = (await response.text()).slice(0, 200000);
+    const html = (await response.text()).slice(0, MAX_RAW_HTML_LENGTH);
     const title = getTagContent(html, /<title[^>]*>([\s\S]*?)<\/title>/i);
     const description = getTagContent(html, /<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["'][^>]*>/i);
     const text = sanitizeText(html).slice(0, MAX_PAGE_TEXT_LENGTH);
