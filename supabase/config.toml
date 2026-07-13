@@ -1,7 +1,5 @@
 project_id = "yuyossgquiyuoqbeenri"
 
-[functions.batch-refresh-brand-dna]
-verify_jwt = false
 
 
 [functions.create-team-member]
