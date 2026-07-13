@@ -51,6 +51,10 @@ export const ContentRequestForm = forwardRef<ContentRequestFormRef, ContentReque
   }));
 
   useEffect(() => {
+    onGeneratingChange?.(generating);
+  }, [generating, onGeneratingChange]);
+
+  useEffect(() => {
     const lines = [
       "Content Request (Social Media):",
       `Campaign: ${campaign || "N/A"}`,
