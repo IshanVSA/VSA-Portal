@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const MAX_PAGES = 30;
+const MAX_PAGES = 18;
 const MAX_RAW_HTML_LENGTH = 2_000_000;
 const MAX_PAGE_TEXT_LENGTH = 8000;
 const MAX_COMBINED_TEXT_LENGTH = 160000;
