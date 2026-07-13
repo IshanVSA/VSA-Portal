@@ -25,7 +25,12 @@ interface ContentRequestFormProps {
   onPreviewChange?: (preview: ContentPreviewData | null) => void;
 }
 
-export function ContentRequestForm({ onChange, clinicId, onPreviewChange }: ContentRequestFormProps) {
+export interface ContentRequestFormRef {
+  generatePreview: () => Promise<void>;
+}
+
+export const ContentRequestForm = forwardRef<ContentRequestFormRef, ContentRequestFormProps>(
+  ({ onChange, clinicId, onPreviewChange }, ref) => {
   const [campaign, setCampaign] = useState("");
   const [notes, setNotes] = useState("");
   const [title, setTitle] = useState("");
