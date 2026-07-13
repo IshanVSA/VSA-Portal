@@ -30,13 +30,18 @@ function sanitizeText(html: string) {
     .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
     .replace(/<svg[\s\S]*?<\/svg>/gi, " ")
     .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(h1|h2|h3|h4|h5|h6|li|ul|ol|section|article|div)>/gi, "\n")
+    .replace(/<(h1|h2|h3|h4|h5|h6)[^>]*>/gi, "\n## ")
+    .replace(/<li[^>]*>/gi, "\n- ")
     .replace(/<\/p>/gi, "\n")
     .replace(/<[^>]+>/g, " ")
     .replace(/&nbsp;/gi, " ")
     .replace(/&amp;/gi, "&")
     .replace(/&quot;/gi, '"')
     .replace(/&#39;/gi, "'")
-    .replace(/\s+/g, " ")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n\s+/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
 
@@ -161,6 +166,9 @@ const extractionTool = {
       phone: { type: "string", description: "Primary phone number" },
       booking_url: { type: "string", description: "Online booking URL if found" },
       hours: { type: "string", description: "Operating hours summary" },
+      address: { type: "string", description: "Street address and locality if found" },
+      email: { type: "string", description: "Primary email address if found" },
+      emergency_info: { type: "string", description: "Emergency/urgent care instructions or after-hours information" },
       doctors: {
         type: "array",
         items: {
@@ -172,15 +180,69 @@ const extractionTool = {
           },
           required: ["name"],
         },
-        description: "Veterinarians and key staff",
+        description: "Veterinarians and key staff. Include as many real people as the site provides.",
+      },
+      team_members: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            role: { type: "string" },
+            bio_summary: { type: "string" },
+          },
+          required: ["name"],
+        },
+        description: "Non-doctor staff, leadership, technicians, reception, and support team members found on the site",
       },
       services_list: {
         type: "array",
         items: { type: "string" },
-        description: "Top services offered (e.g. dentistry, surgery, wellness exams)",
+        description: "Exhaustive service names found across the crawled pages, not only the top services",
+      },
+      detailed_services: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            description: { type: "string" },
+            source_url: { type: "string" },
+          },
+          required: ["name"],
+        },
+        description: "Detailed service descriptions and source pages for every service page or service section found",
       },
       founding_year: { type: "string", description: "Year the clinic was founded" },
-      about_us_content: { type: "string", description: "Summary of the About Us / Our Story section" },
+      about_us_content: { type: "string", description: "Detailed summary of the About Us / Our Story section" },
+      mission_values: {
+        type: "array",
+        items: { type: "string" },
+        description: "Mission, philosophy, values, promises, standards of care, and positioning statements found on the site",
+      },
+      patient_resources: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            description: { type: "string" },
+            source_url: { type: "string" },
+          },
+          required: ["title"],
+        },
+        description: "Forms, pharmacy, payment, new-client information, FAQs, education pages, or other client resources",
+      },
+      accreditations_awards: {
+        type: "array",
+        items: { type: "string" },
+        description: "Accreditations, awards, associations, certifications, guarantees, or memberships",
+      },
+      social_links: {
+        type: "array",
+        items: { type: "string" },
+        description: "Social profile URLs found on the website",
+      },
       brand_identity: {
         type: "object",
         properties: {
@@ -193,6 +255,20 @@ const extractionTool = {
           logo_url: { type: "string", description: "URL of the clinic logo image found on the website" },
           visual_tone: { type: "string", description: "Visual style: modern, rustic, clinical, whimsical, minimalist, etc." },
         },
+      },
+      page_summaries: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            url: { type: "string" },
+            summary: { type: "string" },
+            key_findings: { type: "array", items: { type: "string" } },
+          },
+          required: ["url"],
+        },
+        description: "One entry for each source page analyzed, summarizing what useful data it contained",
       },
       confidence: { type: "string", enum: ["low", "medium", "high"], description: "Overall confidence in extraction" },
     },
@@ -225,9 +301,11 @@ async function extractWithAi(pages: PageData[]) {
       max_tokens: 8192,
       system: [
         "You are an expert at extracting veterinary clinic brand DNA from website content.",
-        "Extract all available information about the clinic: name, phone, hours, booking URL, doctors (with credentials), services, founding year, about us content, and brand identity.",
-        "For doctors, extract their full name, credentials (DVM, DACVS, etc.), and role (Owner, Associate, etc.).",
-        "For services, list the top/highlighted services offered.",
+        "Extract as much specific, useful information as possible from every crawled page, not just a short homepage summary.",
+        "Extract all available information about the clinic: name, address, phone, email, hours, emergency details, booking URL, doctors and staff, services, founding year, about us content, mission/values, patient resources, awards/accreditations, social links, and brand identity.",
+        "For doctors and team members, extract every real person listed with credentials, role, and short bio details when available.",
+        "For services, be exhaustive. Include every service/treatment/care category found across service pages and include descriptions and source URLs in detailed_services.",
+        "For page_summaries, include one concise but content-rich summary for each source page and list the key facts found on that page.",
         "For brand identity, identify: tagline/slogan, overall tone, stated values/mission, PRIMARY brand color (the dominant color used in the header/logo/buttons as a hex code), secondary brand color, the primary font family, the logo image URL (look for <img> tags with 'logo' in src or alt), and visual tone (modern, rustic, clinical, whimsical, minimalist).",
         "For colors, look at inline styles, CSS classes, header/nav background colors, button colors, and the overall color scheme. Return hex codes like #2B6CB0.",
         "For fonts, look at font-family declarations in inline styles or common web font references.",
@@ -350,6 +428,18 @@ Deno.serve(async (req) => {
     // AI extraction
     const extracted = await extractWithAi(pages);
     extracted.source_urls = pages.map((p) => p.url);
+    extracted.extraction_stats = {
+      pages_scraped: pages.length,
+      link_candidates: linkCandidates.length,
+      sitemap_urls: sitemapUrls.length,
+      total_text_characters: pages.reduce((sum, page) => sum + page.text.length, 0),
+    };
+    extracted.source_pages = pages.map((p) => ({
+      url: p.url,
+      title: p.title,
+      description: p.description,
+      text_preview: p.text.slice(0, 900),
+    }));
     extracted.extracted_at = new Date().toISOString();
 
     console.log(`Extraction complete. Confidence: ${extracted.confidence}`);
