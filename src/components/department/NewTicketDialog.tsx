@@ -510,13 +510,44 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
               )}
             </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={handleClose}>Cancel</Button>
-              <Button onClick={handleSubmit} disabled={loading || uploading || (ticketType === "Pop-up Offers" && !popupConsented) || (ticketType === "Add/Remove Team Members" && !teamFormValid)}>
-                {uploading ? (
-                  <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Uploading…</>
-                ) : loading ? "Creating…" : ticketType === "Content Request" && !contentPreview ? "Create Ticket without AI preview" : "Create Ticket"}
-              </Button>
+            <DialogFooter className="flex-col gap-2">
+              {ticketType === "Content Request" && !contentPreview ? (
+                <>
+                  <Button
+                    type="button"
+                    onClick={() => contentFormRef.current?.generatePreview()}
+                    disabled={loading || uploading}
+                    className="w-full"
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" /> Generate AI preview
+                  </Button>
+                  <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-muted-foreground w-full">
+                    <div className="h-px flex-1 bg-border" />
+                    <span>or</span>
+                    <div className="h-px flex-1 bg-border" />
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center w-full">
+                    Skip the AI preview and submit your request as-is. The concierge team will build it from your notes.
+                  </p>
+                  <div className="flex w-full gap-2">
+                    <Button variant="outline" onClick={handleClose} className="flex-1">Cancel</Button>
+                    <Button onClick={handleSubmit} disabled={loading || uploading} className="flex-1">
+                      {uploading ? (
+                        <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Uploading…</>
+                      ) : loading ? "Creating…" : "Create Ticket without AI preview"}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={handleClose}>Cancel</Button>
+                  <Button onClick={handleSubmit} disabled={loading || uploading || (ticketType === "Pop-up Offers" && !popupConsented) || (ticketType === "Add/Remove Team Members" && !teamFormValid)}>
+                    {uploading ? (
+                      <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Uploading…</>
+                    ) : loading ? "Creating…" : "Create Ticket"}
+                  </Button>
+                </>
+              )}
             </DialogFooter>
           </>
         )}
