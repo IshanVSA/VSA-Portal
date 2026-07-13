@@ -518,10 +518,14 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
                   <Button
                     type="button"
                     onClick={() => contentFormRef.current?.generatePreview()}
-                    disabled={loading || uploading}
+                    disabled={loading || uploading || contentGenerating}
                     className="w-full"
                   >
-                    <Sparkles className="h-4 w-4 mr-2" /> Generate AI preview
+                    {contentGenerating ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating preview...</>
+                    ) : (
+                      <><Sparkles className="h-4 w-4 mr-2" /> Generate AI preview</>
+                    )}
                   </Button>
                   <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-muted-foreground w-full">
                     <div className="h-px flex-1 bg-border" />
