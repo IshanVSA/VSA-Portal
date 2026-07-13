@@ -7,9 +7,10 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const MAX_PAGES = 20;
-const MAX_PAGE_TEXT_LENGTH = 12000;
-const MAX_COMBINED_TEXT_LENGTH = 120000;
+const MAX_PAGES = 30;
+const MAX_RAW_HTML_LENGTH = 2_000_000;
+const MAX_PAGE_TEXT_LENGTH = 8000;
+const MAX_COMBINED_TEXT_LENGTH = 160000;
 const FETCH_CONCURRENCY = 6;
 
 const requestSchema = z.object({
@@ -30,18 +31,42 @@ function sanitizeText(html: string) {
     .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
     .replace(/<svg[\s\S]*?<\/svg>/gi, " ")
     .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(h1|h2|h3|h4|h5|h6|li|ul|ol|section|article|div)>/gi, "\n")
+    .replace(/<(h1|h2|h3|h4|h5|h6)[^>]*>/gi, "\n## ")
+    .replace(/<li[^>]*>/gi, "\n- ")
     .replace(/<\/p>/gi, "\n")
     .replace(/<[^>]+>/g, " ")
     .replace(/&nbsp;/gi, " ")
     .replace(/&amp;/gi, "&")
     .replace(/&quot;/gi, '"')
     .replace(/&#39;/gi, "'")
-    .replace(/\s+/g, " ")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n\s+/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
 
 function getTagContent(html: string, pattern: RegExp) {
   return html.match(pattern)?.[1]?.trim() ?? "";
+}
+
+function scoreUrlForExtraction(url: URL) {
+  const pathname = url.pathname.toLowerCase();
+  const pathAndQuery = `${pathname}${url.search.toLowerCase()}`;
+  if (/\.(xml|pdf|jpg|jpeg|png|gif|webp|svg|zip|mp4|mp3|css|js|ico|woff2?)$/i.test(pathname)) return -100;
+  if (/\/(wp-admin|wp-login|wp-json|feed|cart|checkout|my-account|login|signin|register|search|tag\/|category\/|author\/|\?add-to-cart|privacy|terms|cookie|sitemap)/i.test(pathAndQuery)) return -100;
+  if (pathname === "/" || pathname === "") return -10;
+
+  let score = 1;
+  if (/(about|team|staff|doctors|our-team|our-doctors|our-practice|veterinarian|vet|meet)/.test(pathname)) score += 12;
+  if (/(service|what-we-do|offering|specialt|treatment|care|procedure|surgery|dental|wellness|vaccin|nutrition|grooming|boarding|emergency|urgent|diagnostic|anesthesia|monitoring|end-of-life|euthanasia|exotic|dermatology|cardiology|oncology|orthoped|ultrasound|radiology|laser|behavior|pain|senior|puppy|kitten|dog|cat|pet)/.test(pathname)) score += 10;
+  if (/(resource|form|appointment|booking|book|new-client|insurance|payment|faq|travel|poison|license|product-alert|food-alert|guide)/.test(pathname)) score += 7;
+  if (/(contact|location|hours|visit|find-us|directions)/.test(pathname)) score += 6;
+  if (/(history|story|mission|vision|values|philosophy|why|difference|community|awards|reviews|testimon)/.test(pathname)) score += 5;
+  if (/(blog|news|article|education|tip|advice)/.test(pathname)) score += 1;
+  if (/(lorem|ipsum|hello-world)/.test(pathname)) score -= 8;
+  if ((pathname.match(/\//g)?.length ?? 0) > 5) score -= 2;
+  return score;
 }
 
 function extractCandidateLinks(html: string, baseUrl: string) {
@@ -56,18 +81,7 @@ function extractCandidateLinks(html: string, baseUrl: string) {
       const resolved = new URL(rawHref, base);
       if (resolved.origin !== base.origin) return;
       if (!["http:", "https:"].includes(resolved.protocol)) return;
-      if (/\.(pdf|jpg|jpeg|png|gif|webp|svg|zip|mp4|mp3|css|js|ico|woff2?)$/i.test(resolved.pathname)) return;
-      if (/\/(wp-admin|wp-login|wp-json|feed|cart|checkout|my-account|login|signin|register|search|tag\/|category\/|author\/|\?add-to-cart|privacy|terms|cookie|sitemap)/i.test(resolved.pathname + resolved.search)) return;
-
-      const pathname = resolved.pathname.toLowerCase();
-      let score = 1; // baseline: any same-origin internal page is worth a look
-      if (/(about|team|staff|doctors|our-team|our-doctors|our-practice|veterinarian|vet|meet)/.test(pathname)) score += 8;
-      if (/(service|what-we-do|offering|specialt|treatment|care|procedure|surgery|dental|wellness|vaccin|nutrition|grooming|boarding|emergency|urgent|exotic|dermatology|cardiology|oncology|orthoped|ultrasound|radiology|laser|behavior|pain|senior|puppy|kitten|dog|cat|pet)/.test(pathname)) score += 6;
-      if (/(contact|location|hours|visit|find-us|directions|appointment|booking|book)/.test(pathname)) score += 5;
-      if (/(history|story|mission|vision|values|philosophy|why|difference|community|awards|reviews|testimon)/.test(pathname)) score += 4;
-      if (/(faq|resource|blog|news|article|education|guide|tip|advice|price|cost|financing|insurance|payment)/.test(pathname)) score += 2;
-      if (pathname === "/" || pathname === "") score = -10;
-      if ((pathname.match(/\//g)?.length ?? 0) > 5) score -= 2; // deep archive pages
+      const score = scoreUrlForExtraction(resolved);
 
       if (score > 0) {
         resolved.hash = "";
@@ -114,10 +128,9 @@ async function fetchSitemapUrls(origin: string): Promise<string[]> {
     try {
       const url = new URL(u);
       if (url.origin !== origin) return false;
-      if (/\.(xml|pdf|jpg|jpeg|png|gif|webp|svg|zip|mp4|mp3|css|js|ico|woff2?)$/i.test(url.pathname)) return false;
-      return true;
+      return scoreUrlForExtraction(url) > 0;
     } catch { return false; }
-  });
+  }).sort((a, b) => scoreUrlForExtraction(new URL(b)) - scoreUrlForExtraction(new URL(a)));
 }
 
 type PageData = { url: string; title: string; description: string; html: string; text: string };
@@ -138,7 +151,7 @@ async function fetchPage(url: string): Promise<PageData | null> {
     if (!response.ok) return null;
     const contentType = response.headers.get("content-type") ?? "";
     if (!contentType.includes("text/html") && !contentType.includes("text/plain")) return null;
-    const html = (await response.text()).slice(0, 200000);
+    const html = (await response.text()).slice(0, MAX_RAW_HTML_LENGTH);
     const title = getTagContent(html, /<title[^>]*>([\s\S]*?)<\/title>/i);
     const description = getTagContent(html, /<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["'][^>]*>/i);
     const text = sanitizeText(html).slice(0, MAX_PAGE_TEXT_LENGTH);
@@ -161,6 +174,9 @@ const extractionTool = {
       phone: { type: "string", description: "Primary phone number" },
       booking_url: { type: "string", description: "Online booking URL if found" },
       hours: { type: "string", description: "Operating hours summary" },
+      address: { type: "string", description: "Street address and locality if found" },
+      email: { type: "string", description: "Primary email address if found" },
+      emergency_info: { type: "string", description: "Emergency/urgent care instructions or after-hours information" },
       doctors: {
         type: "array",
         items: {
@@ -172,15 +188,69 @@ const extractionTool = {
           },
           required: ["name"],
         },
-        description: "Veterinarians and key staff",
+        description: "Veterinarians and key staff. Include as many real people as the site provides.",
+      },
+      team_members: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            role: { type: "string" },
+            bio_summary: { type: "string" },
+          },
+          required: ["name"],
+        },
+        description: "Non-doctor staff, leadership, technicians, reception, and support team members found on the site",
       },
       services_list: {
         type: "array",
         items: { type: "string" },
-        description: "Top services offered (e.g. dentistry, surgery, wellness exams)",
+        description: "Exhaustive service names found across the crawled pages, not only the top services",
+      },
+      detailed_services: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            description: { type: "string" },
+            source_url: { type: "string" },
+          },
+          required: ["name"],
+        },
+        description: "Detailed service descriptions and source pages for every service page or service section found",
       },
       founding_year: { type: "string", description: "Year the clinic was founded" },
-      about_us_content: { type: "string", description: "Summary of the About Us / Our Story section" },
+      about_us_content: { type: "string", description: "Detailed summary of the About Us / Our Story section" },
+      mission_values: {
+        type: "array",
+        items: { type: "string" },
+        description: "Mission, philosophy, values, promises, standards of care, and positioning statements found on the site",
+      },
+      patient_resources: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            description: { type: "string" },
+            source_url: { type: "string" },
+          },
+          required: ["title"],
+        },
+        description: "Forms, pharmacy, payment, new-client information, FAQs, education pages, or other client resources",
+      },
+      accreditations_awards: {
+        type: "array",
+        items: { type: "string" },
+        description: "Accreditations, awards, associations, certifications, guarantees, or memberships",
+      },
+      social_links: {
+        type: "array",
+        items: { type: "string" },
+        description: "Social profile URLs found on the website",
+      },
       brand_identity: {
         type: "object",
         properties: {
@@ -193,6 +263,20 @@ const extractionTool = {
           logo_url: { type: "string", description: "URL of the clinic logo image found on the website" },
           visual_tone: { type: "string", description: "Visual style: modern, rustic, clinical, whimsical, minimalist, etc." },
         },
+      },
+      page_summaries: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            url: { type: "string" },
+            summary: { type: "string" },
+            key_findings: { type: "array", items: { type: "string" } },
+          },
+          required: ["url"],
+        },
+        description: "One entry for each source page analyzed, summarizing what useful data it contained",
       },
       confidence: { type: "string", enum: ["low", "medium", "high"], description: "Overall confidence in extraction" },
     },
@@ -225,9 +309,11 @@ async function extractWithAi(pages: PageData[]) {
       max_tokens: 8192,
       system: [
         "You are an expert at extracting veterinary clinic brand DNA from website content.",
-        "Extract all available information about the clinic: name, phone, hours, booking URL, doctors (with credentials), services, founding year, about us content, and brand identity.",
-        "For doctors, extract their full name, credentials (DVM, DACVS, etc.), and role (Owner, Associate, etc.).",
-        "For services, list the top/highlighted services offered.",
+        "Extract as much specific, useful information as possible from every crawled page, not just a short homepage summary.",
+        "Extract all available information about the clinic: name, address, phone, email, hours, emergency details, booking URL, doctors and staff, services, founding year, about us content, mission/values, patient resources, awards/accreditations, social links, and brand identity.",
+        "For doctors and team members, extract every real person listed with credentials, role, and short bio details when available.",
+        "For services, be exhaustive. Include every service/treatment/care category found across service pages and include descriptions and source URLs in detailed_services.",
+        "For page_summaries, include one concise but content-rich summary for each source page and list the key facts found on that page.",
         "For brand identity, identify: tagline/slogan, overall tone, stated values/mission, PRIMARY brand color (the dominant color used in the header/logo/buttons as a hex code), secondary brand color, the primary font family, the logo image URL (look for <img> tags with 'logo' in src or alt), and visual tone (modern, rustic, clinical, whimsical, minimalist).",
         "For colors, look at inline styles, CSS classes, header/nav background colors, button colors, and the overall color scheme. Return hex codes like #2B6CB0.",
         "For fonts, look at font-family declarations in inline styles or common web font references.",
@@ -350,6 +436,18 @@ Deno.serve(async (req) => {
     // AI extraction
     const extracted = await extractWithAi(pages);
     extracted.source_urls = pages.map((p) => p.url);
+    extracted.extraction_stats = {
+      pages_scraped: pages.length,
+      link_candidates: linkCandidates.length,
+      sitemap_urls: sitemapUrls.length,
+      total_text_characters: pages.reduce((sum, page) => sum + page.text.length, 0),
+    };
+    extracted.source_pages = pages.map((p) => ({
+      url: p.url,
+      title: p.title,
+      description: p.description,
+      text_preview: p.text.slice(0, 900),
+    }));
     extracted.extracted_at = new Date().toISOString();
 
     console.log(`Extraction complete. Confidence: ${extracted.confidence}`);
