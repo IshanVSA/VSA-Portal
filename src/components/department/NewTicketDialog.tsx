@@ -434,7 +434,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
               <DialogDescription>Create a new support ticket for this department.</DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 py-2">
+            <div className="space-y-4 py-2 flex-1 overflow-y-auto min-h-0 pr-1 -mr-1">
               {!isCustomForm && (
                 <VoiceDictation
                   formType="Generic"
