@@ -314,14 +314,38 @@ Deno.serve(async (req) => {
     const homepage = await fetchPage(websiteUrl);
     if (!homepage) return createJsonResponse({ error: "Unable to read the clinic website. Please verify the URL." }, 422);
 
-    const candidateUrls = extractCandidateLinks(homepage.html, homepage.url);
-    const extraPages = (await Promise.all(candidateUrls.map((url) => fetchPage(url)))).filter((p): p is PageData => Boolean(p));
+    const homepageOrigin = new URL(homepage.url).origin;
+    const linkCandidates = extractCandidateLinks(homepage.html, homepage.url);
+    const sitemapUrls = await fetchSitemapUrls(homepageOrigin);
+
+    // Merge: prioritize link-scored pages, then top up from sitemap (skip dupes / homepage)
+    const seen = new Set<string>([homepage.url]);
+    const merged: string[] = [];
+    for (const u of linkCandidates) {
+      if (seen.has(u)) continue;
+      seen.add(u);
+      merged.push(u);
+    }
+    for (const u of sitemapUrls) {
+      if (seen.has(u)) continue;
+      seen.add(u);
+      merged.push(u);
+    }
+    const toFetch = merged.slice(0, MAX_PAGES - 1);
+
+    // Fetch with limited concurrency
+    const extraPages: PageData[] = [];
+    for (let i = 0; i < toFetch.length; i += FETCH_CONCURRENCY) {
+      const chunk = toFetch.slice(i, i + FETCH_CONCURRENCY);
+      const results = await Promise.all(chunk.map((url) => fetchPage(url)));
+      for (const p of results) if (p) extraPages.push(p);
+    }
 
     const pages = [homepage, ...extraPages]
       .filter((page, i, all) => all.findIndex((p) => p.url === page.url) === i)
       .slice(0, MAX_PAGES);
 
-    console.log(`Scraped ${pages.length} pages: ${pages.map((p) => p.url).join(", ")}`);
+    console.log(`Scraped ${pages.length} pages (link candidates: ${linkCandidates.length}, sitemap urls: ${sitemapUrls.length})`);
 
     // AI extraction
     const extracted = await extractWithAi(pages);
