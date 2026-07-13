@@ -7,11 +7,11 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const MAX_PAGES = 30;
+const MAX_PAGES = 18;
 const MAX_RAW_HTML_LENGTH = 2_000_000;
 const MAX_PAGE_TEXT_LENGTH = 8000;
-const MAX_COMBINED_TEXT_LENGTH = 160000;
-const FETCH_CONCURRENCY = 6;
+const MAX_COMBINED_TEXT_LENGTH = 110000;
+const FETCH_CONCURRENCY = 10;
 
 const requestSchema = z.object({
   clinic_id: z.string().uuid(),
@@ -306,7 +306,7 @@ async function extractWithAi(pages: PageData[]) {
     },
     body: JSON.stringify({
       model: "claude-opus-4-6",
-      max_tokens: 8192,
+      max_tokens: 6000,
       system: [
         "You are an expert at extracting veterinary clinic brand DNA from website content.",
         "Extract as much specific, useful information as possible from every crawled page, not just a short homepage summary.",
