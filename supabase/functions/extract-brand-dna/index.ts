@@ -10,8 +10,8 @@ const corsHeaders = {
 const MAX_PAGES = 18;
 const MAX_RAW_HTML_LENGTH = 2_000_000;
 const MAX_PAGE_TEXT_LENGTH = 8000;
-const MAX_COMBINED_TEXT_LENGTH = 160000;
-const FETCH_CONCURRENCY = 6;
+const MAX_COMBINED_TEXT_LENGTH = 110000;
+const FETCH_CONCURRENCY = 10;
 
 const requestSchema = z.object({
   clinic_id: z.string().uuid(),
