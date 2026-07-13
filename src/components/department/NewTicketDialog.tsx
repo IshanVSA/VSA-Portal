@@ -176,6 +176,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     setPopupConsented(false);
     setPromoteSocial(false);
     setContentPreview(null);
+    setContentGenerating(false);
     setSubmitted(false);
     setSelectedClinicId("");
   };
