@@ -20,7 +20,7 @@ import {
   Stethoscope, Building, Star, MessageSquareQuote, Fingerprint,
   TrendingUp, Sparkles, Shield, Scale, BookOpen, Target, Ban,
   Users, Camera, CalendarClock, CheckSquare, AlertTriangle,
-  MapPin, TreePine, Home, Car, Edit2, Save, X, Mail,
+  MapPin, TreePine, Home, Car, Edit2, Save, X, Mail, Phone,
   Award, FileText, ExternalLink, Link2,
 } from "lucide-react";
 import { format } from "date-fns";
@@ -893,7 +893,7 @@ function WebsiteExtractionCard({ data, clinicId, canEdit }: { data: Record<strin
           )}
           {data.phone && (
             <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><PhoneIcon /> Phone</p>
+              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Phone className="h-3 w-3" /> Phone</p>
               <p className="text-sm">{data.phone}</p>
             </div>
           )}
@@ -1112,10 +1112,6 @@ function formatWebsiteValue(value: unknown): string {
   }
   if (typeof value === "object" && value !== null) return JSON.stringify(value, null, 2);
   return String(value);
-}
-
-function PhoneIcon() {
-  return <span className="inline-block h-3 w-3 rounded-full border border-current" aria-hidden="true" />;
 }
 
 function WebsiteTextBlock({ title, icon, value }: { title: string; icon: React.ReactNode; value: string }) {
