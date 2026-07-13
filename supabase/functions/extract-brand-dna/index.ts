@@ -56,19 +56,24 @@ function extractCandidateLinks(html: string, baseUrl: string) {
       const resolved = new URL(rawHref, base);
       if (resolved.origin !== base.origin) return;
       if (!["http:", "https:"].includes(resolved.protocol)) return;
-      if (/\.(pdf|jpg|jpeg|png|gif|webp|svg|zip)$/i.test(resolved.pathname)) return;
+      if (/\.(pdf|jpg|jpeg|png|gif|webp|svg|zip|mp4|mp3|css|js|ico|woff2?)$/i.test(resolved.pathname)) return;
+      if (/\/(wp-admin|wp-login|wp-json|feed|cart|checkout|my-account|login|signin|register|search|tag\/|category\/|author\/|\?add-to-cart|privacy|terms|cookie|sitemap)/i.test(resolved.pathname + resolved.search)) return;
 
       const pathname = resolved.pathname.toLowerCase();
-      let score = 0;
-      if (/(about|team|staff|doctors|our-team|our-doctors|our-practice|veterinarian|vet|meet)/.test(pathname)) score += 6;
-      if (/(services|what-we-do|offerings|specialties|treatments)/.test(pathname)) score += 5;
-      if (/(contact|location|hours|visit)/.test(pathname)) score += 4;
-      if (/(history|story|mission|values)/.test(pathname)) score += 3;
-      if (pathname === "/" || pathname === "") score -= 10;
+      let score = 1; // baseline: any same-origin internal page is worth a look
+      if (/(about|team|staff|doctors|our-team|our-doctors|our-practice|veterinarian|vet|meet)/.test(pathname)) score += 8;
+      if (/(service|what-we-do|offering|specialt|treatment|care|procedure|surgery|dental|wellness|vaccin|nutrition|grooming|boarding|emergency|urgent|exotic|dermatology|cardiology|oncology|orthoped|ultrasound|radiology|laser|behavior|pain|senior|puppy|kitten|dog|cat|pet)/.test(pathname)) score += 6;
+      if (/(contact|location|hours|visit|find-us|directions|appointment|booking|book)/.test(pathname)) score += 5;
+      if (/(history|story|mission|vision|values|philosophy|why|difference|community|awards|reviews|testimon)/.test(pathname)) score += 4;
+      if (/(faq|resource|blog|news|article|education|guide|tip|advice|price|cost|financing|insurance|payment)/.test(pathname)) score += 2;
+      if (pathname === "/" || pathname === "") score = -10;
+      if ((pathname.match(/\//g)?.length ?? 0) > 5) score -= 2; // deep archive pages
 
       if (score > 0) {
         resolved.hash = "";
-        scored.set(resolved.toString(), Math.max(scored.get(resolved.toString()) ?? 0, score));
+        resolved.search = "";
+        const key = resolved.toString();
+        scored.set(key, Math.max(scored.get(key) ?? 0, score));
       }
     } catch {
       // skip
@@ -77,8 +82,42 @@ function extractCandidateLinks(html: string, baseUrl: string) {
 
   return [...scored.entries()]
     .sort((a, b) => b[1] - a[1])
-    .map(([url]) => url)
-    .slice(0, MAX_PAGES - 1);
+    .map(([url]) => url);
+}
+
+async function fetchSitemapUrls(origin: string): Promise<string[]> {
+  const candidates = [`${origin}/sitemap.xml`, `${origin}/sitemap_index.xml`, `${origin}/wp-sitemap.xml`];
+  const out = new Set<string>();
+  for (const sm of candidates) {
+    try {
+      const controller = new AbortController();
+      const t = setTimeout(() => controller.abort(), 8000);
+      const res = await fetch(sm, { signal: controller.signal, redirect: "follow" });
+      clearTimeout(t);
+      if (!res.ok) continue;
+      const xml = (await res.text()).slice(0, 500000);
+      // Recurse into nested sitemaps
+      const nested = [...xml.matchAll(/<sitemap>[\s\S]*?<loc>([^<]+)<\/loc>[\s\S]*?<\/sitemap>/gi)].map((m) => m[1]);
+      for (const n of nested.slice(0, 5)) {
+        try {
+          const r2 = await fetch(n, { redirect: "follow" });
+          if (!r2.ok) continue;
+          const x2 = (await r2.text()).slice(0, 500000);
+          for (const m of x2.matchAll(/<loc>([^<]+)<\/loc>/gi)) out.add(m[1].trim());
+        } catch { /* ignore */ }
+      }
+      for (const m of xml.matchAll(/<loc>([^<]+)<\/loc>/gi)) out.add(m[1].trim());
+      if (out.size > 0) break;
+    } catch { /* ignore */ }
+  }
+  return [...out].filter((u) => {
+    try {
+      const url = new URL(u);
+      if (url.origin !== origin) return false;
+      if (/\.(xml|pdf|jpg|jpeg|png|gif|webp|svg|zip|mp4|mp3|css|js|ico|woff2?)$/i.test(url.pathname)) return false;
+      return true;
+    } catch { return false; }
+  });
 }
 
 type PageData = { url: string; title: string; description: string; html: string; text: string };
