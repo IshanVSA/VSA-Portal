@@ -274,4 +274,6 @@ export const ContentRequestForm = forwardRef<ContentRequestFormRef, ContentReque
       )}
     </div>
   );
-}
+});
+
+ContentRequestForm.displayName = "ContentRequestForm";
