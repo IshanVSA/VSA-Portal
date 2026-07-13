@@ -374,7 +374,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
 
   return (
     <Dialog open={open} onOpenChange={(val) => { if (!val) handleClose(); else onOpenChange(val); }}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col p-0 gap-0">
         {submitted ? (
           <>
             <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
