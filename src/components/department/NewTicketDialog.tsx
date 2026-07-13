@@ -514,14 +514,14 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
               )}
             </div>
 
-            <DialogFooter className="!flex-col !items-stretch gap-2 sm:!space-x-0 border-t pt-3 mt-0 shrink-0">
+            <DialogFooter className="!flex-col !items-stretch gap-3 sm:!space-x-0 border-t border-border/60 pt-4 mt-0 shrink-0">
               {ticketType === "Content Request" && !contentPreview ? (
                 <>
                   <Button
                     type="button"
                     onClick={() => contentFormRef.current?.generatePreview()}
                     disabled={loading || uploading || contentGenerating}
-                    className="w-full"
+                    className="w-full rounded-full py-6 font-semibold shadow-lg shadow-primary/25 hover:shadow-primary/35 hover:-translate-y-0.5 active:translate-y-0 transition-all"
                   >
                     {contentGenerating ? (
                       <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating preview...</>
@@ -529,9 +529,13 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
                       <><Sparkles className="h-4 w-4 mr-2" /> Generate AI preview</>
                     )}
                   </Button>
-                  <div className="flex w-full gap-2">
-                    <Button variant="outline" onClick={handleClose} className="flex-1">Cancel</Button>
-                    <Button onClick={handleSubmit} disabled={loading || uploading || contentGenerating} className="flex-1">
+                  <div className="flex w-full gap-3">
+                    <Button variant="outline" onClick={handleClose} className="flex-1 rounded-full">Cancel</Button>
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={loading || uploading || contentGenerating}
+                      className="flex-[2] rounded-full bg-primary/10 text-primary hover:bg-primary/15 shadow-none"
+                    >
                       {uploading ? (
                         <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Uploading…</>
                       ) : loading ? "Creating…" : "Create without AI preview"}
@@ -539,14 +543,18 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
                   </div>
                 </>
               ) : (
-                <>
-                  <Button variant="outline" onClick={handleClose}>Cancel</Button>
-                  <Button onClick={handleSubmit} disabled={loading || uploading || (ticketType === "Pop-up Offers" && !popupConsented) || (ticketType === "Add/Remove Team Members" && !teamFormValid)}>
+                <div className="flex w-full gap-3">
+                  <Button variant="outline" onClick={handleClose} className="flex-1 rounded-full">Cancel</Button>
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={loading || uploading || (ticketType === "Pop-up Offers" && !popupConsented) || (ticketType === "Add/Remove Team Members" && !teamFormValid)}
+                    className="flex-[2] rounded-full shadow-lg shadow-primary/25 hover:shadow-primary/35"
+                  >
                     {uploading ? (
                       <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Uploading…</>
                     ) : loading ? "Creating…" : "Create Ticket"}
                   </Button>
-                </>
+                </div>
               )}
             </DialogFooter>
           </>
