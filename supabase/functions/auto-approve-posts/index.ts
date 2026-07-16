@@ -269,8 +269,17 @@ Deno.serve(async (req) => {
       else {
         totalApproved += ids.length;
         console.log(`Auto-approved ${ids.length} sm2_generations (final review)`);
+        // Materialize approved generations into content_posts for the calendar
+        for (const gid of ids) {
+          try {
+            await supabase.functions.invoke("materialize-sm2-posts", { body: { generationId: gid } });
+          } catch (e) {
+            console.warn("materialize-sm2-posts failed for", gid, e);
+          }
+        }
       }
     }
+
 
     return new Response(
       JSON.stringify({
