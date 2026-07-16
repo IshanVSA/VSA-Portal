@@ -83,25 +83,56 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ─── 2. ESCALATE: Mark overdue tickets (open > 48h) as emergency ───
-    const cutoff48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-    const { data: overdue } = await supabase
+    // ─── 2. ESCALATE: Mark overdue tickets (open > 48 BUSINESS hours) as emergency ───
+    // Business hours = Mon–Fri 9:00–17:00 (8h/day). Sat/Sun excluded entirely.
+    // 48 business hours = 6 business days. We over-fetch by 10 calendar days
+    // to catch any ticket that could plausibly cross the threshold, then filter precisely.
+    const overfetchCutoff = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: overdueCandidates } = await supabase
       .from("department_tickets")
-      .select("id")
+      .select("id, created_at")
       .in("status", ["open", "in_progress"])
       .neq("priority", "emergency")
-      .lt("created_at", cutoff48h);
+      .lt("created_at", overfetchCutoff);
     // Note: voided tickets are excluded automatically since status filter only matches open/in_progress.
 
-    if (overdue && overdue.length > 0) {
+    const BIZ_START_HOUR = 9;
+    const BIZ_END_HOUR = 17;
+    const businessMsBetween = (start: Date, end: Date): number => {
+      if (end <= start) return 0;
+      let total = 0;
+      const cursor = new Date(start);
+      while (cursor < end) {
+        const day = cursor.getDay();
+        if (day !== 0 && day !== 6) {
+          const dayStart = new Date(cursor);
+          dayStart.setHours(BIZ_START_HOUR, 0, 0, 0);
+          const dayEnd = new Date(cursor);
+          dayEnd.setHours(BIZ_END_HOUR, 0, 0, 0);
+          const sliceStart = cursor > dayStart ? cursor : dayStart;
+          const sliceEnd = end < dayEnd ? end : dayEnd;
+          if (sliceEnd > sliceStart) total += sliceEnd.getTime() - sliceStart.getTime();
+        }
+        cursor.setHours(24, 0, 0, 0);
+      }
+      return total;
+    };
+    const THRESHOLD_MS = 48 * 60 * 60 * 1000; // 48 business hours
+    const now = new Date();
+    const overdue = (overdueCandidates || []).filter((t: any) =>
+      businessMsBetween(new Date(t.created_at), now) >= THRESHOLD_MS
+    );
+
+    if (overdue.length > 0) {
       for (const ticket of overdue) {
         await supabase
           .from("department_tickets")
-          .update({ priority: "emergency" as any, notes: "Auto-escalated: ticket open > 48 hours" })
+          .update({ priority: "emergency" as any, notes: "Auto-escalated: ticket open > 48 business hours (Mon–Fri)" })
           .eq("id", ticket.id);
         results.escalated++;
       }
     }
+
 
     // ─── 3. NOTIFY: Mark completed tickets (update notes for client visibility) ───
     // Find tickets completed in the last hour that don't have a completion note
