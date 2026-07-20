@@ -10,6 +10,7 @@ import {
   useAddChecklistItem,
   useUpdateChecklistItem,
   useDeactivateChecklistItem,
+  type ChecklistType,
 } from "@/hooks/useWebsiteChecklist";
 import {
   AlertDialog,
@@ -25,28 +26,33 @@ import {
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  checklistType?: ChecklistType;
 }
 
-const DEFAULT_SECTIONS = ["Before Migration", "After Migration"];
+const DEFAULT_SECTIONS_BY_TYPE: Record<ChecklistType, string[]> = {
+  delivery: ["Before Migration", "After Migration"],
+  maintenance: ["Maintenance"],
+};
 
-export function ChecklistItemsManagerDialog({ open, onOpenChange }: Props) {
-  const { data: items = [] } = useChecklistItems(true);
+export function ChecklistItemsManagerDialog({ open, onOpenChange, checklistType = "delivery" }: Props) {
+  const { data: items = [] } = useChecklistItems(true, checklistType);
   const addItem = useAddChecklistItem();
   const updateItem = useUpdateChecklistItem();
   const deactivateItem = useDeactivateChecklistItem();
 
+  const defaultSections = DEFAULT_SECTIONS_BY_TYPE[checklistType];
   const [newLabel, setNewLabel] = useState("");
-  const [newSection, setNewSection] = useState(DEFAULT_SECTIONS[1]);
+  const [newSection, setNewSection] = useState(defaultSections[defaultSections.length - 1]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState("");
   const [editSection, setEditSection] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  const sections = Array.from(new Set([...DEFAULT_SECTIONS, ...items.map((i) => i.section)]));
+  const sections = Array.from(new Set([...defaultSections, ...items.map((i) => i.section)]));
 
   const handleAdd = async () => {
     if (!newLabel.trim()) return;
-    await addItem.mutateAsync({ section: newSection, label: newLabel.trim() });
+    await addItem.mutateAsync({ section: newSection, label: newLabel.trim(), checklist_type: checklistType });
     setNewLabel("");
   };
 
@@ -66,12 +72,14 @@ export function ChecklistItemsManagerDialog({ open, onOpenChange }: Props) {
     .map((s) => ({ section: s, rows: items.filter((i) => i.section === s) }))
     .filter((g) => g.rows.length > 0);
 
+  const title = checklistType === "maintenance" ? "Manage Maintenance Items" : "Manage Checklist Items";
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>Manage Checklist Items</DialogTitle>
+            <DialogTitle>{title}</DialogTitle>
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto space-y-5 pr-1">
