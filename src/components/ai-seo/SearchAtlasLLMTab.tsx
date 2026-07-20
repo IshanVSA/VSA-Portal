@@ -193,6 +193,65 @@ export function SearchAtlasLLMTab({ config, clinicId }: Props) {
           </div>
         </Card>
       )}
+
+      {/* Competitor Share of Voice — real values from get_competitor_share_of_voice */}
+      <Card className="border-border/60">
+        <div className="px-4 py-3 border-b border-border/40">
+          <h3 className="text-sm font-bold">Competitor Share of Voice</h3>
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Competitor</TableHead>
+              <TableHead className="text-right w-32">Visibility</TableHead>
+              <TableHead className="text-right w-28">Mentions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {competitors.length === 0 ? (
+              <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-6 text-xs">No competitor data yet.</TableCell></TableRow>
+            ) : competitors.slice(0, 10).map((c: any, i: number) => (
+              <TableRow key={i} className="text-xs">
+                <TableCell className="font-medium">{c.domain ?? c.name ?? c.brand ?? "—"}</TableCell>
+                <TableCell className="text-right tabular-nums">{Number(c.visibility ?? c.share ?? c.score ?? 0).toFixed(1)}</TableCell>
+                <TableCell className="text-right tabular-nums">{Number(c.mentions ?? c.count ?? 0).toLocaleString()}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+
+      {/* Citation URLs — real citation destinations from get_citations_urls */}
+      <Card className="border-border/60">
+        <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
+          <h3 className="text-sm font-bold">Top Citation URLs</h3>
+          <span className="text-[11px] text-muted-foreground">{citationRows.length} shown</span>
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>URL</TableHead>
+              <TableHead className="text-right w-28">Mentions</TableHead>
+              <TableHead className="text-right w-32">Platforms</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {citationRows.length === 0 ? (
+              <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-6 text-xs">No citation URLs returned.</TableCell></TableRow>
+            ) : citationRows.slice(0, 25).map((u: any, i: number) => (
+              <TableRow key={i} className="text-xs">
+                <TableCell className="max-w-[440px] truncate">
+                  {u.url ? <a href={u.url} target="_blank" rel="noreferrer" className="text-[hsl(195_80%_55%)] hover:underline">{u.url}</a> : "—"}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">{Number(u.mentions ?? u.count ?? 0).toLocaleString()}</TableCell>
+                <TableCell className="text-right text-muted-foreground">
+                  {Array.isArray(u.platforms) ? u.platforms.join(", ") : (u.platform ?? "—")}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
     </div>
   );
 }
