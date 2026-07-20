@@ -83,6 +83,7 @@ export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
   // Real keyword data via MCP
   const kwQ = useSearchAtlasMcp<any>(["org-kw", rtId ?? domain ?? ""], "organic", "get_organic_keywords", { project_id: rtId, domain, limit: 100 }, !!(rtId || domain));
   const posQ = useSearchAtlasMcp<any>(["pos-chg", rtId ?? domain ?? ""], "organic", "get_organic_position_changes", { project_id: rtId, domain }, !!(rtId || domain));
+  const pagesQ = useSearchAtlasMcp<any>(["org-pages", rtId ?? domain ?? ""], "organic", "get_organic_pages", { project_id: rtId, domain, limit: 20 }, !!(rtId || domain));
 
   const [chartMode, setChartMode] = useState<typeof CHART_MODES[number]["key"]>("position");
   const [range, setRange] = useState<typeof RANGE_TABS[number]>("All time");
