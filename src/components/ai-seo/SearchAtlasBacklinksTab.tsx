@@ -8,6 +8,7 @@ import {
 } from "recharts";
 import { findSearchAtlasProject, useSearchAtlasCustomerProjects, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "./SearchAtlasEmptyState";
+import { OpenInSearchAtlas } from "./OpenInSearchAtlas";
 
 interface Props { config: SearchAtlasClinicConfig; clinicId?: string }
 
@@ -72,12 +73,15 @@ export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
   return (
     <div className="space-y-5">
       {/* Breadcrumb-ish header */}
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span>Site Explorer</span>
-        <span className="opacity-50">/</span>
-        <span className="text-foreground">{domainLabel}</span>
-        <span className="opacity-50">/</span>
-        <span>Backlinks</span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>Site Explorer</span>
+          <span className="opacity-50">/</span>
+          <span className="text-foreground">{domainLabel}</span>
+          <span className="opacity-50">/</span>
+          <span>Backlinks</span>
+        </div>
+        <OpenInSearchAtlas section="site-explorer" domain={domainLabel} />
       </div>
 
       {/* KPI strip — Search Atlas exposes these summary metrics for this account */}

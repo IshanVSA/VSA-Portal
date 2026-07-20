@@ -8,6 +8,8 @@ import {
 } from "recharts";
 import { findSearchAtlasProject, useSearchAtlasCustomerProjects, useSearchAtlasMcp, unwrapSearchAtlasPayload, isSearchAtlasSoftError, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "./SearchAtlasEmptyState";
+import { OpenInSearchAtlas } from "./OpenInSearchAtlas";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface Props { config: SearchAtlasClinicConfig; clinicId?: string }
 
@@ -29,6 +31,7 @@ export function SearchAtlasLLMTab({ config, clinicId }: Props) {
   const sovQ = useSearchAtlasMcp<any>(["sov", pid ?? ""], "visibility", "get_competitor_share_of_voice", { project_id: pid }, !!pid);
   const sentQ = useSearchAtlasMcp<any>(["sent", pid ?? ""], "sentiment", "get_sentiment_overview", { project_id: pid }, !!pid);
   const citQ = useSearchAtlasMcp<any>(["cit", pid ?? ""], "citations", "get_citations_overview", { project_id: pid }, !!pid);
+  const citUrlsQ = useSearchAtlasMcp<any>(["cit-urls", pid ?? ""], "citations", "get_citations_urls", { project_id: pid, limit: 25 }, !!pid);
 
   const project = findSearchAtlasProject(overviewQ.data, config);
   const listing = project?.data?.llmv ?? project ?? {};
@@ -37,6 +40,8 @@ export function SearchAtlasLLMTab({ config, clinicId }: Props) {
   const sov: any = !isSearchAtlasSoftError(sovQ.data) ? (unwrapSearchAtlasPayload<any>(sovQ.data) ?? {}) : {};
   const sent: any = !isSearchAtlasSoftError(sentQ.data) ? (unwrapSearchAtlasPayload<any>(sentQ.data) ?? {}) : {};
   const cit: any = !isSearchAtlasSoftError(citQ.data) ? (unwrapSearchAtlasPayload<any>(citQ.data) ?? {}) : {};
+  const citUrls: any = !isSearchAtlasSoftError(citUrlsQ.data) ? (unwrapSearchAtlasPayload<any>(citUrlsQ.data) ?? {}) : {};
+  const citationRows: any[] = Array.isArray(citUrls?.results) ? citUrls.results : Array.isArray(citUrls?.urls) ? citUrls.urls : Array.isArray(citUrls?.data) ? citUrls.data : [];
   const o: any = { ...listing, ...(brand?.overview ?? brand?.data ?? brand) };
 
   const visibilityScore = o?.visibility_score ?? o?.overall_visibility ?? o?.current_mentions ?? 0;
@@ -82,6 +87,7 @@ export function SearchAtlasLLMTab({ config, clinicId }: Props) {
           <FilterPill label="All platforms" />
           <Button variant="outline" size="sm" className="h-8 text-xs">Manage Competitors</Button>
           <Button size="sm" className="h-8 text-xs bg-[hsl(265_90%_65%)] hover:bg-[hsl(265_90%_60%)] text-white">Manage Queries</Button>
+          <OpenInSearchAtlas section="llm-visibility" projectId={pid} />
         </div>
       </div>
 
@@ -187,6 +193,65 @@ export function SearchAtlasLLMTab({ config, clinicId }: Props) {
           </div>
         </Card>
       )}
+
+      {/* Competitor Share of Voice — real values from get_competitor_share_of_voice */}
+      <Card className="border-border/60">
+        <div className="px-4 py-3 border-b border-border/40">
+          <h3 className="text-sm font-bold">Competitor Share of Voice</h3>
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Competitor</TableHead>
+              <TableHead className="text-right w-32">Visibility</TableHead>
+              <TableHead className="text-right w-28">Mentions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {competitors.length === 0 ? (
+              <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-6 text-xs">No competitor data yet.</TableCell></TableRow>
+            ) : competitors.slice(0, 10).map((c: any, i: number) => (
+              <TableRow key={i} className="text-xs">
+                <TableCell className="font-medium">{c.domain ?? c.name ?? c.brand ?? "—"}</TableCell>
+                <TableCell className="text-right tabular-nums">{Number(c.visibility ?? c.share ?? c.score ?? 0).toFixed(1)}</TableCell>
+                <TableCell className="text-right tabular-nums">{Number(c.mentions ?? c.count ?? 0).toLocaleString()}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+
+      {/* Citation URLs — real citation destinations from get_citations_urls */}
+      <Card className="border-border/60">
+        <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
+          <h3 className="text-sm font-bold">Top Citation URLs</h3>
+          <span className="text-[11px] text-muted-foreground">{citationRows.length} shown</span>
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>URL</TableHead>
+              <TableHead className="text-right w-28">Mentions</TableHead>
+              <TableHead className="text-right w-32">Platforms</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {citationRows.length === 0 ? (
+              <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-6 text-xs">No citation URLs returned.</TableCell></TableRow>
+            ) : citationRows.slice(0, 25).map((u: any, i: number) => (
+              <TableRow key={i} className="text-xs">
+                <TableCell className="max-w-[440px] truncate">
+                  {u.url ? <a href={u.url} target="_blank" rel="noreferrer" className="text-[hsl(195_80%_55%)] hover:underline">{u.url}</a> : "—"}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">{Number(u.mentions ?? u.count ?? 0).toLocaleString()}</TableCell>
+                <TableCell className="text-right text-muted-foreground">
+                  {Array.isArray(u.platforms) ? u.platforms.join(", ") : (u.platform ?? "—")}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
     </div>
   );
 }

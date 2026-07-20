@@ -9,6 +9,8 @@ import {
 } from "recharts";
 import { findSearchAtlasProject, useSearchAtlasCustomerProjects, useSearchAtlasMcp, unwrapSearchAtlasPayload, isSearchAtlasSoftError, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "./SearchAtlasEmptyState";
+import { OpenInSearchAtlas } from "./OpenInSearchAtlas";
+import { TrendingUp, TrendingDown, Plus as PlusIcon, Minus as MinusIcon } from "lucide-react";
 
 interface Props { config: SearchAtlasClinicConfig; clinicId?: string }
 
@@ -81,6 +83,7 @@ export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
   // Real keyword data via MCP
   const kwQ = useSearchAtlasMcp<any>(["org-kw", rtId ?? domain ?? ""], "organic", "get_organic_keywords", { project_id: rtId, domain, limit: 100 }, !!(rtId || domain));
   const posQ = useSearchAtlasMcp<any>(["pos-chg", rtId ?? domain ?? ""], "organic", "get_organic_position_changes", { project_id: rtId, domain }, !!(rtId || domain));
+  const pagesQ = useSearchAtlasMcp<any>(["org-pages", rtId ?? domain ?? ""], "organic", "get_organic_pages", { project_id: rtId, domain, limit: 20 }, !!(rtId || domain));
 
   const [chartMode, setChartMode] = useState<typeof CHART_MODES[number]["key"]>("position");
   const [range, setRange] = useState<typeof RANGE_TABS[number]>("All time");
@@ -97,6 +100,7 @@ export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
   const raw = project?.data?.se ?? project ?? {};
   const kwPayload: any = !isSearchAtlasSoftError(kwQ.data) ? (unwrapSearchAtlasPayload<any>(kwQ.data) ?? {}) : {};
   const posPayload: any = !isSearchAtlasSoftError(posQ.data) ? (unwrapSearchAtlasPayload<any>(posQ.data) ?? {}) : {};
+  const pagesPayload: any = !isSearchAtlasSoftError(pagesQ.data) ? (unwrapSearchAtlasPayload<any>(pagesQ.data) ?? {}) : {};
 
   const rows: Kw[] = Array.isArray(kwPayload?.results) ? kwPayload.results
     : Array.isArray(kwPayload?.keywords) ? kwPayload.keywords
@@ -110,10 +114,28 @@ export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
 
   const buckets = useMemo(() => bucketize(rows), [rows]);
 
+  // Position-change summary — try many shapes returned by get_organic_position_changes
+  const posSummary = useMemo(() => {
+    const src: any = posPayload?.summary ?? posPayload?.totals ?? posPayload ?? {};
+    const num = (v: any) => Number(v ?? 0) || 0;
+    return {
+      improved: num(src.improved ?? src.improved_count ?? src.gains ?? src.up),
+      declined: num(src.declined ?? src.declined_count ?? src.losses ?? src.down),
+      new: num(src.new ?? src.new_count ?? src.entered),
+      lost: num(src.lost ?? src.lost_count ?? src.exited),
+    };
+  }, [posPayload]);
+
+  // Top organic pages (from get_organic_pages)
+  const topPages = useMemo<any[]>(() => {
+    const raw = pagesPayload?.results ?? pagesPayload?.pages ?? pagesPayload?.data ?? [];
+    return Array.isArray(raw) ? raw.slice(0, 20) : [];
+  }, [pagesPayload]);
+
   // Try real time-series from API; else fall back to single-period stack
   const positionHistory = useMemo<any[]>(() => {
-    const hist = posPayload?.history ?? posPayload?.trend ?? posPayload?.data ?? raw?.position_history ?? raw?.organic_keyword_position_history ?? [];
-    if (Array.isArray(hist) && hist.length) {
+    const hist = posPayload?.history ?? posPayload?.trend ?? posPayload?.data ?? posPayload?.results ?? raw?.position_history ?? raw?.organic_keyword_position_history ?? [];
+    if (Array.isArray(hist) && hist.length && (hist[0]?.date || hist[0]?.day)) {
       return hist.map((d: any) => ({
         date: d.date ?? d.day ?? "",
         top3: Number(d.top3 ?? d.top_3 ?? 0),
@@ -125,18 +147,29 @@ export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
       }));
     }
     return [{ date: "Now", ...buckets }];
-  }, [raw, buckets]);
+  }, [raw, buckets, posPayload]);
 
   const filtered = useMemo(() => rows.filter(k => !search || (k.keyword ?? "").toLowerCase().includes(search.toLowerCase())), [rows, search]);
 
   return (
     <div className="space-y-5">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span>Site Explorer</span><span className="opacity-50">/</span>
-        <span className="text-foreground">{raw?.domain ?? config.search_atlas_domain ?? "—"}</span><span className="opacity-50">/</span>
-        <span>Keywords</span><span className="opacity-50">/</span>
-        <span>Organic Keywords</span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>Site Explorer</span><span className="opacity-50">/</span>
+          <span className="text-foreground">{raw?.domain ?? config.search_atlas_domain ?? "—"}</span><span className="opacity-50">/</span>
+          <span>Keywords</span><span className="opacity-50">/</span>
+          <span>Organic Keywords</span>
+        </div>
+        <OpenInSearchAtlas section="keyword-research" projectId={rtId} domain={config.search_atlas_domain ?? undefined} />
+      </div>
+
+      {/* Position change summary from get_organic_position_changes */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <PosChangeCard icon={TrendingUp} label="Improved" value={posSummary.improved} color="hsl(142 70% 45%)" />
+        <PosChangeCard icon={TrendingDown} label="Declined" value={posSummary.declined} color="hsl(0 75% 55%)" />
+        <PosChangeCard icon={PlusIcon} label="New" value={posSummary.new} color="hsl(195 90% 55%)" />
+        <PosChangeCard icon={MinusIcon} label="Lost" value={posSummary.lost} color="hsl(28 90% 55%)" />
       </div>
 
       {/* Domain & top tabs */}
@@ -316,7 +349,55 @@ export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
           </Table>
         </div>
       </Card>
+
+      {/* Top Organic Pages panel (get_organic_pages) */}
+      <Card className="border-border/60 overflow-hidden">
+        <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
+          <h3 className="text-sm font-bold">Top Organic Pages</h3>
+          <span className="text-[11px] text-muted-foreground">{topPages.length} shown</span>
+        </div>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/30">
+                <TableHead>URL</TableHead>
+                <TableHead className="w-24 text-right">KEYWORDS</TableHead>
+                <TableHead className="w-24 text-right">TRAFFIC</TableHead>
+                <TableHead className="w-24 text-right">TRAFFIC %</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {topPages.length === 0 ? (
+                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6 text-xs">No page-level data returned.</TableCell></TableRow>
+              ) : topPages.map((p: any, i: number) => (
+                <TableRow key={i} className="text-xs">
+                  <TableCell className="max-w-[420px] truncate">
+                    {p.url ? <a href={p.url} target="_blank" rel="noreferrer" className="text-[hsl(195_80%_55%)] hover:underline">{p.url}</a> : "—"}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">{fmt(p.keywords ?? p.keywords_count)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmt(p.traffic ?? p.organic_traffic)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{Number(p.traffic_percent ?? p.traffic_share ?? 0).toFixed(1)}%</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
     </div>
+  );
+}
+
+function PosChangeCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: number; color: string }) {
+  return (
+    <Card className="border-border/60 p-3">
+      <div className="flex items-center gap-2">
+        <span className="h-6 w-6 rounded-md flex items-center justify-center" style={{ backgroundColor: `${color}20`, color }}>
+          <Icon className="h-3.5 w-3.5" />
+        </span>
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
+      </div>
+      <p className="text-2xl font-bold tabular-nums mt-1.5">{value.toLocaleString()}</p>
+    </Card>
   );
 }
 

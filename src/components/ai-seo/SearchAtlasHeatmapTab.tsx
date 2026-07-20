@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { MapPin, ChevronDown, Lightbulb, Search, Download, MoreVertical, X } from "lucide-react";
 import { useSearchAtlasMcp, unwrapSearchAtlasPayload, isSearchAtlasSoftError, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "./SearchAtlasEmptyState";
+import { OpenInSearchAtlas } from "./OpenInSearchAtlas";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Props { config: SearchAtlasClinicConfig; clinicId?: string }
@@ -69,11 +70,14 @@ export function SearchAtlasHeatmapTab({ config, clinicId }: Props) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Local SEO Heatmap</h2>
-        <p className="text-xs text-muted-foreground mt-1 max-w-md">
-          Research reveals that appearing in Google Maps is the #1 best return on your SEO investment.
-        </p>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Local SEO Heatmap</h2>
+          <p className="text-xs text-muted-foreground mt-1 max-w-md">
+            Research reveals that appearing in Google Maps is the #1 best return on your SEO investment.
+          </p>
+        </div>
+        <OpenInSearchAtlas section="local-heatmap" projectId={rtId} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-4">
