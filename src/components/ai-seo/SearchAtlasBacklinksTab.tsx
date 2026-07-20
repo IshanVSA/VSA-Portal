@@ -47,6 +47,19 @@ export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
     return asRecord(data?.se) ?? {};
   }, [project]);
 
+  // Real per-domain backlink rows via the SE tool exposed on our plan.
+  const linksQ = useSearchAtlasMcpByName<any>(
+    ["se_get_links", domain ?? ""],
+    "se_get_links",
+    { target: domain, limit: 100, mode: "domains" },
+    !!domain,
+  );
+  const linksData = !isSearchAtlasSoftError(linksQ.data) ? (unwrapSearchAtlasPayload<any>(linksQ.data) ?? {}) : {};
+  const referringRows: any[] = useMemo(() => {
+    const raw = linksData?.results ?? linksData?.referring_domains ?? linksData?.rows ?? linksData?.data ?? [];
+    return Array.isArray(raw) ? raw : [];
+  }, [linksData]);
+
   const totalBacklinks = numberOr(se.backlinks);
   const referringDomains = numberOr(se.refdomains ?? se.referring_domains);
   const authority = numberOr(se.authority ?? se.domain_authority);
