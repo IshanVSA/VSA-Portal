@@ -24,7 +24,10 @@ const ALLOWED_PREFIXES = [
 
 const ALLOWED_METHODS = ["GET", "POST"];
 const SA_BASE = "https://api.searchatlas.com";
-const MCP_BASE = "https://mcp.searchatlas.com/mcp/";
+const MCP_BASES = [
+  "https://mcp.searchatlas.com/mcp/",
+  "https://mcp.searchatlas.com/api/v1/mcp",
+];
 
 // Real Search Atlas MCP tool names (flat). Introspected via tools/list.
 const ALLOWED_MCP_NAMES = new Set<string>([
@@ -133,6 +136,10 @@ function parseMcpBody(text: string): unknown {
   try { return JSON.parse(text); } catch { return text; }
 }
 
+function hasMcpError(data: unknown) {
+  return Boolean(data && typeof data === "object" && "error" in (data as Record<string, unknown>));
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -187,26 +194,33 @@ Deno.serve(async (req) => {
         return json({ error: `MCP tool not allowed: ${name}` }, 403);
       }
 
-      const upstream = await fetch(MCP_BASE, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...getMcpAuthHeaders(apiKey),
-        },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: crypto.randomUUID(),
-          method: "tools/call",
-          params: { name, arguments: params },
-        }),
+      const requestBody = JSON.stringify({
+        jsonrpc: "2.0",
+        id: crypto.randomUUID(),
+        method: "tools/call",
+        params: { name, arguments: params },
       });
-      const text = await upstream.text();
-      const data = parseMcpBody(text);
 
-      if (!upstream.ok || (data && typeof data === "object" && "error" in (data as Record<string, unknown>))) {
+      let upstream: Response | null = null;
+      let data: unknown = null;
+      for (const base of MCP_BASES) {
+        upstream = await fetch(base, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...getMcpAuthHeaders(apiKey),
+          },
+          body: requestBody,
+        });
+        const text = await upstream.text();
+        data = parseMcpBody(text);
+        if (upstream.ok && !hasMcpError(data)) break;
+      }
+
+      if (!upstream?.ok || hasMcpError(data)) {
         return json({
           __searchAtlasError: true,
-          status: upstream.status,
+          status: upstream?.status,
           source: "mcp",
           name,
           tool,
