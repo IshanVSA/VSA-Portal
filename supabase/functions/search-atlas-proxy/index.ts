@@ -24,7 +24,10 @@ const ALLOWED_PREFIXES = [
 
 const ALLOWED_METHODS = ["GET", "POST"];
 const SA_BASE = "https://api.searchatlas.com";
-const MCP_BASE = "https://mcp.searchatlas.com/api/v1/mcp";
+const MCP_BASES = [
+  "https://mcp.searchatlas.com/mcp/",
+  "https://mcp.searchatlas.com/api/v1/mcp",
+];
 
 // Real Search Atlas MCP tool names (flat). Introspected via tools/list.
 const ALLOWED_MCP_NAMES = new Set<string>([
@@ -37,16 +40,17 @@ const ALLOWED_MCP_NAMES = new Set<string>([
   "otto_get_installation_guide","otto_get_task_status",
   // Site Explorer — the SE.* namespace we lacked before (backlinks, SERP, gap)
   "se_analyze_domain","se_get_serp_overview","se_get_organic","se_get_links","se_get_educational_backlinks",
+  "se_backlinks_overview","se_get_referring_domains","se_get_backlinks","se_get_organic_keywords",
   "se_get_brand_signals","se_get_indexed_pages","se_get_keyword_gap_results","se_keyword_gap_analyze",
   "se_keyword_gap_compare","se_lookup_keyword","se_get_analysis","se_get_details","se_list_sites",
   "se_list_keyword_gap_analyses","se_get_adwords","se_get_holistic_seo_scores",
   "se_keyword_research_projects","se_get_keyword_research_details","se_research_keywords",
   // LLM Visibility
-  "llmv_get_overview","llmv_get_competitor_data","llmv_get_sentiment_trend",
+  "llmv_get_overview","llmv_get_visibility_report","llmv_get_competitor_data","llmv_get_sentiment_trend",
   "llmv_get_citations_overview","llmv_get_citations_urls","llmv_list_topics","llmv_list_queries",
   "llmv_get_project","llmv_list_projects","llmv_list_prompt_analyses","llmv_get_ps_analysis",
   // Keyword Rank Tracker
-  "krt_list_projects","krt_get_rankings","krt_ranking_report","krt_analyze_competitors",
+  "krt_list_projects","krt_get_rankings","krt_ranking_report","krt_analyze_competitors","krt_get_keywords",
   "krt_get_project_locations","krt_get_date_range",
   // Local SEO Heatmaps
   "local_seo_heatmaps_list_businesses","local_seo_heatmaps_get_business",
@@ -73,7 +77,7 @@ const LEGACY_ALIAS: Record<string, string> = {
   "backlinks.get_site_backlinks": "se_get_links",
   "backlinks.get_site_referring_domains": "se_get_links",
   "visibility.get_brand_overview": "llmv_get_overview",
-  "visibility.get_visibility_trend": "llmv_get_sentiment_trend",
+  "visibility.get_visibility_trend": "llmv_get_visibility_report",
   "visibility.get_competitor_share_of_voice": "llmv_get_competitor_data",
   "sentiment.get_sentiment_overview": "llmv_get_sentiment_trend",
   "citations.get_citations_overview": "llmv_get_citations_overview",
@@ -102,6 +106,15 @@ function sanitizeDetails(data: unknown) {
   return data.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 500);
 }
 
+function getMcpAuthHeaders(apiKey: string) {
+  const headers: Record<string, string> = {
+    "Accept": "application/json, text/event-stream",
+  };
+  if (apiKey.includes(".")) headers.Authorization = `Bearer ${apiKey}`;
+  else headers["X-API-Key"] = apiKey;
+  return headers;
+}
+
 /**
  * Search Atlas MCP uses streamable-HTTP and may return SSE frames.
  * Parse `data:` lines back to JSON so callers see a normal object.
@@ -109,13 +122,22 @@ function sanitizeDetails(data: unknown) {
 function parseMcpBody(text: string): unknown {
   const trimmed = text.trimStart();
   if (trimmed.startsWith("event:") || trimmed.startsWith("data:")) {
-    const dataLine = trimmed.split("\n").find((l) => l.startsWith("data:"));
-    if (dataLine) {
-      const payload = dataLine.slice("data:".length).trim();
-      try { return JSON.parse(payload); } catch { return payload; }
+    const payloads = trimmed
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.startsWith("data:"))
+      .map((l) => l.slice("data:".length).trim())
+      .filter((payload) => payload && payload !== "[DONE]");
+    for (const payload of payloads.reverse()) {
+      try { return JSON.parse(payload); } catch { /* keep trying earlier frames */ }
     }
+    if (payloads.length) return payloads[payloads.length - 1];
   }
   try { return JSON.parse(text); } catch { return text; }
+}
+
+function hasMcpError(data: unknown) {
+  return Boolean(data && typeof data === "object" && "error" in (data as Record<string, unknown>));
 }
 
 Deno.serve(async (req) => {
@@ -172,28 +194,33 @@ Deno.serve(async (req) => {
         return json({ error: `MCP tool not allowed: ${name}` }, 403);
       }
 
-      const upstream = await fetch(MCP_BASE, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-API-KEY": apiKey,
-          // Streamable-HTTP requires BOTH types in Accept, else 406.
-          "Accept": "application/json, text/event-stream",
-        },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: crypto.randomUUID(),
-          method: "tools/call",
-          params: { name, arguments: params },
-        }),
+      const requestBody = JSON.stringify({
+        jsonrpc: "2.0",
+        id: crypto.randomUUID(),
+        method: "tools/call",
+        params: { name, arguments: params },
       });
-      const text = await upstream.text();
-      const data = parseMcpBody(text);
 
-      if (!upstream.ok || (data && typeof data === "object" && "error" in (data as Record<string, unknown>))) {
+      let upstream: Response | null = null;
+      let data: unknown = null;
+      for (const base of MCP_BASES) {
+        upstream = await fetch(base, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...getMcpAuthHeaders(apiKey),
+          },
+          body: requestBody,
+        });
+        const text = await upstream.text();
+        data = parseMcpBody(text);
+        if (upstream.ok && !hasMcpError(data)) break;
+      }
+
+      if (!upstream?.ok || hasMcpError(data)) {
         return json({
           __searchAtlasError: true,
-          status: upstream.status,
+          status: upstream?.status,
           source: "mcp",
           name,
           tool,
