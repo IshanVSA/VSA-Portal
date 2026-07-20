@@ -154,11 +154,22 @@ export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
   return (
     <div className="space-y-5">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span>Site Explorer</span><span className="opacity-50">/</span>
-        <span className="text-foreground">{raw?.domain ?? config.search_atlas_domain ?? "—"}</span><span className="opacity-50">/</span>
-        <span>Keywords</span><span className="opacity-50">/</span>
-        <span>Organic Keywords</span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>Site Explorer</span><span className="opacity-50">/</span>
+          <span className="text-foreground">{raw?.domain ?? config.search_atlas_domain ?? "—"}</span><span className="opacity-50">/</span>
+          <span>Keywords</span><span className="opacity-50">/</span>
+          <span>Organic Keywords</span>
+        </div>
+        <OpenInSearchAtlas section="keyword-research" projectId={rtId} domain={config.search_atlas_domain ?? undefined} />
+      </div>
+
+      {/* Position change summary from get_organic_position_changes */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <PosChangeCard icon={TrendingUp} label="Improved" value={posSummary.improved} color="hsl(142 70% 45%)" />
+        <PosChangeCard icon={TrendingDown} label="Declined" value={posSummary.declined} color="hsl(0 75% 55%)" />
+        <PosChangeCard icon={PlusIcon} label="New" value={posSummary.new} color="hsl(195 90% 55%)" />
+        <PosChangeCard icon={MinusIcon} label="Lost" value={posSummary.lost} color="hsl(28 90% 55%)" />
       </div>
 
       {/* Domain & top tabs */}
