@@ -349,7 +349,55 @@ export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
           </Table>
         </div>
       </Card>
+
+      {/* Top Organic Pages panel (get_organic_pages) */}
+      <Card className="border-border/60 overflow-hidden">
+        <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
+          <h3 className="text-sm font-bold">Top Organic Pages</h3>
+          <span className="text-[11px] text-muted-foreground">{topPages.length} shown</span>
+        </div>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/30">
+                <TableHead>URL</TableHead>
+                <TableHead className="w-24 text-right">KEYWORDS</TableHead>
+                <TableHead className="w-24 text-right">TRAFFIC</TableHead>
+                <TableHead className="w-24 text-right">TRAFFIC %</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {topPages.length === 0 ? (
+                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6 text-xs">No page-level data returned.</TableCell></TableRow>
+              ) : topPages.map((p: any, i: number) => (
+                <TableRow key={i} className="text-xs">
+                  <TableCell className="max-w-[420px] truncate">
+                    {p.url ? <a href={p.url} target="_blank" rel="noreferrer" className="text-[hsl(195_80%_55%)] hover:underline">{p.url}</a> : "—"}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">{fmt(p.keywords ?? p.keywords_count)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmt(p.traffic ?? p.organic_traffic)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{Number(p.traffic_percent ?? p.traffic_share ?? 0).toFixed(1)}%</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
     </div>
+  );
+}
+
+function PosChangeCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: number; color: string }) {
+  return (
+    <Card className="border-border/60 p-3">
+      <div className="flex items-center gap-2">
+        <span className="h-6 w-6 rounded-md flex items-center justify-center" style={{ backgroundColor: `${color}20`, color }}>
+          <Icon className="h-3.5 w-3.5" />
+        </span>
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
+      </div>
+      <p className="text-2xl font-bold tabular-nums mt-1.5">{value.toLocaleString()}</p>
+    </Card>
   );
 }
 
