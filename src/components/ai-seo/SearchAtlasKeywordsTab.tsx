@@ -9,6 +9,8 @@ import {
 } from "recharts";
 import { findSearchAtlasProject, useSearchAtlasCustomerProjects, useSearchAtlasMcp, unwrapSearchAtlasPayload, isSearchAtlasSoftError, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "./SearchAtlasEmptyState";
+import { OpenInSearchAtlas } from "./OpenInSearchAtlas";
+import { TrendingUp, TrendingDown, Plus as PlusIcon, Minus as MinusIcon } from "lucide-react";
 
 interface Props { config: SearchAtlasClinicConfig; clinicId?: string }
 
