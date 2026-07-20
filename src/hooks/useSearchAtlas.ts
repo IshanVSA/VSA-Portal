@@ -9,6 +9,8 @@ export interface SearchAtlasRequest {
   body?: unknown;
   tool?: string;
   op?: string;
+  /** Flat MCP tool name, e.g. "se_get_links". Preferred over tool+op. */
+  name?: string;
   params?: Record<string, unknown>;
 }
 
@@ -84,6 +86,7 @@ export async function callSearchAtlas<T = unknown>(req: SearchAtlasRequest): Pro
       body: req.body,
       tool: req.tool,
       op: req.op,
+      name: req.name,
       params: req.params,
     },
   });
@@ -126,6 +129,25 @@ export function useSearchAtlasMcp<T = unknown>(
   return useQuery<T>({
     queryKey: ["search-atlas-mcp", tool, op, ...key],
     queryFn: () => callSearchAtlas<T>({ tool, op, params }),
+    enabled,
+    staleTime: 5 * 60 * 1000,
+    retry: 0,
+  });
+}
+
+/**
+ * MCP call by flat tool name, e.g. "se_get_links".
+ * Prefer this over the legacy `tool.op` signature.
+ */
+export function useSearchAtlasMcpByName<T = unknown>(
+  key: readonly unknown[],
+  name: string,
+  params: Record<string, unknown>,
+  enabled: boolean = true,
+) {
+  return useQuery<T>({
+    queryKey: ["search-atlas-mcp", name, ...key],
+    queryFn: () => callSearchAtlas<T>({ name, params }),
     enabled,
     staleTime: 5 * 60 * 1000,
     retry: 0,

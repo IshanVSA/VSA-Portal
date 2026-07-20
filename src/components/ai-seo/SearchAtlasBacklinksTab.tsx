@@ -6,7 +6,11 @@ import { HelpCircle, Info } from "lucide-react";
 import {
   ComposedChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import { findSearchAtlasProject, useSearchAtlasCustomerProjects, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
+import {
+  findSearchAtlasProject, useSearchAtlasCustomerProjects, useSearchAtlasMcpByName,
+  unwrapSearchAtlasPayload, isSearchAtlasSoftError,
+  type SearchAtlasClinicConfig,
+} from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "./SearchAtlasEmptyState";
 import { OpenInSearchAtlas } from "./OpenInSearchAtlas";
 
@@ -42,6 +46,19 @@ export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
     const data = asRecord(rec?.data) ?? asRecord(rec?.data_v2);
     return asRecord(data?.se) ?? {};
   }, [project]);
+
+  // Real per-domain backlink rows via the SE tool exposed on our plan.
+  const linksQ = useSearchAtlasMcpByName<any>(
+    ["se_get_links", domain ?? ""],
+    "se_get_links",
+    { target: domain, limit: 100, mode: "domains" },
+    !!domain,
+  );
+  const linksData = !isSearchAtlasSoftError(linksQ.data) ? (unwrapSearchAtlasPayload<any>(linksQ.data) ?? {}) : {};
+  const referringRows: any[] = useMemo(() => {
+    const raw = linksData?.results ?? linksData?.referring_domains ?? linksData?.rows ?? linksData?.data ?? [];
+    return Array.isArray(raw) ? raw : [];
+  }, [linksData]);
 
   const totalBacklinks = numberOr(se.backlinks);
   const referringDomains = numberOr(se.refdomains ?? se.referring_domains);
@@ -161,11 +178,19 @@ export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow>
-              <TableCell colSpan={3} className="text-center text-sm text-muted-foreground py-8">
-                Per-domain rows aren't available from the Search Atlas API key in use.
-              </TableCell>
-            </TableRow>
+            {linksQ.isLoading ? (
+              <TableRow><TableCell colSpan={3} className="text-center text-sm text-muted-foreground py-8">Loading referring domains…</TableCell></TableRow>
+            ) : referringRows.length === 0 ? (
+              <TableRow><TableCell colSpan={3} className="text-center text-sm text-muted-foreground py-8">No referring-domain rows returned by Search Atlas for this domain.</TableCell></TableRow>
+            ) : (
+              referringRows.slice(0, 100).map((r, i) => (
+                <TableRow key={r.domain ?? r.url ?? i}>
+                  <TableCell className="font-medium text-sm truncate max-w-[320px]">{r.domain ?? r.referring_domain ?? r.url ?? "—"}</TableCell>
+                  <TableCell className="text-right tabular-nums">{numberOr(r.backlinks ?? r.link_count).toLocaleString() || "—"}</TableCell>
+                  <TableCell className="text-right tabular-nums">{numberOr(r.domain_authority ?? r.authority ?? r.da) || "—"}</TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </Card>

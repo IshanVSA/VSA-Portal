@@ -26,15 +26,63 @@ const ALLOWED_METHODS = ["GET", "POST"];
 const SA_BASE = "https://api.searchatlas.com";
 const MCP_BASE = "https://mcp.searchatlas.com/api/v1/mcp";
 
-const ALLOWED_MCP_OPS: Record<string, string[]> = {
-  project_management: ["list_otto_projects", "get_otto_project_details", "find_project_by_hostname"],
-  seo_analysis: ["get_project_issues_summary", "get_website_issues_by_type"],
-  organic: ["get_organic_keywords", "get_organic_pages", "get_organic_position_changes"],
-  backlinks: ["get_site_backlinks", "get_site_referring_domains"],
-  visibility: ["get_brand_overview", "get_visibility_trend", "get_competitor_share_of_voice"],
-  sentiment: ["get_sentiment_overview"],
-  citations: ["get_citations_overview", "get_citations_urls"],
-  data: ["list_grids", "get_grid_details", "get_heatmap_preview", "get_heatmap_snapshot", "get_rank"],
+// Real Search Atlas MCP tool names (flat). Introspected via tools/list.
+const ALLOWED_MCP_NAMES = new Set<string>([
+  // OTTO — projects, issues, recommendations, schema
+  "otto_list_projects","otto_get_project_details","otto_find_project_by_hostname",
+  "otto_get_project_issues","otto_get_project_issues_summary","otto_get_site_audit",
+  "otto_get_knowledge_graph","otto_export_suggestions","otto_export_work_summary",
+  "otto_list_schemas","otto_list_wildfire","otto_list_custom_html_content",
+  "otto_generate_bulk_recommendations","otto_get_schema_detail","otto_get_public_share_url",
+  "otto_get_installation_guide","otto_get_task_status",
+  // Site Explorer — the SE.* namespace we lacked before (backlinks, SERP, gap)
+  "se_analyze_domain","se_get_serp_overview","se_get_organic","se_get_links","se_get_educational_backlinks",
+  "se_get_brand_signals","se_get_indexed_pages","se_get_keyword_gap_results","se_keyword_gap_analyze",
+  "se_keyword_gap_compare","se_lookup_keyword","se_get_analysis","se_get_details","se_list_sites",
+  "se_list_keyword_gap_analyses","se_get_adwords","se_get_holistic_seo_scores",
+  "se_keyword_research_projects","se_get_keyword_research_details","se_research_keywords",
+  // LLM Visibility
+  "llmv_get_overview","llmv_get_competitor_data","llmv_get_sentiment_trend",
+  "llmv_get_citations_overview","llmv_get_citations_urls","llmv_list_topics","llmv_list_queries",
+  "llmv_get_project","llmv_list_projects","llmv_list_prompt_analyses","llmv_get_ps_analysis",
+  // Keyword Rank Tracker
+  "krt_list_projects","krt_get_rankings","krt_ranking_report","krt_analyze_competitors",
+  "krt_get_project_locations","krt_get_date_range",
+  // Local SEO Heatmaps
+  "local_seo_heatmaps_list_businesses","local_seo_heatmaps_get_business",
+  "local_seo_heatmaps_get_heatmap_details","local_seo_heatmaps_get_heatmap_id",
+  "local_seo_heatmaps_get_rank","local_seo_heatmaps_list_available_snapshot_dates",
+  "local_seo_heatmaps_preview_grids","local_seo_heatmaps_bulk_grids","local_seo_heatmaps_setup_grids",
+  "local_seo_heatmaps_single_competitor_versus_report","local_seo_heatmaps_export_grid_summary",
+  // Google Search Console
+  "gsc_get_sites","gsc_get_site_property_performance","gsc_get_page_keywords","gsc_get_page_summary",
+  "gsc_get_pages","gsc_get_keyword_history","gsc_get_keyword_performance","gsc_compare_performance",
+]);
+
+// Back-compat map: earlier tabs called {tool, op} with our own invented naming.
+// Translate them to the real flat MCP tool name so existing UI keeps working.
+const LEGACY_ALIAS: Record<string, string> = {
+  "project_management.list_otto_projects": "otto_list_projects",
+  "project_management.get_otto_project_details": "otto_get_project_details",
+  "project_management.find_project_by_hostname": "otto_find_project_by_hostname",
+  "seo_analysis.get_project_issues_summary": "otto_get_project_issues_summary",
+  "seo_analysis.get_website_issues_by_type": "otto_get_project_issues",
+  "organic.get_organic_keywords": "se_get_organic",
+  "organic.get_organic_pages": "se_get_indexed_pages",
+  "organic.get_organic_position_changes": "se_get_organic",
+  "backlinks.get_site_backlinks": "se_get_links",
+  "backlinks.get_site_referring_domains": "se_get_links",
+  "visibility.get_brand_overview": "llmv_get_overview",
+  "visibility.get_visibility_trend": "llmv_get_sentiment_trend",
+  "visibility.get_competitor_share_of_voice": "llmv_get_competitor_data",
+  "sentiment.get_sentiment_overview": "llmv_get_sentiment_trend",
+  "citations.get_citations_overview": "llmv_get_citations_overview",
+  "citations.get_citations_urls": "llmv_get_citations_urls",
+  "data.list_grids": "local_seo_heatmaps_list_businesses",
+  "data.get_grid_details": "local_seo_heatmaps_get_heatmap_details",
+  "data.get_heatmap_preview": "local_seo_heatmaps_preview_grids",
+  "data.get_heatmap_snapshot": "local_seo_heatmaps_bulk_grids",
+  "data.get_rank": "local_seo_heatmaps_get_rank",
 };
 
 function isPathAllowed(path: string) {
@@ -54,8 +102,20 @@ function sanitizeDetails(data: unknown) {
   return data.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 500);
 }
 
-function isMcpAllowed(tool: string, op: string) {
-  return Boolean(ALLOWED_MCP_OPS[tool]?.includes(op));
+/**
+ * Search Atlas MCP uses streamable-HTTP and may return SSE frames.
+ * Parse `data:` lines back to JSON so callers see a normal object.
+ */
+function parseMcpBody(text: string): unknown {
+  const trimmed = text.trimStart();
+  if (trimmed.startsWith("event:") || trimmed.startsWith("data:")) {
+    const dataLine = trimmed.split("\n").find((l) => l.startsWith("data:"));
+    if (dataLine) {
+      const payload = dataLine.slice("data:".length).trim();
+      try { return JSON.parse(payload); } catch { return payload; }
+    }
+  }
+  try { return JSON.parse(text); } catch { return text; }
 }
 
 Deno.serve(async (req) => {
@@ -98,12 +158,18 @@ Deno.serve(async (req) => {
     const op: string = body?.op ?? "";
     const params: Record<string, unknown> = body?.params ?? {};
 
-    if (tool || op) {
-      if (!tool || !op || typeof tool !== "string" || typeof op !== "string") {
-        return json({ error: "Missing MCP tool or operation" }, 400);
+    const nameFromBody: string = typeof body?.name === "string" ? body.name : "";
+
+    if (tool || op || nameFromBody) {
+      // Resolve the flat MCP tool name. Prefer explicit `name`; otherwise
+      // translate legacy {tool, op} via alias, then fall back to `tool_op`.
+      let name = nameFromBody;
+      if (!name) {
+        if (!tool || !op) return json({ error: "Missing MCP tool/op or name" }, 400);
+        name = LEGACY_ALIAS[`${tool}.${op}`] ?? `${tool}_${op}`;
       }
-      if (!isMcpAllowed(tool, op)) {
-        return json({ error: `MCP operation not allowed: ${tool}.${op}` }, 403);
+      if (!ALLOWED_MCP_NAMES.has(name)) {
+        return json({ error: `MCP tool not allowed: ${name}` }, 403);
       }
 
       const upstream = await fetch(MCP_BASE, {
@@ -111,24 +177,25 @@ Deno.serve(async (req) => {
         headers: {
           "Content-Type": "application/json",
           "X-API-KEY": apiKey,
-          "Accept": "application/json",
+          // Streamable-HTTP requires BOTH types in Accept, else 406.
+          "Accept": "application/json, text/event-stream",
         },
         body: JSON.stringify({
           jsonrpc: "2.0",
           id: crypto.randomUUID(),
           method: "tools/call",
-          params: { name: tool, arguments: { op, params } },
+          params: { name, arguments: params },
         }),
       });
       const text = await upstream.text();
-      let data: unknown;
-      try { data = JSON.parse(text); } catch { data = text; }
+      const data = parseMcpBody(text);
 
       if (!upstream.ok || (data && typeof data === "object" && "error" in (data as Record<string, unknown>))) {
         return json({
           __searchAtlasError: true,
           status: upstream.status,
           source: "mcp",
+          name,
           tool,
           op,
           details: sanitizeDetails(data),

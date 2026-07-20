@@ -1,6 +1,6 @@
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sparkles, Users, Hash, Link2, Map, Bot } from "lucide-react";
+import { Sparkles, Users, Hash, Link2, Map, Bot, LineChart, GitCompare, Wand2 } from "lucide-react";
 import { useAiSeoAccess } from "@/hooks/useAiSeoAccess";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
@@ -15,11 +15,17 @@ import { SearchAtlasKeywordsTab } from "@/components/ai-seo/SearchAtlasKeywordsT
 import { SearchAtlasBacklinksTab } from "@/components/ai-seo/SearchAtlasBacklinksTab";
 import { SearchAtlasHeatmapTab } from "@/components/ai-seo/SearchAtlasHeatmapTab";
 import { SearchAtlasLLMTab } from "@/components/ai-seo/SearchAtlasLLMTab";
+import { SearchAtlasSerpHistoryTab } from "@/components/ai-seo/SearchAtlasSerpHistoryTab";
+import { SearchAtlasCompetitorGapTab } from "@/components/ai-seo/SearchAtlasCompetitorGapTab";
+import { SearchAtlasOttoRecommendationsTab } from "@/components/ai-seo/SearchAtlasOttoRecommendationsTab";
 
 const dataTabs = [
   { value: "backlinks", label: "Backlinks", icon: Link2 },
   { value: "llm", label: "LLM Visibility", icon: Bot },
   { value: "keywords", label: "Keyword Rankings", icon: Hash },
+  { value: "serp", label: "SERP History", icon: LineChart },
+  { value: "gap", label: "Competitor Gap", icon: GitCompare },
+  { value: "otto", label: "OTTO Recommendations", icon: Wand2 },
   { value: "heatmap", label: "Local SEO Heatmap", icon: Map },
 ];
 const clientChatTab = { value: "client-chat", label: "Client Chat", icon: Users };
@@ -100,6 +106,24 @@ export default function AiSeoDepartment() {
             <TabsContent value="llm" className="mt-4">
               {saLoading ? <Skeleton className="h-64" /> : configured
                 ? <SearchAtlasLLMTab config={saConfig!} clinicId={selectedClinicId} />
+                : <SearchAtlasEmptyState clinicId={selectedClinicId} />}
+            </TabsContent>
+
+            <TabsContent value="serp" className="mt-4">
+              {saLoading ? <Skeleton className="h-64" /> : configured
+                ? <SearchAtlasSerpHistoryTab config={saConfig!} clinicId={selectedClinicId} />
+                : <SearchAtlasEmptyState clinicId={selectedClinicId} />}
+            </TabsContent>
+
+            <TabsContent value="gap" className="mt-4">
+              {saLoading ? <Skeleton className="h-64" /> : configured
+                ? <SearchAtlasCompetitorGapTab config={saConfig!} clinicId={selectedClinicId} />
+                : <SearchAtlasEmptyState clinicId={selectedClinicId} />}
+            </TabsContent>
+
+            <TabsContent value="otto" className="mt-4">
+              {saLoading ? <Skeleton className="h-64" /> : configured
+                ? <SearchAtlasOttoRecommendationsTab config={saConfig!} clinicId={selectedClinicId} />
                 : <SearchAtlasEmptyState clinicId={selectedClinicId} />}
             </TabsContent>
 
