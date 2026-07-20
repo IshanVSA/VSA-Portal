@@ -109,6 +109,24 @@ export default function AiSeoDepartment() {
                 : <SearchAtlasEmptyState clinicId={selectedClinicId} />}
             </TabsContent>
 
+            <TabsContent value="serp" className="mt-4">
+              {saLoading ? <Skeleton className="h-64" /> : configured
+                ? <SearchAtlasSerpHistoryTab config={saConfig!} clinicId={selectedClinicId} />
+                : <SearchAtlasEmptyState clinicId={selectedClinicId} />}
+            </TabsContent>
+
+            <TabsContent value="gap" className="mt-4">
+              {saLoading ? <Skeleton className="h-64" /> : configured
+                ? <SearchAtlasCompetitorGapTab config={saConfig!} clinicId={selectedClinicId} />
+                : <SearchAtlasEmptyState clinicId={selectedClinicId} />}
+            </TabsContent>
+
+            <TabsContent value="otto" className="mt-4">
+              {saLoading ? <Skeleton className="h-64" /> : configured
+                ? <SearchAtlasOttoRecommendationsTab config={saConfig!} clinicId={selectedClinicId} />
+                : <SearchAtlasEmptyState clinicId={selectedClinicId} />}
+            </TabsContent>
+
             <TabsContent value="client-chat" className="mt-4">
               <DepartmentChat variant="client" department="seo" clinicId={selectedClinicId} onVisible={markClientAsRead} />
             </TabsContent>
