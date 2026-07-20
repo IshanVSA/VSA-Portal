@@ -125,11 +125,6 @@ export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
   const [subTab, setSubTab] = useState<typeof SUB_TABS[number]>("Position");
   const [search, setSearch] = useState("");
 
-  if (!rtId) {
-    return <SearchAtlasEmptyState clinicId={clinicId} message="Add a Rank Tracker project ID to view keyword rankings." />;
-  }
-  if (q.isLoading) return <Skeleton className="h-96" />;
-
   const project = findSearchAtlasProject(q.data, config);
   const raw = project?.data?.se ?? project ?? {};
   const kwPayload: any = !isSearchAtlasSoftError(kwQ.data) ? (unwrapSearchAtlasPayload<any>(kwQ.data) ?? {}) : {};
@@ -184,6 +179,11 @@ export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
   }, [raw, buckets, posPayload]);
 
   const filtered = useMemo(() => rows.filter(k => !search || (k.keyword ?? "").toLowerCase().includes(search.toLowerCase())), [rows, search]);
+
+  if (!rtId) {
+    return <SearchAtlasEmptyState clinicId={clinicId} message="Add a Rank Tracker project ID to view keyword rankings." />;
+  }
+  if (q.isLoading) return <Skeleton className="h-96" />;
 
   return (
     <div className="space-y-5">
