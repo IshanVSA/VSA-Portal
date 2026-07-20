@@ -7,7 +7,15 @@ import { HelpCircle, ChevronDown, Search, Plus, Download, FileText } from "lucid
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import { findSearchAtlasProject, useSearchAtlasCustomerProjects, useSearchAtlasMcp, unwrapSearchAtlasPayload, isSearchAtlasSoftError, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
+import {
+  findSearchAtlasProject,
+  useSearchAtlasCustomerProjects,
+  useSearchAtlasMcpByName,
+  unwrapSearchAtlasPayload,
+  isSearchAtlasSoftError,
+  findSearchAtlasArray,
+  type SearchAtlasClinicConfig,
+} from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "./SearchAtlasEmptyState";
 import { OpenInSearchAtlas } from "./OpenInSearchAtlas";
 import { TrendingUp, TrendingDown, Plus as PlusIcon, Minus as MinusIcon } from "lucide-react";
@@ -24,6 +32,11 @@ interface Kw {
   volume?: number;
   monthly_search_volume?: number;
   url?: string;
+  page?: string;
+  landing_page?: string;
+  current_position?: number;
+  current_rank?: number;
+  previous_rank?: number;
   intent?: string;
   cpc?: number;
   difficulty?: number;
@@ -81,9 +94,30 @@ export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
   const q = useSearchAtlasCustomerProjects(!!rtId || !!domain);
 
   // Real keyword data via MCP
-  const kwQ = useSearchAtlasMcp<any>(["org-kw", rtId ?? domain ?? ""], "organic", "get_organic_keywords", { project_id: rtId, domain, limit: 100 }, !!(rtId || domain));
-  const posQ = useSearchAtlasMcp<any>(["pos-chg", rtId ?? domain ?? ""], "organic", "get_organic_position_changes", { project_id: rtId, domain }, !!(rtId || domain));
-  const pagesQ = useSearchAtlasMcp<any>(["org-pages", rtId ?? domain ?? ""], "organic", "get_organic_pages", { project_id: rtId, domain, limit: 20 }, !!(rtId || domain));
+  const kwQ = useSearchAtlasMcpByName<any>(
+    ["se-org-kw", rtId ?? domain ?? ""],
+    "se_get_organic",
+    { project_id: rtId, target: domain, domain, limit: 1000 },
+    !!(rtId || domain),
+  );
+  const krtQ = useSearchAtlasMcpByName<any>(
+    ["krt-rankings", rtId ?? ""],
+    "krt_get_rankings",
+    { project_id: rtId, limit: 1000 },
+    !!rtId,
+  );
+  const posQ = useSearchAtlasMcpByName<any>(
+    ["se-pos-chg", rtId ?? domain ?? ""],
+    "se_get_organic",
+    { project_id: rtId, target: domain, domain, limit: 1000, include_history: true },
+    !!(rtId || domain),
+  );
+  const pagesQ = useSearchAtlasMcpByName<any>(
+    ["se-pages", rtId ?? domain ?? ""],
+    "se_get_indexed_pages",
+    { project_id: rtId, target: domain, domain, limit: 100 },
+    !!(rtId || domain),
+  );
 
   const [chartMode, setChartMode] = useState<typeof CHART_MODES[number]["key"]>("position");
   const [range, setRange] = useState<typeof RANGE_TABS[number]>("All time");
@@ -99,18 +133,19 @@ export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
   const project = findSearchAtlasProject(q.data, config);
   const raw = project?.data?.se ?? project ?? {};
   const kwPayload: any = !isSearchAtlasSoftError(kwQ.data) ? (unwrapSearchAtlasPayload<any>(kwQ.data) ?? {}) : {};
+  const krtPayload: any = !isSearchAtlasSoftError(krtQ.data) ? (unwrapSearchAtlasPayload<any>(krtQ.data) ?? {}) : {};
   const posPayload: any = !isSearchAtlasSoftError(posQ.data) ? (unwrapSearchAtlasPayload<any>(posQ.data) ?? {}) : {};
   const pagesPayload: any = !isSearchAtlasSoftError(pagesQ.data) ? (unwrapSearchAtlasPayload<any>(pagesQ.data) ?? {}) : {};
 
-  const rows: Kw[] = Array.isArray(kwPayload?.results) ? kwPayload.results
-    : Array.isArray(kwPayload?.keywords) ? kwPayload.keywords
-    : Array.isArray(kwPayload?.data) ? kwPayload.data
-    : Array.isArray(raw?.keywords) ? raw.keywords
-    : Array.isArray(raw?.organic_keywords_list) ? raw.organic_keywords_list
-    : [];
-  const totalKeywords = kwPayload?.total ?? kwPayload?.count ?? raw?.organic_keywords ?? raw?.keywords_count ?? rows.length;
-  const traffic = kwPayload?.organic_traffic ?? raw?.organic_traffic ?? raw?.traffic ?? 0;
-  const trafficCost = kwPayload?.organic_traffic_cost ?? raw?.organic_traffic_cost ?? raw?.traffic_cost ?? 0;
+  const rows: Kw[] = useMemo(() => {
+    const primary = findSearchAtlasArray<Kw>(krtPayload, ["rankings", "keywords", "results", "rows"]);
+    const secondary = findSearchAtlasArray<Kw>(kwPayload, ["keywords", "organic_keywords", "results", "rows"]);
+    const fallback = Array.isArray(raw?.keywords) ? raw.keywords : Array.isArray(raw?.organic_keywords_list) ? raw.organic_keywords_list : [];
+    return (primary.length ? primary : secondary.length ? secondary : fallback).filter((row: any) => row && typeof row === "object");
+  }, [krtPayload, kwPayload, raw]);
+  const totalKeywords = kwPayload?.total ?? kwPayload?.count ?? krtPayload?.total ?? krtPayload?.count ?? raw?.organic_keywords ?? raw?.keywords_count ?? rows.length;
+  const traffic = kwPayload?.organic_traffic ?? kwPayload?.traffic ?? krtPayload?.organic_traffic ?? raw?.organic_traffic ?? raw?.traffic ?? 0;
+  const trafficCost = kwPayload?.organic_traffic_cost ?? kwPayload?.traffic_cost ?? raw?.organic_traffic_cost ?? raw?.traffic_cost ?? 0;
 
   const buckets = useMemo(() => bucketize(rows), [rows]);
 
@@ -128,13 +163,12 @@ export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
 
   // Top organic pages (from get_organic_pages)
   const topPages = useMemo<any[]>(() => {
-    const raw = pagesPayload?.results ?? pagesPayload?.pages ?? pagesPayload?.data ?? [];
-    return Array.isArray(raw) ? raw.slice(0, 20) : [];
+    return findSearchAtlasArray<any>(pagesPayload, ["pages", "indexed_pages", "results", "rows"]).slice(0, 20);
   }, [pagesPayload]);
 
   // Try real time-series from API; else fall back to single-period stack
   const positionHistory = useMemo<any[]>(() => {
-    const hist = posPayload?.history ?? posPayload?.trend ?? posPayload?.data ?? posPayload?.results ?? raw?.position_history ?? raw?.organic_keyword_position_history ?? [];
+    const hist = findSearchAtlasArray<any>(posPayload, ["history", "trend", "position_history", "organic_keyword_position_history"]);
     if (Array.isArray(hist) && hist.length && (hist[0]?.date || hist[0]?.day)) {
       return hist.map((d: any) => ({
         date: d.date ?? d.day ?? "",
@@ -313,8 +347,8 @@ export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
               {filtered.length === 0 ? (
                 <TableRow><TableCell colSpan={13} className="text-center text-muted-foreground py-8">No keywords found.</TableCell></TableRow>
               ) : filtered.slice(0, 100).map((k, i) => {
-                const pos = k.position ?? k.rank ?? 0;
-                const prev = k.previous_position ?? 0;
+                const pos = k.position ?? k.current_position ?? k.rank ?? k.current_rank ?? 0;
+                const prev = k.previous_position ?? k.previous_rank ?? 0;
                 const diff = k.change ?? (prev && pos ? prev - pos : 0);
                 const diffCls = diff > 0 ? "text-success" : diff < 0 ? "text-destructive" : "text-muted-foreground";
                 const intent = (k.intent ?? k.search_intent ?? "N").toUpperCase().slice(0, 1);
@@ -339,7 +373,7 @@ export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
                       </span>
                     </TableCell>
                     <TableCell className="max-w-[280px] truncate">
-                      {k.url ? <a href={k.url} target="_blank" rel="noreferrer" className="text-[hsl(195_80%_55%)] hover:underline">{k.url}</a> : "—"}
+                      {(k.url ?? k.page ?? k.landing_page) ? <a href={k.url ?? k.page ?? k.landing_page} target="_blank" rel="noreferrer" className="text-[hsl(195_80%_55%)] hover:underline">{k.url ?? k.page ?? k.landing_page}</a> : "—"}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{k.serp_features ?? k.serp_features_count ?? "—"}</TableCell>
                   </TableRow>
