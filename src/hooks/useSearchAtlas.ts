@@ -9,6 +9,8 @@ export interface SearchAtlasRequest {
   body?: unknown;
   tool?: string;
   op?: string;
+  /** Flat MCP tool name, e.g. "se_get_links". Preferred over tool+op. */
+  name?: string;
   params?: Record<string, unknown>;
 }
 
