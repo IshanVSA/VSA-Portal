@@ -107,11 +107,16 @@ function sanitizeDetails(data: unknown) {
 }
 
 function getMcpAuthHeaders(apiKey: string) {
+  // Search Atlas support confirmed: send API key via `X-API-KEY` (uppercase).
+  // JWT tokens (contain dots) go through Authorization: Bearer instead.
   const headers: Record<string, string> = {
     "Accept": "application/json, text/event-stream",
   };
-  if (apiKey.includes(".")) headers.Authorization = `Bearer ${apiKey}`;
-  else headers["X-API-Key"] = apiKey;
+  if (apiKey.includes(".") && apiKey.split(".").length === 3) {
+    headers.Authorization = `Bearer ${apiKey}`;
+  } else {
+    headers["X-API-KEY"] = apiKey;
+  }
   return headers;
 }
 
@@ -163,6 +168,21 @@ async function postMcp(base: string, apiKey: string, body: unknown, sessionId?: 
 }
 
 async function callMcpTool(base: string, apiKey: string, name: string, params: Record<string, unknown>) {
+  const callBody = {
+    jsonrpc: "2.0",
+    id: 1,
+    method: "tools/call",
+    params: { name, arguments: params },
+  };
+
+  // Per Search Atlas support: POST tools/call directly with X-API-KEY, no
+  // initialize handshake required. Try that path first — it's what their
+  // documented curl example uses and it succeeds against /mcp/.
+  const direct = await postMcp(base, apiKey, callBody);
+  if (direct.response.ok && !hasMcpError(direct.data)) return direct;
+
+  // Fallback: some deployments still gate tool calls behind the full
+  // MCP handshake (initialize -> notifications/initialized -> tools/call).
   const initBody = {
     jsonrpc: "2.0",
     id: crypto.randomUUID(),
@@ -173,30 +193,22 @@ async function callMcpTool(base: string, apiKey: string, name: string, params: R
       clientInfo: { name: "vsa-vet-media-search-atlas", version: "1.0.0" },
     },
   };
-
   const initializedBody = {
     jsonrpc: "2.0",
     method: "notifications/initialized",
     params: {},
   };
 
-  const callBody = {
-    jsonrpc: "2.0",
-    id: crypto.randomUUID(),
-    method: "tools/call",
-    params: { name, arguments: params },
-  };
-
   const init = await postMcp(base, apiKey, initBody);
-  if (!init.response.ok || hasMcpError(init.data)) return init;
+  if (!init.response.ok || hasMcpError(init.data)) return direct;
 
-  // Streamable HTTP MCP servers expect the initialized notification before
-  // tool calls. It is a notification, so a 202/no-body response is normal.
   if (init.sessionId) {
     await postMcp(base, apiKey, initializedBody, init.sessionId).catch(() => null);
   }
 
-  return await postMcp(base, apiKey, callBody, init.sessionId);
+  const handshake = await postMcp(base, apiKey, { ...callBody, id: crypto.randomUUID() }, init.sessionId);
+  if (handshake.response.ok && !hasMcpError(handshake.data)) return handshake;
+  return direct;
 }
 
 Deno.serve(async (req) => {
