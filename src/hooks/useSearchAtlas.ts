@@ -131,6 +131,8 @@ export function useSearchAtlasMcp<T = unknown>(
     queryFn: () => callSearchAtlas<T>({ tool, op, params }),
     enabled,
     staleTime: 5 * 60 * 1000,
+    retry: 0,
+  });
 }
 
 /**
