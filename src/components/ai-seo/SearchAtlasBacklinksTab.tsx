@@ -8,6 +8,7 @@ import {
 } from "recharts";
 import { findSearchAtlasProject, useSearchAtlasCustomerProjects, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "./SearchAtlasEmptyState";
+import { OpenInSearchAtlas } from "./OpenInSearchAtlas";
 
 interface Props { config: SearchAtlasClinicConfig; clinicId?: string }
 
