@@ -176,16 +176,22 @@ export function WebsiteChecklistTab({ clinicId }: Props) {
   }
 
   return (
-    <Tabs defaultValue="delivery" className="space-y-4">
-      <TabsList>
-        <TabsTrigger value="delivery" className="gap-2">
-          <ListChecks className="h-4 w-4" /> Delivery
+    <Tabs defaultValue="delivery" className="space-y-6">
+      <TabsList className="h-auto w-fit rounded-full bg-muted p-1.5 shadow-inner">
+        <TabsTrigger
+          value="delivery"
+          className="rounded-full px-5 py-2 text-sm font-medium text-muted-foreground transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm gap-2"
+        >
+          <ListChecks className="h-4 w-4 shrink-0" /> Delivery
         </TabsTrigger>
-        <TabsTrigger value="maintenance" className="gap-2">
-          <Wrench className="h-4 w-4" /> Maintenance
+        <TabsTrigger
+          value="maintenance"
+          className="rounded-full px-5 py-2 text-sm font-medium text-muted-foreground transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm gap-2"
+        >
+          <Wrench className="h-4 w-4 shrink-0" /> Maintenance
         </TabsTrigger>
       </TabsList>
-      <TabsContent value="delivery" className="mt-4">
+      <TabsContent value="delivery" className="mt-0">
         <ChecklistPanel
           clinicId={clinicId}
           checklistType="delivery"
@@ -194,7 +200,7 @@ export function WebsiteChecklistTab({ clinicId }: Props) {
           isStaff={isStaff}
         />
       </TabsContent>
-      <TabsContent value="maintenance" className="mt-4">
+      <TabsContent value="maintenance" className="mt-0">
         <ChecklistPanel
           clinicId={clinicId}
           checklistType="maintenance"
