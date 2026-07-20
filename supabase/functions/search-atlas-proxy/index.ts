@@ -115,6 +115,14 @@ function getMcpAuthHeaders(apiKey: string) {
   return headers;
 }
 
+function mcpHeaders(apiKey: string, sessionId?: string) {
+  return {
+    "Content-Type": "application/json",
+    ...getMcpAuthHeaders(apiKey),
+    ...(sessionId ? { "Mcp-Session-Id": sessionId } : {}),
+  };
+}
+
 /**
  * Search Atlas MCP uses streamable-HTTP and may return SSE frames.
  * Parse `data:` lines back to JSON so callers see a normal object.
@@ -138,6 +146,57 @@ function parseMcpBody(text: string): unknown {
 
 function hasMcpError(data: unknown) {
   return Boolean(data && typeof data === "object" && "error" in (data as Record<string, unknown>));
+}
+
+async function postMcp(base: string, apiKey: string, body: unknown, sessionId?: string) {
+  const response = await fetch(base, {
+    method: "POST",
+    headers: mcpHeaders(apiKey, sessionId),
+    body: JSON.stringify(body),
+  });
+  const text = await response.text();
+  return {
+    response,
+    data: parseMcpBody(text),
+    sessionId: response.headers.get("mcp-session-id") ?? response.headers.get("Mcp-Session-Id") ?? sessionId,
+  };
+}
+
+async function callMcpTool(base: string, apiKey: string, name: string, params: Record<string, unknown>) {
+  const initBody = {
+    jsonrpc: "2.0",
+    id: crypto.randomUUID(),
+    method: "initialize",
+    params: {
+      protocolVersion: "2025-06-18",
+      capabilities: {},
+      clientInfo: { name: "vsa-vet-media-search-atlas", version: "1.0.0" },
+    },
+  };
+
+  const initializedBody = {
+    jsonrpc: "2.0",
+    method: "notifications/initialized",
+    params: {},
+  };
+
+  const callBody = {
+    jsonrpc: "2.0",
+    id: crypto.randomUUID(),
+    method: "tools/call",
+    params: { name, arguments: params },
+  };
+
+  const init = await postMcp(base, apiKey, initBody);
+  if (!init.response.ok || hasMcpError(init.data)) return init;
+
+  // Streamable HTTP MCP servers expect the initialized notification before
+  // tool calls. It is a notification, so a 202/no-body response is normal.
+  if (init.sessionId) {
+    await postMcp(base, apiKey, initializedBody, init.sessionId).catch(() => null);
+  }
+
+  return await postMcp(base, apiKey, callBody, init.sessionId);
 }
 
 Deno.serve(async (req) => {
@@ -194,26 +253,12 @@ Deno.serve(async (req) => {
         return json({ error: `MCP tool not allowed: ${name}` }, 403);
       }
 
-      const requestBody = JSON.stringify({
-        jsonrpc: "2.0",
-        id: crypto.randomUUID(),
-        method: "tools/call",
-        params: { name, arguments: params },
-      });
-
       let upstream: Response | null = null;
       let data: unknown = null;
       for (const base of MCP_BASES) {
-        upstream = await fetch(base, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...getMcpAuthHeaders(apiKey),
-          },
-          body: requestBody,
-        });
-        const text = await upstream.text();
-        data = parseMcpBody(text);
+        const result = await callMcpTool(base, apiKey, name, params);
+        upstream = result.response;
+        data = result.data;
         if (upstream.ok && !hasMcpError(data)) break;
       }
 
