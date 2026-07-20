@@ -131,6 +131,23 @@ export function useSearchAtlasMcp<T = unknown>(
     queryFn: () => callSearchAtlas<T>({ tool, op, params }),
     enabled,
     staleTime: 5 * 60 * 1000,
+}
+
+/**
+ * MCP call by flat tool name, e.g. "se_get_links".
+ * Prefer this over the legacy `tool.op` signature.
+ */
+export function useSearchAtlasMcpByName<T = unknown>(
+  key: readonly unknown[],
+  name: string,
+  params: Record<string, unknown>,
+  enabled: boolean = true,
+) {
+  return useQuery<T>({
+    queryKey: ["search-atlas-mcp", name, ...key],
+    queryFn: () => callSearchAtlas<T>({ name, params }),
+    enabled,
+    staleTime: 5 * 60 * 1000,
     retry: 0,
   });
 }
