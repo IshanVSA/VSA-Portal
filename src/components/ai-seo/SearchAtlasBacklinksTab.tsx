@@ -6,7 +6,11 @@ import { HelpCircle, Info } from "lucide-react";
 import {
   ComposedChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import { findSearchAtlasProject, useSearchAtlasCustomerProjects, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
+import {
+  findSearchAtlasProject, useSearchAtlasCustomerProjects, useSearchAtlasMcpByName,
+  unwrapSearchAtlasPayload, isSearchAtlasSoftError,
+  type SearchAtlasClinicConfig,
+} from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "./SearchAtlasEmptyState";
 import { OpenInSearchAtlas } from "./OpenInSearchAtlas";
 
