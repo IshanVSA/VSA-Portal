@@ -33,13 +33,19 @@ export function unwrapSearchAtlasPayload<T = unknown>(value: unknown): T | null 
   const data = value as any;
   const content = data?.result?.content;
   if (Array.isArray(content) && typeof content[0]?.text === "string") {
-    try { return unwrapSearchAtlasPayload<T>(JSON.parse(content[0].text)) ?? (JSON.parse(content[0].text) as T); } catch { return content[0].text as T; }
+    try {
+      const parsed = JSON.parse(content[0].text);
+      return unwrapSearchAtlasPayload<T>(parsed) ?? (parsed as T);
+    } catch { return content[0].text as T; }
   }
   const candidate = data?.result?.structuredContent ?? data?.result?.data ?? data?.data ?? data?.result ?? data;
   if (candidate && typeof candidate === "object" && !Array.isArray(candidate)) {
     const innerContent = (candidate as any)?.content;
     if (Array.isArray(innerContent) && typeof innerContent[0]?.text === "string") {
-      try { return unwrapSearchAtlasPayload<T>(JSON.parse(innerContent[0].text)) ?? (JSON.parse(innerContent[0].text) as T); } catch { return innerContent[0].text as T; }
+      try {
+        const parsed = JSON.parse(innerContent[0].text);
+        return unwrapSearchAtlasPayload<T>(parsed) ?? (parsed as T);
+      } catch { return innerContent[0].text as T; }
     }
   }
   return candidate as T;
