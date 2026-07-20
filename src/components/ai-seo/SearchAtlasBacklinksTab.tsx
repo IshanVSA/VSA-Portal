@@ -178,11 +178,19 @@ export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow>
-              <TableCell colSpan={3} className="text-center text-sm text-muted-foreground py-8">
-                Per-domain rows aren't available from the Search Atlas API key in use.
-              </TableCell>
-            </TableRow>
+            {linksQ.isLoading ? (
+              <TableRow><TableCell colSpan={3} className="text-center text-sm text-muted-foreground py-8">Loading referring domains…</TableCell></TableRow>
+            ) : referringRows.length === 0 ? (
+              <TableRow><TableCell colSpan={3} className="text-center text-sm text-muted-foreground py-8">No referring-domain rows returned by Search Atlas for this domain.</TableCell></TableRow>
+            ) : (
+              referringRows.slice(0, 100).map((r, i) => (
+                <TableRow key={r.domain ?? r.url ?? i}>
+                  <TableCell className="font-medium text-sm truncate max-w-[320px]">{r.domain ?? r.referring_domain ?? r.url ?? "—"}</TableCell>
+                  <TableCell className="text-right tabular-nums">{numberOr(r.backlinks ?? r.link_count).toLocaleString() || "—"}</TableCell>
+                  <TableCell className="text-right tabular-nums">{numberOr(r.domain_authority ?? r.authority ?? r.da) || "—"}</TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </Card>
