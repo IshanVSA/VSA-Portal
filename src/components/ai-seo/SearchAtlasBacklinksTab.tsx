@@ -8,7 +8,7 @@ import {
 } from "recharts";
 import {
   findSearchAtlasProject, useSearchAtlasCustomerProjects, useSearchAtlasMcpByName,
-  unwrapSearchAtlasPayload, isSearchAtlasSoftError,
+  unwrapSearchAtlasPayload, isSearchAtlasSoftError, findSearchAtlasArray,
   type SearchAtlasClinicConfig,
 } from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "./SearchAtlasEmptyState";
@@ -51,13 +51,13 @@ export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
   const linksQ = useSearchAtlasMcpByName<any>(
     ["se_get_links", domain ?? ""],
     "se_get_links",
-    { target: domain, limit: 100, mode: "domains" },
+    { target: domain, domain, project_id: pid, limit: 500, mode: "domains" },
     !!domain,
   );
   const linksData = !isSearchAtlasSoftError(linksQ.data) ? (unwrapSearchAtlasPayload<any>(linksQ.data) ?? {}) : {};
   const referringRows: any[] = useMemo(() => {
-    const raw = linksData?.results ?? linksData?.referring_domains ?? linksData?.rows ?? linksData?.data ?? [];
-    return Array.isArray(raw) ? raw : [];
+    const rows = findSearchAtlasArray<any>(linksData, ["referring_domains", "domains", "links", "backlinks"]);
+    return rows.filter((row) => typeof row === "object" && row !== null);
   }, [linksData]);
 
   const totalBacklinks = numberOr(se.backlinks);
@@ -146,24 +146,7 @@ export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
         </div>
       </Card>
 
-      {/* Honest disclosure of what the current API plan does not expose */}
-      <Card className="border-border/60 bg-muted/20">
-        <div className="px-4 py-3 flex items-start gap-3">
-          <Info className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-          <div className="space-y-1">
-            <p className="text-xs font-semibold text-foreground">Why the link timeline and referring-domain list are empty</p>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              The Search Atlas REST endpoints for new/lost links over time, the referring-domain list, and
-              referring-IP counts require their MCP OAuth tier. The current integration uses an API key,
-              which only exposes the summary counts shown above. To populate the timeline and the
-              <span className="text-foreground"> Top Referring Domains</span> table, upgrade the Search Atlas
-              connection to OAuth (MCP) access for this workspace.
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      {/* Top Referring Domains — kept for parity with Search Atlas UI; honest empty state */}
+      {/* Top Referring Domains */}
       <Card className="border-border/60">
         <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
           <h3 className="text-sm font-bold">Top Referring Domains</h3>
@@ -184,10 +167,10 @@ export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
               <TableRow><TableCell colSpan={3} className="text-center text-sm text-muted-foreground py-8">No referring-domain rows returned by Search Atlas for this domain.</TableCell></TableRow>
             ) : (
               referringRows.slice(0, 100).map((r, i) => (
-                <TableRow key={r.domain ?? r.url ?? i}>
-                  <TableCell className="font-medium text-sm truncate max-w-[320px]">{r.domain ?? r.referring_domain ?? r.url ?? "—"}</TableCell>
-                  <TableCell className="text-right tabular-nums">{numberOr(r.backlinks ?? r.link_count).toLocaleString() || "—"}</TableCell>
-                  <TableCell className="text-right tabular-nums">{numberOr(r.domain_authority ?? r.authority ?? r.da) || "—"}</TableCell>
+                <TableRow key={r.domain ?? r.referring_domain ?? r.source_domain ?? r.url ?? i}>
+                  <TableCell className="font-medium text-sm truncate max-w-[320px]">{r.domain ?? r.referring_domain ?? r.source_domain ?? r.host ?? r.url ?? "—"}</TableCell>
+                  <TableCell className="text-right tabular-nums">{numberOr(r.backlinks ?? r.link_count ?? r.links ?? r.total_links).toLocaleString() || "—"}</TableCell>
+                  <TableCell className="text-right tabular-nums">{numberOr(r.domain_authority ?? r.authority ?? r.da ?? r.domain_rating ?? r.dr) || "—"}</TableCell>
                 </TableRow>
               ))
             )}
