@@ -100,6 +100,7 @@ export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
   const raw = project?.data?.se ?? project ?? {};
   const kwPayload: any = !isSearchAtlasSoftError(kwQ.data) ? (unwrapSearchAtlasPayload<any>(kwQ.data) ?? {}) : {};
   const posPayload: any = !isSearchAtlasSoftError(posQ.data) ? (unwrapSearchAtlasPayload<any>(posQ.data) ?? {}) : {};
+  const pagesPayload: any = !isSearchAtlasSoftError(pagesQ.data) ? (unwrapSearchAtlasPayload<any>(pagesQ.data) ?? {}) : {};
 
   const rows: Kw[] = Array.isArray(kwPayload?.results) ? kwPayload.results
     : Array.isArray(kwPayload?.keywords) ? kwPayload.keywords
@@ -113,10 +114,28 @@ export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
 
   const buckets = useMemo(() => bucketize(rows), [rows]);
 
+  // Position-change summary — try many shapes returned by get_organic_position_changes
+  const posSummary = useMemo(() => {
+    const src: any = posPayload?.summary ?? posPayload?.totals ?? posPayload ?? {};
+    const num = (v: any) => Number(v ?? 0) || 0;
+    return {
+      improved: num(src.improved ?? src.improved_count ?? src.gains ?? src.up),
+      declined: num(src.declined ?? src.declined_count ?? src.losses ?? src.down),
+      new: num(src.new ?? src.new_count ?? src.entered),
+      lost: num(src.lost ?? src.lost_count ?? src.exited),
+    };
+  }, [posPayload]);
+
+  // Top organic pages (from get_organic_pages)
+  const topPages = useMemo<any[]>(() => {
+    const raw = pagesPayload?.results ?? pagesPayload?.pages ?? pagesPayload?.data ?? [];
+    return Array.isArray(raw) ? raw.slice(0, 20) : [];
+  }, [pagesPayload]);
+
   // Try real time-series from API; else fall back to single-period stack
   const positionHistory = useMemo<any[]>(() => {
-    const hist = posPayload?.history ?? posPayload?.trend ?? posPayload?.data ?? raw?.position_history ?? raw?.organic_keyword_position_history ?? [];
-    if (Array.isArray(hist) && hist.length) {
+    const hist = posPayload?.history ?? posPayload?.trend ?? posPayload?.data ?? posPayload?.results ?? raw?.position_history ?? raw?.organic_keyword_position_history ?? [];
+    if (Array.isArray(hist) && hist.length && (hist[0]?.date || hist[0]?.day)) {
       return hist.map((d: any) => ({
         date: d.date ?? d.day ?? "",
         top3: Number(d.top3 ?? d.top_3 ?? 0),
@@ -128,7 +147,7 @@ export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
       }));
     }
     return [{ date: "Now", ...buckets }];
-  }, [raw, buckets]);
+  }, [raw, buckets, posPayload]);
 
   const filtered = useMemo(() => rows.filter(k => !search || (k.keyword ?? "").toLowerCase().includes(search.toLowerCase())), [rows, search]);
 
