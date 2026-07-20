@@ -4,13 +4,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Settings, ListChecks, MessageSquare } from "lucide-react";
+import { Settings, ListChecks, MessageSquare, Wrench } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   useChecklistStatus,
   useToggleChecklistItem,
   useChecklistNotes,
+  type ChecklistType,
 } from "@/hooks/useWebsiteChecklist";
 import { useUserRole } from "@/hooks/useUserRole";
 import { ChecklistItemsManagerDialog } from "./ChecklistItemsManagerDialog";
@@ -24,14 +26,16 @@ function ItemNotes({
   clinicId,
   itemId,
   current,
+  checklistType,
 }: {
   clinicId: string;
   itemId: string;
   current: string | null;
+  checklistType: ChecklistType;
 }) {
   const [open, setOpen] = useState(false);
   const [val, setVal] = useState(current ?? "");
-  const m = useChecklistNotes(clinicId);
+  const m = useChecklistNotes(clinicId, checklistType);
   return (
     <Popover open={open} onOpenChange={(o) => { setOpen(o); if (o) setVal(current ?? ""); }}>
       <PopoverTrigger asChild>
@@ -53,11 +57,21 @@ function ItemNotes({
   );
 }
 
-export function WebsiteChecklistTab({ clinicId }: Props) {
-  const { role } = useUserRole();
-  const isStaff = role === "admin" || role === "concierge";
-  const { data: rows = [], isLoading } = useChecklistStatus(clinicId);
-  const toggle = useToggleChecklistItem(clinicId);
+function ChecklistPanel({
+  clinicId,
+  checklistType,
+  title,
+  icon,
+  isStaff,
+}: {
+  clinicId: string;
+  checklistType: ChecklistType;
+  title: string;
+  icon: React.ReactNode;
+  isStaff: boolean;
+}) {
+  const { data: rows = [], isLoading } = useChecklistStatus(clinicId, checklistType);
+  const toggle = useToggleChecklistItem(clinicId, checklistType);
   const [managerOpen, setManagerOpen] = useState(false);
 
   const grouped = useMemo(() => {
@@ -73,20 +87,16 @@ export function WebsiteChecklistTab({ clinicId }: Props) {
   const done = rows.filter((r) => r.is_done).length;
   const pct = total === 0 ? 0 : Math.round((done / total) * 100);
 
-  if (!clinicId) {
-    return <div className="text-sm text-muted-foreground py-12 text-center">Select a clinic to view checklist.</div>;
-  }
-
   return (
     <div className="space-y-5">
       <Card>
         <CardHeader className="pb-3 flex-row items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-lg bg-[hsl(var(--dept-website))]/10 flex items-center justify-center">
-              <ListChecks className="h-4.5 w-4.5 text-[hsl(var(--dept-website))]" />
+              {icon}
             </div>
             <div>
-              <CardTitle>Delivery Checklist</CardTitle>
+              <CardTitle>{title}</CardTitle>
               <div className="text-xs text-muted-foreground mt-0.5">
                 {isLoading ? "Loading..." : `${done} of ${total} complete`}
               </div>
@@ -138,7 +148,7 @@ export function WebsiteChecklistTab({ clinicId }: Props) {
                       <div className="text-xs text-muted-foreground mt-1 italic">{it.notes}</div>
                     )}
                   </div>
-                  <ItemNotes clinicId={clinicId} itemId={it.id} current={it.notes} />
+                  <ItemNotes clinicId={clinicId} itemId={it.id} current={it.notes} checklistType={checklistType} />
                 </div>
               ))}
             </CardContent>
@@ -146,7 +156,53 @@ export function WebsiteChecklistTab({ clinicId }: Props) {
         );
       })}
 
-      {isStaff && <ChecklistItemsManagerDialog open={managerOpen} onOpenChange={setManagerOpen} />}
+      {isStaff && (
+        <ChecklistItemsManagerDialog
+          open={managerOpen}
+          onOpenChange={setManagerOpen}
+          checklistType={checklistType}
+        />
+      )}
     </div>
+  );
+}
+
+export function WebsiteChecklistTab({ clinicId }: Props) {
+  const { role } = useUserRole();
+  const isStaff = role === "admin" || role === "concierge";
+
+  if (!clinicId) {
+    return <div className="text-sm text-muted-foreground py-12 text-center">Select a clinic to view checklist.</div>;
+  }
+
+  return (
+    <Tabs defaultValue="delivery" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="delivery" className="gap-2">
+          <ListChecks className="h-4 w-4" /> Delivery
+        </TabsTrigger>
+        <TabsTrigger value="maintenance" className="gap-2">
+          <Wrench className="h-4 w-4" /> Maintenance
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="delivery" className="mt-4">
+        <ChecklistPanel
+          clinicId={clinicId}
+          checklistType="delivery"
+          title="Delivery Checklist"
+          icon={<ListChecks className="h-4.5 w-4.5 text-[hsl(var(--dept-website))]" />}
+          isStaff={isStaff}
+        />
+      </TabsContent>
+      <TabsContent value="maintenance" className="mt-4">
+        <ChecklistPanel
+          clinicId={clinicId}
+          checklistType="maintenance"
+          title="Maintenance Checklist"
+          icon={<Wrench className="h-4.5 w-4.5 text-[hsl(var(--dept-website))]" />}
+          isStaff={isStaff}
+        />
+      </TabsContent>
+    </Tabs>
   );
 }
