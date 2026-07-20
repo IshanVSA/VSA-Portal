@@ -86,6 +86,7 @@ export async function callSearchAtlas<T = unknown>(req: SearchAtlasRequest): Pro
       body: req.body,
       tool: req.tool,
       op: req.op,
+      name: req.name,
       params: req.params,
     },
   });
