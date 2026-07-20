@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { MapPin, ChevronDown, Lightbulb, Search, Download, MoreVertical, X } from "lucide-react";
 import { useSearchAtlasMcp, unwrapSearchAtlasPayload, isSearchAtlasSoftError, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "./SearchAtlasEmptyState";
+import { OpenInSearchAtlas } from "./OpenInSearchAtlas";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Props { config: SearchAtlasClinicConfig; clinicId?: string }
