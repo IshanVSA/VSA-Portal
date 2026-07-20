@@ -3757,6 +3757,7 @@ export type Database = {
       }
       website_checklist_items: {
         Row: {
+          checklist_type: string
           created_at: string
           id: string
           is_active: boolean
@@ -3766,6 +3767,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          checklist_type?: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -3775,6 +3777,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          checklist_type?: string
           created_at?: string
           id?: string
           is_active?: boolean

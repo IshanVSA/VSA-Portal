@@ -3,12 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "@/hooks/use-toast";
 
+export type ChecklistType = "delivery" | "maintenance";
+
 export type ChecklistItem = {
   id: string;
   section: string;
   label: string;
   position: number;
   is_active: boolean;
+  checklist_type: ChecklistType;
 };
 
 export type ChecklistRow = ChecklistItem & {
@@ -19,13 +22,14 @@ export type ChecklistRow = ChecklistItem & {
   completed_by_name?: string | null;
 };
 
-export function useChecklistItems(includeInactive = false) {
+export function useChecklistItems(includeInactive = false, checklistType: ChecklistType = "delivery") {
   return useQuery({
-    queryKey: ["website-checklist-items", includeInactive],
+    queryKey: ["website-checklist-items", includeInactive, checklistType],
     queryFn: async (): Promise<ChecklistItem[]> => {
       let q = supabase
         .from("website_checklist_items")
-        .select("id, section, label, position, is_active")
+        .select("id, section, label, position, is_active, checklist_type")
+        .eq("checklist_type", checklistType)
         .order("section", { ascending: true })
         .order("position", { ascending: true });
       if (!includeInactive) q = q.eq("is_active", true);
@@ -37,23 +41,26 @@ export function useChecklistItems(includeInactive = false) {
   });
 }
 
-export function useChecklistStatus(clinicId: string | null) {
+export function useChecklistStatus(clinicId: string | null, checklistType: ChecklistType = "delivery") {
   return useQuery({
-    queryKey: ["website-checklist-status", clinicId],
+    queryKey: ["website-checklist-status", clinicId, checklistType],
     queryFn: async (): Promise<ChecklistRow[]> => {
       if (!clinicId) return [];
       const { data: items, error: itemsErr } = await supabase
         .from("website_checklist_items")
-        .select("id, section, label, position, is_active")
+        .select("id, section, label, position, is_active, checklist_type")
         .eq("is_active", true)
+        .eq("checklist_type", checklistType)
         .order("section", { ascending: true })
         .order("position", { ascending: true });
       if (itemsErr) throw itemsErr;
 
+      const itemIds = (items ?? []).map((i: any) => i.id);
       const { data: status, error: statusErr } = await supabase
         .from("website_checklist_status")
         .select("item_id, is_done, completed_by, completed_at, notes")
-        .eq("clinic_id", clinicId);
+        .eq("clinic_id", clinicId)
+        .in("item_id", itemIds.length ? itemIds : ["00000000-0000-0000-0000-000000000000"]);
       if (statusErr) throw statusErr;
 
       const userIds = Array.from(
@@ -85,7 +92,7 @@ export function useChecklistStatus(clinicId: string | null) {
   });
 }
 
-export function useToggleChecklistItem(clinicId: string | null) {
+export function useToggleChecklistItem(clinicId: string | null, checklistType: ChecklistType = "delivery") {
   const qc = useQueryClient();
   const { user } = useAuth();
   return useMutation({
@@ -104,13 +111,13 @@ export function useToggleChecklistItem(clinicId: string | null) {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["website-checklist-status", clinicId] });
+      qc.invalidateQueries({ queryKey: ["website-checklist-status", clinicId, checklistType] });
     },
     onError: (e: any) => toast({ title: "Update failed", description: e.message, variant: "destructive" }),
   });
 }
 
-export function useChecklistNotes(clinicId: string | null) {
+export function useChecklistNotes(clinicId: string | null, checklistType: ChecklistType = "delivery") {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ itemId, notes }: { itemId: string; notes: string }) => {
@@ -123,24 +130,33 @@ export function useChecklistNotes(clinicId: string | null) {
         );
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["website-checklist-status", clinicId] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["website-checklist-status", clinicId, checklistType] }),
   });
 }
 
 export function useAddChecklistItem() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ section, label }: { section: string; label: string }) => {
+    mutationFn: async ({
+      section,
+      label,
+      checklist_type = "delivery",
+    }: {
+      section: string;
+      label: string;
+      checklist_type?: ChecklistType;
+    }) => {
       const { data: existing } = await supabase
         .from("website_checklist_items")
         .select("position")
         .eq("section", section)
+        .eq("checklist_type", checklist_type)
         .order("position", { ascending: false })
         .limit(1);
       const nextPos = (existing?.[0]?.position ?? 0) + 1;
       const { error } = await supabase
         .from("website_checklist_items")
-        .insert({ section, label, position: nextPos });
+        .insert({ section, label, position: nextPos, checklist_type });
       if (error) throw error;
     },
     onSuccess: () => {
