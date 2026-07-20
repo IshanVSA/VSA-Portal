@@ -103,7 +103,7 @@ export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
   const krtQ = useSearchAtlasMcpByName<any>(
     ["krt-rankings", rtId ?? ""],
     "krt_get_rankings",
-    { project_id: rtId, limit: 1000 },
+    { project_id: rtId, domain, limit: 1000 },
     !!rtId,
   );
   const posQ = useSearchAtlasMcpByName<any>(

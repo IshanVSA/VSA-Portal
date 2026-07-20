@@ -29,7 +29,7 @@ export function SearchAtlasCompetitorGapTab({ config, clinicId }: Props) {
   const gapQ = useSearchAtlasMcpByName<any>(
     ["se_keyword_gap", domain ?? "", competitor, runToken],
     "se_get_keyword_gap_results",
-    { target: domain, competitor },
+    { target: domain, domain, competitor },
     !!domain && !!competitor && runToken > 0,
   );
 

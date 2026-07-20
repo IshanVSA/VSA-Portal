@@ -22,9 +22,10 @@ function num(v: unknown, d = 0): number {
 
 export function SearchAtlasSerpHistoryTab({ config, clinicId }: Props) {
   const domain = config.search_atlas_domain ?? undefined;
-  const organicQ = useSearchAtlasMcpByName<any>(["se_organic", domain ?? ""], "se_get_organic", { target: domain }, !!domain);
-  const serpQ = useSearchAtlasMcpByName<any>(["se_serp", domain ?? ""], "se_get_serp_overview", { target: domain }, !!domain);
-  const analyzeQ = useSearchAtlasMcpByName<any>(["se_analyze", domain ?? ""], "se_analyze_domain", { target: domain }, !!domain);
+  const domainParams = { target: domain, domain };
+  const organicQ = useSearchAtlasMcpByName<any>(["se_organic", domain ?? ""], "se_get_organic", domainParams, !!domain);
+  const serpQ = useSearchAtlasMcpByName<any>(["se_serp", domain ?? ""], "se_get_serp_overview", domainParams, !!domain);
+  const analyzeQ = useSearchAtlasMcpByName<any>(["se_analyze", domain ?? ""], "se_analyze_domain", domainParams, !!domain);
 
   const organic = !isSearchAtlasSoftError(organicQ.data) ? (unwrapSearchAtlasPayload<any>(organicQ.data) ?? {}) : {};
   const serp = !isSearchAtlasSoftError(serpQ.data) ? (unwrapSearchAtlasPayload<any>(serpQ.data) ?? {}) : {};
