@@ -6,7 +6,15 @@ import { HelpCircle, ChevronDown, Sparkles, TrendingUp, Users as UsersIcon, Cale
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
-import { findSearchAtlasProject, useSearchAtlasCustomerProjects, useSearchAtlasMcp, unwrapSearchAtlasPayload, isSearchAtlasSoftError, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
+import {
+  findSearchAtlasProject,
+  useSearchAtlasCustomerProjects,
+  useSearchAtlasMcpByName,
+  unwrapSearchAtlasPayload,
+  isSearchAtlasSoftError,
+  findSearchAtlasArray,
+  type SearchAtlasClinicConfig,
+} from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "./SearchAtlasEmptyState";
 import { OpenInSearchAtlas } from "./OpenInSearchAtlas";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -26,43 +34,58 @@ export function SearchAtlasLLMTab({ config, clinicId }: Props) {
   const overviewQ = useSearchAtlasCustomerProjects(!!pid || !!config.search_atlas_domain);
 
   // Real LLM visibility metrics via MCP
-  const brandQ = useSearchAtlasMcp<any>(["brand-ov", pid ?? ""], "visibility", "get_brand_overview", { project_id: pid }, !!pid);
-  const trendQ = useSearchAtlasMcp<any>(["vis-trend", pid ?? ""], "visibility", "get_visibility_trend", { project_id: pid }, !!pid);
-  const sovQ = useSearchAtlasMcp<any>(["sov", pid ?? ""], "visibility", "get_competitor_share_of_voice", { project_id: pid }, !!pid);
-  const sentQ = useSearchAtlasMcp<any>(["sent", pid ?? ""], "sentiment", "get_sentiment_overview", { project_id: pid }, !!pid);
-  const citQ = useSearchAtlasMcp<any>(["cit", pid ?? ""], "citations", "get_citations_overview", { project_id: pid }, !!pid);
-  const citUrlsQ = useSearchAtlasMcp<any>(["cit-urls", pid ?? ""], "citations", "get_citations_urls", { project_id: pid, limit: 25 }, !!pid);
+  const brandQ = useSearchAtlasMcpByName<any>(["llmv-overview", pid ?? ""], "llmv_get_overview", { project_id: pid }, !!pid);
+  const reportQ = useSearchAtlasMcpByName<any>(["llmv-report", pid ?? ""], "llmv_get_visibility_report", { project_id: pid }, !!pid);
+  const trendQ = useSearchAtlasMcpByName<any>(["llmv-trend", pid ?? ""], "llmv_get_sentiment_trend", { project_id: pid }, !!pid);
+  const sovQ = useSearchAtlasMcpByName<any>(["llmv-sov", pid ?? ""], "llmv_get_competitor_data", { project_id: pid }, !!pid);
+  const sentQ = useSearchAtlasMcpByName<any>(["llmv-sent", pid ?? ""], "llmv_get_sentiment_trend", { project_id: pid }, !!pid);
+  const citQ = useSearchAtlasMcpByName<any>(["llmv-cit", pid ?? ""], "llmv_get_citations_overview", { project_id: pid }, !!pid);
+  const citUrlsQ = useSearchAtlasMcpByName<any>(["llmv-cit-urls", pid ?? ""], "llmv_get_citations_urls", { project_id: pid, limit: 25 }, !!pid);
 
   const project = findSearchAtlasProject(overviewQ.data, config);
   const listing = project?.data?.llmv ?? project ?? {};
   const brand: any = !isSearchAtlasSoftError(brandQ.data) ? (unwrapSearchAtlasPayload<any>(brandQ.data) ?? {}) : {};
+  const report: any = !isSearchAtlasSoftError(reportQ.data) ? (unwrapSearchAtlasPayload<any>(reportQ.data) ?? {}) : {};
   const trendRaw: any = !isSearchAtlasSoftError(trendQ.data) ? (unwrapSearchAtlasPayload<any>(trendQ.data) ?? {}) : {};
   const sov: any = !isSearchAtlasSoftError(sovQ.data) ? (unwrapSearchAtlasPayload<any>(sovQ.data) ?? {}) : {};
   const sent: any = !isSearchAtlasSoftError(sentQ.data) ? (unwrapSearchAtlasPayload<any>(sentQ.data) ?? {}) : {};
   const cit: any = !isSearchAtlasSoftError(citQ.data) ? (unwrapSearchAtlasPayload<any>(citQ.data) ?? {}) : {};
   const citUrls: any = !isSearchAtlasSoftError(citUrlsQ.data) ? (unwrapSearchAtlasPayload<any>(citUrlsQ.data) ?? {}) : {};
-  const citationRows: any[] = Array.isArray(citUrls?.results) ? citUrls.results : Array.isArray(citUrls?.urls) ? citUrls.urls : Array.isArray(citUrls?.data) ? citUrls.data : [];
-  const o: any = { ...listing, ...(brand?.overview ?? brand?.data ?? brand) };
+  const citationRows: any[] = findSearchAtlasArray<any>(citUrls, ["urls", "citations", "results", "rows"]);
+  const o: any = { ...listing, ...(report?.overview ?? report?.data ?? report), ...(brand?.overview ?? brand?.data ?? brand) };
 
   const visibilityScore = o?.visibility_score ?? o?.overall_visibility ?? o?.current_mentions ?? 0;
   const sentiment = sent?.overall_sentiment ?? sent?.sentiment_score ?? o?.sentiment_score ?? o?.sentiment ?? 0;
   const citations = cit?.total_citations ?? cit?.citations ?? o?.total_citations ?? o?.current_mentions ?? 0;
 
   const trend = useMemo(() => {
-    const raw = trendRaw?.trend ?? trendRaw?.results ?? trendRaw?.data ?? o?.visibility_trend ?? o?.history ?? [];
-    if (Array.isArray(raw) && raw.length) {
-      return raw.map((d: any) => ({
+    const raw = findSearchAtlasArray<any>(report, ["visibility_trend", "history", "trend", "results"]);
+    const fallback = raw.length ? raw : findSearchAtlasArray<any>(trendRaw, ["visibility_trend", "history", "trend", "results"]);
+    if (fallback.length) {
+      return fallback.map((d: any) => ({
         date: d.date ?? d.day ?? "",
         score: Number(d.visibility ?? d.score ?? d.value ?? 0),
-      }));
+      })).filter((d) => d.date);
     }
     return [];
-  }, [trendRaw, o]);
+  }, [report, trendRaw]);
 
   const competitors = useMemo(() => {
-    const raw = sov?.competitors ?? sov?.results ?? sov?.data ?? o?.competitors ?? o?.competitor_visibility ?? [];
-    return Array.isArray(raw) ? raw : [];
-  }, [sov, o]);
+    const rows = findSearchAtlasArray<any>(sov, ["competitors", "competitor_data", "share_of_voice", "results", "rows"]);
+    const fallback = rows.length ? rows : findSearchAtlasArray<any>(report, ["competitors", "competitor_visibility", "share_of_voice", "results"]);
+    return fallback.filter((row) => row && typeof row === "object");
+  }, [sov, report]);
+
+  const competitorTrend = useMemo(() => {
+    if (trend.length === 0) return [];
+    return trend.map((point) => {
+      const next: Record<string, unknown> = { ...point };
+      competitors.slice(0, 5).forEach((competitor: any, i: number) => {
+        next[`comp_${i}`] = Number(competitor.visibility ?? competitor.share ?? competitor.score ?? competitor.value ?? 0);
+      });
+      return next;
+    });
+  }, [trend, competitors]);
 
   if (!pid) {
     return <SearchAtlasEmptyState clinicId={clinicId} message="Add an LLM Visibility project ID to view brand visibility across AI search." />;
@@ -139,7 +162,7 @@ export function SearchAtlasLLMTab({ config, clinicId }: Props) {
               <EmptyChart label="More data needed to show trend" sub="Today's scores are plotted on the left. Check back in 7 days to see direction." />
             ) : (
               <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={trend} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+                <LineChart data={competitorTrend.length ? competitorTrend : trend} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
                   <CartesianGrid stroke="hsl(var(--border) / 0.4)" strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="date" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
                   <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={32} />
