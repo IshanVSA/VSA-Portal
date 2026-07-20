@@ -158,12 +158,18 @@ Deno.serve(async (req) => {
     const op: string = body?.op ?? "";
     const params: Record<string, unknown> = body?.params ?? {};
 
-    if (tool || op) {
-      if (!tool || !op || typeof tool !== "string" || typeof op !== "string") {
-        return json({ error: "Missing MCP tool or operation" }, 400);
+    const nameFromBody: string = typeof body?.name === "string" ? body.name : "";
+
+    if (tool || op || nameFromBody) {
+      // Resolve the flat MCP tool name. Prefer explicit `name`; otherwise
+      // translate legacy {tool, op} via alias, then fall back to `tool_op`.
+      let name = nameFromBody;
+      if (!name) {
+        if (!tool || !op) return json({ error: "Missing MCP tool/op or name" }, 400);
+        name = LEGACY_ALIAS[`${tool}.${op}`] ?? `${tool}_${op}`;
       }
-      if (!isMcpAllowed(tool, op)) {
-        return json({ error: `MCP operation not allowed: ${tool}.${op}` }, 403);
+      if (!ALLOWED_MCP_NAMES.has(name)) {
+        return json({ error: `MCP tool not allowed: ${name}` }, 403);
       }
 
       const upstream = await fetch(MCP_BASE, {
@@ -171,24 +177,25 @@ Deno.serve(async (req) => {
         headers: {
           "Content-Type": "application/json",
           "X-API-KEY": apiKey,
-          "Accept": "application/json",
+          // Streamable-HTTP requires BOTH types in Accept, else 406.
+          "Accept": "application/json, text/event-stream",
         },
         body: JSON.stringify({
           jsonrpc: "2.0",
           id: crypto.randomUUID(),
           method: "tools/call",
-          params: { name: tool, arguments: { op, params } },
+          params: { name, arguments: params },
         }),
       });
       const text = await upstream.text();
-      let data: unknown;
-      try { data = JSON.parse(text); } catch { data = text; }
+      const data = parseMcpBody(text);
 
       if (!upstream.ok || (data && typeof data === "object" && "error" in (data as Record<string, unknown>))) {
         return json({
           __searchAtlasError: true,
           status: upstream.status,
           source: "mcp",
+          name,
           tool,
           op,
           details: sanitizeDetails(data),
