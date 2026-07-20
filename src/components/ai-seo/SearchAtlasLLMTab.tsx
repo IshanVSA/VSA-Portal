@@ -40,6 +40,8 @@ export function SearchAtlasLLMTab({ config, clinicId }: Props) {
   const sov: any = !isSearchAtlasSoftError(sovQ.data) ? (unwrapSearchAtlasPayload<any>(sovQ.data) ?? {}) : {};
   const sent: any = !isSearchAtlasSoftError(sentQ.data) ? (unwrapSearchAtlasPayload<any>(sentQ.data) ?? {}) : {};
   const cit: any = !isSearchAtlasSoftError(citQ.data) ? (unwrapSearchAtlasPayload<any>(citQ.data) ?? {}) : {};
+  const citUrls: any = !isSearchAtlasSoftError(citUrlsQ.data) ? (unwrapSearchAtlasPayload<any>(citUrlsQ.data) ?? {}) : {};
+  const citationRows: any[] = Array.isArray(citUrls?.results) ? citUrls.results : Array.isArray(citUrls?.urls) ? citUrls.urls : Array.isArray(citUrls?.data) ? citUrls.data : [];
   const o: any = { ...listing, ...(brand?.overview ?? brand?.data ?? brand) };
 
   const visibilityScore = o?.visibility_score ?? o?.overall_visibility ?? o?.current_mentions ?? 0;
