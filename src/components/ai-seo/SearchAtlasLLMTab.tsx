@@ -31,6 +31,7 @@ export function SearchAtlasLLMTab({ config, clinicId }: Props) {
   const sovQ = useSearchAtlasMcp<any>(["sov", pid ?? ""], "visibility", "get_competitor_share_of_voice", { project_id: pid }, !!pid);
   const sentQ = useSearchAtlasMcp<any>(["sent", pid ?? ""], "sentiment", "get_sentiment_overview", { project_id: pid }, !!pid);
   const citQ = useSearchAtlasMcp<any>(["cit", pid ?? ""], "citations", "get_citations_overview", { project_id: pid }, !!pid);
+  const citUrlsQ = useSearchAtlasMcp<any>(["cit-urls", pid ?? ""], "citations", "get_citations_urls", { project_id: pid, limit: 25 }, !!pid);
 
   const project = findSearchAtlasProject(overviewQ.data, config);
   const listing = project?.data?.llmv ?? project ?? {};
