@@ -31,12 +31,76 @@ export function isSearchAtlasSoftError(value: unknown): value is SearchAtlasSoft
 export function unwrapSearchAtlasPayload<T = unknown>(value: unknown): T | null {
   if (!value || isSearchAtlasSoftError(value)) return null;
   const data = value as any;
-  const candidate = data?.result?.structuredContent ?? data?.result?.data ?? data?.data ?? data;
   const content = data?.result?.content;
   if (Array.isArray(content) && typeof content[0]?.text === "string") {
-    try { return JSON.parse(content[0].text) as T; } catch { return content[0].text as T; }
+    try { return unwrapSearchAtlasPayload<T>(JSON.parse(content[0].text)) ?? (JSON.parse(content[0].text) as T); } catch { return content[0].text as T; }
+  }
+  const candidate = data?.result?.structuredContent ?? data?.result?.data ?? data?.data ?? data?.result ?? data;
+  if (candidate && typeof candidate === "object" && !Array.isArray(candidate)) {
+    const innerContent = (candidate as any)?.content;
+    if (Array.isArray(innerContent) && typeof innerContent[0]?.text === "string") {
+      try { return unwrapSearchAtlasPayload<T>(JSON.parse(innerContent[0].text)) ?? (JSON.parse(innerContent[0].text) as T); } catch { return innerContent[0].text as T; }
+    }
   }
   return candidate as T;
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function parseJsonText(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  if (!trimmed || (!trimmed.startsWith("{") && !trimmed.startsWith("["))) return value;
+  try { return JSON.parse(trimmed); } catch { return value; }
+}
+
+/**
+ * Search Atlas MCP tools vary by endpoint/version. This walks nested envelopes
+ * and returns the first useful array under common row keys instead of only
+ * accepting one exact payload shape.
+ */
+export function findSearchAtlasArray<T = any>(value: unknown, preferredKeys: string[] = []): T[] {
+  const root = parseJsonText(unwrapSearchAtlasPayload(value));
+  if (Array.isArray(root)) return root as T[];
+  if (!isPlainRecord(root)) return [];
+
+  const keys = [
+    ...preferredKeys,
+    "results", "rows", "items", "data", "keywords", "pages", "links", "backlinks",
+    "domains", "referring_domains", "competitors", "history", "trend", "urls", "citations",
+  ];
+
+  const seen = new Set<unknown>();
+  const queue: unknown[] = [root];
+  while (queue.length) {
+    const current = parseJsonText(queue.shift());
+    if (!current || seen.has(current)) continue;
+    seen.add(current);
+
+    if (Array.isArray(current)) {
+      if (current.length === 0) continue;
+      const first = current[0];
+      if (isPlainRecord(first) || typeof first === "string" || typeof first === "number") return current as T[];
+      continue;
+    }
+
+    if (!isPlainRecord(current)) continue;
+
+    for (const key of keys) {
+      const child = parseJsonText(current[key]);
+      if (Array.isArray(child) && child.length > 0) return child as T[];
+      if (isPlainRecord(child)) queue.push(child);
+    }
+
+    for (const child of Object.values(current)) {
+      const parsed = parseJsonText(child);
+      if (isPlainRecord(parsed) || Array.isArray(parsed)) queue.push(parsed);
+    }
+  }
+
+  return [];
 }
 
 function normalizeDomain(value?: string | null) {
