@@ -25,7 +25,27 @@ export interface SearchAtlasSoftError {
 }
 
 export function isSearchAtlasSoftError(value: unknown): value is SearchAtlasSoftError {
-  return Boolean(value && typeof value === "object" && (value as Record<string, unknown>).__searchAtlasError === true);
+  if (!value || typeof value !== "object") return false;
+  const data = value as any;
+  if (data.__searchAtlasError === true) return true;
+  if (data.success === false) return true;
+  if (data.result?.isError === true) return true;
+  if (data.result?.structuredContent?.success === false) return true;
+  const content = data.result?.content;
+  if (Array.isArray(content)) {
+    return content.some((item: any) => {
+      if (typeof item?.text !== "string") return false;
+      const trimmed = item.text.trim();
+      if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return false;
+      try {
+        const parsed = JSON.parse(trimmed);
+        return parsed?.success === false || parsed?.isError === true || Boolean(parsed?.error || (parsed?.message && parsed?.error_code));
+      } catch {
+        return false;
+      }
+    });
+  }
+  return false;
 }
 
 export function unwrapSearchAtlasPayload<T = unknown>(value: unknown): T | null {

@@ -153,6 +153,47 @@ function hasMcpError(data: unknown) {
   return Boolean(data && typeof data === "object" && "error" in (data as Record<string, unknown>));
 }
 
+function parseJsonMaybe(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  if (!trimmed || (!trimmed.startsWith("{") && !trimmed.startsWith("["))) return value;
+  try { return JSON.parse(trimmed); } catch { return value; }
+}
+
+function getMcpToolPayload(data: unknown): Record<string, unknown> | null {
+  if (!data || typeof data !== "object") return null;
+  const result = (data as Record<string, unknown>).result;
+  if (!result || typeof result !== "object") return null;
+
+  const resultRecord = result as Record<string, unknown>;
+  const structured = resultRecord.structuredContent;
+  if (structured && typeof structured === "object" && !Array.isArray(structured)) {
+    return structured as Record<string, unknown>;
+  }
+
+  const content = resultRecord.content;
+  if (Array.isArray(content)) {
+    for (const item of content) {
+      if (item && typeof item === "object" && typeof (item as Record<string, unknown>).text === "string") {
+        const parsed = parseJsonMaybe((item as Record<string, unknown>).text);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          return parsed as Record<string, unknown>;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+function hasMcpToolError(data: unknown) {
+  if (!data || typeof data !== "object") return false;
+  const result = (data as Record<string, unknown>).result;
+  if (result && typeof result === "object" && (result as Record<string, unknown>).isError === true) return true;
+  const payload = getMcpToolPayload(data);
+  return Boolean(payload?.success === false || payload?.isError === true || payload?.error || (payload?.message && payload?.error_code));
+}
+
 async function postMcp(base: string, apiKey: string, body: unknown, sessionId?: string) {
   const response = await fetch(base, {
     method: "POST",
@@ -179,7 +220,7 @@ async function callMcpTool(base: string, apiKey: string, name: string, params: R
   // initialize handshake required. Try that path first — it's what their
   // documented curl example uses and it succeeds against /mcp/.
   const direct = await postMcp(base, apiKey, callBody);
-  if (direct.response.ok && !hasMcpError(direct.data)) return direct;
+  if (direct.response.ok && !hasMcpError(direct.data) && !hasMcpToolError(direct.data)) return direct;
 
   // Fallback: some deployments still gate tool calls behind the full
   // MCP handshake (initialize -> notifications/initialized -> tools/call).
@@ -207,7 +248,7 @@ async function callMcpTool(base: string, apiKey: string, name: string, params: R
   }
 
   const handshake = await postMcp(base, apiKey, { ...callBody, id: crypto.randomUUID() }, init.sessionId);
-  if (handshake.response.ok && !hasMcpError(handshake.data)) return handshake;
+  if (handshake.response.ok && !hasMcpError(handshake.data) && !hasMcpToolError(handshake.data)) return handshake;
   return direct;
 }
 
@@ -271,10 +312,11 @@ Deno.serve(async (req) => {
         const result = await callMcpTool(base, apiKey, name, params);
         upstream = result.response;
         data = result.data;
-        if (upstream.ok && !hasMcpError(data)) break;
+        if (upstream.ok && !hasMcpError(data) && !hasMcpToolError(data)) break;
       }
 
-      if (!upstream?.ok || hasMcpError(data)) {
+      if (!upstream?.ok || hasMcpError(data) || hasMcpToolError(data)) {
+        const toolPayload = getMcpToolPayload(data);
         return json({
           __searchAtlasError: true,
           status: upstream?.status,
@@ -282,7 +324,7 @@ Deno.serve(async (req) => {
           name,
           tool,
           op,
-          details: sanitizeDetails(data),
+          details: sanitizeDetails(toolPayload ?? data),
         });
       }
 

@@ -31,16 +31,18 @@ const PLATFORM_COLORS = [
 
 export function SearchAtlasLLMTab({ config, clinicId }: Props) {
   const pid = config.search_atlas_llm_project_id;
-  const overviewQ = useSearchAtlasCustomerProjects(!!pid || !!config.search_atlas_domain);
+  const domain = config.search_atlas_domain ?? undefined;
+  const llmvParams = { project_id: pid, domain };
+  const overviewQ = useSearchAtlasCustomerProjects(!!pid || !!domain);
 
   // Real LLM visibility metrics via MCP
-  const brandQ = useSearchAtlasMcpByName<any>(["llmv-overview", pid ?? ""], "llmv_get_overview", { project_id: pid }, !!pid);
-  const reportQ = useSearchAtlasMcpByName<any>(["llmv-report", pid ?? ""], "llmv_get_visibility_report", { project_id: pid }, !!pid);
-  const trendQ = useSearchAtlasMcpByName<any>(["llmv-trend", pid ?? ""], "llmv_get_sentiment_trend", { project_id: pid }, !!pid);
-  const sovQ = useSearchAtlasMcpByName<any>(["llmv-sov", pid ?? ""], "llmv_get_competitor_data", { project_id: pid }, !!pid);
-  const sentQ = useSearchAtlasMcpByName<any>(["llmv-sent", pid ?? ""], "llmv_get_sentiment_trend", { project_id: pid }, !!pid);
-  const citQ = useSearchAtlasMcpByName<any>(["llmv-cit", pid ?? ""], "llmv_get_citations_overview", { project_id: pid }, !!pid);
-  const citUrlsQ = useSearchAtlasMcpByName<any>(["llmv-cit-urls", pid ?? ""], "llmv_get_citations_urls", { project_id: pid, limit: 25 }, !!pid);
+  const brandQ = useSearchAtlasMcpByName<any>(["llmv-overview", pid ?? "", domain ?? ""], "llmv_get_overview", llmvParams, !!pid && !!domain);
+  const reportQ = useSearchAtlasMcpByName<any>(["llmv-report", pid ?? "", domain ?? ""], "llmv_get_visibility_report", llmvParams, !!pid && !!domain);
+  const trendQ = useSearchAtlasMcpByName<any>(["llmv-trend", pid ?? "", domain ?? ""], "llmv_get_sentiment_trend", llmvParams, !!pid && !!domain);
+  const sovQ = useSearchAtlasMcpByName<any>(["llmv-sov", pid ?? "", domain ?? ""], "llmv_get_competitor_data", llmvParams, !!pid && !!domain);
+  const sentQ = useSearchAtlasMcpByName<any>(["llmv-sent", pid ?? "", domain ?? ""], "llmv_get_sentiment_trend", llmvParams, !!pid && !!domain);
+  const citQ = useSearchAtlasMcpByName<any>(["llmv-cit", pid ?? "", domain ?? ""], "llmv_get_citations_overview", llmvParams, !!pid && !!domain);
+  const citUrlsQ = useSearchAtlasMcpByName<any>(["llmv-cit-urls", pid ?? "", domain ?? ""], "llmv_get_citations_urls", { ...llmvParams, limit: 25 }, !!pid && !!domain);
 
   const project = findSearchAtlasProject(overviewQ.data, config);
   const listing = project?.data?.llmv ?? project ?? {};
@@ -87,7 +89,7 @@ export function SearchAtlasLLMTab({ config, clinicId }: Props) {
     });
   }, [trend, competitors]);
 
-  if (!pid) {
+  if (!pid || !domain) {
     return <SearchAtlasEmptyState clinicId={clinicId} message="Add an LLM Visibility project ID to view brand visibility across AI search." />;
   }
   if (overviewQ.isLoading) return <Skeleton className="h-96" />;
