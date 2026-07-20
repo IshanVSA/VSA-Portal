@@ -87,6 +87,7 @@ export function SearchAtlasLLMTab({ config, clinicId }: Props) {
           <FilterPill label="All platforms" />
           <Button variant="outline" size="sm" className="h-8 text-xs">Manage Competitors</Button>
           <Button size="sm" className="h-8 text-xs bg-[hsl(265_90%_65%)] hover:bg-[hsl(265_90%_60%)] text-white">Manage Queries</Button>
+          <OpenInSearchAtlas section="llm-visibility" projectId={pid} />
         </div>
       </div>
 
