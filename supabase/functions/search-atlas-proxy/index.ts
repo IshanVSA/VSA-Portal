@@ -415,7 +415,7 @@ Deno.serve(async (req) => {
           const pagedParams = { ...params, [pageParam]: page, [limitParam]: perPage };
           let pageResult: Awaited<ReturnType<typeof callMcpTool>> | null = null;
           for (const base of MCP_BASES) {
-            pageResult = await callMcpTool(base, apiKey, name, pagedParams);
+            pageResult = await callMcpToolWithVariants(base, apiKey, name, pagedParams);
             if (pageResult.response.ok && !hasMcpError(pageResult.data) && !hasMcpToolError(pageResult.data)) break;
           }
           lastUpstream = pageResult?.response ?? null;
