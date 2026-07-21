@@ -284,6 +284,66 @@ export function SearchAtlasLLMTab({ config, clinicId }: Props) {
           </TableBody>
         </Table>
       </Card>
+
+      {/* Tracked Queries */}
+      <Card className="border-border/60">
+        <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
+          <h3 className="text-sm font-bold">Tracked Queries</h3>
+          <span className="text-[11px] text-muted-foreground">{queryRows.length} shown</span>
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Query</TableHead>
+              <TableHead className="w-24 text-right">Mentions</TableHead>
+              <TableHead className="w-24 text-right">Visibility</TableHead>
+              <TableHead className="w-32">Platforms</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {queryRows.length === 0 ? (
+              <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6 text-xs">No tracked queries returned.</TableCell></TableRow>
+            ) : queryRows.slice(0, 100).map((q: any, i: number) => (
+              <TableRow key={q.id ?? q.query ?? i} className="text-xs">
+                <TableCell className="font-medium">{q.query ?? q.text ?? q.prompt ?? "—"}</TableCell>
+                <TableCell className="text-right tabular-nums">{Number(q.mentions ?? q.count ?? 0).toLocaleString()}</TableCell>
+                <TableCell className="text-right tabular-nums">{Number(q.visibility ?? q.score ?? 0).toFixed(1)}</TableCell>
+                <TableCell className="text-muted-foreground">{Array.isArray(q.platforms) ? q.platforms.join(", ") : (q.platform ?? "—")}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+
+      {/* Prompt Analyses */}
+      <Card className="border-border/60">
+        <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
+          <h3 className="text-sm font-bold">Prompt Analyses</h3>
+          <span className="text-[11px] text-muted-foreground">{promptRows.length} shown</span>
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Prompt</TableHead>
+              <TableHead className="w-28">Platform</TableHead>
+              <TableHead className="w-24 text-right">Sentiment</TableHead>
+              <TableHead className="w-24 text-right">Mentioned</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {promptRows.length === 0 ? (
+              <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6 text-xs">No prompt analyses returned.</TableCell></TableRow>
+            ) : promptRows.slice(0, 100).map((p: any, i: number) => (
+              <TableRow key={p.id ?? i} className="text-xs">
+                <TableCell className="font-medium max-w-[420px] truncate">{p.prompt ?? p.query ?? p.text ?? "—"}</TableCell>
+                <TableCell className="text-muted-foreground">{p.platform ?? p.source ?? "—"}</TableCell>
+                <TableCell className="text-right tabular-nums">{p.sentiment ?? p.sentiment_score ?? "—"}</TableCell>
+                <TableCell className="text-right">{p.mentioned === true || p.brand_mentioned ? "Yes" : p.mentioned === false ? "No" : "—"}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
     </div>
   );
 }
