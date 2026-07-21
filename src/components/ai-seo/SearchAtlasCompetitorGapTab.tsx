@@ -26,16 +26,25 @@ export function SearchAtlasCompetitorGapTab({ config, clinicId }: Props) {
   const [competitor, setCompetitor] = useState("");
   const [runToken, setRunToken] = useState(0);
 
+  // First kick off an analysis to seed results (some SA plans require this
+  // before `se_get_keyword_gap_results` returns rows), then fetch results.
+  const analyzeQ = useSearchAtlasMcpByName<any>(
+    ["se_keyword_gap_analyze", domain ?? "", competitor, runToken],
+    "se_keyword_gap_analyze",
+    { target: domain, domain, competitor, competitors: [competitor] },
+    !!domain && !!competitor && runToken > 0,
+  );
+
   const gapQ = useSearchAtlasMcpByName<any>(
     ["se_keyword_gap", domain ?? "", competitor, runToken],
     "se_get_keyword_gap_results",
-    { target: domain, domain, competitor },
-    !!domain && !!competitor && runToken > 0,
+    { target: domain, domain, competitor, competitors: [competitor], limit: 500 },
+    !!domain && !!competitor && runToken > 0 && !analyzeQ.isFetching,
   );
 
   const results = !isSearchAtlasSoftError(gapQ.data) ? (unwrapSearchAtlasPayload<any>(gapQ.data) ?? {}) : {};
   const rows: any[] = useMemo(() => {
-    const raw = results?.results ?? results?.keywords ?? results?.rows ?? [];
+    const raw = results?.results ?? results?.keywords ?? results?.rows ?? results?.gap ?? [];
     return Array.isArray(raw) ? raw : [];
   }, [results]);
 
