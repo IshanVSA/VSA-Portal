@@ -12,6 +12,14 @@ export interface SearchAtlasRequest {
   /** Flat MCP tool name, e.g. "se_get_links". Preferred over tool+op. */
   name?: string;
   params?: Record<string, unknown>;
+  paginate?: {
+    maxPages: number;
+    pageParam?: string;
+    limitParam?: string;
+    limit?: number;
+    startPage?: number;
+    arrayKeys?: string[];
+  };
 }
 
 export interface SearchAtlasSoftError {
