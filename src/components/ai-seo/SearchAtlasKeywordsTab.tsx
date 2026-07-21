@@ -11,6 +11,7 @@ import {
   findSearchAtlasProject,
   useSearchAtlasCustomerProjects,
   useSearchAtlasMcpByName,
+  useSearchAtlasMcpPaginated,
   unwrapSearchAtlasPayload,
   isSearchAtlasSoftError,
   findSearchAtlasArray,
