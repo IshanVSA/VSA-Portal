@@ -160,6 +160,48 @@ function parseJsonMaybe(value: unknown): unknown {
   try { return JSON.parse(trimmed); } catch { return value; }
 }
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function findRowsInPayload(payload: unknown, preferredKeys: string[]): unknown[] {
+  const root = parseJsonMaybe(payload);
+  if (Array.isArray(root)) return root;
+  if (!isPlainRecord(root)) return [];
+
+  const keys = [
+    ...preferredKeys,
+    "results", "rows", "items", "data", "keywords", "backlinks", "referring_domains",
+    "domains", "links", "urls", "history", "records", "list",
+  ];
+  const seen = new Set<unknown>();
+  const queue: unknown[] = [root];
+
+  while (queue.length) {
+    const current = parseJsonMaybe(queue.shift());
+    if (!current || seen.has(current)) continue;
+    seen.add(current);
+
+    if (Array.isArray(current)) {
+      if (current.length > 0) return current;
+      continue;
+    }
+    if (!isPlainRecord(current)) continue;
+
+    for (const key of keys) {
+      const child = parseJsonMaybe(current[key]);
+      if (Array.isArray(child) && child.length > 0) return child;
+      if (isPlainRecord(child)) queue.push(child);
+    }
+    for (const child of Object.values(current)) {
+      const parsed = parseJsonMaybe(child);
+      if (Array.isArray(parsed) || isPlainRecord(parsed)) queue.push(parsed);
+    }
+  }
+
+  return [];
+}
+
 function getMcpToolPayload(data: unknown): Record<string, unknown> | null {
   if (!data || typeof data !== "object") return null;
   const result = (data as Record<string, unknown>).result;
@@ -179,6 +221,7 @@ function getMcpToolPayload(data: unknown): Record<string, unknown> | null {
         if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
           return parsed as Record<string, unknown>;
         }
+        if (Array.isArray(parsed)) return { results: parsed };
       }
     }
   }
@@ -333,14 +376,8 @@ Deno.serve(async (req) => {
           }
           const payload = getMcpToolPayload(lastData);
           lastPayload = payload;
-          let pageRows: unknown[] = [];
-          if (payload) {
-            const keys = paginate.arrayKeys ?? ["results", "rows", "items", "data", "keywords", "backlinks", "referring_domains", "domains", "links", "urls", "history"];
-            for (const k of keys) {
-              const v = (payload as any)[k];
-              if (Array.isArray(v)) { pageRows = v; break; }
-            }
-          }
+          const keys = paginate.arrayKeys ?? ["results", "rows", "items", "data", "keywords", "backlinks", "referring_domains", "domains", "links", "urls", "history"];
+          const pageRows = payload ? findRowsInPayload(payload, keys) : [];
           if (pageRows.length === 0) break;
           merged.push(...pageRows);
           if (pageRows.length < perPage) break; // last page
