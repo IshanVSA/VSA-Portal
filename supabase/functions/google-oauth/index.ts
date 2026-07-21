@@ -220,7 +220,7 @@ async function listGoogleAdsAccounts(accessToken: string) {
   return Array.from(accountsMap.values()).sort((a, b) => a.name.localeCompare(b.name));
 }
 
-async function requireAdmin(req: Request) {
+async function requireAdmin(req: Request): Promise<{ response?: Response; supabase?: any; user?: any }> {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) return { response: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }) };
 
