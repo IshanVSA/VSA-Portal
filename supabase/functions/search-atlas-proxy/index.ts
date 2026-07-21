@@ -403,13 +403,31 @@ function buildParamVariants(params: Record<string, unknown>): Record<string, unk
 }
 
 async function callMcpToolWithVariants(base: string, apiKey: string, name: string, params: Record<string, unknown>) {
-  const variants = buildParamVariants(params);
+  // Fast path: reuse the winning variant for this (tool, site) from prior calls.
+  const memoKey = `${name}::${siteKey(params)}`;
+  const winner = variantMemo.get(memoKey);
+  if (winner) {
+    const merged = { ...params, ...winner };
+    const fast = await callMcpTool(base, apiKey, name, merged);
+    if (fast.response.ok && !hasMcpError(fast.data) && !hasMcpToolError(fast.data)) return fast;
+    if (fast.response.status === 429 || isRateLimitError(fast.data)) return fast;
+    // Winner stopped working — fall through to variant sweep.
+    variantMemo.delete(memoKey);
+  }
+
+  const variants = buildParamVariants(params).slice(0, 3); // cap to 3 to avoid rate-limit storms
   let last = await callMcpTool(base, apiKey, name, variants[0]);
-  if (last.response.ok && !hasMcpError(last.data) && !hasMcpToolError(last.data)) return last;
+  if (last.response.ok && !hasMcpError(last.data) && !hasMcpToolError(last.data)) {
+    variantMemo.set(memoKey, variants[0]);
+    return last;
+  }
   if (last.response.status === 429 || isRateLimitError(last.data)) return last;
   for (let i = 1; i < variants.length; i++) {
     const attempt = await callMcpTool(base, apiKey, name, variants[i]);
-    if (attempt.response.ok && !hasMcpError(attempt.data) && !hasMcpToolError(attempt.data)) return attempt;
+    if (attempt.response.ok && !hasMcpError(attempt.data) && !hasMcpToolError(attempt.data)) {
+      variantMemo.set(memoKey, variants[i]);
+      return attempt;
+    }
     if (attempt.response.status === 429 || isRateLimitError(attempt.data)) return attempt;
     last = attempt;
   }
