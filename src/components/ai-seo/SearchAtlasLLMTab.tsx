@@ -43,6 +43,9 @@ export function SearchAtlasLLMTab({ config, clinicId }: Props) {
   const sentQ = useSearchAtlasMcpByName<any>(["llmv-sent", pid ?? "", domain ?? ""], "llmv_get_sentiment_trend", llmvParams, !!pid && !!domain);
   const citQ = useSearchAtlasMcpByName<any>(["llmv-cit", pid ?? "", domain ?? ""], "llmv_get_citations_overview", llmvParams, !!pid && !!domain);
   const citUrlsQ = useSearchAtlasMcpByName<any>(["llmv-cit-urls", pid ?? "", domain ?? ""], "llmv_get_citations_urls", { ...llmvParams, limit: 25 }, !!pid && !!domain);
+  // Per-query and per-prompt detail lists
+  const queriesQ = useSearchAtlasMcpByName<any>(["llmv-queries", pid ?? "", domain ?? ""], "llmv_list_queries", { ...llmvParams, limit: 100 }, !!pid && !!domain);
+  const promptsQ = useSearchAtlasMcpByName<any>(["llmv-prompts", pid ?? "", domain ?? ""], "llmv_list_prompt_analyses", { ...llmvParams, limit: 100 }, !!pid && !!domain);
 
   const project = findSearchAtlasProject(overviewQ.data, config);
   const listing = project?.data?.llmv ?? project ?? {};
@@ -53,7 +56,11 @@ export function SearchAtlasLLMTab({ config, clinicId }: Props) {
   const sent: any = !isSearchAtlasSoftError(sentQ.data) ? (unwrapSearchAtlasPayload<any>(sentQ.data) ?? {}) : {};
   const cit: any = !isSearchAtlasSoftError(citQ.data) ? (unwrapSearchAtlasPayload<any>(citQ.data) ?? {}) : {};
   const citUrls: any = !isSearchAtlasSoftError(citUrlsQ.data) ? (unwrapSearchAtlasPayload<any>(citUrlsQ.data) ?? {}) : {};
+  const queries: any = !isSearchAtlasSoftError(queriesQ.data) ? (unwrapSearchAtlasPayload<any>(queriesQ.data) ?? {}) : {};
+  const prompts: any = !isSearchAtlasSoftError(promptsQ.data) ? (unwrapSearchAtlasPayload<any>(promptsQ.data) ?? {}) : {};
   const citationRows: any[] = findSearchAtlasArray<any>(citUrls, ["urls", "citations", "results", "rows"]);
+  const queryRows: any[] = findSearchAtlasArray<any>(queries, ["queries", "results", "rows", "items"]);
+  const promptRows: any[] = findSearchAtlasArray<any>(prompts, ["prompt_analyses", "prompts", "results", "rows"]);
   const o: any = { ...listing, ...(report?.overview ?? report?.data ?? report), ...(brand?.overview ?? brand?.data ?? brand) };
 
   const visibilityScore = o?.visibility_score ?? o?.overall_visibility ?? o?.current_mentions ?? 0;
