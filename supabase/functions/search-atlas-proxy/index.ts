@@ -295,6 +295,56 @@ async function callMcpTool(base: string, apiKey: string, name: string, params: R
   return direct;
 }
 
+// Search Atlas MCP tools accept the site under several argument names depending
+// on the tool. When a call fails with INTERNAL / validation, retry with
+// alternate shapes derived from whatever the caller sent (target/domain/url).
+function buildParamVariants(params: Record<string, unknown>): Record<string, unknown>[] {
+  const raw = String(
+    params.target ?? params.domain ?? params.hostname ?? params.url ?? params.target_url ?? "",
+  ).trim();
+  if (!raw) return [params];
+
+  const stripped = raw.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
+  const withHttps = `https://${stripped}`;
+  const withWww = `https://www.${stripped}`;
+
+  const base: Record<string, unknown> = { ...params };
+  for (const k of ["target", "domain", "hostname", "url", "target_url", "site", "root_domain"]) {
+    delete base[k];
+  }
+
+  const shapes: Record<string, unknown>[] = [
+    { ...base, target: stripped },
+    { ...base, target: withHttps },
+    { ...base, domain: stripped },
+    { ...base, target: withWww },
+    { ...base, target_url: withHttps },
+    { ...base, url: withHttps },
+    { ...base, hostname: stripped },
+    params,
+  ];
+
+  const seen = new Set<string>();
+  return shapes.filter((s) => {
+    const k = JSON.stringify(s);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
+async function callMcpToolWithVariants(base: string, apiKey: string, name: string, params: Record<string, unknown>) {
+  const variants = buildParamVariants(params);
+  let last = await callMcpTool(base, apiKey, name, variants[0]);
+  if (last.response.ok && !hasMcpError(last.data) && !hasMcpToolError(last.data)) return last;
+  for (let i = 1; i < variants.length; i++) {
+    const attempt = await callMcpTool(base, apiKey, name, variants[i]);
+    if (attempt.response.ok && !hasMcpError(attempt.data) && !hasMcpToolError(attempt.data)) return attempt;
+    last = attempt;
+  }
+  return last;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
