@@ -267,8 +267,10 @@ export function useSearchAtlasMcpPaginated<T = unknown>(
     queryKey: ["search-atlas-mcp-paginated", name, paginate.maxPages, paginate.limit ?? 100, ...key],
     queryFn: () => callSearchAtlas<T>({ name, params, paginate }),
     enabled,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 60 * 1000, // 30m — backlinks change slowly + reduces MCP pressure
     retry: 0,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 }
 
