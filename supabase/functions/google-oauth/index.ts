@@ -245,6 +245,82 @@ Deno.serve(async (req) => {
   const action = url.searchParams.get("action");
 
   try {
+    // ── USE EXISTING TOKEN ──
+    // When reconnecting many clinics under the same agency Google Ads login,
+    // reuse an already-saved refresh token to list accounts instead of sending
+    // the admin through Google's verification/consent screen for every clinic.
+    if (action === "use_existing") {
+      const admin = await requireAdmin(req);
+      if (admin.response) return admin.response;
+
+      const { clinic_id } = await req.json();
+      if (!clinic_id) {
+        return new Response(JSON.stringify({ error: "clinic_id required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: existingCred } = await admin.supabase!
+        .from("clinic_api_credentials")
+        .select("google_ads_refresh_token")
+        .not("google_ads_refresh_token", "is", null)
+        .limit(1)
+        .maybeSingle();
+
+      if (!existingCred?.google_ads_refresh_token) {
+        return new Response(JSON.stringify({ error: "No reusable Google Ads connection found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const refreshToken = await decryptToken(existingCred.google_ads_refresh_token);
+      const accessToken = await refreshGoogleAccessToken(refreshToken);
+      if (!accessToken) {
+        return new Response(JSON.stringify({ error: "Stored Google Ads connection needs reauthorization" }), {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const accounts = await listGoogleAdsAccounts(accessToken);
+      if (accounts.length === 0) {
+        return new Response(JSON.stringify({ error: "No Google Ads accounts found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: tempToken, error: storeError } = await admin.supabase!
+        .from("oauth_temp_tokens")
+        .insert({
+          clinic_id,
+          provider: "google_ads",
+          payload: { accounts, refresh_token: refreshToken },
+        })
+        .select("id")
+        .single();
+
+      if (storeError || !tempToken) {
+        console.error("Failed to store reused OAuth temp token:", storeError);
+        return new Response(JSON.stringify({ error: "Failed to prepare account picker" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      await logSecurityEvent(req, {
+        action: "google_oauth.use_existing",
+        actor_user_id: admin.user!.id,
+        clinic_id,
+      });
+
+      return new Response(JSON.stringify({ token_ref: tempToken.id }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ── AUTHORIZE ──
     if (action === "authorize") {
       const clinicId = url.searchParams.get("clinic_id");
