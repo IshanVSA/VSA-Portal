@@ -237,6 +237,19 @@ function hasMcpToolError(data: unknown) {
   return Boolean(payload?.success === false || payload?.isError === true || payload?.error || (payload?.message && payload?.error_code));
 }
 
+function isRateLimitError(data: unknown) {
+  if (!data || typeof data !== "object") return false;
+  const error = (data as Record<string, unknown>).error;
+  if (error && typeof error === "object") {
+    const record = error as Record<string, unknown>;
+    const message = String(record.message ?? "").toLowerCase();
+    return record.code === 429 || message.includes("rate limit");
+  }
+  const payload = getMcpToolPayload(data);
+  const message = String(payload?.message ?? payload?.error ?? "").toLowerCase();
+  return message.includes("rate limit");
+}
+
 async function postMcp(base: string, apiKey: string, body: unknown, sessionId?: string) {
   const response = await fetch(base, {
     method: "POST",
@@ -337,9 +350,11 @@ async function callMcpToolWithVariants(base: string, apiKey: string, name: strin
   const variants = buildParamVariants(params);
   let last = await callMcpTool(base, apiKey, name, variants[0]);
   if (last.response.ok && !hasMcpError(last.data) && !hasMcpToolError(last.data)) return last;
+  if (last.response.status === 429 || isRateLimitError(last.data)) return last;
   for (let i = 1; i < variants.length; i++) {
     const attempt = await callMcpTool(base, apiKey, name, variants[i]);
     if (attempt.response.ok && !hasMcpError(attempt.data) && !hasMcpToolError(attempt.data)) return attempt;
+    if (attempt.response.status === 429 || isRateLimitError(attempt.data)) return attempt;
     last = attempt;
   }
   return last;
@@ -417,6 +432,7 @@ Deno.serve(async (req) => {
           for (const base of MCP_BASES) {
             pageResult = await callMcpToolWithVariants(base, apiKey, name, pagedParams);
             if (pageResult.response.ok && !hasMcpError(pageResult.data) && !hasMcpToolError(pageResult.data)) break;
+            if (pageResult.response.status === 429 || isRateLimitError(pageResult.data)) break;
           }
           lastUpstream = pageResult?.response ?? null;
           lastData = pageResult?.data ?? null;
@@ -464,6 +480,7 @@ Deno.serve(async (req) => {
         upstream = result.response;
         data = result.data;
         if (upstream.ok && !hasMcpError(data) && !hasMcpToolError(data)) break;
+        if (upstream.status === 429 || isRateLimitError(data)) break;
       }
 
       if (!upstream?.ok || hasMcpError(data) || hasMcpToolError(data)) {

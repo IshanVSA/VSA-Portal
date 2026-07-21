@@ -40,13 +40,25 @@ function stringOr(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
+function readableError(details: unknown): string | null {
+  if (!details) return null;
+  if (typeof details === "string") return details;
+  if (typeof details !== "object") return String(details);
+  const record = details as Record<string, any>;
+  const nestedError = record.error;
+  if (typeof record.message === "string") return record.message;
+  if (nestedError && typeof nestedError === "object") {
+    return nestedError.message ?? nestedError.error ?? JSON.stringify(nestedError);
+  }
+  if (typeof nestedError === "string") return nestedError;
+  return JSON.stringify(details);
+}
+
 function describeSoftError(value: unknown): string | null {
   if (!isSearchAtlasSoftError(value)) return null;
   const details = (value as any)?.details;
-  if (typeof details === "string") return details;
-  if (details && typeof details === "object") {
-    return String((details as any).message ?? (details as any).error ?? JSON.stringify(details));
-  }
+  const detailMessage = readableError(details);
+  if (detailMessage) return detailMessage;
   return "Search Atlas returned an error for this request.";
 }
 
