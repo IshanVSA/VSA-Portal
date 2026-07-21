@@ -30,6 +30,17 @@ export interface SearchAtlasSoftError {
   tool?: string;
   op?: string;
   details?: unknown;
+  rateLimited?: boolean;
+  retryAfterSeconds?: number | null;
+}
+
+export function getSearchAtlasRateLimit(value: unknown): { rateLimited: boolean; retryAfterSeconds: number | null; stale: boolean } {
+  if (!value || typeof value !== "object") return { rateLimited: false, retryAfterSeconds: null, stale: false };
+  const v = value as any;
+  const rateLimited = v.rateLimited === true || v?.result?.structuredContent?._rateLimited === true || v.status === 429;
+  const retryAfterSeconds = v.retryAfterSeconds ?? v?.result?.structuredContent?._retryAfterSeconds ?? null;
+  const stale = v._stale === true;
+  return { rateLimited, retryAfterSeconds, stale };
 }
 
 export function isSearchAtlasSoftError(value: unknown): value is SearchAtlasSoftError {
@@ -256,8 +267,10 @@ export function useSearchAtlasMcpPaginated<T = unknown>(
     queryKey: ["search-atlas-mcp-paginated", name, paginate.maxPages, paginate.limit ?? 100, ...key],
     queryFn: () => callSearchAtlas<T>({ name, params, paginate }),
     enabled,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 60 * 1000, // 30m — backlinks change slowly + reduces MCP pressure
     retry: 0,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 }
 

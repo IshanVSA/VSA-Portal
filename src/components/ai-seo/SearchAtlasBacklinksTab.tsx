@@ -10,6 +10,7 @@ import {
   findSearchAtlasProject, useSearchAtlasCustomerProjects,
   useSearchAtlasMcpByName, useSearchAtlasMcpPaginated,
   unwrapSearchAtlasPayload, isSearchAtlasSoftError, findSearchAtlasArray,
+  getSearchAtlasRateLimit,
   type SearchAtlasClinicConfig,
 } from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "./SearchAtlasEmptyState";
@@ -79,20 +80,22 @@ export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
     ?? stringOr(projectRecord?.domain)
     ?? stringOr(projectRecord?.hostname);
 
-  // Paginated detail endpoints — support confirmed these return per-domain / per-link rows.
+  // Paginated detail endpoints — sequential to stay under 40 req/60s ceiling.
   const refDomainsQ = useSearchAtlasMcpPaginated<any>(
     ["se_get_referring_domains", domain ?? ""],
     "se_get_referring_domains",
     { target: domain, domain, project_id: pid },
-    { maxPages: 10, limit: 100, pageParam: "page", limitParam: "limit", arrayKeys: ["referring_domains", "domains", "results", "rows"] },
+    { maxPages: 3, limit: 100, pageParam: "page", limitParam: "limit", arrayKeys: ["referring_domains", "domains", "results", "rows"] },
     !!domain,
   );
+  // Only fetch backlinks after referring domains resolves (success OR error) to avoid a burst.
+  const backlinksEnabled = !!domain && !refDomainsQ.isLoading && refDomainsQ.fetchStatus !== "fetching";
   const backlinksQ = useSearchAtlasMcpPaginated<any>(
     ["se_get_backlinks", domain ?? ""],
     "se_get_backlinks",
     { target: domain, domain, project_id: pid },
-    { maxPages: 5, limit: 100, pageParam: "page", limitParam: "limit", arrayKeys: ["backlinks", "links", "results", "rows"] },
-    !!domain,
+    { maxPages: 2, limit: 100, pageParam: "page", limitParam: "limit", arrayKeys: ["backlinks", "links", "results", "rows"] },
+    backlinksEnabled,
   );
   const referringRows: any[] = useMemo(() => {
     const rows = findSearchAtlasArray<any>(refDomainsQ.data, ["referring_domains", "domains", "results", "rows"]);
@@ -110,8 +113,6 @@ export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
   const rating = numberOr(se.rating ?? se.domain_rating);
 
   // Only trend the Search Atlas API exposes for this account is organic traffic/keywords.
-  // We surface keyword trend as a proxy growth signal next to the backlink summary so the
-  // chart panel never looks empty — labelled honestly so it isn't mistaken for link data.
   const keywordTrend = useMemo<TrendPoint[]>(() => {
     const raw = Array.isArray(se.organic_keywords_trend) ? (se.organic_keywords_trend as unknown[]) : [];
     return raw
@@ -120,11 +121,21 @@ export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
         return { date: String(r?.date ?? ""), value: numberOr(r?.value) };
       })
       .filter((p) => p.date)
-      .slice(-36); // last ~3 years monthly
+      .slice(-36);
   }, [se]);
 
-  const referringError = describeSoftError(refDomainsQ.data) ?? (refDomainsQ.error instanceof Error ? refDomainsQ.error.message : null);
-  const backlinksError = describeSoftError(backlinksQ.data) ?? (backlinksQ.error instanceof Error ? backlinksQ.error.message : null);
+  const refRate = getSearchAtlasRateLimit(refDomainsQ.data);
+  const blRate = getSearchAtlasRateLimit(backlinksQ.data);
+  const referringError = !refRate.rateLimited && !refRate.stale ? (describeSoftError(refDomainsQ.data) ?? (refDomainsQ.error instanceof Error ? refDomainsQ.error.message : null)) : null;
+  const backlinksError = !blRate.rateLimited && !blRate.stale ? (describeSoftError(backlinksQ.data) ?? (backlinksQ.error instanceof Error ? backlinksQ.error.message : null)) : null;
+
+  const rateBanner = (r: ReturnType<typeof getSearchAtlasRateLimit>) => {
+    if (!r.rateLimited) return null;
+    const secs = r.retryAfterSeconds ?? 60;
+    return r.stale
+      ? `Showing cached results — Search Atlas rate-limited, retry in ~${secs}s.`
+      : `Rate limit exceeded. Search Atlas caps requests at 40 per 60 seconds. Retry in ~${secs}s.`;
+  };
 
   if (!pid && !domain) {
     return <SearchAtlasEmptyState clinicId={clinicId} message="Add a Backlink project ID or domain to view backlink data." />;
@@ -198,6 +209,9 @@ export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
           <h3 className="text-sm font-bold">Top Referring Domains</h3>
           <span className="text-[11px] text-muted-foreground">{referringDomains.toLocaleString()} total</span>
         </div>
+        {rateBanner(refRate) && (
+          <div className="px-4 py-2 text-[11px] text-amber-600 dark:text-amber-400 border-b border-border/40 bg-amber-500/5">{rateBanner(refRate)}</div>
+        )}
         <Table>
           <TableHeader>
             <TableRow>
@@ -232,6 +246,9 @@ export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
           <h3 className="text-sm font-bold">Recent Backlinks</h3>
           <span className="text-[11px] text-muted-foreground">{backlinkRows.length.toLocaleString()} shown</span>
         </div>
+        {rateBanner(blRate) && (
+          <div className="px-4 py-2 text-[11px] text-amber-600 dark:text-amber-400 border-b border-border/40 bg-amber-500/5">{rateBanner(blRate)}</div>
+        )}
         <Table>
           <TableHeader>
             <TableRow>

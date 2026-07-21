@@ -3061,6 +3061,33 @@ export type Database = {
         }
         Relationships: []
       }
+      search_atlas_cache: {
+        Row: {
+          cache_key: string
+          expires_at: string
+          fetched_at: string
+          id: string
+          payload: Json
+          tool: string
+        }
+        Insert: {
+          cache_key: string
+          expires_at: string
+          fetched_at?: string
+          id?: string
+          payload: Json
+          tool: string
+        }
+        Update: {
+          cache_key?: string
+          expires_at?: string
+          fetched_at?: string
+          id?: string
+          payload?: Json
+          tool?: string
+        }
+        Relationships: []
+      }
       security_audit_log: {
         Row: {
           action: string
