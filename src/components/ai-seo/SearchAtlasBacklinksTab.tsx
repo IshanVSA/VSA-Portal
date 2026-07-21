@@ -10,6 +10,7 @@ import {
   findSearchAtlasProject, useSearchAtlasCustomerProjects,
   useSearchAtlasMcpByName, useSearchAtlasMcpPaginated,
   unwrapSearchAtlasPayload, isSearchAtlasSoftError, findSearchAtlasArray,
+  getSearchAtlasRateLimit,
   type SearchAtlasClinicConfig,
 } from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "./SearchAtlasEmptyState";
