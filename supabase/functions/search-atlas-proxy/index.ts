@@ -495,6 +495,13 @@ Deno.serve(async (req) => {
         return json({ error: `MCP tool not allowed: ${name}` }, 403);
       }
 
+      // ---- Cache lookup (before any MCP calls) ----
+      const cacheKey = cacheKeyFor(name, params, paginate);
+      const cached = cacheClient ? await readCache(cacheClient, cacheKey) : null;
+      if (cached && !cached.expired) {
+        return json({ ...(cached.payload as any), _fromCache: true });
+      }
+
       // Pagination mode: loop pages and merge array results
       if (paginate?.maxPages && paginate.maxPages > 1) {
         const pageParam = paginate.pageParam ?? "page";
@@ -505,6 +512,8 @@ Deno.serve(async (req) => {
         let lastPayload: Record<string, unknown> | null = null;
         let lastData: unknown = null;
         let lastUpstream: Response | null = null;
+        let rateLimited = false;
+        let retryAfter: number | null = null;
 
         for (let page = startPage; page < startPage + paginate.maxPages; page++) {
           const pagedParams = { ...params, [pageParam]: page, [limitParam]: perPage };
@@ -516,17 +525,38 @@ Deno.serve(async (req) => {
           }
           lastUpstream = pageResult?.response ?? null;
           lastData = pageResult?.data ?? null;
-          if (!lastUpstream?.ok || hasMcpError(lastData) || hasMcpToolError(lastData)) {
-            if (merged.length === 0) break; // first page failed, return error below
-            break; // partial: stop paging on failure
+
+          if (lastUpstream?.status === 429 || isRateLimitError(lastData)) {
+            rateLimited = true;
+            retryAfter = extractRetryAfterSeconds(lastData) ?? Number(lastUpstream?.headers.get("retry-after") ?? 60);
+            break; // stop paginating on rate limit
           }
-          const payload = getMcpToolPayload(lastData);
-          lastPayload = payload;
+          if (!lastUpstream?.ok || hasMcpError(lastData) || hasMcpToolError(lastData)) {
+            break; // stop on other errors
+          }
+          const pl = getMcpToolPayload(lastData);
+          lastPayload = pl;
           const keys = paginate.arrayKeys ?? ["results", "rows", "items", "data", "keywords", "backlinks", "referring_domains", "domains", "links", "urls", "history"];
-          const pageRows = payload ? findRowsInPayload(payload, keys) : [];
+          const pageRows = pl ? findRowsInPayload(pl, keys) : [];
           if (pageRows.length === 0) break;
           merged.push(...pageRows);
           if (pageRows.length < perPage) break; // last page
+        }
+
+        // Rate-limited with no data: serve stale cache if we have any, else surface the error.
+        if (rateLimited && merged.length === 0) {
+          if (cached) {
+            return json({ ...(cached.payload as any), _fromCache: true, _stale: true, rateLimited: true, retryAfterSeconds: retryAfter });
+          }
+          return json({
+            __searchAtlasError: true,
+            status: 429,
+            source: "mcp",
+            name,
+            rateLimited: true,
+            retryAfterSeconds: retryAfter,
+            details: `Rate limit exceeded. Maximum 40 requests per 60 seconds. Retry after ${retryAfter ?? 60} seconds.`,
+          });
         }
 
         if (merged.length === 0 && (!lastUpstream?.ok || hasMcpError(lastData) || hasMcpToolError(lastData))) {
@@ -540,7 +570,7 @@ Deno.serve(async (req) => {
           });
         }
 
-        return json({
+        const result = {
           jsonrpc: "2.0",
           result: {
             structuredContent: {
@@ -548,9 +578,13 @@ Deno.serve(async (req) => {
               results: merged,
               _paginated: true,
               _pageCount: merged.length,
+              ...(rateLimited ? { _rateLimited: true, _retryAfterSeconds: retryAfter } : {}),
             },
           },
-        });
+          ...(rateLimited ? { rateLimited: true, retryAfterSeconds: retryAfter, _partial: true } : {}),
+        };
+        if (merged.length > 0 && cacheClient) await writeCache(cacheClient, cacheKey, name, result);
+        return json(result);
       }
 
       let upstream: Response | null = null;
@@ -561,6 +595,22 @@ Deno.serve(async (req) => {
         data = result.data;
         if (upstream.ok && !hasMcpError(data) && !hasMcpToolError(data)) break;
         if (upstream.status === 429 || isRateLimitError(data)) break;
+      }
+
+      if (upstream?.status === 429 || isRateLimitError(data)) {
+        const retry = extractRetryAfterSeconds(data) ?? Number(upstream?.headers.get("retry-after") ?? 60);
+        if (cached) {
+          return json({ ...(cached.payload as any), _fromCache: true, _stale: true, rateLimited: true, retryAfterSeconds: retry });
+        }
+        return json({
+          __searchAtlasError: true,
+          status: 429,
+          source: "mcp",
+          name,
+          rateLimited: true,
+          retryAfterSeconds: retry,
+          details: `Rate limit exceeded. Maximum 40 requests per 60 seconds. Retry after ${retry} seconds.`,
+        });
       }
 
       if (!upstream?.ok || hasMcpError(data) || hasMcpToolError(data)) {
@@ -576,6 +626,7 @@ Deno.serve(async (req) => {
         });
       }
 
+      if (cacheClient) await writeCache(cacheClient, cacheKey, name, data);
       return json(data);
     }
 
