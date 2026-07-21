@@ -7,7 +7,8 @@ import {
   ComposedChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import {
-  findSearchAtlasProject, useSearchAtlasCustomerProjects, useSearchAtlasMcpByName,
+  findSearchAtlasProject, useSearchAtlasCustomerProjects,
+  useSearchAtlasMcpByName, useSearchAtlasMcpPaginated,
   unwrapSearchAtlasPayload, isSearchAtlasSoftError, findSearchAtlasArray,
   type SearchAtlasClinicConfig,
 } from "@/hooks/useSearchAtlas";
@@ -47,18 +48,29 @@ export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
     return asRecord(data?.se) ?? {};
   }, [project]);
 
-  // Real per-domain backlink rows via the SE tool exposed on our plan.
-  const linksQ = useSearchAtlasMcpByName<any>(
-    ["se_get_links", domain ?? ""],
-    "se_get_links",
-    { target: domain, domain, project_id: pid, limit: 500, mode: "domains" },
+  // Paginated detail endpoints — support confirmed these return per-domain / per-link rows.
+  const refDomainsQ = useSearchAtlasMcpPaginated<any>(
+    ["se_get_referring_domains", domain ?? ""],
+    "se_get_referring_domains",
+    { target: domain, domain, project_id: pid },
+    { maxPages: 10, limit: 100, pageParam: "page", limitParam: "limit", arrayKeys: ["referring_domains", "domains", "results", "rows"] },
     !!domain,
   );
-  const linksData = !isSearchAtlasSoftError(linksQ.data) ? (unwrapSearchAtlasPayload<any>(linksQ.data) ?? {}) : {};
+  const backlinksQ = useSearchAtlasMcpPaginated<any>(
+    ["se_get_backlinks", domain ?? ""],
+    "se_get_backlinks",
+    { target: domain, domain, project_id: pid },
+    { maxPages: 5, limit: 100, pageParam: "page", limitParam: "limit", arrayKeys: ["backlinks", "links", "results", "rows"] },
+    !!domain,
+  );
   const referringRows: any[] = useMemo(() => {
-    const rows = findSearchAtlasArray<any>(linksData, ["referring_domains", "domains", "links", "backlinks"]);
+    const rows = findSearchAtlasArray<any>(refDomainsQ.data, ["referring_domains", "domains", "results", "rows"]);
     return rows.filter((row) => typeof row === "object" && row !== null);
-  }, [linksData]);
+  }, [refDomainsQ.data]);
+  const backlinkRows: any[] = useMemo(() => {
+    const rows = findSearchAtlasArray<any>(backlinksQ.data, ["backlinks", "links", "results", "rows"]);
+    return rows.filter((row) => typeof row === "object" && row !== null);
+  }, [backlinksQ.data]);
 
   const totalBacklinks = numberOr(se.backlinks);
   const referringDomains = numberOr(se.refdomains ?? se.referring_domains);
