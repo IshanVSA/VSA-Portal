@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, RefreshCw, Loader2, Unlink, Clock, CalendarClock, Megaphone, Hash } from "lucide-react";
+import { CheckCircle2, RefreshCw, Loader2, Unlink, Clock, CalendarClock, Megaphone, Hash, KeyRound } from "lucide-react";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 import { formatDistanceToNow, addDays, setHours, setMinutes, setSeconds, isAfter } from "date-fns";
@@ -26,6 +26,7 @@ export function GoogleAdsConnectionCard({
 }: GoogleAdsConnectionCardProps) {
   const [syncing, setSyncing] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [reusing, setReusing] = useState(false);
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const origin = encodeURIComponent(window.location.origin);
@@ -53,6 +54,31 @@ export function GoogleAdsConnectionCard({
       toast.error(e.message || "Sync failed");
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleUseExisting = async () => {
+    setReusing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/google-oauth?action=use_existing`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ clinic_id: clinicId }),
+        }
+      );
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not reuse saved connection");
+      window.location.href = `/clinics/${clinicId}?google_token_ref=${result.token_ref}`;
+    } catch (e: any) {
+      toast.error(e.message || "Could not reuse saved Google Ads connection");
+    } finally {
+      setReusing(false);
     }
   };
 
@@ -86,6 +112,13 @@ export function GoogleAdsConnectionCard({
     return (
       <IOSGroup header="Google Ads">
         <IOSRow icon={<Megaphone />} tone="yellow" label="Status" value="Not connected" />
+        <IOSRow
+          icon={reusing ? <Loader2 className="animate-spin" /> : <KeyRound />}
+          tone="green"
+          label="Use saved admin connection"
+          sublabel="Skip Google verification when admin@vsavetmedia.com is already connected"
+          onClick={reusing ? undefined : handleUseExisting}
+        />
         <IOSRow
           centered
           label={<span className="text-primary font-medium">Connect Google Ads</span>}

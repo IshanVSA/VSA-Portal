@@ -18,9 +18,223 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID")!;
 const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET")!;
 const GOOGLE_ADS_DEVELOPER_TOKEN = Deno.env.get("GOOGLE_ADS_DEVELOPER_TOKEN")!;
+const ENCRYPTION_KEY = Deno.env.get("ENCRYPTION_KEY")!;
 
 const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/google-oauth?action=callback`;
 const FRONTEND_URL = Deno.env.get("SITE_URL") || "https://portal.vsavetmedia.com";
+
+async function decryptToken(encryptedText: string): Promise<string> {
+  if (!encryptedText || !encryptedText.startsWith("enc:")) return encryptedText;
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  const keyHash = await crypto.subtle.digest("SHA-256", encoder.encode(ENCRYPTION_KEY));
+  const key = await crypto.subtle.importKey("raw", keyHash, "AES-GCM", false, ["decrypt"]);
+  const combined = Uint8Array.from(atob(encryptedText.slice(4)), c => c.charCodeAt(0));
+  const iv = combined.slice(0, 12);
+  const ciphertext = combined.slice(12);
+  const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
+  return decoder.decode(decrypted);
+}
+
+const parseSearchStream = (raw: string): any[] => {
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [parsed];
+  } catch {
+    return raw
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .flatMap((line) => {
+        try {
+          const parsed = JSON.parse(line);
+          return Array.isArray(parsed) ? parsed : [parsed];
+        } catch {
+          return [];
+        }
+      });
+  }
+};
+
+async function refreshGoogleAccessToken(refreshToken: string): Promise<string | null> {
+  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: GOOGLE_CLIENT_ID,
+      client_secret: GOOGLE_CLIENT_SECRET,
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
+    }),
+  });
+  const tokenData = await tokenRes.json();
+  if (!tokenRes.ok || tokenData.error || !tokenData.access_token) {
+    console.warn("Google Ads token reuse failed:", tokenData.error || tokenRes.status);
+    return null;
+  }
+  return tokenData.access_token;
+}
+
+async function listGoogleAdsAccounts(accessToken: string) {
+  const customersRes = await fetch(
+    "https://googleads.googleapis.com/v23/customers:listAccessibleCustomers",
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "developer-token": GOOGLE_ADS_DEVELOPER_TOKEN,
+      },
+    }
+  );
+  const customersText = await customersRes.text();
+  if (!customersRes.ok) {
+    console.error("List customers HTTP error:", customersRes.status, customersText.substring(0, 1000));
+    throw new Error("list_customers");
+  }
+  let customersData: { resourceNames?: string[]; error?: unknown };
+  try {
+    customersData = JSON.parse(customersText);
+  } catch {
+    console.error("List customers non-JSON response:", customersText.substring(0, 500));
+    throw new Error("list_customers");
+  }
+  if (customersData.error) {
+    console.error("List customers API error:", JSON.stringify(customersData.error));
+    throw new Error("list_customers");
+  }
+
+  const resourceNames: string[] = customersData.resourceNames || [];
+  if (resourceNames.length === 0) return [];
+
+  const accountsMap = new Map<string, { customer_id: string; name: string; login_customer_id: string }>();
+
+  const searchGoogleAds = async ({
+    customerId,
+    loginCustomerId,
+    query,
+  }: {
+    customerId: string;
+    loginCustomerId: string;
+    query: string;
+  }) => {
+    const res = await fetch(
+      `https://googleads.googleapis.com/v23/customers/${customerId}/googleAds:searchStream`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "developer-token": GOOGLE_ADS_DEVELOPER_TOKEN,
+          "login-customer-id": loginCustomerId,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query }),
+      }
+    );
+
+    const text = await res.text();
+    if (!res.ok) {
+      console.warn(
+        `googleAds:searchStream failed for customer ${customerId} (login ${loginCustomerId})`,
+        res.status,
+        text.substring(0, 500)
+      );
+      return null;
+    }
+
+    const batches = parseSearchStream(text);
+    if (batches.length === 0) {
+      console.warn(`Empty/invalid searchStream response for customer ${customerId}:`, text.substring(0, 500));
+      return null;
+    }
+
+    return batches;
+  };
+
+  const upsertAccount = (account: { customer_id: string; name: string; login_customer_id: string }) => {
+    if (!accountsMap.has(account.customer_id)) accountsMap.set(account.customer_id, account);
+  };
+
+  for (const rn of resourceNames) {
+    const custId = rn.replace("customers/", "");
+
+    try {
+      const childQuery = `SELECT
+        customer_client.id,
+        customer_client.descriptive_name,
+        customer_client.manager,
+        customer_client.status
+      FROM customer_client
+      WHERE customer_client.manager = false
+        AND customer_client.status = 'ENABLED'`;
+
+      const childBatches = await searchGoogleAds({
+        customerId: custId,
+        loginCustomerId: custId,
+        query: childQuery,
+      });
+
+      let childCount = 0;
+      if (childBatches) {
+        for (const batch of childBatches) {
+          const rows = batch.results || [];
+          for (const row of rows) {
+            const cc = row.customerClient;
+            if (!cc) continue;
+
+            const childId = String(cc.id || "").trim();
+            if (!childId) continue;
+
+            upsertAccount({
+              customer_id: childId,
+              name: cc.descriptiveName || childId,
+              login_customer_id: custId,
+            });
+            childCount += 1;
+          }
+        }
+      }
+
+      if (childCount > 0) {
+        console.log(`Loaded ${childCount} sub-accounts from manager ${custId}`);
+        continue;
+      }
+
+      const selfQuery = `SELECT customer.id, customer.descriptive_name FROM customer LIMIT 1`;
+      const selfBatches = await searchGoogleAds({
+        customerId: custId,
+        loginCustomerId: custId,
+        query: selfQuery,
+      });
+
+      const selfRow = selfBatches?.[0]?.results?.[0]?.customer;
+      upsertAccount({
+        customer_id: custId,
+        name: selfRow?.descriptiveName || custId,
+        login_customer_id: custId,
+      });
+    } catch (e) {
+      console.warn(`Failed to process accessible account ${custId}:`, e);
+      upsertAccount({ customer_id: custId, name: custId, login_customer_id: custId });
+    }
+  }
+
+  return Array.from(accountsMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+async function requireAdmin(req: Request): Promise<{ response?: Response; supabase?: any; user?: any }> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return { response: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }) };
+
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
+  const supabaseAuth = createClient(SUPABASE_URL, anonKey, { global: { headers: { Authorization: authHeader } } });
+  const { data: { user }, error } = await supabaseAuth.auth.getUser();
+  if (error || !user) return { response: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }) };
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const { data: roleData } = await supabase.from("user_roles").select("role").eq("user_id", user.id).maybeSingle();
+  if (roleData?.role !== "admin") return { response: new Response(JSON.stringify({ error: "Admin access required" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }) };
+
+  return { supabase, user };
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -31,6 +245,82 @@ Deno.serve(async (req) => {
   const action = url.searchParams.get("action");
 
   try {
+    // ── USE EXISTING TOKEN ──
+    // When reconnecting many clinics under the same agency Google Ads login,
+    // reuse an already-saved refresh token to list accounts instead of sending
+    // the admin through Google's verification/consent screen for every clinic.
+    if (action === "use_existing") {
+      const admin = await requireAdmin(req);
+      if (admin.response) return admin.response;
+
+      const { clinic_id } = await req.json();
+      if (!clinic_id) {
+        return new Response(JSON.stringify({ error: "clinic_id required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: existingCred } = await admin.supabase!
+        .from("clinic_api_credentials")
+        .select("google_ads_refresh_token")
+        .not("google_ads_refresh_token", "is", null)
+        .limit(1)
+        .maybeSingle();
+
+      if (!existingCred?.google_ads_refresh_token) {
+        return new Response(JSON.stringify({ error: "No reusable Google Ads connection found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const refreshToken = await decryptToken(existingCred.google_ads_refresh_token);
+      const accessToken = await refreshGoogleAccessToken(refreshToken);
+      if (!accessToken) {
+        return new Response(JSON.stringify({ error: "Stored Google Ads connection needs reauthorization" }), {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const accounts = await listGoogleAdsAccounts(accessToken);
+      if (accounts.length === 0) {
+        return new Response(JSON.stringify({ error: "No Google Ads accounts found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: tempToken, error: storeError } = await admin.supabase!
+        .from("oauth_temp_tokens")
+        .insert({
+          clinic_id,
+          provider: "google_ads",
+          payload: { accounts, refresh_token: refreshToken },
+        })
+        .select("id")
+        .single();
+
+      if (storeError || !tempToken) {
+        console.error("Failed to store reused OAuth temp token:", storeError);
+        return new Response(JSON.stringify({ error: "Failed to prepare account picker" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      await logSecurityEvent(req, {
+        action: "google_oauth.use_existing",
+        actor_user_id: admin.user!.id,
+        clinic_id,
+      });
+
+      return new Response(JSON.stringify({ token_ref: tempToken.id }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ── AUTHORIZE ──
     if (action === "authorize") {
       const clinicId = url.searchParams.get("clinic_id");
