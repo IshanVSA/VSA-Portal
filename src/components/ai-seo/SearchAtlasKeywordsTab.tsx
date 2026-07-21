@@ -11,6 +11,7 @@ import {
   findSearchAtlasProject,
   useSearchAtlasCustomerProjects,
   useSearchAtlasMcpByName,
+  useSearchAtlasMcpPaginated,
   unwrapSearchAtlasPayload,
   isSearchAtlasSoftError,
   findSearchAtlasArray,
@@ -93,17 +94,20 @@ export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
   const domain = config.search_atlas_domain ?? undefined;
   const q = useSearchAtlasCustomerProjects(!!rtId || !!domain);
 
-  // Real keyword data via MCP
-  const kwQ = useSearchAtlasMcpByName<any>(
+  // Detail endpoints — paginated. `se_get_organic_keywords` returns per-keyword
+  // rows; `krt_get_keywords` returns full tracked-keyword list.
+  const kwQ = useSearchAtlasMcpPaginated<any>(
     ["se-org-kw", rtId ?? domain ?? ""],
-    "se_get_organic",
-    { project_id: rtId, target: domain, domain, limit: 1000 },
+    "se_get_organic_keywords",
+    { project_id: rtId, target: domain, domain },
+    { maxPages: 10, limit: 100, pageParam: "page", limitParam: "limit", arrayKeys: ["keywords", "organic_keywords", "results", "rows"] },
     !!(rtId || domain),
   );
-  const krtQ = useSearchAtlasMcpByName<any>(
-    ["krt-rankings", rtId ?? ""],
-    "krt_get_rankings",
-    { project_id: rtId, domain, limit: 1000 },
+  const krtQ = useSearchAtlasMcpPaginated<any>(
+    ["krt-keywords", rtId ?? ""],
+    "krt_get_keywords",
+    { project_id: rtId, domain },
+    { maxPages: 10, limit: 100, pageParam: "page", limitParam: "limit", arrayKeys: ["keywords", "rankings", "results", "rows"] },
     !!rtId,
   );
   const posQ = useSearchAtlasMcpByName<any>(

@@ -291,6 +291,7 @@ Deno.serve(async (req) => {
     const tool: string = body?.tool ?? "";
     const op: string = body?.op ?? "";
     const params: Record<string, unknown> = body?.params ?? {};
+    const paginate = body?.paginate as { maxPages?: number; pageParam?: string; limitParam?: string; limit?: number; startPage?: number; arrayKeys?: string[] } | undefined;
 
     const nameFromBody: string = typeof body?.name === "string" ? body.name : "";
 
@@ -304,6 +305,69 @@ Deno.serve(async (req) => {
       }
       if (!ALLOWED_MCP_NAMES.has(name)) {
         return json({ error: `MCP tool not allowed: ${name}` }, 403);
+      }
+
+      // Pagination mode: loop pages and merge array results
+      if (paginate?.maxPages && paginate.maxPages > 1) {
+        const pageParam = paginate.pageParam ?? "page";
+        const limitParam = paginate.limitParam ?? "limit";
+        const perPage = paginate.limit ?? 100;
+        const startPage = paginate.startPage ?? 1;
+        const merged: unknown[] = [];
+        let lastPayload: Record<string, unknown> | null = null;
+        let lastData: unknown = null;
+        let lastUpstream: Response | null = null;
+
+        for (let page = startPage; page < startPage + paginate.maxPages; page++) {
+          const pagedParams = { ...params, [pageParam]: page, [limitParam]: perPage };
+          let pageResult: Awaited<ReturnType<typeof callMcpTool>> | null = null;
+          for (const base of MCP_BASES) {
+            pageResult = await callMcpTool(base, apiKey, name, pagedParams);
+            if (pageResult.response.ok && !hasMcpError(pageResult.data) && !hasMcpToolError(pageResult.data)) break;
+          }
+          lastUpstream = pageResult?.response ?? null;
+          lastData = pageResult?.data ?? null;
+          if (!lastUpstream?.ok || hasMcpError(lastData) || hasMcpToolError(lastData)) {
+            if (merged.length === 0) break; // first page failed, return error below
+            break; // partial: stop paging on failure
+          }
+          const payload = getMcpToolPayload(lastData);
+          lastPayload = payload;
+          let pageRows: unknown[] = [];
+          if (payload) {
+            const keys = paginate.arrayKeys ?? ["results", "rows", "items", "data", "keywords", "backlinks", "referring_domains", "domains", "links", "urls", "history"];
+            for (const k of keys) {
+              const v = (payload as any)[k];
+              if (Array.isArray(v)) { pageRows = v; break; }
+            }
+          }
+          if (pageRows.length === 0) break;
+          merged.push(...pageRows);
+          if (pageRows.length < perPage) break; // last page
+        }
+
+        if (merged.length === 0 && (!lastUpstream?.ok || hasMcpError(lastData) || hasMcpToolError(lastData))) {
+          const toolPayload = getMcpToolPayload(lastData);
+          return json({
+            __searchAtlasError: true,
+            status: lastUpstream?.status,
+            source: "mcp",
+            name,
+            details: sanitizeDetails(toolPayload ?? lastData),
+          });
+        }
+
+        return json({
+          jsonrpc: "2.0",
+          result: {
+            structuredContent: {
+              ...(lastPayload ?? {}),
+              results: merged,
+              _paginated: true,
+              _pageCount: merged.length,
+            },
+          },
+        });
       }
 
       let upstream: Response | null = null;

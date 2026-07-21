@@ -12,6 +12,14 @@ export interface SearchAtlasRequest {
   /** Flat MCP tool name, e.g. "se_get_links". Preferred over tool+op. */
   name?: string;
   params?: Record<string, unknown>;
+  paginate?: {
+    maxPages: number;
+    pageParam?: string;
+    limitParam?: string;
+    limit?: number;
+    startPage?: number;
+    arrayKeys?: string[];
+  };
 }
 
 export interface SearchAtlasSoftError {
@@ -178,6 +186,7 @@ export async function callSearchAtlas<T = unknown>(req: SearchAtlasRequest): Pro
       op: req.op,
       name: req.name,
       params: req.params,
+      paginate: req.paginate,
     },
   });
   if (error || (data && typeof data === "object" && "error" in (data as Record<string, unknown>))) {
@@ -187,10 +196,6 @@ export async function callSearchAtlas<T = unknown>(req: SearchAtlasRequest): Pro
   return data as T;
 }
 
-/**
- * Generic Search Atlas data hook.
- * Pass `enabled: false` (or omit required IDs) to suppress fetching.
- */
 export function useSearchAtlas<T = unknown>(
   key: readonly unknown[],
   req: SearchAtlasRequest | null,
@@ -205,10 +210,6 @@ export function useSearchAtlas<T = unknown>(
   });
 }
 
-/**
- * MCP-style call to Search Atlas: `tool.op(params)`.
- * Soft-errors are returned in the payload (does not throw).
- */
 export function useSearchAtlasMcp<T = unknown>(
   key: readonly unknown[],
   tool: string,
@@ -225,10 +226,6 @@ export function useSearchAtlasMcp<T = unknown>(
   });
 }
 
-/**
- * MCP call by flat tool name, e.g. "se_get_links".
- * Prefer this over the legacy `tool.op` signature.
- */
 export function useSearchAtlasMcpByName<T = unknown>(
   key: readonly unknown[],
   name: string,
@@ -238,6 +235,26 @@ export function useSearchAtlasMcpByName<T = unknown>(
   return useQuery<T>({
     queryKey: ["search-atlas-mcp", name, ...key],
     queryFn: () => callSearchAtlas<T>({ name, params }),
+    enabled,
+    staleTime: 5 * 60 * 1000,
+    retry: 0,
+  });
+}
+
+/**
+ * Paginated MCP call. Proxy loops pages and merges array results under
+ * `structuredContent.results`. Use for backlinks, keyword lists, etc.
+ */
+export function useSearchAtlasMcpPaginated<T = unknown>(
+  key: readonly unknown[],
+  name: string,
+  params: Record<string, unknown>,
+  paginate: NonNullable<SearchAtlasRequest["paginate"]>,
+  enabled: boolean = true,
+) {
+  return useQuery<T>({
+    queryKey: ["search-atlas-mcp-paginated", name, paginate.maxPages, paginate.limit ?? 100, ...key],
+    queryFn: () => callSearchAtlas<T>({ name, params, paginate }),
     enabled,
     staleTime: 5 * 60 * 1000,
     retry: 0,

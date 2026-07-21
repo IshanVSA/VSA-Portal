@@ -22,29 +22,42 @@ function num(v: unknown, d = 0): number {
 
 export function SearchAtlasSerpHistoryTab({ config, clinicId }: Props) {
   const domain = config.search_atlas_domain ?? undefined;
+  const rtId = config.search_atlas_rank_tracker_id ?? undefined;
   const domainParams = { target: domain, domain };
   const organicQ = useSearchAtlasMcpByName<any>(["se_organic", domain ?? ""], "se_get_organic", domainParams, !!domain);
   const serpQ = useSearchAtlasMcpByName<any>(["se_serp", domain ?? ""], "se_get_serp_overview", domainParams, !!domain);
   const analyzeQ = useSearchAtlasMcpByName<any>(["se_analyze", domain ?? ""], "se_analyze_domain", domainParams, !!domain);
+  // Historical rank-tracker report — 90-day window with daily granularity.
+  const endDate = new Date().toISOString().slice(0, 10);
+  const startDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const krtReportQ = useSearchAtlasMcpByName<any>(
+    ["krt_report", rtId ?? "", startDate, endDate],
+    "krt_ranking_report",
+    { project_id: rtId, domain, start_date: startDate, end_date: endDate, granularity: "day" },
+    !!rtId,
+  );
 
   const organic = !isSearchAtlasSoftError(organicQ.data) ? (unwrapSearchAtlasPayload<any>(organicQ.data) ?? {}) : {};
   const serp = !isSearchAtlasSoftError(serpQ.data) ? (unwrapSearchAtlasPayload<any>(serpQ.data) ?? {}) : {};
   const summary = !isSearchAtlasSoftError(analyzeQ.data) ? (unwrapSearchAtlasPayload<any>(analyzeQ.data) ?? {}) : {};
+  const krtReport = !isSearchAtlasSoftError(krtReportQ.data) ? (unwrapSearchAtlasPayload<any>(krtReportQ.data) ?? {}) : {};
 
   const trend = useMemo(() => {
-    const raw =
-      organic?.trend ?? organic?.results ?? organic?.history ??
-      summary?.trend ?? summary?.se?.organic_keywords_trend ?? [];
+    // Prefer the historical rank tracker report — it's the true SERP history.
+    const krtHist = krtReport?.history ?? krtReport?.results ?? krtReport?.rankings ?? krtReport?.data;
+    const raw = Array.isArray(krtHist) ? krtHist
+      : (organic?.trend ?? organic?.results ?? organic?.history
+        ?? summary?.trend ?? summary?.se?.organic_keywords_trend ?? []);
     if (!Array.isArray(raw)) return [];
     return raw
       .map((p: any) => ({
         date: String(p.date ?? p.day ?? p.month ?? ""),
-        keywords: num(p.keywords ?? p.organic_keywords ?? p.value),
-        traffic: num(p.traffic ?? p.organic_traffic),
+        keywords: num(p.keywords ?? p.organic_keywords ?? p.tracked ?? p.value),
+        traffic: num(p.traffic ?? p.organic_traffic ?? p.avg_position ?? 0),
       }))
       .filter((p) => p.date)
-      .slice(-36);
-  }, [organic, summary]);
+      .slice(-90);
+  }, [organic, summary, krtReport]);
 
   const serpRows: any[] = useMemo(() => {
     const raw = serp?.results ?? serp?.serp ?? serp?.rows ?? [];
