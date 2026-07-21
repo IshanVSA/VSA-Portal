@@ -53,7 +53,7 @@ function describeSoftError(value: unknown): string | null {
 export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
   const pid = config.search_atlas_backlink_project_id;
   const configuredDomain = config.search_atlas_domain ?? undefined;
-  const projQ = useSearchAtlasCustomerProjects(!!pid || !!domain);
+  const projQ = useSearchAtlasCustomerProjects(!!pid || !!configuredDomain);
 
   const project = findSearchAtlasProject(projQ.data, config);
   const se = useMemo(() => {
