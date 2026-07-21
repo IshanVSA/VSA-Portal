@@ -1,48 +1,33 @@
-## Verified diagnosis
+## Problem
 
-The Search Atlas API key and basic connection are working. The visible summary metrics come from the REST customer-projects call, while the empty detailed rows/charts come from MCP `tools/call` requests.
+The Backlinks tab is now showing readable errors (good — the last fix worked), but Search Atlas is rate-limiting us at **40 requests / 60 seconds**. Both "Top Referring Domains" and "Recent Backlinks" hit the ceiling and render as empty tables with the retry-after message.
 
-The current issue has two confirmed parts:
+Root cause: the proxy's parameter-variant retry loop (added last turn to survive INTERNAL errors) fires up to ~5 shape permutations per tool, and pagination multiplies that further. Two detail tools × variants × pages blows past 40 calls per minute on a single tab load.
 
-1. **MCP tool errors are being treated as successful empty data**
-   - Search Atlas returns HTTP 200 with `result.isError: true` and a JSON error inside `result.content[0].text`.
-   - The proxy only checks top-level JSON-RPC `error`, so validation failures are passed to the frontend as if they were successful.
-   - The frontend unwraps those payloads into empty arrays, which is why the UI says things like “No keywords found” instead of showing the real error.
+## Plan
 
-2. **Some frontend calls are missing required parameters**
-   - The live network trace confirms `llmv_get_sentiment_trend`, `llmv_get_citations_overview`, and `llmv_get_citations_urls` are failing with: `domain: required field is missing`.
-   - `SearchAtlasLLMTab.tsx` currently sends only `project_id` for several LLM visibility calls, despite the saved clinic config having `search_atlas_domain = 108aveanimalhospital.com`.
+Cut the request volume, cache what we get, and make the tab survive rate limits gracefully.
 
-## Implementation plan
+### 1. Proxy: stop the variant storm (`supabase/functions/search-atlas-proxy/index.ts`)
+- Remember the **first successful parameter variant** per `(tool, site)` in an in-memory map so subsequent calls (including pagination pages 2+) skip straight to the winning shape.
+- On `RATE_LIMIT` / `Retry after Xs`: stop pagination immediately, return whatever pages succeeded plus a `rateLimited: true` flag and `retryAfterSeconds`. No more retries in that request.
+- Cap variant attempts at 3 (not 5+) and short-circuit on the first non-INTERNAL response.
+- Add a 24-hour response cache keyed by `(tool, normalized args)` in a new `search_atlas_cache` table (JSONB payload + `expires_at`). Serve cached data on rate-limit so the tab is never blank once it has loaded once.
 
-1. **Fix MCP error detection in the edge proxy**
-   - Update `supabase/functions/search-atlas-proxy/index.ts` so `hasMcpError` also detects:
-     - `result.isError === true`
-     - `result.structuredContent.success === false`
-     - JSON error objects embedded inside `result.content[].text`
-   - Return a `__searchAtlasError` payload with the exact tool error details instead of silently passing it through.
+### 2. Hook: throttle client-side (`src/hooks/useSearchAtlas.ts`)
+- Increase `staleTime` on Backlinks queries to 30 min so tab re-mounts don't refetch.
+- When the proxy returns `rateLimited: true`, surface `retryAfterSeconds` to the UI instead of a generic error.
 
-2. **Pass required domain arguments to LLM tools**
-   - Update `src/components/ai-seo/SearchAtlasLLMTab.tsx` so all `llmv_*` calls include both:
-     - `project_id`
-     - `domain`
-   - This directly addresses the observed validation errors.
+### 3. Backlinks tab (`src/components/ai-seo/SearchAtlasBacklinksTab.tsx`)
+- Load the two detail tables **sequentially, not in parallel**, with a 1.5s gap so a fresh visit uses ~2 calls instead of ~10.
+- When `rateLimited` is true and cached data exists, render the cached rows with a small "Showing cached results — Search Atlas rate-limited, retry in Xs" banner.
+- Add a manual "Retry now" button that only enables after the retry-after countdown.
 
-3. **Harden detailed data parsing**
-   - Update `src/hooks/useSearchAtlas.ts` so MCP responses with `result.isError` or `success:false` are recognized as Search Atlas soft errors, not unwrapped as normal data.
-   - Keep the existing flexible parser for successful nested payloads.
+### 4. Migration
+- New table `public.search_atlas_cache` (id, tool, args_hash, payload jsonb, fetched_at, expires_at) with GRANTs + RLS (service_role only; proxy reads/writes it).
 
-4. **Review high-risk MCP parameter calls**
-   - Recheck `SearchAtlasBacklinksTab.tsx`, `SearchAtlasKeywordsTab.tsx`, and `SearchAtlasSerpHistoryTab.tsx` for parameter consistency.
-   - Keep existing broad compatibility fields where they are harmless, but remove or adjust any parameter that causes validated MCP failures if confirmed by response payloads.
+## Technical notes
 
-5. **Validate with real signals**
-   - Deploy the updated `search-atlas-proxy` function.
-   - Use the preview network trace after refresh to confirm:
-     - LLM calls no longer return `domain: required field is missing`.
-     - Tool-level errors now surface as `__searchAtlasError` instead of empty tables.
-     - Successful MCP payloads populate the detailed UI where Search Atlas returns rows.
-
-## Expected outcome
-
-After implementation, the AI SEO tabs will stop hiding MCP validation failures. The LLM tab should start receiving data for calls that were only missing `domain`. If any Search Atlas tool still returns no detailed rows, the UI/proxy will show the exact upstream reason so the next fix can be based on the real schema/error instead of guesswork.
+- Variant memoization lives in module scope in the edge function — survives warm invocations, cold-start rebuilds from cache table.
+- Cache lookup happens BEFORE the MCP call; on cache hit within TTL, return immediately (zero MCP requests). Backlinks data doesn't change hourly, so 24h is safe.
+- No changes to other AI SEO tabs in this plan — Backlinks first, then apply the same pattern tab by tab as you asked.
