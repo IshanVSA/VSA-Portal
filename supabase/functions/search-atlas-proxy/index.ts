@@ -460,7 +460,7 @@ Deno.serve(async (req) => {
       let upstream: Response | null = null;
       let data: unknown = null;
       for (const base of MCP_BASES) {
-        const result = await callMcpTool(base, apiKey, name, params);
+        const result = await callMcpToolWithVariants(base, apiKey, name, params);
         upstream = result.response;
         data = result.data;
         if (upstream.ok && !hasMcpError(data) && !hasMcpToolError(data)) break;
