@@ -173,16 +173,50 @@ export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {linksQ.isLoading ? (
+            {refDomainsQ.isLoading ? (
               <TableRow><TableCell colSpan={3} className="text-center text-sm text-muted-foreground py-8">Loading referring domains…</TableCell></TableRow>
             ) : referringRows.length === 0 ? (
               <TableRow><TableCell colSpan={3} className="text-center text-sm text-muted-foreground py-8">No referring-domain rows returned by Search Atlas for this domain.</TableCell></TableRow>
             ) : (
-              referringRows.slice(0, 100).map((r, i) => (
+              referringRows.slice(0, 200).map((r, i) => (
                 <TableRow key={r.domain ?? r.referring_domain ?? r.source_domain ?? r.url ?? i}>
                   <TableCell className="font-medium text-sm truncate max-w-[320px]">{r.domain ?? r.referring_domain ?? r.source_domain ?? r.host ?? r.url ?? "—"}</TableCell>
                   <TableCell className="text-right tabular-nums">{numberOr(r.backlinks ?? r.link_count ?? r.links ?? r.total_links).toLocaleString() || "—"}</TableCell>
                   <TableCell className="text-right tabular-nums">{numberOr(r.domain_authority ?? r.authority ?? r.da ?? r.domain_rating ?? r.dr) || "—"}</TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+
+      {/* Individual Backlinks */}
+      <Card className="border-border/60">
+        <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
+          <h3 className="text-sm font-bold">Recent Backlinks</h3>
+          <span className="text-[11px] text-muted-foreground">{backlinkRows.length.toLocaleString()} shown</span>
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Source URL</TableHead>
+              <TableHead>Target URL</TableHead>
+              <TableHead className="text-right w-24">Anchor</TableHead>
+              <TableHead className="text-right w-20">DA</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {backlinksQ.isLoading ? (
+              <TableRow><TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-8">Loading backlinks…</TableCell></TableRow>
+            ) : backlinkRows.length === 0 ? (
+              <TableRow><TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-8">No individual backlinks returned.</TableCell></TableRow>
+            ) : (
+              backlinkRows.slice(0, 200).map((b, i) => (
+                <TableRow key={b.url_from ?? b.source_url ?? b.url ?? i}>
+                  <TableCell className="text-xs truncate max-w-[260px]">{b.url_from ?? b.source_url ?? b.from ?? b.url ?? "—"}</TableCell>
+                  <TableCell className="text-xs truncate max-w-[260px]">{b.url_to ?? b.target_url ?? b.to ?? "—"}</TableCell>
+                  <TableCell className="text-xs truncate max-w-[160px]">{b.anchor ?? b.anchor_text ?? "—"}</TableCell>
+                  <TableCell className="text-right tabular-nums">{numberOr(b.domain_authority ?? b.da ?? b.domain_rating ?? b.dr) || "—"}</TableCell>
                 </TableRow>
               ))
             )}
