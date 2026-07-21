@@ -452,6 +452,12 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } },
     );
 
+    // Service-role client for cache table (bypasses RLS).
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const cacheClient = serviceKey
+      ? createClient(Deno.env.get("SUPABASE_URL")!, serviceKey, { auth: { persistSession: false } })
+      : null;
+
     const token = authHeader.replace("Bearer ", "");
     const { data: claims, error: authError } = await supabase.auth.getClaims(token);
     if (authError || !claims?.claims?.sub) {
