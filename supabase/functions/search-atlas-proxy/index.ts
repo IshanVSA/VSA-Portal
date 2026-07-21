@@ -291,6 +291,7 @@ Deno.serve(async (req) => {
     const tool: string = body?.tool ?? "";
     const op: string = body?.op ?? "";
     const params: Record<string, unknown> = body?.params ?? {};
+    const paginate = body?.paginate as { maxPages?: number; pageParam?: string; limitParam?: string; limit?: number; startPage?: number; arrayKeys?: string[] } | undefined;
 
     const nameFromBody: string = typeof body?.name === "string" ? body.name : "";
 
