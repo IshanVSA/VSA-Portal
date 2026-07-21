@@ -36,10 +36,24 @@ function numberOr(value: unknown, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function stringOr(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function describeSoftError(value: unknown): string | null {
+  if (!isSearchAtlasSoftError(value)) return null;
+  const details = (value as any)?.details;
+  if (typeof details === "string") return details;
+  if (details && typeof details === "object") {
+    return String((details as any).message ?? (details as any).error ?? JSON.stringify(details));
+  }
+  return "Search Atlas returned an error for this request.";
+}
+
 export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
   const pid = config.search_atlas_backlink_project_id;
-  const domain = config.search_atlas_domain ?? undefined;
-  const projQ = useSearchAtlasCustomerProjects(!!pid || !!domain);
+  const configuredDomain = config.search_atlas_domain ?? undefined;
+  const projQ = useSearchAtlasCustomerProjects(!!pid || !!configuredDomain);
 
   const project = findSearchAtlasProject(projQ.data, config);
   const se = useMemo(() => {
@@ -47,6 +61,11 @@ export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
     const data = asRecord(rec?.data) ?? asRecord(rec?.data_v2);
     return asRecord(data?.se) ?? {};
   }, [project]);
+  const projectRecord = asRecord(project);
+  const domain = stringOr(configuredDomain)
+    ?? stringOr(se.domain)
+    ?? stringOr(projectRecord?.domain)
+    ?? stringOr(projectRecord?.hostname);
 
   // Paginated detail endpoints — support confirmed these return per-domain / per-link rows.
   const refDomainsQ = useSearchAtlasMcpPaginated<any>(
@@ -92,12 +111,15 @@ export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
       .slice(-36); // last ~3 years monthly
   }, [se]);
 
+  const referringError = describeSoftError(refDomainsQ.data) ?? (refDomainsQ.error instanceof Error ? refDomainsQ.error.message : null);
+  const backlinksError = describeSoftError(backlinksQ.data) ?? (backlinksQ.error instanceof Error ? backlinksQ.error.message : null);
+
   if (!pid && !domain) {
     return <SearchAtlasEmptyState clinicId={clinicId} message="Add a Backlink project ID or domain to view backlink data." />;
   }
   if (projQ.isLoading) return <Skeleton className="h-96" />;
 
-  const domainLabel = String(se.domain ?? config.search_atlas_domain ?? "—");
+  const domainLabel = String(domain ?? "—");
 
   return (
     <div className="space-y-5">
@@ -175,6 +197,8 @@ export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
           <TableBody>
             {refDomainsQ.isLoading ? (
               <TableRow><TableCell colSpan={3} className="text-center text-sm text-muted-foreground py-8">Loading referring domains…</TableCell></TableRow>
+            ) : referringError ? (
+              <TableRow><TableCell colSpan={3} className="text-center text-sm text-destructive py-8">{referringError}</TableCell></TableRow>
             ) : referringRows.length === 0 ? (
               <TableRow><TableCell colSpan={3} className="text-center text-sm text-muted-foreground py-8">No referring-domain rows returned by Search Atlas for this domain.</TableCell></TableRow>
             ) : (
@@ -208,6 +232,8 @@ export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
           <TableBody>
             {backlinksQ.isLoading ? (
               <TableRow><TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-8">Loading backlinks…</TableCell></TableRow>
+            ) : backlinksError ? (
+              <TableRow><TableCell colSpan={4} className="text-center text-sm text-destructive py-8">{backlinksError}</TableCell></TableRow>
             ) : backlinkRows.length === 0 ? (
               <TableRow><TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-8">No individual backlinks returned.</TableCell></TableRow>
             ) : (
