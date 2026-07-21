@@ -246,6 +246,9 @@ export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
           <h3 className="text-sm font-bold">Recent Backlinks</h3>
           <span className="text-[11px] text-muted-foreground">{backlinkRows.length.toLocaleString()} shown</span>
         </div>
+        {rateBanner(blRate) && (
+          <div className="px-4 py-2 text-[11px] text-amber-600 dark:text-amber-400 border-b border-border/40 bg-amber-500/5">{rateBanner(blRate)}</div>
+        )}
         <Table>
           <TableHeader>
             <TableRow>
