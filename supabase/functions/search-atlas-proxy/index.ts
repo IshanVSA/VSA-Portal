@@ -243,11 +243,27 @@ function isRateLimitError(data: unknown) {
   if (error && typeof error === "object") {
     const record = error as Record<string, unknown>;
     const message = String(record.message ?? "").toLowerCase();
-    return record.code === 429 || message.includes("rate limit");
+    if (record.code === 429 || message.includes("rate limit")) return true;
   }
   const payload = getMcpToolPayload(data);
   const message = String(payload?.message ?? payload?.error ?? "").toLowerCase();
   return message.includes("rate limit");
+}
+
+function extractRetryAfterSeconds(data: unknown): number | null {
+  const scan = (text: string) => {
+    const m = text.match(/retry after (\d+)/i) || text.match(/in (\d+)\s*seconds?/i);
+    return m ? Number(m[1]) : null;
+  };
+  if (!data || typeof data !== "object") return null;
+  const err = (data as any).error;
+  if (err?.message && typeof err.message === "string") {
+    const n = scan(err.message);
+    if (n) return n;
+  }
+  const payload = getMcpToolPayload(data);
+  const msg = String(payload?.message ?? payload?.error ?? "");
+  return scan(msg);
 }
 
 async function postMcp(base: string, apiKey: string, body: unknown, sessionId?: string) {
@@ -262,6 +278,46 @@ async function postMcp(base: string, apiKey: string, body: unknown, sessionId?: 
     data: parseMcpBody(text),
     sessionId: response.headers.get("mcp-session-id") ?? response.headers.get("Mcp-Session-Id") ?? sessionId,
   };
+}
+
+// --- Persistent response cache (search_atlas_cache) ---
+// Reduces MCP calls and lets us serve last-known-good data when rate-limited.
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+async function readCache(sb: any, key: string): Promise<any | null> {
+  try {
+    const { data } = await sb
+      .from("search_atlas_cache")
+      .select("payload, expires_at")
+      .eq("cache_key", key)
+      .maybeSingle();
+    if (!data) return null;
+    return { payload: data.payload, expired: new Date(data.expires_at).getTime() < Date.now() };
+  } catch { return null; }
+}
+
+async function writeCache(sb: any, key: string, tool: string, payload: unknown) {
+  try {
+    await sb.from("search_atlas_cache").upsert({
+      cache_key: key,
+      tool,
+      payload,
+      fetched_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + CACHE_TTL_MS).toISOString(),
+    }, { onConflict: "cache_key" });
+  } catch { /* best-effort */ }
+}
+
+function cacheKeyFor(name: string, params: Record<string, unknown>, paginate?: unknown): string {
+  const sorted = Object.keys(params).sort().reduce((acc, k) => { (acc as any)[k] = (params as any)[k]; return acc; }, {} as Record<string, unknown>);
+  return `${name}::${JSON.stringify(sorted)}::${paginate ? JSON.stringify(paginate) : ""}`;
+}
+
+// Module-scope memoization of the first successful param variant per (tool, site).
+// Survives warm invocations so pagination pages 2+ skip straight to the winner.
+const variantMemo = new Map<string, Record<string, unknown>>();
+function siteKey(params: Record<string, unknown>): string {
+  return String(params.target ?? params.domain ?? params.url ?? params.hostname ?? "").trim().toLowerCase();
 }
 
 async function callMcpTool(base: string, apiKey: string, name: string, params: Record<string, unknown>) {
