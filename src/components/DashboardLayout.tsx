@@ -512,7 +512,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
             variant="ghost"
             size="sm"
             className={cn(
-              "w-full text-[hsl(var(--sidebar-muted))] hover:text-destructive hover:bg-destructive/10 rounded-lg text-[13px]",
+              "w-full text-white/80 hover:text-destructive hover:bg-destructive/10 rounded-lg text-[13px]",
               collapsed ? "justify-center px-2" : "justify-start"
             )}
             onClick={signOut}
