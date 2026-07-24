@@ -522,6 +522,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
             {!collapsed && <span className="ml-2">Sign Out</span>}
           </Button>
         </div>
+        </div>
       </aside>
 
       <main className={cn("flex-1 min-w-0 flex flex-col", collapsed ? "lg:pl-[68px]" : "lg:pl-[260px]")}>
