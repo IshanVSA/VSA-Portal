@@ -377,7 +377,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
       )}>
         <WavyBackground className="absolute inset-0 -z-0 pointer-events-none" />
         <div className="absolute inset-0 -z-0 pointer-events-none bg-[hsl(var(--sidebar-background))]/88" />
-        <div className="relative z-10 flex flex-col h-full">
+        <div className="relative z-10 flex flex-col h-full text-white">
         {/* Logo */}
         <div className={cn("flex items-center h-16 border-b border-[hsl(var(--sidebar-border))]", collapsed ? "px-3 justify-center" : "px-5 gap-3")}>
           <div className="relative shrink-0">
@@ -386,21 +386,21 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <h1 className="font-semibold text-sm tracking-tight flex items-center gap-1.5 whitespace-nowrap">
-                <span className="text-[hsl(var(--sidebar-primary))]">VSA</span>{" "}
-                <span className="text-[hsl(var(--sidebar-foreground))]/90">Vet Media</span>
+              <h1 className="font-semibold text-sm tracking-tight flex items-center gap-1.5 whitespace-nowrap text-white">
+                <span className="text-white">VSA</span>{" "}
+                <span className="text-white/90">Vet Media</span>
                 <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest rounded-md bg-[hsl(var(--sidebar-primary))]/15 text-[hsl(var(--sidebar-primary))] ring-1 ring-[hsl(var(--sidebar-primary))]/25 leading-none shrink-0">Beta</span>
               </h1>
-              <p className="text-[10px] text-[hsl(var(--sidebar-muted))] tracking-wide">
+              <p className="text-[10px] text-white/60 tracking-wide">
                 {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
               </p>
             </div>
           )}
           <button onClick={toggleCollapse} className="hidden lg:flex p-1.5 rounded-lg hover:bg-[hsl(var(--sidebar-accent))]/50 transition-colors duration-200 shrink-0" title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
-            {collapsed ? <PanelLeft className="h-4 w-4 text-[hsl(var(--sidebar-muted))]" /> : <PanelLeftClose className="h-4 w-4 text-[hsl(var(--sidebar-muted))]" />}
+            {collapsed ? <PanelLeft className="h-4 w-4 text-white/70" /> : <PanelLeftClose className="h-4 w-4 text-white/70" />}
           </button>
           <button className="lg:hidden p-1 rounded-lg hover:bg-[hsl(var(--sidebar-accent))]" onClick={() => setSidebarOpen(false)}>
-            <X className="h-4 w-4 text-[hsl(var(--sidebar-muted))]" />
+            <X className="h-4 w-4 text-white/70" />
           </button>
         </div>
 
@@ -409,7 +409,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
           {sections.map((section, si) => (
             <div key={si}>
               {section.title && !collapsed && (
-                <p className="px-3 mb-2.5 text-[10px] font-semibold tracking-[0.15em] text-[hsl(var(--sidebar-muted))]/50 uppercase select-none">
+                <p className="px-3 mb-2.5 text-[10px] font-semibold tracking-[0.15em] text-white/50 uppercase select-none">
                   {section.title}
                 </p>
               )}
@@ -428,8 +428,8 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
                         "flex items-center rounded-lg font-medium transition-colors duration-200 group relative",
                         collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5 text-[13px]",
                         active
-                          ? "bg-[hsl(var(--sidebar-primary))]/12 text-[hsl(var(--sidebar-primary))]"
-                          : "text-[hsl(var(--sidebar-muted))] hover:text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]/30"
+                          ? "bg-[hsl(var(--sidebar-primary))]/12 text-white"
+                          : "text-white/80 hover:text-white hover:bg-[hsl(var(--sidebar-accent))]/30"
                       )}
                     >
                       {/* Active indicator bar */}
@@ -443,7 +443,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
                       <div className="relative shrink-0">
                         <item.icon strokeWidth={1.5} className={cn(
                           "h-[19px] w-[19px] transition-colors duration-200",
-                          active ? "text-[hsl(var(--sidebar-primary))]" : "group-hover:text-[hsl(var(--sidebar-foreground))]"
+                          active ? "text-white" : "text-white/70 group-hover:text-white"
                         )} />
                         {collapsed && (
                           <span
@@ -503,8 +503,8 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-medium text-[hsl(var(--sidebar-foreground))] truncate">{profile?.full_name || "User"}</p>
-                <p className="text-[10px] text-[hsl(var(--sidebar-muted))] truncate capitalize">{role === "concierge" ? (profile?.team_role || "Member") : role}</p>
+                <p className="text-[13px] font-medium text-white truncate">{profile?.full_name || "User"}</p>
+                <p className="text-[10px] text-white/60 truncate capitalize">{role === "concierge" ? (profile?.team_role || "Member") : role}</p>
               </div>
             </div>
           )}
@@ -512,7 +512,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
             variant="ghost"
             size="sm"
             className={cn(
-              "w-full text-[hsl(var(--sidebar-muted))] hover:text-destructive hover:bg-destructive/10 rounded-lg text-[13px]",
+              "w-full text-white/80 hover:text-destructive hover:bg-destructive/10 rounded-lg text-[13px]",
               collapsed ? "justify-center px-2" : "justify-start"
             )}
             onClick={signOut}
