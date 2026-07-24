@@ -1,35 +1,71 @@
-## Goal
-Add an animated WebGL "wavy" background behind the left sidebar in `DashboardLayout.tsx`, using a cleaned-up version of the pasted `WavyBackground` component.
+# Plan: Unified MetricCard primitive for dashboards
 
-## Fixes needed to the pasted snippet
-The snippet as pasted won't compile — I'll fix these while porting it into `src/components/ui/wavy.tsx`:
-1. Broken `.join("," )` — the palette join string is corrupted with a newline. Restore it to `.join(",\n  ")`.
-2. Empty JSX return — the component ends with blank parens and no elements. It needs to return an absolutely-positioned `<canvas>` plus a wrapper that renders `children` above it.
-3. Canvas sizes itself to `window.innerWidth/innerHeight`. That's wrong for a sidebar background — it needs to size to its parent container using `ResizeObserver` and `devicePixelRatio`, otherwise the canvas will overflow the sidebar and cover the whole page.
-4. Add `prefers-reduced-motion` guard: freeze the shader (render one frame, skip the RAF loop) for users who opt out of motion.
-5. Add a WebGL2 fallback: if `gl` is null, render a static CSS gradient instead of erroring.
+Refresh all dashboard KPI/Stats cards under one primitive with a refined Apple/Linear feel — tighter type scale, softer layered shadows, smoother spring hover motion, subtle gradient wash, better delta chips.
 
-## Files
-- **Create** `src/components/ui/wavy.tsx` — fixed `WavyBackground` component. Props: `children?`, `className?`. Renders `<div className="relative ...">` with an absolutely-positioned `<canvas className="absolute inset-0 w-full h-full">` behind `children`.
-- **Edit** `src/components/DashboardLayout.tsx` (the `<aside>` around line 371):
-  - Wrap the sidebar's inner content in `<WavyBackground className="absolute inset-0 -z-0">` mounted as a sibling of the existing header/nav, or wrap the whole aside interior.
-  - Add `relative overflow-hidden` to the `<aside>` so the canvas is clipped to the sidebar.
-  - Add a subtle dark overlay (`bg-[hsl(var(--sidebar-background))]/70` or a gradient) between the canvas and the nav content so existing text/icons stay legible against the animated blues.
-  - Do not change the existing sidebar layout, collapse behavior, mobile drawer, active-route styling, or nav structure.
-- **Skip** the `demo.tsx` file — it's just an empty example and we're wiring the real usage into `DashboardLayout`.
+## Scope (only these are touched)
 
-## Answers to the integration questions
-- **Props**: only `children` and `className`. No app data flows in.
-- **State/context**: none — self-contained WebGL2 + RAF.
-- **Assets/icons**: none.
-- **Responsive**: canvas resizes to its parent via `ResizeObserver`, works in both collapsed (`w-[68px]`) and expanded (`w-[260px]`) sidebar widths and on mobile drawer.
-- **Placement**: behind the left sidebar in `DashboardLayout.tsx`, per the request.
+- `src/components/dashboard/KPICard.tsx` — used by Admin/Client/Concierge dashboards
+- `src/components/StatsCard.tsx` — used across dashboards and misc pages
+- Callers stay on the same props surface; no consumer refactors needed
 
-## Explicit non-goals
-- Not touching any other page, department, or route.
-- Not changing sidebar tokens in `index.css` — only adding the canvas layer + a legibility overlay in the sidebar markup.
-- Not adding the effect to the main content area or headers.
+Department KPI tiles (SeoKpiTile, FacebookInsightCard), content cards, and empty states are **out of scope** per your answer.
 
-## Notes / trade-offs to flag
-- The shader runs continuously (fbm with 10 octaves + swirl). On low-end laptops the sidebar will consume noticeable GPU. Reduced-motion guard mitigates this; if it still feels heavy after you see it, we can drop `FBM_OCTAVES` to 5–6 or pause the RAF when the tab is hidden (`document.visibilitychange`).
-- Sidebar text is currently `--sidebar-muted`/`--sidebar-foreground` on a solid dark background. Against the animated blues, some rows may lose contrast — the overlay tint above is the mitigation. If it's still borderline, I'll bump the overlay opacity in a follow-up.
+## New primitive
+
+Create `src/components/ui/metric-card.tsx` — one component, variant-driven, backward-compatible with both existing prop shapes.
+
+Props (superset of KPICard + StatsCard):
+- `label` / `title` (alias)
+- `value`
+- `icon` (LucideIcon)
+- `change` + `changeType: positive | negative | neutral`
+- `description`
+- `accent: blue | green | amber | purple | neutral` (was `gradient`)
+- `href` (optional link wrap)
+- `index` (stagger)
+- `size: sm | md` (sm = current StatsCard, md = current KPICard)
+
+## Visual system (Apple/Linear refined)
+
+Tokens live in `src/index.css` so future cards can adopt them:
+- `--shadow-card`: layered `0 1px 2px black/4%, 0 8px 24px -12px black/8%`
+- `--shadow-card-hover`: `0 1px 2px black/5%, 0 20px 40px -16px black/14%`
+- `--radius-card: 20px` (rounded-[20px], slightly tighter than current 2xl)
+- Per-accent `--accent-*` hue tokens for icon chip + optional 1px gradient hairline
+
+Card anatomy:
+- Surface: `bg-card` with a very subtle top-to-bottom `bg-gradient-to-b from-card to-card/95`
+- 1px border `border-border/50` + inner ring `ring-1 ring-inset ring-white/[0.02]` (dark) for depth
+- Icon chip: 36px rounded-xl, tinted accent bg at 10%, icon at accent 100%
+- Delta chip: pill, tabular-nums, arrow glyph (↑ ↓ –) + percent, accent-tinted
+- Value: `text-[30px] font-semibold tracking-[-0.02em] tabular-nums`
+- Label: `text-[12px] text-muted-foreground font-medium uppercase tracking-wide`
+
+Motion (framer-motion, already installed):
+- Entrance: opacity + 8px rise, spring `{ stiffness: 260, damping: 26 }`, 60ms stagger
+- Hover: `y: -3`, shadow swap, icon chip scale 1.05 — spring, not tween
+- Respect `prefers-reduced-motion` (freeze to static)
+- Value uses a subtle count-up on mount when numeric
+
+## Migration
+
+1. Build `MetricCard` in `src/components/ui/metric-card.tsx`
+2. Rewrite `KPICard.tsx` and `StatsCard.tsx` as thin wrappers that forward to `MetricCard` with the right `size` — zero changes required in dashboards
+3. Add card shadow + radius tokens to `src/index.css`
+4. Sanity-check the three dashboards render:
+   - `src/components/dashboard/AdminDashboard.tsx`
+   - `src/components/dashboard/ClientDashboard.tsx`
+   - `src/components/dashboard/ConciergeDashboard.tsx`
+
+## Out of scope
+
+- Department tiles (SEO/Ads/Website/Social) — separate pass if you want
+- Content, ticket, blog cards
+- Empty/locked state cards
+- Any business logic, data fetching, or route changes
+
+## Technical notes
+
+- No new deps; framer-motion already present
+- Wrapper approach keeps `import { StatsCard }` / `import KPICard` working everywhere
+- Semantic tokens only — no hardcoded colors, dark mode preserved
