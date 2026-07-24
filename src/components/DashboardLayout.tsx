@@ -24,6 +24,7 @@ import { ClinicClock } from "@/components/ClinicClock";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
+import { WavyBackground } from "@/components/ui/wavy";
 
 const departmentServices: Record<string, { label: string; services: string[] }> = {
   website: { label: "Website", services: ["Time Changes", "Pop-up Offers", "Third Party Integrations", "Payment Options", "Add/Remove Team Members", "New Forms", "Paper-to-Digital Conversion", "Price List Updates", "Tech Issues", "Others"] },
