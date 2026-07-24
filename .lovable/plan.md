@@ -1,33 +1,35 @@
-## Problem
+## Goal
+Add an animated WebGL "wavy" background behind the left sidebar in `DashboardLayout.tsx`, using a cleaned-up version of the pasted `WavyBackground` component.
 
-The Backlinks tab is now showing readable errors (good — the last fix worked), but Search Atlas is rate-limiting us at **40 requests / 60 seconds**. Both "Top Referring Domains" and "Recent Backlinks" hit the ceiling and render as empty tables with the retry-after message.
+## Fixes needed to the pasted snippet
+The snippet as pasted won't compile — I'll fix these while porting it into `src/components/ui/wavy.tsx`:
+1. Broken `.join("," )` — the palette join string is corrupted with a newline. Restore it to `.join(",\n  ")`.
+2. Empty JSX return — the component ends with blank parens and no elements. It needs to return an absolutely-positioned `<canvas>` plus a wrapper that renders `children` above it.
+3. Canvas sizes itself to `window.innerWidth/innerHeight`. That's wrong for a sidebar background — it needs to size to its parent container using `ResizeObserver` and `devicePixelRatio`, otherwise the canvas will overflow the sidebar and cover the whole page.
+4. Add `prefers-reduced-motion` guard: freeze the shader (render one frame, skip the RAF loop) for users who opt out of motion.
+5. Add a WebGL2 fallback: if `gl` is null, render a static CSS gradient instead of erroring.
 
-Root cause: the proxy's parameter-variant retry loop (added last turn to survive INTERNAL errors) fires up to ~5 shape permutations per tool, and pagination multiplies that further. Two detail tools × variants × pages blows past 40 calls per minute on a single tab load.
+## Files
+- **Create** `src/components/ui/wavy.tsx` — fixed `WavyBackground` component. Props: `children?`, `className?`. Renders `<div className="relative ...">` with an absolutely-positioned `<canvas className="absolute inset-0 w-full h-full">` behind `children`.
+- **Edit** `src/components/DashboardLayout.tsx` (the `<aside>` around line 371):
+  - Wrap the sidebar's inner content in `<WavyBackground className="absolute inset-0 -z-0">` mounted as a sibling of the existing header/nav, or wrap the whole aside interior.
+  - Add `relative overflow-hidden` to the `<aside>` so the canvas is clipped to the sidebar.
+  - Add a subtle dark overlay (`bg-[hsl(var(--sidebar-background))]/70` or a gradient) between the canvas and the nav content so existing text/icons stay legible against the animated blues.
+  - Do not change the existing sidebar layout, collapse behavior, mobile drawer, active-route styling, or nav structure.
+- **Skip** the `demo.tsx` file — it's just an empty example and we're wiring the real usage into `DashboardLayout`.
 
-## Plan
+## Answers to the integration questions
+- **Props**: only `children` and `className`. No app data flows in.
+- **State/context**: none — self-contained WebGL2 + RAF.
+- **Assets/icons**: none.
+- **Responsive**: canvas resizes to its parent via `ResizeObserver`, works in both collapsed (`w-[68px]`) and expanded (`w-[260px]`) sidebar widths and on mobile drawer.
+- **Placement**: behind the left sidebar in `DashboardLayout.tsx`, per the request.
 
-Cut the request volume, cache what we get, and make the tab survive rate limits gracefully.
+## Explicit non-goals
+- Not touching any other page, department, or route.
+- Not changing sidebar tokens in `index.css` — only adding the canvas layer + a legibility overlay in the sidebar markup.
+- Not adding the effect to the main content area or headers.
 
-### 1. Proxy: stop the variant storm (`supabase/functions/search-atlas-proxy/index.ts`)
-- Remember the **first successful parameter variant** per `(tool, site)` in an in-memory map so subsequent calls (including pagination pages 2+) skip straight to the winning shape.
-- On `RATE_LIMIT` / `Retry after Xs`: stop pagination immediately, return whatever pages succeeded plus a `rateLimited: true` flag and `retryAfterSeconds`. No more retries in that request.
-- Cap variant attempts at 3 (not 5+) and short-circuit on the first non-INTERNAL response.
-- Add a 24-hour response cache keyed by `(tool, normalized args)` in a new `search_atlas_cache` table (JSONB payload + `expires_at`). Serve cached data on rate-limit so the tab is never blank once it has loaded once.
-
-### 2. Hook: throttle client-side (`src/hooks/useSearchAtlas.ts`)
-- Increase `staleTime` on Backlinks queries to 30 min so tab re-mounts don't refetch.
-- When the proxy returns `rateLimited: true`, surface `retryAfterSeconds` to the UI instead of a generic error.
-
-### 3. Backlinks tab (`src/components/ai-seo/SearchAtlasBacklinksTab.tsx`)
-- Load the two detail tables **sequentially, not in parallel**, with a 1.5s gap so a fresh visit uses ~2 calls instead of ~10.
-- When `rateLimited` is true and cached data exists, render the cached rows with a small "Showing cached results — Search Atlas rate-limited, retry in Xs" banner.
-- Add a manual "Retry now" button that only enables after the retry-after countdown.
-
-### 4. Migration
-- New table `public.search_atlas_cache` (id, tool, args_hash, payload jsonb, fetched_at, expires_at) with GRANTs + RLS (service_role only; proxy reads/writes it).
-
-## Technical notes
-
-- Variant memoization lives in module scope in the edge function — survives warm invocations, cold-start rebuilds from cache table.
-- Cache lookup happens BEFORE the MCP call; on cache hit within TTL, return immediately (zero MCP requests). Backlinks data doesn't change hourly, so 24h is safe.
-- No changes to other AI SEO tabs in this plan — Backlinks first, then apply the same pattern tab by tab as you asked.
+## Notes / trade-offs to flag
+- The shader runs continuously (fbm with 10 octaves + swirl). On low-end laptops the sidebar will consume noticeable GPU. Reduced-motion guard mitigates this; if it still feels heavy after you see it, we can drop `FBM_OCTAVES` to 5–6 or pause the RAF when the tab is hidden (`document.visibilitychange`).
+- Sidebar text is currently `--sidebar-muted`/`--sidebar-foreground` on a solid dark background. Against the animated blues, some rows may lose contrast — the overlay tint above is the mitigation. If it's still borderline, I'll bump the overlay opacity in a follow-up.
