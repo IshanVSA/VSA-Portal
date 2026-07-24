@@ -377,7 +377,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
       )}>
         <WavyBackground className="absolute inset-0 -z-0 pointer-events-none" />
         <div className="absolute inset-0 -z-0 pointer-events-none bg-[hsl(var(--sidebar-background))]/88" />
-        <div className="relative z-10 flex flex-col h-full">
+        <div className="relative z-10 flex flex-col h-full text-white">
         {/* Logo */}
         <div className={cn("flex items-center h-16 border-b border-[hsl(var(--sidebar-border))]", collapsed ? "px-3 justify-center" : "px-5 gap-3")}>
           <div className="relative shrink-0">
