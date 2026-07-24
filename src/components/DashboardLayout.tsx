@@ -386,21 +386,21 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <h1 className="font-semibold text-sm tracking-tight flex items-center gap-1.5 whitespace-nowrap">
-                <span className="text-[hsl(var(--sidebar-primary))]">VSA</span>{" "}
-                <span className="text-[hsl(var(--sidebar-foreground))]/90">Vet Media</span>
+              <h1 className="font-semibold text-sm tracking-tight flex items-center gap-1.5 whitespace-nowrap text-white">
+                <span className="text-white">VSA</span>{" "}
+                <span className="text-white/90">Vet Media</span>
                 <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest rounded-md bg-[hsl(var(--sidebar-primary))]/15 text-[hsl(var(--sidebar-primary))] ring-1 ring-[hsl(var(--sidebar-primary))]/25 leading-none shrink-0">Beta</span>
               </h1>
-              <p className="text-[10px] text-[hsl(var(--sidebar-muted))] tracking-wide">
+              <p className="text-[10px] text-white/60 tracking-wide">
                 {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
               </p>
             </div>
           )}
           <button onClick={toggleCollapse} className="hidden lg:flex p-1.5 rounded-lg hover:bg-[hsl(var(--sidebar-accent))]/50 transition-colors duration-200 shrink-0" title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
-            {collapsed ? <PanelLeft className="h-4 w-4 text-[hsl(var(--sidebar-muted))]" /> : <PanelLeftClose className="h-4 w-4 text-[hsl(var(--sidebar-muted))]" />}
+            {collapsed ? <PanelLeft className="h-4 w-4 text-white/70" /> : <PanelLeftClose className="h-4 w-4 text-white/70" />}
           </button>
           <button className="lg:hidden p-1 rounded-lg hover:bg-[hsl(var(--sidebar-accent))]" onClick={() => setSidebarOpen(false)}>
-            <X className="h-4 w-4 text-[hsl(var(--sidebar-muted))]" />
+            <X className="h-4 w-4 text-white/70" />
           </button>
         </div>
 
