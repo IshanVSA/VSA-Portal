@@ -409,7 +409,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
           {sections.map((section, si) => (
             <div key={si}>
               {section.title && !collapsed && (
-                <p className="px-3 mb-2.5 text-[10px] font-semibold tracking-[0.15em] text-[hsl(var(--sidebar-muted))]/50 uppercase select-none">
+                <p className="px-3 mb-2.5 text-[10px] font-semibold tracking-[0.15em] text-white/50 uppercase select-none">
                   {section.title}
                 </p>
               )}
@@ -428,8 +428,8 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
                         "flex items-center rounded-lg font-medium transition-colors duration-200 group relative",
                         collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5 text-[13px]",
                         active
-                          ? "bg-[hsl(var(--sidebar-primary))]/12 text-[hsl(var(--sidebar-primary))]"
-                          : "text-[hsl(var(--sidebar-muted))] hover:text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]/30"
+                          ? "bg-[hsl(var(--sidebar-primary))]/12 text-white"
+                          : "text-white/80 hover:text-white hover:bg-[hsl(var(--sidebar-accent))]/30"
                       )}
                     >
                       {/* Active indicator bar */}
