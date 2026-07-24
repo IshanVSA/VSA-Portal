@@ -443,7 +443,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
                       <div className="relative shrink-0">
                         <item.icon strokeWidth={1.5} className={cn(
                           "h-[19px] w-[19px] transition-colors duration-200",
-                          active ? "text-[hsl(var(--sidebar-primary))]" : "group-hover:text-[hsl(var(--sidebar-foreground))]"
+                          active ? "text-white" : "text-white/70 group-hover:text-white"
                         )} />
                         {collapsed && (
                           <span
