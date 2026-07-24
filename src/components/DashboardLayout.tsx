@@ -370,11 +370,14 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 flex flex-col transition-[width,transform] duration-300 ease-out lg:h-screen",
+        "fixed inset-y-0 left-0 z-50 flex flex-col transition-[width,transform] duration-300 ease-out lg:h-screen overflow-hidden",
         "bg-[hsl(var(--sidebar-background))] text-[hsl(var(--sidebar-foreground))]",
         sidebarWidth,
         sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
+        <WavyBackground className="absolute inset-0 -z-0 pointer-events-none" />
+        <div className="absolute inset-0 -z-0 pointer-events-none bg-[hsl(var(--sidebar-background))]/72" />
+        <div className="relative z-10 flex flex-col h-full">
         {/* Logo */}
         <div className={cn("flex items-center h-16 border-b border-[hsl(var(--sidebar-border))]", collapsed ? "px-3 justify-center" : "px-5 gap-3")}>
           <div className="relative shrink-0">
