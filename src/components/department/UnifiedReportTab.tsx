@@ -15,7 +15,7 @@ import {
   getSafeTimeZone,
   getTrailingDateRangeForTimeZone,
 } from "@/lib/website-analytics";
-import { buildUnifiedReportHTML, printReportHTML, type UnifiedReportData } from "@/lib/unified-report-html";
+import { buildUnifiedReportHTML, downloadReportPDF, type UnifiedReportData } from "@/lib/unified-report-html";
 
 interface Props { clinicId: string; }
 
@@ -306,8 +306,9 @@ export function UnifiedReportTab({ clinicId }: Props) {
       };
 
       const html = await buildUnifiedReportHTML(data);
-      printReportHTML(html);
-      toast.success("Report ready. Use the print dialog to save as PDF.");
+      const filename = `${clinicName} Unified Report - ${dateStr}`;
+      await downloadReportPDF(html, filename);
+      toast.success("Report downloaded.");
     } catch (e: any) {
       console.error("Report generation failed", e);
       toast.error(e?.message || "Failed to generate report");

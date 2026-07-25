@@ -51,6 +51,7 @@
     "dompurify": "^3.4.2",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.42.2",
+    "html2pdf.js": "^0.14.0",
     "input-otp": "^1.4.2",
     "jspdf": "^4.2.0",
     "jspdf-autotable": "^5.0.7",

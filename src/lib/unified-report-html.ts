@@ -599,31 +599,63 @@ export async function buildUnifiedReportHTML(d: UnifiedReportData): Promise<stri
 }
 
 /**
- * Print the report from a blank window so the browser's default print header
- * shows "about:blank" instead of the app URL. Users can still uncheck
- * "Headers and footers" in the print dialog to remove it entirely.
+ * Print the report from a blank window (legacy path — kept for fallback).
  */
 export function printReportHTML(html: string): void {
   const win = window.open("", "_blank", "noopener,noreferrer,width=1024,height=768");
-  if (!win) {
-    // Popup blocked — fall back to hidden iframe
-    const iframe = document.createElement("iframe");
-    iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
-    document.body.appendChild(iframe);
-    const doc = iframe.contentDocument!;
-    doc.open(); doc.write(html); doc.close();
-    setTimeout(() => {
-      try { iframe.contentWindow?.focus(); iframe.contentWindow?.print(); }
-      finally { setTimeout(() => document.body.removeChild(iframe), 1500); }
-    }, 700);
-    return;
-  }
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
-  const trigger = () => {
-    try { win.focus(); win.print(); } catch { /* ignore */ }
-  };
-  // Wait for fonts + logo to lay out before printing
-  setTimeout(trigger, 900);
+  if (!win) return;
+  win.document.open(); win.document.write(html); win.document.close();
+  setTimeout(() => { try { win.focus(); win.print(); } catch { /* ignore */ } }, 900);
 }
+
+/**
+ * Render the report HTML into an off-screen iframe and download it as a
+ * multi-page A4 PDF using html2pdf.js. Bypasses the browser print dialog and
+ * saves with the given filename.
+ */
+export async function downloadReportPDF(html: string, filename: string): Promise<void> {
+  // @ts-ignore - no types
+  const html2pdf = (await import("html2pdf.js")).default;
+
+  const iframe = document.createElement("iframe");
+  iframe.style.cssText = "position:fixed;left:-10000px;top:0;width:794px;height:1123px;border:0;visibility:hidden;";
+  document.body.appendChild(iframe);
+  const doc = iframe.contentDocument!;
+  doc.open(); doc.write(html); doc.close();
+
+  // Wait for fonts/images to load
+  await new Promise<void>((resolve) => {
+    const w = iframe.contentWindow!;
+    const done = () => setTimeout(resolve, 400);
+    if (doc.readyState === "complete") {
+      // @ts-ignore
+      (doc as any).fonts?.ready?.then(done) ?? done();
+    } else {
+      w.addEventListener("load", () => {
+        // @ts-ignore
+        (doc as any).fonts?.ready?.then(done) ?? done();
+      });
+    }
+  });
+
+  const target = doc.body;
+  const safeName = filename.replace(/[\\/:*?"<>|]+/g, "-").trim();
+
+  try {
+    await html2pdf()
+      .from(target)
+      .set({
+        margin: 0,
+        filename: `${safeName}.pdf`,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff", windowWidth: 794 },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        // @ts-ignore - pagebreak is supported at runtime
+        pagebreak: { mode: ["css", "legacy"], before: ".pagebreak" },
+      } as any)
+      .save();
+  } finally {
+    document.body.removeChild(iframe);
+  }
+}
+
