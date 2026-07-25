@@ -252,14 +252,21 @@ export function drawShareBar(
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   let lx = x;
+  const rightEdge = x + w;
   segments.forEach((s) => {
     const pct = Math.round((s.value / total) * 1000) / 10;
     const txt = `${s.label}: ${s.value.toLocaleString()} (${pct}%)`;
+    const tw = doc.getTextWidth(txt);
+    // Wrap legend to next line if it would overflow
+    if (lx + 4.5 + tw > rightEdge) {
+      lx = x;
+      ly += 5;
+    }
     doc.setFillColor(...s.color);
     doc.rect(lx, ly - 2.5, 3, 3, "F");
     doc.setTextColor(...PDF_COLORS.medium);
     doc.text(txt, lx + 4.5, ly);
-    lx += doc.getTextWidth(txt) + 12;
+    lx += tw + 8;
   });
 
   return ly + 4;
