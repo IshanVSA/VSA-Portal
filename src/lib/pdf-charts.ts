@@ -72,8 +72,10 @@ export function drawBarChart(
   if (data.length === 0) return frame.y + frame.h + 4;
 
   const max = Math.max(...data.map((d) => d.value), 1);
-  const gap = 4;
-  const barW = Math.max(6, (frame.innerW - gap * (data.length - 1)) / data.length);
+  // Adaptive gap so bars always fit inside the frame regardless of count
+  const gap = data.length > 20 ? 1 : data.length > 12 ? 2 : 4;
+  const totalGap = gap * Math.max(0, data.length - 1);
+  const barW = Math.max(1.2, (frame.innerW - totalGap) / data.length);
   const baseY = frame.innerY + frame.innerH;
 
   // Y-axis line
