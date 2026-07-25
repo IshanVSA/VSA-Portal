@@ -5,6 +5,7 @@
 // Usage: buildUnifiedReportHTML(data) -> string; call printHTML(html).
 
 import { format } from "date-fns";
+import vsaLogoUrl from "@/assets/vsa-logo.jpg";
 
 // ─── types ─────────────────────────────────────────────────────────
 export interface KpiCmp { cur: number; prev: number; }
