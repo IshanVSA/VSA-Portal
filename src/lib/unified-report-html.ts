@@ -478,8 +478,11 @@ const BASE_CSS = `
 html{font-size:10px}
 body{font-family:'Inter',system-ui,-apple-system,sans-serif;color:#1E293B;font-size:10px;line-height:1.5;background:#fff;padding:24px;font-feature-settings:'tnum' 1}
 b{font-weight:600;color:#0F172A}
-.masthead{position:relative;overflow:hidden;background:linear-gradient(120deg,#0B1220 0%,#131C33 60%,#182240 100%);border-radius:16px;padding:26px 28px;display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
+.masthead{position:relative;overflow:hidden;background:linear-gradient(120deg,#0B1220 0%,#131C33 60%,#182240 100%);border-radius:16px;padding:26px 28px;display:flex;justify-content:space-between;align-items:center;gap:24px;margin-bottom:20px}
 .mh-glow{position:absolute;right:-70px;top:-90px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(96,165,250,.18) 0%,rgba(96,165,250,0) 70%)}
+.mh-left{position:relative;z-index:1;flex:1;min-width:0}
+.mh-right{position:relative;z-index:1;flex:0 0 auto;display:flex;align-items:center;justify-content:flex-end}
+.mh-logo{height:52px;width:auto;display:block;object-fit:contain}
 .mh-eyebrow{font-size:7.5px;font-weight:700;letter-spacing:2px;color:#94A3B8;margin-bottom:10px;display:flex;align-items:center}
 .mh-eyebrow .dot{width:5px;height:5px;border-radius:50%;display:inline-block;margin-right:3px}
 .mh-title{font-size:25px;font-weight:800;color:#fff;letter-spacing:-.5px;margin-bottom:4px}
