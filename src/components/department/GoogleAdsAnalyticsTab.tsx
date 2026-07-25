@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar } from "recharts";
+import { ChartFrame, chartAxisProps, chartGridProps, chartAnimationProps, gradientDef } from "@/components/ui/chart-primitives";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatsCard } from "@/components/StatsCard";
@@ -257,7 +258,8 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
       </div>
 
       {/* Clicks & Impressions Chart */}
-      <Card>
+      <ChartFrame>
+      <Card className="transition-shadow hover:shadow-md">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">Daily Clicks & Impressions</CardTitle>
         </CardHeader>
@@ -266,31 +268,27 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
             clicks: { label: "Clicks", color: "hsl(var(--primary))" },
             impressions: { label: "Impressions", color: "hsl(142, 71%, 45%)" },
           }} className="h-[260px] w-full">
-            <AreaChart data={computed.chartData}>
+            <AreaChart data={computed.chartData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
               <defs>
-                <linearGradient id="fillClicks" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="fillImpressions" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0} />
-                </linearGradient>
+                {gradientDef("fillClicks", "hsl(var(--primary))", 0.35)}
+                {gradientDef("fillImpressions", "hsl(142, 71%, 45%)", 0.3)}
               </defs>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-              <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" className="text-muted-foreground" />
-              <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Area type="monotone" dataKey="clicks" stroke="hsl(var(--primary))" fill="url(#fillClicks)" strokeWidth={2} />
-              <Area type="monotone" dataKey="impressions" stroke="hsl(142, 71%, 45%)" fill="url(#fillImpressions)" strokeWidth={2} />
+              <CartesianGrid {...chartGridProps} />
+              <XAxis dataKey="date" interval="preserveStartEnd" {...chartAxisProps} />
+              <YAxis {...chartAxisProps} />
+              <ChartTooltip cursor={{ stroke: "hsl(var(--primary) / 0.35)", strokeWidth: 1, strokeDasharray: "4 4" }} content={<ChartTooltipContent />} />
+              <Area type="monotone" dataKey="clicks" stroke="hsl(var(--primary))" fill="url(#fillClicks)" strokeWidth={2.25} dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: "hsl(var(--card))" }} {...chartAnimationProps} />
+              <Area type="monotone" dataKey="impressions" stroke="hsl(142, 71%, 45%)" fill="url(#fillImpressions)" strokeWidth={2.25} dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: "hsl(var(--card))" }} {...chartAnimationProps} />
             </AreaChart>
           </ChartContainer>
         </CardContent>
       </Card>
+      </ChartFrame>
 
       {/* Daily Spend Chart */}
       {showMoney && (
-        <Card>
+        <ChartFrame>
+        <Card className="transition-shadow hover:shadow-md">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <DollarSign className="h-4 w-4" /> Daily Ad Spend
@@ -298,16 +296,18 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
           </CardHeader>
           <CardContent>
             <ChartContainer config={{ cost: { label: "Spend ($)", color: "hsl(var(--primary))" } }} className="h-[200px] w-full">
-              <BarChart data={computed.chartData}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-                <XAxis dataKey="date" tick={{ fontSize: 10 }} interval="preserveStartEnd" className="text-muted-foreground" />
-                <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="cost" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
+              <BarChart data={computed.chartData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+                <defs>{gradientDef("spendBar", "hsl(var(--primary))", 0.95, 0.55)}</defs>
+                <CartesianGrid {...chartGridProps} />
+                <XAxis dataKey="date" interval="preserveStartEnd" {...chartAxisProps} tick={{ ...chartAxisProps.tick, fontSize: 10 }} />
+                <YAxis {...chartAxisProps} />
+                <ChartTooltip cursor={{ fill: "hsl(var(--muted) / 0.4)" }} content={<ChartTooltipContent />} />
+                <Bar dataKey="cost" fill="url(#spendBar)" radius={[6, 6, 2, 2]} {...chartAnimationProps} />
               </BarChart>
             </ChartContainer>
           </CardContent>
         </Card>
+        </ChartFrame>
       )}
 
       {/* Campaigns Table */}

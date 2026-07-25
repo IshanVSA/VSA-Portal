@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar } from "recharts";
+import { ChartFrame, chartAxisProps, chartGridProps, chartAnimationProps, gradientDef } from "@/components/ui/chart-primitives";
 import { Eye, Users, TrendingUp, FileText, Globe, Clock, Layers3, MapPin } from "lucide-react";
 import { StatsCard } from "@/components/StatsCard";
 import { Badge } from "@/components/ui/badge";
@@ -218,28 +219,26 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
         <StatsCard title="Avg. Session" value={formatDuration(current.avgDuration)} icon={Clock} index={3} />
       </div>
 
-      <Card>
+      <ChartFrame>
+      <Card className="transition-shadow hover:shadow-md">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">Daily Traffic ({selectedDays} Days)</CardTitle>
         </CardHeader>
         <CardContent>
           <ChartContainer config={{ views: { label: "Page Views", color: "hsl(var(--primary))" } }} className="h-[260px] w-full">
-            <AreaChart data={dailyTraffic}>
-              <defs>
-                <linearGradient id="fillViews" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-              <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" className="text-muted-foreground" />
-              <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Area type="monotone" dataKey="views" stroke="hsl(var(--primary))" fill="url(#fillViews)" strokeWidth={2} />
+            <AreaChart data={dailyTraffic} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+              <defs>{gradientDef("fillViews", "hsl(var(--primary))", 0.35)}</defs>
+              <CartesianGrid {...chartGridProps} />
+              <XAxis dataKey="date" interval="preserveStartEnd" {...chartAxisProps} />
+              <YAxis {...chartAxisProps} />
+              <ChartTooltip cursor={{ stroke: "hsl(var(--primary) / 0.35)", strokeWidth: 1, strokeDasharray: "4 4" }} content={<ChartTooltipContent />} />
+              <Area type="monotone" dataKey="views" stroke="hsl(var(--primary))" fill="url(#fillViews)" strokeWidth={2.25}
+                    dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: "hsl(var(--card))" }} {...chartAnimationProps} />
             </AreaChart>
           </ChartContainer>
         </CardContent>
       </Card>
+      </ChartFrame>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
@@ -302,22 +301,25 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
         </Card>
       </div>
 
-      <Card>
+      <ChartFrame>
+      <Card className="transition-shadow hover:shadow-md">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">Traffic by Hour ({timeZone})</CardTitle>
         </CardHeader>
         <CardContent>
           <ChartContainer config={{ views: { label: "Page Views", color: "hsl(var(--primary))" } }} className="h-[200px] w-full">
-            <BarChart data={hourlyData}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-              <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={2} className="text-muted-foreground" />
-              <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="views" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
+            <BarChart data={hourlyData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+              <defs>{gradientDef("hourBar", "hsl(var(--primary))", 0.95, 0.55)}</defs>
+              <CartesianGrid {...chartGridProps} />
+              <XAxis dataKey="label" interval={2} {...chartAxisProps} tick={{ ...chartAxisProps.tick, fontSize: 10 }} />
+              <YAxis {...chartAxisProps} />
+              <ChartTooltip cursor={{ fill: "hsl(var(--muted) / 0.4)" }} content={<ChartTooltipContent />} />
+              <Bar dataKey="views" fill="url(#hourBar)" radius={[6, 6, 2, 2]} {...chartAnimationProps} />
             </BarChart>
           </ChartContainer>
         </CardContent>
       </Card>
+      </ChartFrame>
 
       {geoTotal > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

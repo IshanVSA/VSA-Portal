@@ -24,7 +24,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
+import { XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart, CartesianGrid } from "recharts";
+import { ChartFrame, chartAxisProps, chartGridProps, chartTooltipStyle, chartTooltipCursor, chartAnimationProps } from "@/components/ui/chart-primitives";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { motion } from "framer-motion";
 import UpcomingPosts from "./UpcomingPosts";
@@ -847,31 +848,19 @@ export default function AdminDashboard() {
           </header>
           <div className="px-2 pt-4 pb-2">
             {trendData.length > 0 ? (
+              <ChartFrame>
               <ResponsiveContainer width="100%" height={200}>
                 <AreaChart data={trendData} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
                   <defs>
                     <linearGradient id="adminTrend" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.32} />
+                      <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
                       <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <XAxis
-                    dataKey="date"
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} width={28} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "0.75rem",
-                      fontSize: "12px",
-                      boxShadow: "var(--shadow-lg)",
-                    }}
-                  />
+                  <CartesianGrid {...chartGridProps} />
+                  <XAxis dataKey="date" {...chartAxisProps} />
+                  <YAxis width={28} {...chartAxisProps} />
+                  <Tooltip contentStyle={chartTooltipStyle} cursor={chartTooltipCursor} />
                   <Area
                     type="monotone"
                     dataKey="posts"
@@ -879,10 +868,12 @@ export default function AdminDashboard() {
                     strokeWidth={2.5}
                     fill="url(#adminTrend)"
                     dot={{ r: 3, fill: "hsl(var(--card))", stroke: "hsl(var(--primary))", strokeWidth: 2 }}
-                    activeDot={{ r: 5 }}
+                    activeDot={{ r: 6, strokeWidth: 2, stroke: "hsl(var(--card))" }}
+                    {...chartAnimationProps}
                   />
                 </AreaChart>
               </ResponsiveContainer>
+              </ChartFrame>
             ) : (
               <div className="py-12 text-center text-sm text-muted-foreground">No post data yet</div>
             )}
