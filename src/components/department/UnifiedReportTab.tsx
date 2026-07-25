@@ -691,6 +691,18 @@ export function UnifiedReportTab({ clinicId }: Props) {
           });
           y = (doc as any).lastAutoTable.finalY + 6;
 
+          y = drawBarChart(
+            doc, y,
+            [
+              { label: "Reach", value: fb.reach ?? 0 },
+              { label: "Engagement", value: fb.engagement ?? 0 },
+              { label: "Page Views", value: fb.page_views ?? 0 },
+              { label: "Video Views", value: fb.video_views ?? 0 },
+              { label: "New Fans", value: fb.fan_adds ?? 0 },
+            ],
+            { title: "Facebook · 28-Day Activity", color: PDF_COLORS.social, height: 55 },
+          );
+
           if (Array.isArray(fb.recent_posts) && fb.recent_posts.length > 0) {
             y = ensureSpace(doc, y, 40);
             doc.setFontSize(10); doc.setFont("helvetica", "bold");
