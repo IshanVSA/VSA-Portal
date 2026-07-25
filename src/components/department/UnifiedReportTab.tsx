@@ -111,14 +111,29 @@ export function UnifiedReportTab({ clinicId }: Props) {
   const [prevWebMetrics, setPrevWebMetrics] = useState<WebMetrics | null>(null);
 
   const { rows: seoRows } = useSeoAnalytics(clinicId);
-  const latestSeo = seoRows.length > 0 ? seoRows[seoRows.length - 1] : null;
-  const prevSeo = seoRows.length > 1 ? seoRows[seoRows.length - 2] : null;
 
   const [adsData, setAdsData] = useState<any>(null);
+  const [prevAdsData, setPrevAdsData] = useState<any>(null);
   const [socialData, setSocialData] = useState<any[]>([]);
 
   const range = useMemo(() => getDateRange(period, timeZone), [period, timeZone]);
   const prevRange = useMemo(() => getPrevRange(range), [range]);
+
+  // Filter SEO rows to selected period (month strings like "2026-07" or ISO).
+  const { latestSeo, prevSeo } = useMemo(() => {
+    const inRange = (seoRows || []).filter((r) => {
+      const d = new Date(r.month.length === 7 ? `${r.month}-01` : r.month);
+      return d >= range.from && d <= range.to;
+    });
+    const before = (seoRows || []).filter((r) => {
+      const d = new Date(r.month.length === 7 ? `${r.month}-01` : r.month);
+      return d < range.from;
+    });
+    return {
+      latestSeo: inRange.length > 0 ? inRange[inRange.length - 1] : null,
+      prevSeo: before.length > 0 ? before[before.length - 1] : null,
+    };
+  }, [seoRows, range]);
 
   useEffect(() => {
     if (!clinicId) {
@@ -152,6 +167,11 @@ export function UnifiedReportTab({ clinicId }: Props) {
       setLoading(true);
       const bufferedRange = getBufferedRange(range.from, range.to);
       const prevBufferedRange = getBufferedRange(prevRange.from, prevRange.to);
+      const fromISO = range.from.toISOString().slice(0, 10);
+      const toISO = range.to.toISOString().slice(0, 10);
+      const prevFromISO = prevRange.from.toISOString().slice(0, 10);
+      const prevToISO = prevRange.to.toISOString().slice(0, 10);
+
       const [pvData, prevPvData, { data: adsRow }, { data: socialRows }] = await Promise.all([
         fetchAllPageviews<{ session_id: string; path: string; created_at: string }>(supabase, {
           clinicId, from: bufferedRange.from, to: bufferedRange.to,
@@ -160,7 +180,7 @@ export function UnifiedReportTab({ clinicId }: Props) {
           clinicId, from: prevBufferedRange.from, to: prevBufferedRange.to,
         }),
         supabase.from("analytics").select("metrics_json").eq("clinic_id", clinicId).eq("platform", "google_ads").eq("metric_type", "monthly_summary").order("recorded_at", { ascending: false }).limit(1).maybeSingle(),
-        supabase.from("analytics").select("platform, metric_type, value, date").eq("clinic_id", clinicId).in("platform", ["facebook", "instagram"]).order("recorded_at", { ascending: false }).limit(20),
+        supabase.from("analytics").select("platform, metric_type, value, date").eq("clinic_id", clinicId).in("platform", ["facebook", "instagram"]).gte("date", fromISO).lte("date", toISO).order("date", { ascending: false }),
       ]);
       const currentMetrics = computeWebsiteMetrics(
         pvData,
@@ -175,7 +195,12 @@ export function UnifiedReportTab({ clinicId }: Props) {
 
       setWebMetrics(currentMetrics.totalViews > 0 ? calcWebMetrics(currentMetrics) : null);
       setPrevWebMetrics(previousMetrics.totalViews > 0 ? calcWebMetrics(previousMetrics) : null);
-      setAdsData(adsRow?.metrics_json || null);
+
+      // Aggregate Google Ads from daily_trends within the selected range.
+      const raw = adsRow?.metrics_json as any;
+      setAdsData(aggregateAdsForRange(raw, fromISO, toISO));
+      setPrevAdsData(aggregateAdsForRange(raw, prevFromISO, prevToISO));
+
       setSocialData(socialRows || []);
       setLoading(false);
     };
