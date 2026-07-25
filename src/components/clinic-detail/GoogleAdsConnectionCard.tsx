@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, RefreshCw, Loader2, Unlink, Clock, CalendarClock, Megaphone, Hash, KeyRound } from "lucide-react";
+import { CheckCircle2, RefreshCw, Loader2, Unlink, Clock, CalendarClock, Megaphone, Hash, KeyRound, ShieldCheck, UserCircle } from "lucide-react";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 import { formatDistanceToNow, addDays, setHours, setMinutes, setSeconds, isAfter } from "date-fns";
@@ -27,10 +27,21 @@ export function GoogleAdsConnectionCard({
   const [syncing, setSyncing] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [reusing, setReusing] = useState(false);
+  const [hasReusableConnection, setHasReusableConnection] = useState<boolean | null>(null);
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const origin = encodeURIComponent(window.location.origin);
   const oauthUrl = `${supabaseUrl}/functions/v1/google-oauth?action=authorize&clinic_id=${clinicId}&origin=${origin}`;
+
+  useEffect(() => {
+    supabase
+      .from("clinic_api_credentials")
+      .select("id", { count: "exact", head: true })
+      .not("google_ads_refresh_token", "is", null)
+      .then(({ count, error }) => {
+        setHasReusableConnection(!error && (count || 0) > 0);
+      });
+  }, []);
 
   const nextSync = useMemo(() => {
     const now = new Date();
@@ -73,7 +84,11 @@ export function GoogleAdsConnectionCard({
         }
       );
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Could not reuse saved connection");
+      if (!response.ok) {
+        throw new Error(
+          result.error || "Could not reuse saved connection. Try the full Google Ads connect flow instead."
+        );
+      }
       window.location.href = `/clinics/${clinicId}?google_token_ref=${result.token_ref}`;
     } catch (e: any) {
       toast.error(e.message || "Could not reuse saved Google Ads connection");
@@ -109,21 +124,41 @@ export function GoogleAdsConnectionCard({
   };
 
   if (!hasGoogleCreds) {
+    const showSavedPrimary = hasReusableConnection !== false;
     return (
       <IOSGroup header="Google Ads">
         <IOSRow icon={<Megaphone />} tone="yellow" label="Status" value="Not connected" />
-        <IOSRow
-          icon={reusing ? <Loader2 className="animate-spin" /> : <KeyRound />}
-          tone="green"
-          label="Use saved admin connection"
-          sublabel="Skip Google verification when admin@vsavetmedia.com is already connected"
-          onClick={reusing ? undefined : handleUseExisting}
-        />
-        <IOSRow
-          centered
-          label={<span className="text-primary font-medium">Connect Google Ads</span>}
-          onClick={() => { window.location.href = oauthUrl; }}
-        />
+        {showSavedPrimary ? (
+          <>
+            <IOSRow
+              icon={reusing ? <Loader2 className="animate-spin" /> : <ShieldCheck />}
+              tone="green"
+              label={<span className="font-semibold">Use saved admin connection</span>}
+              sublabel="No Google verification needed — admin@vsavetmedia.com is already connected"
+              onClick={reusing ? undefined : handleUseExisting}
+            />
+            <IOSRow
+              centered
+              label={<span className="text-muted-foreground text-sm">Connect with a different Google account</span>}
+              onClick={() => { window.location.href = oauthUrl; }}
+            />
+          </>
+        ) : (
+          <>
+            <IOSRow
+              icon={reusing ? <Loader2 className="animate-spin" /> : <UserCircle />}
+              tone="green"
+              label="Use saved admin connection"
+              sublabel="Looks for an existing admin connection to skip verification"
+              onClick={reusing ? undefined : handleUseExisting}
+            />
+            <IOSRow
+              centered
+              label={<span className="text-primary font-medium">Connect Google Ads</span>}
+              onClick={() => { window.location.href = oauthUrl; }}
+            />
+          </>
+        )}
       </IOSGroup>
     );
   }
