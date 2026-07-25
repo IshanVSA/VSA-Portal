@@ -231,7 +231,7 @@ export function UnifiedReportTab({ clinicId }: Props) {
     fetchAll();
   }, [clinicId, prevRange, range, timeZone, timezoneReady]);
 
-  const hasAnyData = webMetrics || latestSeo || adsData || socialData.length > 0;
+  const hasAnyData = webMetrics || hasSeo || adsData || socialData.length > 0;
 
   const generatePDF = useCallback(async () => {
     if (!hasAnyData) return;
