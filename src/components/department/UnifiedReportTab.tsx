@@ -23,6 +23,7 @@ import {
   getSafeTimeZone,
   getTrailingDateRangeForTimeZone,
 } from "@/lib/website-analytics";
+import { drawBarChart, drawLineChart, drawShareBar } from "@/lib/pdf-charts";
 
 interface Props {
   clinicId: string;
@@ -358,6 +359,15 @@ export function UnifiedReportTab({ clinicId }: Props) {
         });
         y = (doc as any).lastAutoTable.finalY + 6;
 
+        // Daily page views trend chart
+        if (webCur!.daily.length > 1) {
+          y = drawLineChart(
+            doc, y,
+            webCur!.daily.map((d) => ({ label: format(new Date(d.date_key), "MMM d"), value: d.views })),
+            { title: "Daily Page Views", color: PDF_COLORS.website, height: 55 },
+          );
+        }
+
         // Top pages
         if (webCur!.top_pages.length > 0) {
           y = ensureSpace(doc, y, 40);
@@ -413,19 +423,13 @@ export function UnifiedReportTab({ clinicId }: Props) {
           y = (doc as any).lastAutoTable.finalY + 6;
         }
 
-        // Hourly peak summary
+        // Hourly traffic distribution
         if (webCur!.hourly.length > 0) {
-          const peak = [...webCur!.hourly].sort((a, b) => b.views - a.views).slice(0, 5);
-          y = ensureSpace(doc, y, 30);
-          doc.setFontSize(10); doc.setFont("helvetica", "bold");
-          doc.setTextColor(...PDF_COLORS.website); doc.text(`Peak Traffic Hours (${timeZone})`, 21, y); y += 4;
-          autoTable(doc, {
-            startY: y,
-            head: [["Hour", "Page Views"]],
-            body: peak.map((h) => [`${String(h.hour).padStart(2, "0")}:00`, h.views.toLocaleString()]),
-            ...getTableStyles(PDF_COLORS.website),
-          });
-          y = (doc as any).lastAutoTable.finalY + 4;
+          y = drawBarChart(
+            doc, y,
+            webCur!.hourly.map((h) => ({ label: `${String(h.hour).padStart(2, "0")}h`, value: h.views })),
+            { title: `Traffic by Hour (${timeZone})`, color: PDF_COLORS.website, height: 50 },
+          );
         }
 
         y = renderAnalysis(doc, y, PDF_COLORS.website, webAI);
@@ -461,9 +465,11 @@ export function UnifiedReportTab({ clinicId }: Props) {
 
         // Channels (GA4)
         if ((ga4Traffic?.channels || []).length > 0) {
-          y = ensureSpace(doc, y, 40);
-          doc.setFontSize(10); doc.setFont("helvetica", "bold");
-          doc.setTextColor(...PDF_COLORS.seo); doc.text("Traffic Channels (GA4)", 21, y); y += 4;
+          y = drawBarChart(
+            doc, y,
+            ga4Traffic!.channels.slice(0, 8).map((c) => ({ label: c.channel, value: c.sessions })),
+            { title: "Sessions by Channel (GA4)", color: PDF_COLORS.seo, height: 55 },
+          );
           autoTable(doc, {
             startY: y,
             head: [["Channel", "Sessions", "Engaged", "Engagement Rate", "Avg. Time"]],
@@ -528,20 +534,14 @@ export function UnifiedReportTab({ clinicId }: Props) {
 
         const bnb = gsc?.brandVsNonBrand;
         if (bnb && (bnb.brand + bnb.nonBrand) > 0) {
-          const total = bnb.brand + bnb.nonBrand;
-          y = ensureSpace(doc, y, 25);
-          doc.setFontSize(10); doc.setFont("helvetica", "bold");
-          doc.setTextColor(...PDF_COLORS.seo); doc.text("Brand vs Non-Brand Clicks", 21, y); y += 4;
-          autoTable(doc, {
-            startY: y,
-            head: [["Segment", "Clicks", "Share"]],
-            body: [
-              ["Branded", bnb.brand.toLocaleString(), `${Math.round((bnb.brand / total) * 1000) / 10}%`],
-              ["Non-Branded", bnb.nonBrand.toLocaleString(), `${Math.round((bnb.nonBrand / total) * 1000) / 10}%`],
+          y = drawShareBar(
+            doc, y,
+            [
+              { label: "Branded", value: bnb.brand, color: PDF_COLORS.seo },
+              { label: "Non-Branded", value: bnb.nonBrand, color: PDF_COLORS.googleAds },
             ],
-            ...getTableStyles(PDF_COLORS.seo),
-          });
-          y = (doc as any).lastAutoTable.finalY + 6;
+            { title: "Brand vs Non-Brand Clicks" },
+          );
         }
 
         if ((gsc?.devices || []).length > 0) {
@@ -604,7 +604,27 @@ export function UnifiedReportTab({ clinicId }: Props) {
         });
         y = (doc as any).lastAutoTable.finalY + 6;
 
+        // Daily clicks & spend trend
+        if (adsAgg!.daily.length > 1) {
+          y = drawLineChart(
+            doc, y,
+            adsAgg!.daily.map((d) => ({ label: format(new Date(d.date), "MMM d"), value: d.clicks })),
+            { title: "Daily Clicks", color: PDF_COLORS.googleAds, height: 50 },
+          );
+          y = drawLineChart(
+            doc, y,
+            adsAgg!.daily.map((d) => ({ label: format(new Date(d.date), "MMM d"), value: d.cost })),
+            { title: "Daily Ad Spend", color: PDF_COLORS.googleAds, height: 50, valueFormatter: fmtCurrency },
+          );
+        }
+
         if (adsAgg!.campaigns.length > 0) {
+          const topCampaigns = [...adsAgg!.campaigns].sort((a: any, b: any) => (b.cost || 0) - (a.cost || 0)).slice(0, 8);
+          y = drawBarChart(
+            doc, y,
+            topCampaigns.map((c: any) => ({ label: c.name, value: +c.cost || 0 })),
+            { title: "Top Campaigns by Spend", color: PDF_COLORS.googleAds, height: 55, valueFormatter: fmtCurrency },
+          );
           y = ensureSpace(doc, y, 40);
           doc.setFontSize(10); doc.setFont("helvetica", "bold");
           doc.setTextColor(...PDF_COLORS.googleAds); doc.text("Campaign Performance", 21, y); y += 4;
@@ -671,6 +691,18 @@ export function UnifiedReportTab({ clinicId }: Props) {
           });
           y = (doc as any).lastAutoTable.finalY + 6;
 
+          y = drawBarChart(
+            doc, y,
+            [
+              { label: "Reach", value: fb.reach ?? 0 },
+              { label: "Engagement", value: fb.engagement ?? 0 },
+              { label: "Page Views", value: fb.page_views ?? 0 },
+              { label: "Video Views", value: fb.video_views ?? 0 },
+              { label: "New Fans", value: fb.fan_adds ?? 0 },
+            ],
+            { title: "Facebook · 28-Day Activity", color: PDF_COLORS.social, height: 55 },
+          );
+
           if (Array.isArray(fb.recent_posts) && fb.recent_posts.length > 0) {
             y = ensureSpace(doc, y, 40);
             doc.setFontSize(10); doc.setFont("helvetica", "bold");
@@ -712,6 +744,18 @@ export function UnifiedReportTab({ clinicId }: Props) {
             ...getTableStyles(PDF_COLORS.social),
           });
           y = (doc as any).lastAutoTable.finalY + 6;
+
+          y = drawBarChart(
+            doc, y,
+            [
+              { label: "Reach", value: ig.reach ?? 0 },
+              { label: "Interactions", value: ig.total_interactions ?? 0 },
+              { label: "Profile Views", value: ig.profile_views ?? 0 },
+              { label: "Website Clicks", value: ig.website_clicks ?? 0 },
+              { label: "Saves", value: ig.saves ?? 0 },
+            ],
+            { title: "Instagram · Engagement", color: PDF_COLORS.social, height: 55 },
+          );
 
           if (Array.isArray(ig.recent_media) && ig.recent_media.length > 0) {
             y = ensureSpace(doc, y, 40);
