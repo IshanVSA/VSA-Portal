@@ -15,6 +15,7 @@ const SearchCode = LineChart;
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import vsaLogo from "@/assets/vsa-logo.jpg";
+import userPlaceholder from "@/assets/user-placeholder.png";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { PageTransition } from "@/components/PageTransition";
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
