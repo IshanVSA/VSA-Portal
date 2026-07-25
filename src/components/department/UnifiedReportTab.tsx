@@ -9,7 +9,8 @@ import {
   BarChart3, Eye, Users, TrendingDown, Clock, TrendingUp,
   Link2, Hash, DollarSign, MousePointerClick, Target, Percent,
 } from "lucide-react";
-import { useSeoAnalytics, type SeoKeyword } from "@/hooks/useSeoAnalytics";
+import { useGa4Compare } from "@/hooks/useGa4Compare";
+import { useSearchConsole } from "@/hooks/useSearchConsole";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import {
@@ -140,8 +141,6 @@ export function UnifiedReportTab({ clinicId }: Props) {
   const [webMetrics, setWebMetrics] = useState<WebMetrics | null>(null);
   const [prevWebMetrics, setPrevWebMetrics] = useState<WebMetrics | null>(null);
 
-  const { rows: seoRows } = useSeoAnalytics(clinicId);
-
   const [adsData, setAdsData] = useState<any>(null);
   const [prevAdsData, setPrevAdsData] = useState<any>(null);
   const [socialData, setSocialData] = useState<any[]>([]);
@@ -149,21 +148,16 @@ export function UnifiedReportTab({ clinicId }: Props) {
   const range = useMemo(() => getDateRange(period, timeZone), [period, timeZone]);
   const prevRange = useMemo(() => getPrevRange(range), [range]);
 
-  // Filter SEO rows to selected period (month strings like "2026-07" or ISO).
-  const { latestSeo, prevSeo } = useMemo(() => {
-    const inRange = (seoRows || []).filter((r) => {
-      const d = new Date(r.month.length === 7 ? `${r.month}-01` : r.month);
-      return d >= range.from && d <= range.to;
-    });
-    const before = (seoRows || []).filter((r) => {
-      const d = new Date(r.month.length === 7 ? `${r.month}-01` : r.month);
-      return d < range.from;
-    });
-    return {
-      latestSeo: inRange.length > 0 ? inRange[inRange.length - 1] : null,
-      prevSeo: before.length > 0 ? before[before.length - 1] : null,
-    };
-  }, [seoRows, range]);
+  // SEO data — pulled from the SEO Traffic tab sources (GA4 + Search Console).
+  const { data: ga4Cmp } = useGa4Compare(clinicId, range, "prev");
+  const { data: gsc } = useSearchConsole(clinicId, range, clinicName);
+  const { data: prevGsc } = useSearchConsole(clinicId, prevRange, clinicName);
+  const seoConnected = !!(gsc?.isConnected || ga4Cmp?.isConnected);
+  const hasSeo = seoConnected && (
+    (gsc?.totals?.clicks ?? 0) > 0 ||
+    (gsc?.totals?.impressions ?? 0) > 0 ||
+    (ga4Cmp?.current?.sessions ?? 0) > 0
+  );
 
   useEffect(() => {
     if (!clinicId) {
@@ -237,7 +231,7 @@ export function UnifiedReportTab({ clinicId }: Props) {
     fetchAll();
   }, [clinicId, prevRange, range, timeZone, timezoneReady]);
 
-  const hasAnyData = webMetrics || latestSeo || adsData || socialData.length > 0;
+  const hasAnyData = webMetrics || hasSeo || adsData || socialData.length > 0;
 
   const generatePDF = useCallback(async () => {
     if (!hasAnyData) return;
@@ -276,47 +270,58 @@ export function UnifiedReportTab({ clinicId }: Props) {
         y += 10;
       }
 
-      // ──────── 2. SEO ────────
+      // ──────── 2. SEO (from SEO Traffic tab: GA4 + Search Console) ────────
       y = ensureSpace(doc, y + 8, 60);
-      y = renderSectionHeader(doc, "SEO Performance", y, PDF_COLORS.seo, latestSeo ? `Month: ${latestSeo.month}` : undefined);
+      y = renderSectionHeader(doc, "SEO Performance", y, PDF_COLORS.seo);
 
-      if (latestSeo) {
+      if (hasSeo) {
+        const gscCur = gsc?.totals ?? { impressions: 0, clicks: 0, ctr: 0, avgPosition: 0 };
+        const gscPrev = prevGsc?.totals ?? { impressions: 0, clicks: 0, ctr: 0, avgPosition: 0 };
+        const orgCur = ga4Cmp?.current?.sessions ?? 0;
+        const orgPrev = ga4Cmp?.previous?.sessions ?? 0;
+
         autoTable(doc, {
           startY: y,
           head: [["Metric", "Current", "Previous", "Change"]],
           body: [
-            ["Domain Authority", latestSeo.domain_authority.toString(), prevSeo?.domain_authority?.toString() || "—", prevSeo ? pctText(latestSeo.domain_authority, prevSeo.domain_authority) : "—"],
-            ["Backlinks", latestSeo.backlinks.toLocaleString(), prevSeo?.backlinks?.toLocaleString() || "—", prevSeo ? pctText(latestSeo.backlinks, prevSeo.backlinks) : "—"],
-            ["Keywords Top 10", latestSeo.keywords_top_10.toString(), prevSeo?.keywords_top_10?.toString() || "—", prevSeo ? pctText(latestSeo.keywords_top_10, prevSeo.keywords_top_10) : "—"],
-            ["Organic Traffic", latestSeo.organic_traffic.toLocaleString(), prevSeo?.organic_traffic?.toLocaleString() || "—", prevSeo ? pctText(latestSeo.organic_traffic, prevSeo.organic_traffic) : "—"],
+            ["Organic Sessions", orgCur.toLocaleString(), orgPrev.toLocaleString(), pctText(orgCur, orgPrev)],
+            ["Search Clicks", gscCur.clicks.toLocaleString(), gscPrev.clicks.toLocaleString(), pctText(gscCur.clicks, gscPrev.clicks)],
+            ["Impressions", gscCur.impressions.toLocaleString(), gscPrev.impressions.toLocaleString(), pctText(gscCur.impressions, gscPrev.impressions)],
+            ["CTR", `${(gscCur.ctr * 100).toFixed(2)}%`, `${(gscPrev.ctr * 100).toFixed(2)}%`, "—"],
+            ["Avg. Position", gscCur.avgPosition > 0 ? gscCur.avgPosition.toFixed(1) : "—", gscPrev.avgPosition > 0 ? gscPrev.avgPosition.toFixed(1) : "—", "—"],
           ],
           ...getTableStyles(PDF_COLORS.seo),
           didParseCell: (data: any) => colorChangeCell(data, 3),
         });
         y = (doc as any).lastAutoTable?.finalY || y + 40;
 
-        const kws: SeoKeyword[] = latestSeo.top_keywords || [];
-        if (kws.length > 0) {
+        const queries = gsc?.topQueries || [];
+        if (queries.length > 0) {
           y = ensureSpace(doc, y + 6, 50);
           doc.setFontSize(10);
           doc.setFont("helvetica", "bold");
           doc.setTextColor(...PDF_COLORS.seo);
-          doc.text("Top Keywords", 21, y);
+          doc.text("Top Queries", 21, y);
           y += 4;
           autoTable(doc, {
             startY: y,
-            head: [["#", "Keyword", "Position", "Change"]],
-            body: kws.map((kw, i) => [(i + 1).toString(), kw.keyword, kw.position.toString(), kw.change]),
+            head: [["#", "Query", "Clicks", "Impr.", "Pos."]],
+            body: queries.slice(0, 10).map((q, i) => [
+              (i + 1).toString(),
+              q.query,
+              q.clicks.toLocaleString(),
+              q.impressions.toLocaleString(),
+              q.position.toFixed(1),
+            ]),
             ...getTableStyles(PDF_COLORS.seo),
             columnStyles: { 0: { cellWidth: 12 }, 1: { cellWidth: 90 } },
-            didParseCell: (data: any) => colorChangeCell(data, 3),
           });
           y = (doc as any).lastAutoTable?.finalY || y + 30;
         }
       } else {
         doc.setFontSize(9);
         doc.setTextColor(...PDF_COLORS.light);
-        doc.text("No SEO data available.", 21, y + 2);
+        doc.text("No SEO data available. Connect Google Analytics and Search Console in the SEO department.", 21, y + 2);
         y += 10;
       }
 
@@ -413,7 +418,7 @@ export function UnifiedReportTab({ clinicId }: Props) {
     } finally {
       setGenerating(false);
     }
-  }, [hasAnyData, webMetrics, prevWebMetrics, latestSeo, prevSeo, adsData, prevAdsData, socialData, clinicName, range]);
+  }, [hasAnyData, webMetrics, prevWebMetrics, hasSeo, gsc, prevGsc, ga4Cmp, adsData, prevAdsData, socialData, clinicName, range]);
 
   if (!clinicId) {
     return <p className="text-muted-foreground text-sm text-center py-12">Select a clinic to generate a unified report.</p>;
@@ -463,7 +468,7 @@ export function UnifiedReportTab({ clinicId }: Props) {
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <DeptStatus icon={Globe} label="Website" available={!!webMetrics} summary={webMetrics ? `${webMetrics.totalViews} views, ${webMetrics.totalSessions} visitors` : undefined} color="text-orange-500" />
-              <DeptStatus icon={Search} label="SEO" available={!!latestSeo} summary={latestSeo ? `DA ${latestSeo.domain_authority}, ${latestSeo.organic_traffic} organic` : undefined} color="text-teal-500" />
+              <DeptStatus icon={Search} label="SEO" available={hasSeo} summary={hasSeo ? `${(gsc?.totals?.clicks ?? 0).toLocaleString()} clicks, ${(ga4Cmp?.current?.sessions ?? 0).toLocaleString()} organic sessions` : undefined} color="text-teal-500" />
               <DeptStatus icon={Megaphone} label="Google Ads" available={!!adsData} summary={adsData ? `${fmtCurrency(adsData.cost || 0)} spend, ${(adsData.clicks || 0).toLocaleString()} clicks` : undefined} color="text-blue-500" />
               <DeptStatus icon={Share2} label="Social Media" available={socialData.length > 0} summary={socialData.length > 0 ? `${socialData.length} data points` : undefined} color="text-purple-500" />
             </div>
