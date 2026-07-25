@@ -201,10 +201,12 @@ export function drawLineChart(
     ? [0, Math.floor(data.length / 2), data.length - 1]
     : data.map((_, i) => i);
   for (const i of marks) {
-    const label = data[i].label;
-    const lx = frame.innerX + i * stepX;
+    const label = data[i].label ?? "";
     const lw = doc.getTextWidth(label);
-    doc.text(label, lx - lw / 2, baseY + 5);
+    let lx = frame.innerX + i * stepX - lw / 2;
+    if (lx < frame.innerX - 2) lx = frame.innerX - 2;
+    if (lx + lw > frame.innerX + frame.innerW) lx = frame.innerX + frame.innerW - lw;
+    doc.text(label, lx, baseY + 5);
   }
 
   return frame.y + frame.h + 4;
