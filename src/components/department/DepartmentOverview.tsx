@@ -10,6 +10,7 @@ import { getTicketTypeLabel } from "@/lib/ticket-display-labels";
 import { getQuickActionMeta } from "@/lib/quick-actions";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { ChartFrame, chartAxisProps, chartGridProps, chartTooltipStyle, chartAnimationProps } from "@/components/ui/chart-primitives";
 
 interface KPI {
   label: string;
