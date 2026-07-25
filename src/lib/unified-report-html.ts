@@ -617,33 +617,50 @@ export async function downloadReportPDF(html: string, filename: string): Promise
   // @ts-ignore - no types
   const html2pdf = (await import("html2pdf.js")).default;
 
-  const iframe = document.createElement("iframe");
-  iframe.style.cssText = "position:fixed;left:-10000px;top:0;width:794px;height:1123px;border:0;visibility:hidden;";
-  document.body.appendChild(iframe);
-  const doc = iframe.contentDocument!;
-  doc.open(); doc.write(html); doc.close();
+  // Parse the generated HTML and inject its <style> + <body> content into a
+  // hidden container inside the *current* document. html2canvas reads computed
+  // styles from the document that hosts the element — using an iframe caused
+  // the styles to not resolve, producing an unstyled PDF.
+  const parser = new DOMParser();
+  const parsed = parser.parseFromString(html, "text/html");
+  const styleEl = parsed.querySelector("style");
+  const bodyHTML = parsed.body.innerHTML;
 
-  // Wait for fonts/images to load
-  await new Promise<void>((resolve) => {
-    const w = iframe.contentWindow!;
-    const done = () => setTimeout(resolve, 400);
-    if (doc.readyState === "complete") {
-      // @ts-ignore
-      (doc as any).fonts?.ready?.then(done) ?? done();
-    } else {
-      w.addEventListener("load", () => {
-        // @ts-ignore
-        (doc as any).fonts?.ready?.then(done) ?? done();
-      });
-    }
-  });
+  const container = document.createElement("div");
+  container.style.cssText =
+    "position:fixed;left:-10000px;top:0;width:794px;background:#fff;z-index:-1;";
+  container.innerHTML = bodyHTML;
 
-  const target = doc.body;
+  if (styleEl) {
+    const scopedStyle = document.createElement("style");
+    scopedStyle.textContent = styleEl.textContent || "";
+    container.prepend(scopedStyle);
+  }
+
+  document.body.appendChild(container);
+
+  const imgs = Array.from(container.querySelectorAll("img"));
+  await Promise.all(
+    imgs.map(
+      (img) =>
+        new Promise<void>((resolve) => {
+          if (img.complete && img.naturalWidth > 0) return resolve();
+          img.addEventListener("load", () => resolve(), { once: true });
+          img.addEventListener("error", () => resolve(), { once: true });
+        }),
+    ),
+  );
+  try {
+    // @ts-ignore
+    await (document as any).fonts?.ready;
+  } catch { /* ignore */ }
+  await new Promise((r) => setTimeout(r, 250));
+
   const safeName = filename.replace(/[\\/:*?"<>|]+/g, "-").trim();
 
   try {
     await html2pdf()
-      .from(target)
+      .from(container)
       .set({
         margin: 0,
         filename: `${safeName}.pdf`,
@@ -655,7 +672,7 @@ export async function downloadReportPDF(html: string, filename: string): Promise
       } as any)
       .save();
   } finally {
-    document.body.removeChild(iframe);
+    document.body.removeChild(container);
   }
 }
 
