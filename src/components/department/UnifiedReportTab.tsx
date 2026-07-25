@@ -534,20 +534,14 @@ export function UnifiedReportTab({ clinicId }: Props) {
 
         const bnb = gsc?.brandVsNonBrand;
         if (bnb && (bnb.brand + bnb.nonBrand) > 0) {
-          const total = bnb.brand + bnb.nonBrand;
-          y = ensureSpace(doc, y, 25);
-          doc.setFontSize(10); doc.setFont("helvetica", "bold");
-          doc.setTextColor(...PDF_COLORS.seo); doc.text("Brand vs Non-Brand Clicks", 21, y); y += 4;
-          autoTable(doc, {
-            startY: y,
-            head: [["Segment", "Clicks", "Share"]],
-            body: [
-              ["Branded", bnb.brand.toLocaleString(), `${Math.round((bnb.brand / total) * 1000) / 10}%`],
-              ["Non-Branded", bnb.nonBrand.toLocaleString(), `${Math.round((bnb.nonBrand / total) * 1000) / 10}%`],
+          y = drawShareBar(
+            doc, y,
+            [
+              { label: "Branded", value: bnb.brand, color: PDF_COLORS.seo },
+              { label: "Non-Branded", value: bnb.nonBrand, color: PDF_COLORS.googleAds },
             ],
-            ...getTableStyles(PDF_COLORS.seo),
-          });
-          y = (doc as any).lastAutoTable.finalY + 6;
+            { title: "Brand vs Non-Brand Clicks" },
+          );
         }
 
         if ((gsc?.devices || []).length > 0) {
