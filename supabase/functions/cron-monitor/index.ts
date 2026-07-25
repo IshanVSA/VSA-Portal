@@ -57,22 +57,22 @@ async function getCronHealthMap(): Promise<Record<string, { last_run_at: string 
 const JOBS: JobDef[] = [
   {
     id: "pagespeed-daily-scan", label: "PageSpeed Daily Scan",
-    schedule: "Daily 06:00 UTC", fn: "pagespeed-cron", graceMinutes: 180,
+    schedule: "Daily 06:00 UTC", fn: "pagespeed-cron", expectedIntervalMinutes: 1440,
     signal: async () => ({ last_at: await maxOf("pagespeed_scores", "recorded_at"), failures_24h: 0, total_24h: 0 }),
   },
   {
     id: "google-ads-daily-sync", label: "Google Ads Daily Sync",
-    schedule: "Daily 07:00 UTC", fn: "google-ads-cron", graceMinutes: 180,
+    schedule: "Daily 07:00 UTC", fn: "google-ads-cron", expectedIntervalMinutes: 1440,
     signal: async () => ({ last_at: await maxOf("clinic_api_credentials", "last_google_sync_at"), failures_24h: 0, total_24h: 0 }),
   },
   {
     id: "meta-analytics-daily-sync", label: "Meta Analytics Daily Sync",
-    schedule: "Daily 07:30 UTC", fn: "meta-analytics-cron", graceMinutes: 180,
+    schedule: "Daily 07:30 UTC", fn: "meta-analytics-cron", expectedIntervalMinutes: 1440,
     signal: async () => ({ last_at: await maxOf("clinic_api_credentials", "last_meta_sync_at"), failures_24h: 0, total_24h: 0 }),
   },
   {
     id: "blog-worker-every-3min", label: "Blog Worker",
-    schedule: "Every 3 min", fn: "blog-worker", graceMinutes: 30,
+    schedule: "Every 3 min", fn: "blog-worker", expectedIntervalMinutes: 3,
     signal: async () => {
       // Pure cron-tick monitor: blog_posts.last_attempt_at only updates when there's work.
       // The actual cron fires every 3 min regardless — use cron history (filled in below).
@@ -81,46 +81,39 @@ const JOBS: JobDef[] = [
   },
   {
     id: "sm2-worker-tick", label: "SM2 Worker",
-    schedule: "Every minute", fn: "sm2-worker", graceMinutes: 15,
+    schedule: "Every minute", fn: "sm2-worker", expectedIntervalMinutes: 1,
     signal: async () => ({ last_at: null, failures_24h: 0, total_24h: 0 }),
   },
   {
     id: "gbp-monthly-batch-queue", label: "GBP Monthly Batch Queue",
-    schedule: "1st of month 05:00 UTC", fn: "gbp-publish-cron", graceMinutes: 60 * 24 * 2,
+    schedule: "1st of month 05:00 UTC", fn: "gbp-publish-cron", expectedIntervalMinutes: 60 * 24 * 31,
     signal: async () => ({ last_at: await maxOf("gbp_batches", "created_at"), failures_24h: 0, total_24h: 0 }),
   },
   {
     id: "auto-approve-posts-hourly", label: "Auto Approve Posts",
-    schedule: "Hourly", fn: "auto-approve-posts", graceMinutes: 75,
+    schedule: "Hourly", fn: "auto-approve-posts", expectedIntervalMinutes: 60,
     signal: async () => ({ last_at: null, failures_24h: 0, total_24h: 0 }),
   },
   {
     id: "ticket-automation-hourly", label: "Ticket Automation",
-    schedule: "Hourly", fn: "ticket-automation", graceMinutes: 75,
+    schedule: "Hourly", fn: "ticket-automation", expectedIntervalMinutes: 60,
     signal: async () => ({ last_at: null, failures_24h: 0, total_24h: 0 }),
   },
 ];
 
-const SCHEDULE_INTERVAL_MIN: Record<string, number> = {
-  "pagespeed-daily-scan": 1440,
-  "google-ads-daily-sync": 1440,
-  "meta-analytics-daily-sync": 1440,
-  "blog-worker-every-3min": 3,
-  "sm2-worker-tick": 1,
-  "gbp-monthly-batch-queue": 60 * 24 * 31,
-  "auto-approve-posts-hourly": 60,
-  "ticket-automation-hourly": 60,
-};
-
 type Health = "healthy" | "stale" | "critical" | "unknown";
 
+// Health is a function of each job's own cadence:
+//   healthy  : last_run age < 3× expected interval
+//   stale    : 3× ≤ age < 6× expected interval  (or any failures in last 24h)
+//   critical : age ≥ 6× expected interval, OR every run in the window failed
 function computeHealth(job: JobDef, signal: { last_at: string | null; failures_24h: number; total_24h: number }): Health {
   if (signal.failures_24h > 0 && (signal.total_24h === 0 || signal.failures_24h >= signal.total_24h)) return "critical";
   if (!signal.last_at) return "unknown";
   const ageMin = (Date.now() - new Date(signal.last_at).getTime()) / 60000;
-  const interval = SCHEDULE_INTERVAL_MIN[job.id] ?? 60;
-  if (ageMin > interval + job.graceMinutes) return "critical";
-  if (ageMin > interval) return "stale";
+  const interval = job.expectedIntervalMinutes;
+  if (ageMin >= interval * 6) return "critical";
+  if (ageMin >= interval * 3) return "stale";
   if (signal.failures_24h > 0) return "stale";
   return "healthy";
 }
