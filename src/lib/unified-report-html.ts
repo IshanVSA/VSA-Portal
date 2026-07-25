@@ -626,16 +626,22 @@ export async function downloadReportPDF(html: string, filename: string): Promise
   const styleEl = parsed.querySelector("style");
   const bodyHTML = parsed.body.innerHTML;
 
+  const previousOverflow = document.body.style.overflow;
+
   const overlay = document.createElement("div");
   overlay.style.cssText =
     "position:fixed;inset:0;background:hsl(var(--background, 0 0% 100%));z-index:2147483647;display:flex;align-items:center;justify-content:center;color:hsl(var(--foreground, 222.2 84% 4.9%));font:500 14px system-ui,-apple-system,sans-serif;";
   overlay.textContent = "Preparing PDF…";
 
+  const stage = document.createElement("div");
+  stage.style.cssText =
+    "position:absolute;top:0;left:0;width:794px;background:#fff;z-index:2147483646;overflow:visible;";
+
   const container = document.createElement("div");
   container.className = "pdf-render-root";
   container.setAttribute("aria-hidden", "true");
   container.style.cssText =
-    "position:fixed;top:0;left:0;width:794px;min-height:1123px;background:#fff;pointer-events:none;z-index:2147483646;";
+    "display:block;width:794px;min-height:1123px;background:#fff;";
   container.innerHTML = bodyHTML;
 
   if (styleEl) {
@@ -644,7 +650,9 @@ export async function downloadReportPDF(html: string, filename: string): Promise
     container.prepend(scopedStyle);
   }
 
-  document.body.appendChild(container);
+  stage.appendChild(container);
+  document.body.style.overflow = "hidden";
+  document.body.appendChild(stage);
   document.body.appendChild(overlay);
 
   const imgs = Array.from(container.querySelectorAll("img"));
@@ -681,7 +689,8 @@ export async function downloadReportPDF(html: string, filename: string): Promise
       } as any)
       .save();
   } finally {
-    if (container.parentNode) document.body.removeChild(container);
+    document.body.style.overflow = previousOverflow;
+    if (stage.parentNode) document.body.removeChild(stage);
     if (overlay.parentNode) document.body.removeChild(overlay);
   }
 }
