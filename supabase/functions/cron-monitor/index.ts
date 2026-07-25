@@ -11,11 +11,11 @@ const corsHeaders = {
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 interface JobDef {
-  id: string;            // cron jobname
+  id: string;                       // cron jobname
   label: string;
-  schedule: string;      // human description
-  fn: string | null;     // edge function to invoke for manual run
-  graceMinutes: number;  // how long after expected run before "stale"
+  schedule: string;                 // human description
+  fn: string | null;                // edge function to invoke for manual run
+  expectedIntervalMinutes: number;  // how often this job is expected to run
   signal: () => Promise<{ last_at: string | null; failures_24h: number; total_24h: number; failure_sample?: string | null }>;
 }
 
