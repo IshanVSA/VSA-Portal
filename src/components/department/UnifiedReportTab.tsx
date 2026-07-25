@@ -270,47 +270,58 @@ export function UnifiedReportTab({ clinicId }: Props) {
         y += 10;
       }
 
-      // ──────── 2. SEO ────────
+      // ──────── 2. SEO (from SEO Traffic tab: GA4 + Search Console) ────────
       y = ensureSpace(doc, y + 8, 60);
-      y = renderSectionHeader(doc, "SEO Performance", y, PDF_COLORS.seo, latestSeo ? `Month: ${latestSeo.month}` : undefined);
+      y = renderSectionHeader(doc, "SEO Performance", y, PDF_COLORS.seo);
 
-      if (latestSeo) {
+      if (hasSeo) {
+        const gscCur = gsc?.totals ?? { impressions: 0, clicks: 0, ctr: 0, avgPosition: 0 };
+        const gscPrev = prevGsc?.totals ?? { impressions: 0, clicks: 0, ctr: 0, avgPosition: 0 };
+        const orgCur = ga4Cmp?.current?.sessions ?? 0;
+        const orgPrev = ga4Cmp?.previous?.sessions ?? 0;
+
         autoTable(doc, {
           startY: y,
           head: [["Metric", "Current", "Previous", "Change"]],
           body: [
-            ["Domain Authority", latestSeo.domain_authority.toString(), prevSeo?.domain_authority?.toString() || "—", prevSeo ? pctText(latestSeo.domain_authority, prevSeo.domain_authority) : "—"],
-            ["Backlinks", latestSeo.backlinks.toLocaleString(), prevSeo?.backlinks?.toLocaleString() || "—", prevSeo ? pctText(latestSeo.backlinks, prevSeo.backlinks) : "—"],
-            ["Keywords Top 10", latestSeo.keywords_top_10.toString(), prevSeo?.keywords_top_10?.toString() || "—", prevSeo ? pctText(latestSeo.keywords_top_10, prevSeo.keywords_top_10) : "—"],
-            ["Organic Traffic", latestSeo.organic_traffic.toLocaleString(), prevSeo?.organic_traffic?.toLocaleString() || "—", prevSeo ? pctText(latestSeo.organic_traffic, prevSeo.organic_traffic) : "—"],
+            ["Organic Sessions", orgCur.toLocaleString(), orgPrev.toLocaleString(), pctText(orgCur, orgPrev)],
+            ["Search Clicks", gscCur.clicks.toLocaleString(), gscPrev.clicks.toLocaleString(), pctText(gscCur.clicks, gscPrev.clicks)],
+            ["Impressions", gscCur.impressions.toLocaleString(), gscPrev.impressions.toLocaleString(), pctText(gscCur.impressions, gscPrev.impressions)],
+            ["CTR", `${(gscCur.ctr * 100).toFixed(2)}%`, `${(gscPrev.ctr * 100).toFixed(2)}%`, "—"],
+            ["Avg. Position", gscCur.avgPosition > 0 ? gscCur.avgPosition.toFixed(1) : "—", gscPrev.avgPosition > 0 ? gscPrev.avgPosition.toFixed(1) : "—", "—"],
           ],
           ...getTableStyles(PDF_COLORS.seo),
           didParseCell: (data: any) => colorChangeCell(data, 3),
         });
         y = (doc as any).lastAutoTable?.finalY || y + 40;
 
-        const kws: SeoKeyword[] = latestSeo.top_keywords || [];
-        if (kws.length > 0) {
+        const queries = gsc?.topQueries || [];
+        if (queries.length > 0) {
           y = ensureSpace(doc, y + 6, 50);
           doc.setFontSize(10);
           doc.setFont("helvetica", "bold");
           doc.setTextColor(...PDF_COLORS.seo);
-          doc.text("Top Keywords", 21, y);
+          doc.text("Top Queries", 21, y);
           y += 4;
           autoTable(doc, {
             startY: y,
-            head: [["#", "Keyword", "Position", "Change"]],
-            body: kws.map((kw, i) => [(i + 1).toString(), kw.keyword, kw.position.toString(), kw.change]),
+            head: [["#", "Query", "Clicks", "Impr.", "Pos."]],
+            body: queries.slice(0, 10).map((q, i) => [
+              (i + 1).toString(),
+              q.query,
+              q.clicks.toLocaleString(),
+              q.impressions.toLocaleString(),
+              q.position.toFixed(1),
+            ]),
             ...getTableStyles(PDF_COLORS.seo),
             columnStyles: { 0: { cellWidth: 12 }, 1: { cellWidth: 90 } },
-            didParseCell: (data: any) => colorChangeCell(data, 3),
           });
           y = (doc as any).lastAutoTable?.finalY || y + 30;
         }
       } else {
         doc.setFontSize(9);
         doc.setTextColor(...PDF_COLORS.light);
-        doc.text("No SEO data available.", 21, y + 2);
+        doc.text("No SEO data available. Connect Google Analytics and Search Console in the SEO department.", 21, y + 2);
         y += 10;
       }
 
