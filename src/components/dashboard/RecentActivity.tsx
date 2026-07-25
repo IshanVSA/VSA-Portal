@@ -304,7 +304,14 @@ export default function RecentActivity({ filter }: { filter?: DashboardFilter } 
       });
 
       // ---- Content posts (lifecycle) ----
+      // Skip per-post client approval spam — the SM2 calendar entry already
+      // surfaces a single "Calendar approved" event for the whole batch.
+      const SKIP_POST_STAGES = new Set([
+        "client_approved", "approved", "final_approved", "sent_to_client",
+      ]);
       (postsRes.data || []).forEach((p: any) => {
+        const stage = String(p.workflow_stage || p.status || "").toLowerCase();
+        if (SKIP_POST_STAGES.has(stage)) return;
         const clinicName = clinicOf(p.clinic_id) || "a clinic";
         const author = nameOf(p.created_by);
         activities.push({
