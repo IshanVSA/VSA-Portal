@@ -23,6 +23,7 @@ import {
   getSafeTimeZone,
   getTrailingDateRangeForTimeZone,
 } from "@/lib/website-analytics";
+import { drawBarChart, drawLineChart, drawShareBar } from "@/lib/pdf-charts";
 
 interface Props {
   clinicId: string;
