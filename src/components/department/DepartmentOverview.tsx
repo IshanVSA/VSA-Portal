@@ -191,17 +191,23 @@ export function DepartmentOverview({
                 {trafficLabel}
               </h3>
             </div>
-            <div className="rounded-2xl bg-card border border-border/40 shadow-sm p-4 h-[calc(100%-1.5rem)]">
+            <ChartFrame className="rounded-2xl bg-card border border-border/40 shadow-sm p-4 h-[calc(100%-1.5rem)] transition-shadow hover:shadow-md">
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={trafficData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                  <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} allowDecimals={false} />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey="value" fill={accentColor} radius={[6, 6, 0, 0]} />
+                  <defs>
+                    <linearGradient id={`deptBar-${department}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={accentColor} stopOpacity={0.95} />
+                      <stop offset="100%" stopColor={accentColor} stopOpacity={0.55} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid {...chartGridProps} />
+                  <XAxis dataKey="label" {...chartAxisProps} />
+                  <YAxis allowDecimals={false} {...chartAxisProps} />
+                  <Tooltip contentStyle={chartTooltipStyle} cursor={{ fill: "hsl(var(--muted) / 0.4)" }} />
+                  <Bar dataKey="value" fill={`url(#deptBar-${department})`} radius={[8, 8, 2, 2]} {...chartAnimationProps} />
                 </BarChart>
               </ResponsiveContainer>
-            </div>
+            </ChartFrame>
           </motion.div>
         )}
 
