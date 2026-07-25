@@ -745,6 +745,18 @@ export function UnifiedReportTab({ clinicId }: Props) {
           });
           y = (doc as any).lastAutoTable.finalY + 6;
 
+          y = drawBarChart(
+            doc, y,
+            [
+              { label: "Reach", value: ig.reach ?? 0 },
+              { label: "Interactions", value: ig.total_interactions ?? 0 },
+              { label: "Profile Views", value: ig.profile_views ?? 0 },
+              { label: "Website Clicks", value: ig.website_clicks ?? 0 },
+              { label: "Saves", value: ig.saves ?? 0 },
+            ],
+            { title: "Instagram · Engagement", color: PDF_COLORS.social, height: 55 },
+          );
+
           if (Array.isArray(ig.recent_media) && ig.recent_media.length > 0) {
             y = ensureSpace(doc, y, 40);
             doc.setFontSize(10); doc.setFont("helvetica", "bold");
