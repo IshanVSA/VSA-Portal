@@ -120,21 +120,41 @@ export function GoogleAdsConnectionCard({
   };
 
   if (!hasGoogleCreds) {
+    const showSavedPrimary = hasReusableConnection !== false;
     return (
       <IOSGroup header="Google Ads">
         <IOSRow icon={<Megaphone />} tone="yellow" label="Status" value="Not connected" />
-        <IOSRow
-          icon={reusing ? <Loader2 className="animate-spin" /> : <KeyRound />}
-          tone="green"
-          label="Use saved admin connection"
-          sublabel="Skip Google verification when admin@vsavetmedia.com is already connected"
-          onClick={reusing ? undefined : handleUseExisting}
-        />
-        <IOSRow
-          centered
-          label={<span className="text-primary font-medium">Connect Google Ads</span>}
-          onClick={() => { window.location.href = oauthUrl; }}
-        />
+        {showSavedPrimary ? (
+          <>
+            <IOSRow
+              icon={reusing ? <Loader2 className="animate-spin" /> : <ShieldCheck />}
+              tone="green"
+              label={<span className="font-semibold">Use saved admin connection</span>}
+              sublabel="No Google verification needed — admin@vsavetmedia.com is already connected"
+              onClick={reusing ? undefined : handleUseExisting}
+            />
+            <IOSRow
+              centered
+              label={<span className="text-muted-foreground text-sm">Connect with a different Google account</span>}
+              onClick={() => { window.location.href = oauthUrl; }}
+            />
+          </>
+        ) : (
+          <>
+            <IOSRow
+              icon={reusing ? <Loader2 className="animate-spin" /> : <UserCircle />}
+              tone="green"
+              label="Use saved admin connection"
+              sublabel="Looks for an existing admin connection to skip verification"
+              onClick={reusing ? undefined : handleUseExisting}
+            />
+            <IOSRow
+              centered
+              label={<span className="text-primary font-medium">Connect Google Ads</span>}
+              onClick={() => { window.location.href = oauthUrl; }}
+            />
+          </>
+        )}
       </IOSGroup>
     );
   }
