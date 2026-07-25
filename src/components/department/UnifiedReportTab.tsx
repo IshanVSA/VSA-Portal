@@ -141,8 +141,6 @@ export function UnifiedReportTab({ clinicId }: Props) {
   const [webMetrics, setWebMetrics] = useState<WebMetrics | null>(null);
   const [prevWebMetrics, setPrevWebMetrics] = useState<WebMetrics | null>(null);
 
-  const { rows: seoRows } = useSeoAnalytics(clinicId);
-
   const [adsData, setAdsData] = useState<any>(null);
   const [prevAdsData, setPrevAdsData] = useState<any>(null);
   const [socialData, setSocialData] = useState<any[]>([]);
@@ -150,21 +148,16 @@ export function UnifiedReportTab({ clinicId }: Props) {
   const range = useMemo(() => getDateRange(period, timeZone), [period, timeZone]);
   const prevRange = useMemo(() => getPrevRange(range), [range]);
 
-  // Filter SEO rows to selected period (month strings like "2026-07" or ISO).
-  const { latestSeo, prevSeo } = useMemo(() => {
-    const inRange = (seoRows || []).filter((r) => {
-      const d = new Date(r.month.length === 7 ? `${r.month}-01` : r.month);
-      return d >= range.from && d <= range.to;
-    });
-    const before = (seoRows || []).filter((r) => {
-      const d = new Date(r.month.length === 7 ? `${r.month}-01` : r.month);
-      return d < range.from;
-    });
-    return {
-      latestSeo: inRange.length > 0 ? inRange[inRange.length - 1] : null,
-      prevSeo: before.length > 0 ? before[before.length - 1] : null,
-    };
-  }, [seoRows, range]);
+  // SEO data — pulled from the SEO Traffic tab sources (GA4 + Search Console).
+  const { data: ga4Cmp } = useGa4Compare(clinicId, range, "prev");
+  const { data: gsc } = useSearchConsole(clinicId, range, clinicName);
+  const { data: prevGsc } = useSearchConsole(clinicId, prevRange, clinicName);
+  const seoConnected = !!(gsc?.isConnected || ga4Cmp?.isConnected);
+  const hasSeo = seoConnected && (
+    (gsc?.totals?.clicks ?? 0) > 0 ||
+    (gsc?.totals?.impressions ?? 0) > 0 ||
+    (ga4Cmp?.current?.sessions ?? 0) > 0
+  );
 
   useEffect(() => {
     if (!clinicId) {
