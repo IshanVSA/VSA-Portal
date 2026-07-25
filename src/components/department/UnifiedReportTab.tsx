@@ -99,6 +99,36 @@ function calcWebMetrics(metrics: WebsiteMetrics): WebMetrics {
   };
 }
 
+interface AdsAggregate {
+  cost: number;
+  clicks: number;
+  impressions: number;
+  conversions: number;
+  campaigns: any[];
+  daysCovered: number;
+}
+
+function aggregateAdsForRange(raw: any, fromISO: string, toISO: string): AdsAggregate | null {
+  if (!raw) return null;
+  const trends: any[] = Array.isArray(raw.daily_trends) ? raw.daily_trends : [];
+  const inRange = trends.filter((t) => typeof t.date === "string" && t.date >= fromISO && t.date <= toISO);
+  if (inRange.length === 0) return null;
+  const agg = inRange.reduce(
+    (acc, t) => ({
+      cost: acc.cost + (Number(t.cost) || 0),
+      clicks: acc.clicks + (Number(t.clicks) || 0),
+      impressions: acc.impressions + (Number(t.impressions) || 0),
+      conversions: acc.conversions + (Number(t.conversions) || 0),
+    }),
+    { cost: 0, clicks: 0, impressions: 0, conversions: 0 },
+  );
+  return {
+    ...agg,
+    campaigns: Array.isArray(raw.campaigns) ? raw.campaigns : [],
+    daysCovered: inRange.length,
+  };
+}
+
 export function UnifiedReportTab({ clinicId }: Props) {
   const [period, setPeriod] = useState<ReportPeriod>("last30");
   const [loading, setLoading] = useState(true);
