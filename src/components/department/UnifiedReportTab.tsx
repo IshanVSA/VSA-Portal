@@ -99,6 +99,36 @@ function calcWebMetrics(metrics: WebsiteMetrics): WebMetrics {
   };
 }
 
+interface AdsAggregate {
+  cost: number;
+  clicks: number;
+  impressions: number;
+  conversions: number;
+  campaigns: any[];
+  daysCovered: number;
+}
+
+function aggregateAdsForRange(raw: any, fromISO: string, toISO: string): AdsAggregate | null {
+  if (!raw) return null;
+  const trends: any[] = Array.isArray(raw.daily_trends) ? raw.daily_trends : [];
+  const inRange = trends.filter((t) => typeof t.date === "string" && t.date >= fromISO && t.date <= toISO);
+  if (inRange.length === 0) return null;
+  const agg = inRange.reduce(
+    (acc, t) => ({
+      cost: acc.cost + (Number(t.cost) || 0),
+      clicks: acc.clicks + (Number(t.clicks) || 0),
+      impressions: acc.impressions + (Number(t.impressions) || 0),
+      conversions: acc.conversions + (Number(t.conversions) || 0),
+    }),
+    { cost: 0, clicks: 0, impressions: 0, conversions: 0 },
+  );
+  return {
+    ...agg,
+    campaigns: Array.isArray(raw.campaigns) ? raw.campaigns : [],
+    daysCovered: inRange.length,
+  };
+}
+
 export function UnifiedReportTab({ clinicId }: Props) {
   const [period, setPeriod] = useState<ReportPeriod>("last30");
   const [loading, setLoading] = useState(true);
@@ -111,14 +141,29 @@ export function UnifiedReportTab({ clinicId }: Props) {
   const [prevWebMetrics, setPrevWebMetrics] = useState<WebMetrics | null>(null);
 
   const { rows: seoRows } = useSeoAnalytics(clinicId);
-  const latestSeo = seoRows.length > 0 ? seoRows[seoRows.length - 1] : null;
-  const prevSeo = seoRows.length > 1 ? seoRows[seoRows.length - 2] : null;
 
   const [adsData, setAdsData] = useState<any>(null);
+  const [prevAdsData, setPrevAdsData] = useState<any>(null);
   const [socialData, setSocialData] = useState<any[]>([]);
 
   const range = useMemo(() => getDateRange(period, timeZone), [period, timeZone]);
   const prevRange = useMemo(() => getPrevRange(range), [range]);
+
+  // Filter SEO rows to selected period (month strings like "2026-07" or ISO).
+  const { latestSeo, prevSeo } = useMemo(() => {
+    const inRange = (seoRows || []).filter((r) => {
+      const d = new Date(r.month.length === 7 ? `${r.month}-01` : r.month);
+      return d >= range.from && d <= range.to;
+    });
+    const before = (seoRows || []).filter((r) => {
+      const d = new Date(r.month.length === 7 ? `${r.month}-01` : r.month);
+      return d < range.from;
+    });
+    return {
+      latestSeo: inRange.length > 0 ? inRange[inRange.length - 1] : null,
+      prevSeo: before.length > 0 ? before[before.length - 1] : null,
+    };
+  }, [seoRows, range]);
 
   useEffect(() => {
     if (!clinicId) {
@@ -152,6 +197,11 @@ export function UnifiedReportTab({ clinicId }: Props) {
       setLoading(true);
       const bufferedRange = getBufferedRange(range.from, range.to);
       const prevBufferedRange = getBufferedRange(prevRange.from, prevRange.to);
+      const fromISO = range.from.toISOString().slice(0, 10);
+      const toISO = range.to.toISOString().slice(0, 10);
+      const prevFromISO = prevRange.from.toISOString().slice(0, 10);
+      const prevToISO = prevRange.to.toISOString().slice(0, 10);
+
       const [pvData, prevPvData, { data: adsRow }, { data: socialRows }] = await Promise.all([
         fetchAllPageviews<{ session_id: string; path: string; created_at: string }>(supabase, {
           clinicId, from: bufferedRange.from, to: bufferedRange.to,
@@ -160,7 +210,7 @@ export function UnifiedReportTab({ clinicId }: Props) {
           clinicId, from: prevBufferedRange.from, to: prevBufferedRange.to,
         }),
         supabase.from("analytics").select("metrics_json").eq("clinic_id", clinicId).eq("platform", "google_ads").eq("metric_type", "monthly_summary").order("recorded_at", { ascending: false }).limit(1).maybeSingle(),
-        supabase.from("analytics").select("platform, metric_type, value, date").eq("clinic_id", clinicId).in("platform", ["facebook", "instagram"]).order("recorded_at", { ascending: false }).limit(20),
+        supabase.from("analytics").select("platform, metric_type, value, date").eq("clinic_id", clinicId).in("platform", ["facebook", "instagram"]).gte("date", fromISO).lte("date", toISO).order("date", { ascending: false }),
       ]);
       const currentMetrics = computeWebsiteMetrics(
         pvData,
@@ -175,7 +225,12 @@ export function UnifiedReportTab({ clinicId }: Props) {
 
       setWebMetrics(currentMetrics.totalViews > 0 ? calcWebMetrics(currentMetrics) : null);
       setPrevWebMetrics(previousMetrics.totalViews > 0 ? calcWebMetrics(previousMetrics) : null);
-      setAdsData(adsRow?.metrics_json || null);
+
+      // Aggregate Google Ads from daily_trends within the selected range.
+      const raw = adsRow?.metrics_json as any;
+      setAdsData(aggregateAdsForRange(raw, fromISO, toISO));
+      setPrevAdsData(aggregateAdsForRange(raw, prevFromISO, prevToISO));
+
       setSocialData(socialRows || []);
       setLoading(false);
     };
@@ -278,19 +333,22 @@ export function UnifiedReportTab({ clinicId }: Props) {
         const ctr = impressions > 0 ? `${(Math.round((clicks / impressions) * 10000) / 100)}%` : "0%";
         const cpc = clicks > 0 ? fmtCurrency(Math.round((cost / clicks) * 100) / 100) : "$0.00";
 
+        const pm = prevAdsData || { cost: 0, clicks: 0, impressions: 0, conversions: 0 };
+        const prevCtr = pm.impressions > 0 ? `${(Math.round((pm.clicks / pm.impressions) * 10000) / 100)}%` : "0%";
+        const prevCpc = pm.clicks > 0 ? fmtCurrency(Math.round((pm.cost / pm.clicks) * 100) / 100) : "$0.00";
         autoTable(doc, {
           startY: y,
-          head: [["Metric", "Value"]],
+          head: [["Metric", "Current", "Previous", "Change"]],
           body: [
-            ["Ad Spend", fmtCurrency(cost)],
-            ["Clicks", clicks.toLocaleString()],
-            ["Impressions", impressions.toLocaleString()],
-            ["Conversions", Math.round(conversions).toLocaleString()],
-            ["CTR", ctr],
-            ["Avg. CPC", cpc],
+            ["Ad Spend", fmtCurrency(cost), fmtCurrency(pm.cost), pctText(cost, pm.cost)],
+            ["Clicks", clicks.toLocaleString(), pm.clicks.toLocaleString(), pctText(clicks, pm.clicks)],
+            ["Impressions", impressions.toLocaleString(), pm.impressions.toLocaleString(), pctText(impressions, pm.impressions)],
+            ["Conversions", Math.round(conversions).toLocaleString(), Math.round(pm.conversions).toLocaleString(), pctText(conversions, pm.conversions)],
+            ["CTR", ctr, prevCtr, "—"],
+            ["Avg. CPC", cpc, prevCpc, "—"],
           ],
           ...getTableStyles(PDF_COLORS.googleAds),
-          columnStyles: { 1: { fontStyle: "bold" as const } },
+          didParseCell: (data: any) => colorChangeCell(data, 3),
         });
         y = (doc as any).lastAutoTable?.finalY || y + 40;
 
@@ -355,7 +413,7 @@ export function UnifiedReportTab({ clinicId }: Props) {
     } finally {
       setGenerating(false);
     }
-  }, [hasAnyData, webMetrics, prevWebMetrics, latestSeo, prevSeo, adsData, socialData, clinicName, range]);
+  }, [hasAnyData, webMetrics, prevWebMetrics, latestSeo, prevSeo, adsData, prevAdsData, socialData, clinicName, range]);
 
   if (!clinicId) {
     return <p className="text-muted-foreground text-sm text-center py-12">Select a clinic to generate a unified report.</p>;
