@@ -476,7 +476,7 @@ function socialSection(d: UnifiedReportData["social"]): string {
 const BASE_CSS = `
 *{margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 html{font-size:10px}
-body{font-family:'Inter',system-ui,-apple-system,sans-serif;color:#1E293B;font-size:10px;line-height:1.5;background:#fff;padding:24px;font-feature-settings:'tnum' 1}
+body,.pdf-render-root{font-family:'Inter',system-ui,-apple-system,sans-serif;color:#1E293B;font-size:10px;line-height:1.5;background:#fff;padding:24px;font-feature-settings:'tnum' 1}
 b{font-weight:600;color:#0F172A}
 .masthead{position:relative;overflow:hidden;background:linear-gradient(120deg,#0B1220 0%,#131C33 60%,#182240 100%);border-radius:16px;padding:26px 28px;display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
 .mh-glow{position:absolute;right:-70px;top:-90px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(96,165,250,.18) 0%,rgba(96,165,250,0) 70%)}
@@ -626,9 +626,16 @@ export async function downloadReportPDF(html: string, filename: string): Promise
   const styleEl = parsed.querySelector("style");
   const bodyHTML = parsed.body.innerHTML;
 
+  const overlay = document.createElement("div");
+  overlay.style.cssText =
+    "position:fixed;inset:0;background:hsl(var(--background, 0 0% 100%));z-index:2147483647;display:flex;align-items:center;justify-content:center;color:hsl(var(--foreground, 222.2 84% 4.9%));font:500 14px system-ui,-apple-system,sans-serif;";
+  overlay.textContent = "Preparing PDF…";
+
   const container = document.createElement("div");
+  container.className = "pdf-render-root";
+  container.setAttribute("aria-hidden", "true");
   container.style.cssText =
-    "position:fixed;top:0;left:0;width:794px;background:#fff;opacity:0;pointer-events:none;z-index:2147483647;";
+    "position:fixed;top:0;left:0;width:794px;min-height:1123px;background:#fff;pointer-events:none;z-index:2147483646;";
   container.innerHTML = bodyHTML;
 
   if (styleEl) {
@@ -638,6 +645,7 @@ export async function downloadReportPDF(html: string, filename: string): Promise
   }
 
   document.body.appendChild(container);
+  document.body.appendChild(overlay);
 
   const imgs = Array.from(container.querySelectorAll("img"));
   await Promise.all(
@@ -654,6 +662,7 @@ export async function downloadReportPDF(html: string, filename: string): Promise
     // @ts-ignore
     await (document as any).fonts?.ready;
   } catch { /* ignore */ }
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
   await new Promise((r) => setTimeout(r, 250));
 
   const safeName = filename.replace(/[\\/:*?"<>|]+/g, "-").trim();
@@ -672,7 +681,8 @@ export async function downloadReportPDF(html: string, filename: string): Promise
       } as any)
       .save();
   } finally {
-    document.body.removeChild(container);
+    if (container.parentNode) document.body.removeChild(container);
+    if (overlay.parentNode) document.body.removeChild(overlay);
   }
 }
 
