@@ -465,9 +465,11 @@ export function UnifiedReportTab({ clinicId }: Props) {
 
         // Channels (GA4)
         if ((ga4Traffic?.channels || []).length > 0) {
-          y = ensureSpace(doc, y, 40);
-          doc.setFontSize(10); doc.setFont("helvetica", "bold");
-          doc.setTextColor(...PDF_COLORS.seo); doc.text("Traffic Channels (GA4)", 21, y); y += 4;
+          y = drawBarChart(
+            doc, y,
+            ga4Traffic!.channels.slice(0, 8).map((c) => ({ label: c.channel, value: c.sessions })),
+            { title: "Sessions by Channel (GA4)", color: PDF_COLORS.seo, height: 55 },
+          );
           autoTable(doc, {
             startY: y,
             head: [["Channel", "Sessions", "Engaged", "Engagement Rate", "Avg. Time"]],
