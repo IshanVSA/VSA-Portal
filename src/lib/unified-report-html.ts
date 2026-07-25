@@ -650,8 +650,9 @@ export async function downloadReportPDF(html: string, filename: string): Promise
         image: { type: "jpeg", quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff", windowWidth: 794 },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        // @ts-ignore - pagebreak is supported at runtime
         pagebreak: { mode: ["css", "legacy"], before: ".pagebreak" },
-      })
+      } as any)
       .save();
   } finally {
     document.body.removeChild(iframe);
