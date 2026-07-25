@@ -359,6 +359,15 @@ export function UnifiedReportTab({ clinicId }: Props) {
         });
         y = (doc as any).lastAutoTable.finalY + 6;
 
+        // Daily page views trend chart
+        if (webCur!.daily.length > 1) {
+          y = drawLineChart(
+            doc, y,
+            webCur!.daily.map((d) => ({ label: format(new Date(d.date_key), "MMM d"), value: d.views })),
+            { title: "Daily Page Views", color: PDF_COLORS.website, height: 55 },
+          );
+        }
+
         // Top pages
         if (webCur!.top_pages.length > 0) {
           y = ensureSpace(doc, y, 40);
