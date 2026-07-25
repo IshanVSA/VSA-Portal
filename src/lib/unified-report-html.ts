@@ -5,6 +5,7 @@
 // Usage: buildUnifiedReportHTML(data) -> string; call printHTML(html).
 
 import { format } from "date-fns";
+import vsaLogoUrl from "@/assets/vsa-logo.jpg";
 
 // ─── types ─────────────────────────────────────────────────────────
 export interface KpiCmp { cur: number; prev: number; }
@@ -477,8 +478,11 @@ const BASE_CSS = `
 html{font-size:10px}
 body{font-family:'Inter',system-ui,-apple-system,sans-serif;color:#1E293B;font-size:10px;line-height:1.5;background:#fff;padding:24px;font-feature-settings:'tnum' 1}
 b{font-weight:600;color:#0F172A}
-.masthead{position:relative;overflow:hidden;background:linear-gradient(120deg,#0B1220 0%,#131C33 60%,#182240 100%);border-radius:16px;padding:26px 28px;display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
+.masthead{position:relative;overflow:hidden;background:linear-gradient(120deg,#0B1220 0%,#131C33 60%,#182240 100%);border-radius:16px;padding:26px 28px;display:flex;justify-content:space-between;align-items:center;gap:24px;margin-bottom:20px}
 .mh-glow{position:absolute;right:-70px;top:-90px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(96,165,250,.18) 0%,rgba(96,165,250,0) 70%)}
+.mh-left{position:relative;z-index:1;flex:1;min-width:0}
+.mh-right{position:relative;z-index:1;flex:0 0 auto;display:flex;align-items:center;justify-content:flex-end}
+.mh-logo{height:52px;width:auto;display:block;object-fit:contain}
 .mh-eyebrow{font-size:7.5px;font-weight:700;letter-spacing:2px;color:#94A3B8;margin-bottom:10px;display:flex;align-items:center}
 .mh-eyebrow .dot{width:5px;height:5px;border-radius:50%;display:inline-block;margin-right:3px}
 .mh-title{font-size:25px;font-weight:800;color:#fff;letter-spacing:-.5px;margin-bottom:4px}
@@ -545,7 +549,23 @@ b{font-weight:600;color:#0F172A}
 @media print{body{padding:0}}
 `;
 
-export function buildUnifiedReportHTML(d: UnifiedReportData): string {
+let cachedLogoDataUrl: string | null = null;
+async function loadLogoDataUrl(): Promise<string | null> {
+  if (cachedLogoDataUrl) return cachedLogoDataUrl;
+  try {
+    const res = await fetch(vsaLogoUrl);
+    const blob = await res.blob();
+    return await new Promise((resolve) => {
+      const fr = new FileReader();
+      fr.onloadend = () => { cachedLogoDataUrl = fr.result as string; resolve(cachedLogoDataUrl); };
+      fr.onerror = () => resolve(null);
+      fr.readAsDataURL(blob);
+    });
+  } catch { return null; }
+}
+
+export async function buildUnifiedReportHTML(d: UnifiedReportData): Promise<string> {
+  const logoDataUrl = await loadLogoDataUrl();
   const sections: string[] = [];
   sections.push(`<div class="masthead">
     <div class="mh-glow"></div>
@@ -561,6 +581,7 @@ export function buildUnifiedReportHTML(d: UnifiedReportData): string {
       <div class="mh-client">${esc(d.clinicName)}</div>
       <div class="mh-period">${esc(d.periodLabel)}</div>
     </div>
+    ${logoDataUrl ? `<div class="mh-right"><img class="mh-logo" src="${logoDataUrl}" alt="VSA Vet Media" /></div>` : ""}
   </div>`);
 
   if (d.website) sections.push(websiteSection(d.website, d.timezone));
@@ -577,26 +598,32 @@ export function buildUnifiedReportHTML(d: UnifiedReportData): string {
   </head><body>${sections.join("")}</body></html>`;
 }
 
+/**
+ * Print the report from a blank window so the browser's default print header
+ * shows "about:blank" instead of the app URL. Users can still uncheck
+ * "Headers and footers" in the print dialog to remove it entirely.
+ */
 export function printReportHTML(html: string): void {
-  const iframe = document.createElement("iframe");
-  iframe.style.position = "fixed";
-  iframe.style.right = "0";
-  iframe.style.bottom = "0";
-  iframe.style.width = "0";
-  iframe.style.height = "0";
-  iframe.style.border = "0";
-  document.body.appendChild(iframe);
-  const doc = iframe.contentDocument!;
-  doc.open(); doc.write(html); doc.close();
-
+  const win = window.open("", "_blank", "noopener,noreferrer,width=1024,height=768");
+  if (!win) {
+    // Popup blocked — fall back to hidden iframe
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument!;
+    doc.open(); doc.write(html); doc.close();
+    setTimeout(() => {
+      try { iframe.contentWindow?.focus(); iframe.contentWindow?.print(); }
+      finally { setTimeout(() => document.body.removeChild(iframe), 1500); }
+    }, 700);
+    return;
+  }
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
   const trigger = () => {
-    try {
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
-    } finally {
-      setTimeout(() => document.body.removeChild(iframe), 1500);
-    }
+    try { win.focus(); win.print(); } catch { /* ignore */ }
   };
-  // Give fonts + SVG a beat to layout
-  setTimeout(trigger, 700);
+  // Wait for fonts + logo to lay out before printing
+  setTimeout(trigger, 900);
 }
