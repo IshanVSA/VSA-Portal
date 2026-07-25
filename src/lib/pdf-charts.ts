@@ -92,19 +92,28 @@ export function drawBarChart(
   doc.text(fmt(max), frame.x + 4, frame.innerY + 2);
   doc.text("0", frame.x + 4, baseY + 1);
 
+  // Skip labels when bars are too narrow to avoid overlap/overflow
+  const labelStride = barW < 4 ? Math.ceil(4 / Math.max(barW, 0.5)) : 1;
   data.forEach((d, i) => {
     const h = (d.value / max) * frame.innerH;
     const bx = frame.innerX + i * (barW + gap);
     const by = baseY - h;
     doc.setFillColor(...opts.color);
-    doc.roundedRect(bx, by, barW, Math.max(0.5, h), 1, 1, "F");
+    doc.roundedRect(bx, by, barW, Math.max(0.5, h), 0.6, 0.6, "F");
 
+    if (i % labelStride !== 0) return;
     // Label
     doc.setFontSize(6.5);
     doc.setTextColor(...PDF_COLORS.medium);
-    const label = d.label.length > 14 ? d.label.slice(0, 12) + "…" : d.label;
+    const maxLabelChars = Math.max(2, Math.floor((barW * labelStride) / 1.2));
+    const raw = d.label ?? "";
+    const label = raw.length > maxLabelChars ? raw.slice(0, Math.max(1, maxLabelChars - 1)) + "…" : raw;
     const labelW = doc.getTextWidth(label);
-    doc.text(label, bx + barW / 2 - labelW / 2, baseY + 5);
+    let lx = bx + barW / 2 - labelW / 2;
+    // Clamp within frame
+    if (lx < frame.innerX - 2) lx = frame.innerX - 2;
+    if (lx + labelW > frame.innerX + frame.innerW) lx = frame.innerX + frame.innerW - labelW;
+    doc.text(label, lx, baseY + 5);
   });
 
   return frame.y + frame.h + 4;
