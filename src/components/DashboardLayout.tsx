@@ -15,6 +15,7 @@ const SearchCode = LineChart;
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import vsaLogo from "@/assets/vsa-logo.jpg";
+import userPlaceholder from "@/assets/user-placeholder.png";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { PageTransition } from "@/components/PageTransition";
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
@@ -497,10 +498,8 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
         <div className={cn("py-3 border-t border-[hsl(var(--sidebar-border))]", collapsed ? "px-2" : "px-3")}>
           {!collapsed && (
             <div className="flex items-center gap-3 px-3 py-2.5 mb-2 rounded-lg bg-[hsl(var(--sidebar-accent))]/30">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[hsl(var(--sidebar-primary))]/20 to-[hsl(var(--sidebar-primary))]/5 flex items-center justify-center shrink-0 ring-1 ring-[hsl(var(--sidebar-primary))]/10">
-                <span className="text-[11px] font-bold text-[hsl(var(--sidebar-primary))]">
-                  {profile?.full_name?.charAt(0)?.toUpperCase() || "U"}
-                </span>
+              <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center shrink-0 ring-1 ring-white/15 overflow-hidden">
+                <img src={userPlaceholder} alt="User" className="h-5 w-5 object-contain invert opacity-90" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-medium text-white truncate">{profile?.full_name || "User"}</p>
