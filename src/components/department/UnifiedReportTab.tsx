@@ -423,19 +423,13 @@ export function UnifiedReportTab({ clinicId }: Props) {
           y = (doc as any).lastAutoTable.finalY + 6;
         }
 
-        // Hourly peak summary
+        // Hourly traffic distribution
         if (webCur!.hourly.length > 0) {
-          const peak = [...webCur!.hourly].sort((a, b) => b.views - a.views).slice(0, 5);
-          y = ensureSpace(doc, y, 30);
-          doc.setFontSize(10); doc.setFont("helvetica", "bold");
-          doc.setTextColor(...PDF_COLORS.website); doc.text(`Peak Traffic Hours (${timeZone})`, 21, y); y += 4;
-          autoTable(doc, {
-            startY: y,
-            head: [["Hour", "Page Views"]],
-            body: peak.map((h) => [`${String(h.hour).padStart(2, "0")}:00`, h.views.toLocaleString()]),
-            ...getTableStyles(PDF_COLORS.website),
-          });
-          y = (doc as any).lastAutoTable.finalY + 4;
+          y = drawBarChart(
+            doc, y,
+            webCur!.hourly.map((h) => ({ label: `${String(h.hour).padStart(2, "0")}h`, value: h.views })),
+            { title: `Traffic by Hour (${timeZone})`, color: PDF_COLORS.website, height: 50 },
+          );
         }
 
         y = renderAnalysis(doc, y, PDF_COLORS.website, webAI);
