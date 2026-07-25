@@ -604,7 +604,27 @@ export function UnifiedReportTab({ clinicId }: Props) {
         });
         y = (doc as any).lastAutoTable.finalY + 6;
 
+        // Daily clicks & spend trend
+        if (adsAgg!.daily.length > 1) {
+          y = drawLineChart(
+            doc, y,
+            adsAgg!.daily.map((d) => ({ label: format(new Date(d.date), "MMM d"), value: d.clicks })),
+            { title: "Daily Clicks", color: PDF_COLORS.googleAds, height: 50 },
+          );
+          y = drawLineChart(
+            doc, y,
+            adsAgg!.daily.map((d) => ({ label: format(new Date(d.date), "MMM d"), value: d.cost })),
+            { title: "Daily Ad Spend", color: PDF_COLORS.googleAds, height: 50, valueFormatter: fmtCurrency },
+          );
+        }
+
         if (adsAgg!.campaigns.length > 0) {
+          const topCampaigns = [...adsAgg!.campaigns].sort((a: any, b: any) => (b.cost || 0) - (a.cost || 0)).slice(0, 8);
+          y = drawBarChart(
+            doc, y,
+            topCampaigns.map((c: any) => ({ label: c.name, value: +c.cost || 0 })),
+            { title: "Top Campaigns by Spend", color: PDF_COLORS.googleAds, height: 55, valueFormatter: fmtCurrency },
+          );
           y = ensureSpace(doc, y, 40);
           doc.setFontSize(10); doc.setFont("helvetica", "bold");
           doc.setTextColor(...PDF_COLORS.googleAds); doc.text("Campaign Performance", 21, y); y += 4;
