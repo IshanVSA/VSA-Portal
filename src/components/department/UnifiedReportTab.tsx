@@ -333,19 +333,22 @@ export function UnifiedReportTab({ clinicId }: Props) {
         const ctr = impressions > 0 ? `${(Math.round((clicks / impressions) * 10000) / 100)}%` : "0%";
         const cpc = clicks > 0 ? fmtCurrency(Math.round((cost / clicks) * 100) / 100) : "$0.00";
 
+        const pm = prevAdsData || { cost: 0, clicks: 0, impressions: 0, conversions: 0 };
+        const prevCtr = pm.impressions > 0 ? `${(Math.round((pm.clicks / pm.impressions) * 10000) / 100)}%` : "0%";
+        const prevCpc = pm.clicks > 0 ? fmtCurrency(Math.round((pm.cost / pm.clicks) * 100) / 100) : "$0.00";
         autoTable(doc, {
           startY: y,
-          head: [["Metric", "Value"]],
+          head: [["Metric", "Current", "Previous", "Change"]],
           body: [
-            ["Ad Spend", fmtCurrency(cost)],
-            ["Clicks", clicks.toLocaleString()],
-            ["Impressions", impressions.toLocaleString()],
-            ["Conversions", Math.round(conversions).toLocaleString()],
-            ["CTR", ctr],
-            ["Avg. CPC", cpc],
+            ["Ad Spend", fmtCurrency(cost), fmtCurrency(pm.cost), pctText(cost, pm.cost)],
+            ["Clicks", clicks.toLocaleString(), pm.clicks.toLocaleString(), pctText(clicks, pm.clicks)],
+            ["Impressions", impressions.toLocaleString(), pm.impressions.toLocaleString(), pctText(impressions, pm.impressions)],
+            ["Conversions", Math.round(conversions).toLocaleString(), Math.round(pm.conversions).toLocaleString(), pctText(conversions, pm.conversions)],
+            ["CTR", ctr, prevCtr, "—"],
+            ["Avg. CPC", cpc, prevCpc, "—"],
           ],
           ...getTableStyles(PDF_COLORS.googleAds),
-          columnStyles: { 1: { fontStyle: "bold" as const } },
+          didParseCell: (data: any) => colorChangeCell(data, 3),
         });
         y = (doc as any).lastAutoTable?.finalY || y + 40;
 
