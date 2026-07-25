@@ -468,7 +468,7 @@ export function UnifiedReportTab({ clinicId }: Props) {
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <DeptStatus icon={Globe} label="Website" available={!!webMetrics} summary={webMetrics ? `${webMetrics.totalViews} views, ${webMetrics.totalSessions} visitors` : undefined} color="text-orange-500" />
-              <DeptStatus icon={Search} label="SEO" available={!!latestSeo} summary={latestSeo ? `DA ${latestSeo.domain_authority}, ${latestSeo.organic_traffic} organic` : undefined} color="text-teal-500" />
+              <DeptStatus icon={Search} label="SEO" available={hasSeo} summary={hasSeo ? `${(gsc?.totals?.clicks ?? 0).toLocaleString()} clicks, ${(ga4Cmp?.current?.sessions ?? 0).toLocaleString()} organic sessions` : undefined} color="text-teal-500" />
               <DeptStatus icon={Megaphone} label="Google Ads" available={!!adsData} summary={adsData ? `${fmtCurrency(adsData.cost || 0)} spend, ${(adsData.clicks || 0).toLocaleString()} clicks` : undefined} color="text-blue-500" />
               <DeptStatus icon={Share2} label="Social Media" available={socialData.length > 0} summary={socialData.length > 0 ? `${socialData.length} data points` : undefined} color="text-purple-500" />
             </div>
