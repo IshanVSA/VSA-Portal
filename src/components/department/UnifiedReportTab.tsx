@@ -9,7 +9,8 @@ import {
   BarChart3, Eye, Users, TrendingDown, Clock, TrendingUp,
   Link2, Hash, DollarSign, MousePointerClick, Target, Percent,
 } from "lucide-react";
-import { useSeoAnalytics, type SeoKeyword } from "@/hooks/useSeoAnalytics";
+import { useGa4Compare } from "@/hooks/useGa4Compare";
+import { useSearchConsole } from "@/hooks/useSearchConsole";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import {
