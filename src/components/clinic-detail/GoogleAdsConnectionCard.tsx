@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, RefreshCw, Loader2, Unlink, Clock, CalendarClock, Megaphone, Hash, KeyRound } from "lucide-react";
+import { CheckCircle2, RefreshCw, Loader2, Unlink, Clock, CalendarClock, Megaphone, Hash, KeyRound, ShieldCheck, UserCircle } from "lucide-react";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 import { formatDistanceToNow, addDays, setHours, setMinutes, setSeconds, isAfter } from "date-fns";
