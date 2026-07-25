@@ -418,7 +418,7 @@ export function UnifiedReportTab({ clinicId }: Props) {
     } finally {
       setGenerating(false);
     }
-  }, [hasAnyData, webMetrics, prevWebMetrics, latestSeo, prevSeo, adsData, prevAdsData, socialData, clinicName, range]);
+  }, [hasAnyData, webMetrics, prevWebMetrics, hasSeo, gsc, prevGsc, ga4Cmp, adsData, prevAdsData, socialData, clinicName, range]);
 
   if (!clinicId) {
     return <p className="text-muted-foreground text-sm text-center py-12">Select a clinic to generate a unified report.</p>;
