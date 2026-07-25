@@ -31,7 +31,15 @@ async function maxOf(table: string, col: string): Promise<string | null> {
 // Pull authoritative cron history (last_run_at, runs_24h, failures_24h) from pg_cron.
 async function getCronHealthMap(): Promise<Record<string, { last_run_at: string | null; last_status: string | null; last_message: string | null; runs_24h: number; failures_24h: number }>> {
   const { data, error } = await supabase.rpc("get_cron_job_health");
-  if (error || !Array.isArray(data)) return {};
+  if (error) {
+    console.error("get_cron_job_health RPC error:", error.message, error.details, error.hint);
+    return {};
+  }
+  if (!Array.isArray(data)) {
+    console.error("get_cron_job_health returned non-array:", typeof data, JSON.stringify(data)?.slice(0, 200));
+    return {};
+  }
+  console.log(`get_cron_job_health returned ${data.length} rows`);
   const map: Record<string, any> = {};
   for (const row of data as any[]) {
     map[row.jobname] = {
@@ -44,6 +52,7 @@ async function getCronHealthMap(): Promise<Record<string, { last_run_at: string 
   }
   return map;
 }
+
 
 const JOBS: JobDef[] = [
   {
