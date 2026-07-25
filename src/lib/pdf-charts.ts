@@ -72,8 +72,10 @@ export function drawBarChart(
   if (data.length === 0) return frame.y + frame.h + 4;
 
   const max = Math.max(...data.map((d) => d.value), 1);
-  const gap = 4;
-  const barW = Math.max(6, (frame.innerW - gap * (data.length - 1)) / data.length);
+  // Adaptive gap so bars always fit inside the frame regardless of count
+  const gap = data.length > 20 ? 1 : data.length > 12 ? 2 : 4;
+  const totalGap = gap * Math.max(0, data.length - 1);
+  const barW = Math.max(1.2, (frame.innerW - totalGap) / data.length);
   const baseY = frame.innerY + frame.innerH;
 
   // Y-axis line
@@ -90,19 +92,28 @@ export function drawBarChart(
   doc.text(fmt(max), frame.x + 4, frame.innerY + 2);
   doc.text("0", frame.x + 4, baseY + 1);
 
+  // Skip labels when bars are too narrow to avoid overlap/overflow
+  const labelStride = barW < 4 ? Math.ceil(4 / Math.max(barW, 0.5)) : 1;
   data.forEach((d, i) => {
     const h = (d.value / max) * frame.innerH;
     const bx = frame.innerX + i * (barW + gap);
     const by = baseY - h;
     doc.setFillColor(...opts.color);
-    doc.roundedRect(bx, by, barW, Math.max(0.5, h), 1, 1, "F");
+    doc.roundedRect(bx, by, barW, Math.max(0.5, h), 0.6, 0.6, "F");
 
+    if (i % labelStride !== 0) return;
     // Label
     doc.setFontSize(6.5);
     doc.setTextColor(...PDF_COLORS.medium);
-    const label = d.label.length > 14 ? d.label.slice(0, 12) + "…" : d.label;
+    const maxLabelChars = Math.max(2, Math.floor((barW * labelStride) / 1.2));
+    const raw = d.label ?? "";
+    const label = raw.length > maxLabelChars ? raw.slice(0, Math.max(1, maxLabelChars - 1)) + "…" : raw;
     const labelW = doc.getTextWidth(label);
-    doc.text(label, bx + barW / 2 - labelW / 2, baseY + 5);
+    let lx = bx + barW / 2 - labelW / 2;
+    // Clamp within frame
+    if (lx < frame.innerX - 2) lx = frame.innerX - 2;
+    if (lx + labelW > frame.innerX + frame.innerW) lx = frame.innerX + frame.innerW - labelW;
+    doc.text(label, lx, baseY + 5);
   });
 
   return frame.y + frame.h + 4;
@@ -190,10 +201,12 @@ export function drawLineChart(
     ? [0, Math.floor(data.length / 2), data.length - 1]
     : data.map((_, i) => i);
   for (const i of marks) {
-    const label = data[i].label;
-    const lx = frame.innerX + i * stepX;
+    const label = data[i].label ?? "";
     const lw = doc.getTextWidth(label);
-    doc.text(label, lx - lw / 2, baseY + 5);
+    let lx = frame.innerX + i * stepX - lw / 2;
+    if (lx < frame.innerX - 2) lx = frame.innerX - 2;
+    if (lx + lw > frame.innerX + frame.innerW) lx = frame.innerX + frame.innerW - lw;
+    doc.text(label, lx, baseY + 5);
   }
 
   return frame.y + frame.h + 4;
@@ -239,14 +252,21 @@ export function drawShareBar(
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   let lx = x;
+  const rightEdge = x + w;
   segments.forEach((s) => {
     const pct = Math.round((s.value / total) * 1000) / 10;
     const txt = `${s.label}: ${s.value.toLocaleString()} (${pct}%)`;
+    const tw = doc.getTextWidth(txt);
+    // Wrap legend to next line if it would overflow
+    if (lx + 4.5 + tw > rightEdge) {
+      lx = x;
+      ly += 5;
+    }
     doc.setFillColor(...s.color);
     doc.rect(lx, ly - 2.5, 3, 3, "F");
     doc.setTextColor(...PDF_COLORS.medium);
     doc.text(txt, lx + 4.5, ly);
-    lx += doc.getTextWidth(txt) + 12;
+    lx += tw + 8;
   });
 
   return ly + 4;
