@@ -219,28 +219,26 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
         <StatsCard title="Avg. Session" value={formatDuration(current.avgDuration)} icon={Clock} index={3} />
       </div>
 
-      <Card>
+      <ChartFrame>
+      <Card className="transition-shadow hover:shadow-md">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">Daily Traffic ({selectedDays} Days)</CardTitle>
         </CardHeader>
         <CardContent>
           <ChartContainer config={{ views: { label: "Page Views", color: "hsl(var(--primary))" } }} className="h-[260px] w-full">
-            <AreaChart data={dailyTraffic}>
-              <defs>
-                <linearGradient id="fillViews" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-              <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" className="text-muted-foreground" />
-              <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Area type="monotone" dataKey="views" stroke="hsl(var(--primary))" fill="url(#fillViews)" strokeWidth={2} />
+            <AreaChart data={dailyTraffic} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+              <defs>{gradientDef("fillViews", "hsl(var(--primary))", 0.35)}</defs>
+              <CartesianGrid {...chartGridProps} />
+              <XAxis dataKey="date" interval="preserveStartEnd" {...chartAxisProps} />
+              <YAxis {...chartAxisProps} />
+              <ChartTooltip cursor={{ stroke: "hsl(var(--primary) / 0.35)", strokeWidth: 1, strokeDasharray: "4 4" }} content={<ChartTooltipContent />} />
+              <Area type="monotone" dataKey="views" stroke="hsl(var(--primary))" fill="url(#fillViews)" strokeWidth={2.25}
+                    dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: "hsl(var(--card))" }} {...chartAnimationProps} />
             </AreaChart>
           </ChartContainer>
         </CardContent>
       </Card>
+      </ChartFrame>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
