@@ -305,7 +305,7 @@ export function UnifiedReportTab({ clinicId }: Props) {
         } : undefined,
       };
 
-      const html = buildUnifiedReportHTML(data);
+      const html = await buildUnifiedReportHTML(data);
       printReportHTML(html);
       toast.success("Report ready. Use the print dialog to save as PDF.");
     } catch (e: any) {
