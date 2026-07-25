@@ -84,7 +84,11 @@ export function GoogleAdsConnectionCard({
         }
       );
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Could not reuse saved connection");
+      if (!response.ok) {
+        throw new Error(
+          result.error || "Could not reuse saved connection. Try the full Google Ads connect flow instead."
+        );
+      }
       window.location.href = `/clinics/${clinicId}?google_token_ref=${result.token_ref}`;
     } catch (e: any) {
       toast.error(e.message || "Could not reuse saved Google Ads connection");
