@@ -1,71 +1,38 @@
-# Plan: Unified MetricCard primitive for dashboards
+# Unified Report — Match Pasted HTML Template Exactly
 
-Refresh all dashboard KPI/Stats cards under one primitive with a refined Apple/Linear feel — tighter type scale, softer layered shadows, smoother spring hover motion, subtle gradient wash, better delta chips.
+The pasted file is a fully-designed HTML report (Inter font, dark navy masthead, gradient section icons, SVG line/bar charts, color-accented tables, "AI Performance Analysis" cards, A4 page breaks). Our current PDF is built with jsPDF primitives, which cannot reproduce this layout faithfully. The correct fix is to generate the report as HTML and export it to PDF via the browser's print pipeline.
 
-## Scope (only these are touched)
+## What changes
 
-- `src/components/dashboard/KPICard.tsx` — used by Admin/Client/Concierge dashboards
-- `src/components/StatsCard.tsx` — used across dashboards and misc pages
-- Callers stay on the same props surface; no consumer refactors needed
+1. **New renderer** `src/lib/unified-report-html.ts`
+   - Pure functions that build the exact HTML string from the same data `UnifiedReportTab` already fetches (GA4 totals, top pages, hourly, geography; SEO clicks/impr/CTR/pos, brand vs non-brand, devices, countries, top queries/pages; Google Ads KPIs, daily trend, top campaigns; Social FB/IG activity + engagement).
+   - Sections in this order, each on its own A4 page (`<div class="pagebreak">`):
+     1. Masthead (title, clinic, period pill)
+     2. Website Analytics — KPI grid, Daily Page Views line chart (SVG), Top Pages table, Pages/Session bar list, Visitor Geography table, Traffic by Hour bar chart (SVG), AI card
+     3. SEO Performance — KPI grid, Brand vs Non-Brand share, Device table, Top Countries table, Top Queries/Pages tables, AI card
+     4. Google Ads — KPI grid, Daily Clicks + Daily Spend line charts, Top Campaigns by Spend bar chart, Campaign table, AI card
+     5. Social Media — Facebook + Instagram KPI mini-grids, activity/engagement bar charts, AI card
+   - Uses the exact CSS classes / colors / SVG structure from the pasted file (masthead gradient, `.kpi`, `.pill-pos/neg/flat`, `.card`, `.tbl` with `acc-orange/teal/blue/purple`, `.barlist`, `.ai-card`, `.pagebreak`, `@page{size:A4}`).
+   - SVG chart helpers: `lineChart(points, color)`, `barChart(values, labels, gradientId, colors)`, `shareBar(brand, nonBrand)`.
 
-Department KPI tiles (SeoKpiTile, FacebookInsightCard), content cards, and empty states are **out of scope** per your answer.
+2. **New print flow** in `src/components/department/UnifiedReportTab.tsx`
+   - Replace the jsPDF pipeline: open a hidden iframe, write the generated HTML, call `iframe.contentWindow.print()`. The user chooses "Save as PDF" from the browser dialog, producing an A4 file that matches the template pixel-for-pixel.
+   - Keep the existing "Generate Report" button, loading state, date range, and AI-analysis calls (`generate-report-analysis`) unchanged.
+   - Retain the compare/YoY toggles that already feed the KPI pills.
 
-## New primitive
-
-Create `src/components/ui/metric-card.tsx` — one component, variant-driven, backward-compatible with both existing prop shapes.
-
-Props (superset of KPICard + StatsCard):
-- `label` / `title` (alias)
-- `value`
-- `icon` (LucideIcon)
-- `change` + `changeType: positive | negative | neutral`
-- `description`
-- `accent: blue | green | amber | purple | neutral` (was `gradient`)
-- `href` (optional link wrap)
-- `index` (stagger)
-- `size: sm | md` (sm = current StatsCard, md = current KPICard)
-
-## Visual system (Apple/Linear refined)
-
-Tokens live in `src/index.css` so future cards can adopt them:
-- `--shadow-card`: layered `0 1px 2px black/4%, 0 8px 24px -12px black/8%`
-- `--shadow-card-hover`: `0 1px 2px black/5%, 0 20px 40px -16px black/14%`
-- `--radius-card: 20px` (rounded-[20px], slightly tighter than current 2xl)
-- Per-accent `--accent-*` hue tokens for icon chip + optional 1px gradient hairline
-
-Card anatomy:
-- Surface: `bg-card` with a very subtle top-to-bottom `bg-gradient-to-b from-card to-card/95`
-- 1px border `border-border/50` + inner ring `ring-1 ring-inset ring-white/[0.02]` (dark) for depth
-- Icon chip: 36px rounded-xl, tinted accent bg at 10%, icon at accent 100%
-- Delta chip: pill, tabular-nums, arrow glyph (↑ ↓ –) + percent, accent-tinted
-- Value: `text-[30px] font-semibold tracking-[-0.02em] tabular-nums`
-- Label: `text-[12px] text-muted-foreground font-medium uppercase tracking-wide`
-
-Motion (framer-motion, already installed):
-- Entrance: opacity + 8px rise, spring `{ stiffness: 260, damping: 26 }`, 60ms stagger
-- Hover: `y: -3`, shadow swap, icon chip scale 1.05 — spring, not tween
-- Respect `prefers-reduced-motion` (freeze to static)
-- Value uses a subtle count-up on mount when numeric
-
-## Migration
-
-1. Build `MetricCard` in `src/components/ui/metric-card.tsx`
-2. Rewrite `KPICard.tsx` and `StatsCard.tsx` as thin wrappers that forward to `MetricCard` with the right `size` — zero changes required in dashboards
-3. Add card shadow + radius tokens to `src/index.css`
-4. Sanity-check the three dashboards render:
-   - `src/components/dashboard/AdminDashboard.tsx`
-   - `src/components/dashboard/ClientDashboard.tsx`
-   - `src/components/dashboard/ConciergeDashboard.tsx`
-
-## Out of scope
-
-- Department tiles (SEO/Ads/Website/Social) — separate pass if you want
-- Content, ticket, blog cards
-- Empty/locked state cards
-- Any business logic, data fetching, or route changes
+3. **Delete / retire**
+   - `src/lib/pdf-charts.ts` and the jsPDF chart calls in `UnifiedReportTab.tsx` are no longer used by this report (kept only if other pages import them — will remove if unused).
+   - `src/lib/pdf-theme.ts` helpers used only by the unified report will be removed; anything shared with per-department PDFs stays.
 
 ## Technical notes
 
-- No new deps; framer-motion already present
-- Wrapper approach keeps `import { StatsCard }` / `import KPICard` working everywhere
-- Semantic tokens only — no hardcoded colors, dark mode preserved
+- Font: template embeds Inter via base64. To keep the bundle small, load Inter via a `<link>` to Google Fonts inside the generated HTML (print output is visually identical); fall back to `system-ui`.
+- Charts are inline SVG (no chart library) so they render perfectly in the print dialog with no canvas rasterization.
+- All numbers/labels come from the same hooks currently used (`useGa4Compare`, `useSearchConsole`, `useGoogleAdsKPIs`, social analytics query, top-pages query). No new data fetches.
+- AI text: reuse existing `generate-report-analysis` edge function; render its paragraphs inside the color-tinted `.ai-card` per section.
+- Output is "Save as PDF" from the browser rather than a direct `.pdf` download. This is the only way to reproduce the pasted design faithfully without a server-side headless-Chrome step.
+
+## Out of scope
+
+- No changes to data sources, edge functions, or per-department analytics tabs.
+- No changes to other PDF exports (per-department reports keep their current jsPDF renderers).
