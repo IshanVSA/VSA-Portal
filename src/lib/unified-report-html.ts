@@ -628,7 +628,7 @@ export async function downloadReportPDF(html: string, filename: string): Promise
 
   const container = document.createElement("div");
   container.style.cssText =
-    "position:fixed;left:-10000px;top:0;width:794px;background:#fff;z-index:-1;";
+    "position:fixed;top:0;left:0;width:794px;background:#fff;opacity:0;pointer-events:none;z-index:2147483647;";
   container.innerHTML = bodyHTML;
 
   if (styleEl) {
