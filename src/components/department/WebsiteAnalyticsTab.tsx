@@ -301,22 +301,25 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
         </Card>
       </div>
 
-      <Card>
+      <ChartFrame>
+      <Card className="transition-shadow hover:shadow-md">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">Traffic by Hour ({timeZone})</CardTitle>
         </CardHeader>
         <CardContent>
           <ChartContainer config={{ views: { label: "Page Views", color: "hsl(var(--primary))" } }} className="h-[200px] w-full">
-            <BarChart data={hourlyData}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-              <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={2} className="text-muted-foreground" />
-              <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="views" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
+            <BarChart data={hourlyData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+              <defs>{gradientDef("hourBar", "hsl(var(--primary))", 0.95, 0.55)}</defs>
+              <CartesianGrid {...chartGridProps} />
+              <XAxis dataKey="label" interval={2} {...chartAxisProps} tick={{ ...chartAxisProps.tick, fontSize: 10 }} />
+              <YAxis {...chartAxisProps} />
+              <ChartTooltip cursor={{ fill: "hsl(var(--muted) / 0.4)" }} content={<ChartTooltipContent />} />
+              <Bar dataKey="views" fill="url(#hourBar)" radius={[6, 6, 2, 2]} {...chartAnimationProps} />
             </BarChart>
           </ChartContainer>
         </CardContent>
       </Card>
+      </ChartFrame>
 
       {geoTotal > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
