@@ -27,10 +27,21 @@ export function GoogleAdsConnectionCard({
   const [syncing, setSyncing] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [reusing, setReusing] = useState(false);
+  const [hasReusableConnection, setHasReusableConnection] = useState<boolean | null>(null);
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const origin = encodeURIComponent(window.location.origin);
   const oauthUrl = `${supabaseUrl}/functions/v1/google-oauth?action=authorize&clinic_id=${clinicId}&origin=${origin}`;
+
+  useEffect(() => {
+    supabase
+      .from("clinic_api_credentials")
+      .select("id", { count: "exact", head: true })
+      .not("google_ads_refresh_token", "is", null)
+      .then(({ count, error }) => {
+        setHasReusableConnection(!error && (count || 0) > 0);
+      });
+  }, []);
 
   const nextSync = useMemo(() => {
     const now = new Date();
