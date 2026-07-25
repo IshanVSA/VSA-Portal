@@ -15,7 +15,7 @@ import {
   getSafeTimeZone,
   getTrailingDateRangeForTimeZone,
 } from "@/lib/website-analytics";
-import { buildUnifiedReportHTML, printReportHTML, type UnifiedReportData } from "@/lib/unified-report-html";
+import { buildUnifiedReportHTML, downloadReportPDF, type UnifiedReportData } from "@/lib/unified-report-html";
 
 interface Props { clinicId: string; }
 
