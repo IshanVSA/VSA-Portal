@@ -23,6 +23,7 @@ import { useSM2Posts, type SM2Post, postHasImage } from "@/hooks/useSM2Posts";
 import { isClientNoteUnseen } from "@/hooks/useSeenClientNotes";
 import PostDayDialog from "./PostDayDialog";
 import { coverPathFor } from "@/lib/video-thumbnail";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   generationId: string;
@@ -94,6 +95,9 @@ export default function SM2CalendarView({
   // Posts remain editable until the client gives final approval.
   const copyLocked = isApprovedFinal;
   const canDrag = !isClient && !copyLocked;
+  // Posts touched after the client signed off need a fresh round of approval.
+  const editedAfterApproval = posts.filter((p) => p.edited_after_approval);
+  const needsReapproval = isApprovedFinal && editedAfterApproval.length > 0;
 
 
   const missingPosts = useMemo(
@@ -172,6 +176,17 @@ export default function SM2CalendarView({
             )}
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
+            {!isClient && needsReapproval && (
+              <Button
+                size="sm"
+                onClick={() => setConfirmSendOpen(true)}
+                disabled={sendPending}
+                className="gap-2 w-full sm:w-auto"
+              >
+                <Send className="h-3.5 w-3.5" />
+                Send edits for approval ({editedAfterApproval.length})
+              </Button>
+            )}
             {!isClient && canSend && (
               <Button
                 size="sm"
@@ -419,9 +434,17 @@ export default function SM2CalendarView({
               </AlertDialogCancel>
               <AlertDialogAction
                 disabled={sendPending || !imagesComplete}
-                onClick={() => {
+                onClick={async () => {
                   if (!imagesComplete) return;
                   setConfirmSendOpen(false);
+                  if (needsReapproval) {
+                    // Clear the "edited after approval" markers for this round.
+                    await supabase
+                      .from("sm2_posts")
+                      .update({ edited_after_approval: false, edited_after_approval_at: null })
+                      .eq("generation_id", generationId)
+                      .eq("edited_after_approval", true);
+                  }
                   (onSendFinalForReview ?? onSendCopyForReview)?.();
                 }}
               >
