@@ -378,6 +378,18 @@ function PostCard({
                   <Eye className="h-3 w-3" />
                   View
                 </button>
+                {!isClient && !uploadDisabled && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setReplacePath(imageUrls[0].path); replaceRef.current?.click(); }}
+                    disabled={uploading}
+                    className="absolute bottom-1.5 left-1.5 h-7 px-2 rounded-xl bg-background/90 backdrop-blur border text-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] font-medium"
+                    title="Replace this image or video"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                    Replace
+                  </button>
+                )}
                 {!isClient && (
                   <button
                     type="button"
@@ -415,6 +427,17 @@ function PostCard({
                       >
                         <Eye className="h-3.5 w-3.5 text-foreground" />
                       </button>
+                      {!isClient && !uploadDisabled && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setReplacePath(img.path); replaceRef.current?.click(); }}
+                          disabled={uploading}
+                          className="absolute bottom-0.5 right-0.5 h-5 w-5 rounded bg-background/90 border text-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                          title="Replace"
+                        >
+                          <RefreshCw className="h-2.5 w-2.5" />
+                        </button>
+                      )}
                       {!isClient && (
                         <button
                           type="button"
@@ -448,6 +471,19 @@ function PostCard({
               )}
             </>
           )}
+
+          <input
+            ref={replaceRef}
+            type="file"
+            accept="image/*,video/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f && replacePath) onReplaceImage(replacePath, f);
+              setReplacePath(null);
+              e.target.value = "";
+            }}
+          />
 
           <input
             ref={fileRef}
