@@ -338,7 +338,40 @@ export default function ContentGenerationTab({ clinicId }: Props) {
                   </div>
                 )}
 
+                {/* Saved Community & Local Context */}
+                {(() => {
+                  const groups = [
+                    { label: "Seasonal Topics", items: (signals?.seasonal_topics as any[]) || [] },
+                    { label: "Community Events", items: (signals?.community_events as any[]) || [] },
+                    { label: "Local Alerts", items: (signals?.local_alerts as any[]) || [] },
+                    { label: "Local News", items: (signals?.local_news as any[]) || [] },
+                  ].filter((g) => g.items.length > 0);
+                  if (groups.length === 0) return null;
+                  return (
+                    <div className="p-3 rounded-lg border bg-muted/20 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-primary" />
+                        <p className="text-sm font-medium">Saved Community &amp; Local Context</p>
+                      </div>
+                      {groups.map((g) => (
+                        <div key={g.label} className="space-y-1">
+                          <p className="text-[11px] font-medium text-muted-foreground">{g.label}</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {g.items.map((item: any, i: number) => (
+                              <Badge key={i} variant="outline" className="text-[10px]">
+                                {typeof item === "string" ? item : item?.name || JSON.stringify(item)}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                      <p className="text-[10px] text-muted-foreground">Saved in the Preferences tab for {monthLabel}.</p>
+                    </div>
+                  );
+                })()}
+
                 {/* Empty Signals Warning */}
+
                 {(() => {
                   const events = (signals?.community_events as any[]) || [];
                   const seasonal = (signals?.seasonal_topics as any[]) || [];
