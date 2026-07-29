@@ -323,6 +323,9 @@ export default function SM2CalendarView({
                             <span className="w-4 h-4 rounded-sm border border-dashed flex items-center justify-center text-[8px] opacity-60">·</span>
                           )}
                           {platformIcon(p.platform)}
+                          {p.edited_after_approval && (
+                            <Pencil className="h-2.5 w-2.5 text-orange-500 shrink-0" />
+                          )}
                           <span className="truncate flex-1 min-w-0">{p.topic || p.theme || p.post_type || "Post"}</span>
                         </div>
                       );
