@@ -3339,6 +3339,8 @@ export type Database = {
           concierge_brief: Json | null
           created_at: string
           cta: string | null
+          edited_after_approval: boolean
+          edited_after_approval_at: string | null
           generation_id: string
           hashtags: string[] | null
           hook: string | null
@@ -3370,6 +3372,8 @@ export type Database = {
           concierge_brief?: Json | null
           created_at?: string
           cta?: string | null
+          edited_after_approval?: boolean
+          edited_after_approval_at?: string | null
           generation_id: string
           hashtags?: string[] | null
           hook?: string | null
@@ -3401,6 +3405,8 @@ export type Database = {
           concierge_brief?: Json | null
           created_at?: string
           cta?: string | null
+          edited_after_approval?: boolean
+          edited_after_approval_at?: string | null
           generation_id?: string
           hashtags?: string[] | null
           hook?: string | null
