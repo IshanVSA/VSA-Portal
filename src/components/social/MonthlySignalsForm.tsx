@@ -160,9 +160,15 @@ export default function MonthlySignalsForm({ clinicId }: Props) {
             <CalendarClock className="h-4 w-4 text-primary" />
             Monthly Signals
           </CardTitle>
-          <Badge variant="secondary" className="text-xs font-semibold bg-primary/10 text-primary border-primary/20">
-            Saving for: {monthLabel}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground hidden sm:inline">Saving for</span>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="h-8 w-[170px] text-xs font-semibold"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {monthOptions.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <p className="text-xs text-muted-foreground">
           Configure campaign parameters and contextual signals for Tony AI's content engine this month.
