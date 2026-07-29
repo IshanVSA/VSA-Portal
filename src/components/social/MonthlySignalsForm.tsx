@@ -89,7 +89,21 @@ export default function MonthlySignalsForm({ clinicId }: Props) {
   const [holidays, setHolidays] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!signals) return;
+    if (!signals) {
+      setCampaignMonth(1);
+      setBudget(0);
+      setCurrency("CAD");
+      setSeasonalTopics([]);
+      setCommunityEvents([]);
+      setLocalAlerts([]);
+      setLocalNews([]);
+      setClinicNews("");
+      setFbSpecific("");
+      setStockCount(10);
+      setAssetCount(0);
+      setHolidays([]);
+      return;
+    }
     setCampaignMonth(signals.campaign_month_number ?? 1);
     setBudget(signals.monthly_budget ?? 0);
     setCurrency(signals.currency ?? "CAD");
