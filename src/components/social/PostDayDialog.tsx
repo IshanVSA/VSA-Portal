@@ -479,9 +479,35 @@ function PostCard({
               </>
             )}
             {!isClient && copyLocked && (
-              <Badge variant="outline" className="ml-auto text-[10px] gap-1 border-amber-500/40 text-amber-700 dark:text-amber-400">
-                <Lock className="h-3 w-3" />
-                Copy locked
+              <div className="ml-auto flex items-center gap-1.5">
+                <Badge variant="outline" className="text-[10px] gap-1 border-amber-500/40 text-amber-700 dark:text-amber-400">
+                  <Lock className="h-3 w-3" />
+                  Approved
+                </Badge>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setEditOpen(true)}
+                  className="h-7 px-2 gap-1 text-[11px]"
+                  title="Edit this post even though the calendar is approved — it will be marked as edited after approval"
+                >
+                  <Pencil className="h-3 w-3" />
+                  Edit anyway
+                </Button>
+              </div>
+            )}
+            {post.edited_after_approval && (
+              <Badge
+                variant="outline"
+                className="text-[10px] gap-1 border-orange-500/40 text-orange-700 dark:text-orange-400"
+                title={
+                  post.edited_after_approval_at
+                    ? `Edited after approval on ${format(new Date(post.edited_after_approval_at), "MMM d, yyyy 'at' h:mm a")}`
+                    : "Edited after approval"
+                }
+              >
+                <Pencil className="h-3 w-3" />
+                Edited after approval
               </Badge>
             )}
           </div>
