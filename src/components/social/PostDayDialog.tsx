@@ -65,6 +65,37 @@ export default function PostDayDialog({ open, onClose, date, generationId, isCli
   const dayPosts = date ? posts.filter((p) => p.scheduled_date === date) : [];
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
+  // Any media change on an approved calendar is flagged like a copy edit.
+  const markEditedIfLocked = (postId: string) => {
+    if (!copyLocked || isClient) return;
+    updatePost.mutate({
+      postId,
+      updates: {
+        edited_after_approval: true,
+        edited_after_approval_at: new Date().toISOString(),
+      } as Partial<SM2Post>,
+    });
+  };
+
+  const handleUpload = async (post: SM2Post, files: File[]) => {
+    await uploadImage.mutateAsync({ post, files });
+    markEditedIfLocked(post.id);
+  };
+
+  const handleRemoveImage = async (post: SM2Post, path: string) => {
+    await removeImage.mutateAsync({ post, path });
+    markEditedIfLocked(post.id);
+  };
+
+  // Replace = drop the old asset first, then upload the new one so it takes
+  // the freed slot (and becomes the cover when the old one was the cover).
+  const handleReplaceImage = async (post: SM2Post, path: string, file: File) => {
+    await removeImage.mutateAsync({ post, path });
+    await uploadImage.mutateAsync({ post, files: [file] });
+    markEditedIfLocked(post.id);
+  };
+
+
   if (!date) return null;
   const label = format(new Date(date + "T00:00:00"), "EEEE, MMMM d, yyyy");
   const showLockBanner = !isClient && !imagesUnlocked;
