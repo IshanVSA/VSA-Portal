@@ -139,8 +139,10 @@ export default function PostDayDialog({ open, onClose, date, generationId, isCli
                   url: getImageUrl(p),
                   thumbUrl: isVideoPath(p) ? getImageUrl(thumbPathFor(p)) : getImageUrl(p),
                 }))}
-                onUpload={(files) => uploadImage.mutate({ post, files })}
-                onRemoveImage={(path) => removeImage.mutate({ post, path })}
+                onUpload={(files) => { void handleUpload(post, files); }}
+                onRemoveImage={(path) => { void handleRemoveImage(post, path); }}
+                onReplaceImage={(path, file) => { void handleReplaceImage(post, path, file); }}
+
                 onSaveFeedback={(feedback) => saveFeedback.mutate({ postId: post.id, feedback })}
                 onUpdatePost={(updates) => updatePost.mutate({ postId: post.id, updates })}
                 onToggleMetaAd={(value) => toggleMetaAd.mutate({ postId: post.id, value })}
