@@ -59,15 +59,21 @@ function TagInput({ label, tags, onChange, placeholder }: { label: string; tags:
 }
 
 export default function MonthlySignalsForm({ clinicId }: Props) {
-  // Target the NEXT calendar month — that's the month SM2 will generate for,
-  // so saved signals must land on that row (not the current/past month).
-  const nextMonthYear = (() => {
+  // Signals can be saved for any upcoming month (default: next calendar month).
+  const monthOptions = (() => {
     const d = new Date();
-    const n = new Date(d.getFullYear(), d.getMonth() + 1, 1);
-    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`;
+    return Array.from({ length: 12 }, (_, i) => {
+      const n = new Date(d.getFullYear(), d.getMonth() + i, 1);
+      return {
+        value: `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`,
+        label: n.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+      };
+    });
   })();
-  const { signals, isLoading, upsertSignals, currentMonth } = useMonthlySignals(clinicId, nextMonthYear);
+  const [selectedMonth, setSelectedMonth] = useState<string>(monthOptions[1]?.value || monthOptions[0].value);
+  const { signals, isLoading, upsertSignals, currentMonth } = useMonthlySignals(clinicId, selectedMonth);
   const [saving, setSaving] = useState(false);
+
 
   const [campaignMonth, setCampaignMonth] = useState<number>(1);
   const [budget, setBudget] = useState<number>(0);
@@ -83,7 +89,21 @@ export default function MonthlySignalsForm({ clinicId }: Props) {
   const [holidays, setHolidays] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!signals) return;
+    if (!signals) {
+      setCampaignMonth(1);
+      setBudget(0);
+      setCurrency("CAD");
+      setSeasonalTopics([]);
+      setCommunityEvents([]);
+      setLocalAlerts([]);
+      setLocalNews([]);
+      setClinicNews("");
+      setFbSpecific("");
+      setStockCount(10);
+      setAssetCount(0);
+      setHolidays([]);
+      return;
+    }
     setCampaignMonth(signals.campaign_month_number ?? 1);
     setBudget(signals.monthly_budget ?? 0);
     setCurrency(signals.currency ?? "CAD");
@@ -140,9 +160,15 @@ export default function MonthlySignalsForm({ clinicId }: Props) {
             <CalendarClock className="h-4 w-4 text-primary" />
             Monthly Signals
           </CardTitle>
-          <Badge variant="secondary" className="text-xs font-semibold bg-primary/10 text-primary border-primary/20">
-            Saving for: {monthLabel}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground hidden sm:inline">Saving for</span>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="h-8 w-[170px] text-xs font-semibold"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {monthOptions.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <p className="text-xs text-muted-foreground">
           Configure campaign parameters and contextual signals for Tony AI's content engine this month.
