@@ -540,7 +540,11 @@ function PostCard({
               post={post}
               saving={updatingPost}
               onSave={(updates) => {
-                onUpdatePost(updates);
+                onUpdatePost(
+                  copyLocked
+                    ? { ...updates, edited_after_approval: true, edited_after_approval_at: new Date().toISOString() }
+                    : updates,
+                );
                 setEditOpen(false);
               }}
             />
