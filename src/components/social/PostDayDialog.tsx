@@ -247,6 +247,7 @@ function PostCard({
   imageUrls,
   onUpload,
   onRemoveImage,
+  onReplaceImage,
   onSaveFeedback,
   onUpdatePost,
   onToggleMetaAd,
@@ -264,6 +265,7 @@ function PostCard({
   imageUrls: { path: string; url: string; thumbUrl: string }[];
   onUpload: (files: File[]) => void;
   onRemoveImage: (path: string) => void;
+  onReplaceImage: (path: string, file: File) => void;
   onSaveFeedback: (feedback: string) => void;
   onUpdatePost: (updates: Partial<SM2Post>) => void;
   onToggleMetaAd: (value: boolean) => void;
@@ -275,6 +277,8 @@ function PostCard({
   updatingPost: boolean;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const replaceRef = useRef<HTMLInputElement>(null);
+  const [replacePath, setReplacePath] = useState<string | null>(null);
   const [feedback, setFeedback] = useState(post.client_feedback || "");
   const [dragOver, setDragOver] = useState(false);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
