@@ -34,6 +34,8 @@ export interface SM2Post {
   stories: any[] | null;
   concierge_brief: Record<string, any> | null;
   script: string | null;
+  edited_after_approval?: boolean | null;
+  edited_after_approval_at?: string | null;
   created_at: string;
   updated_at: string;
 }
