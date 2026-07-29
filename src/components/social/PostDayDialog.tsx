@@ -35,6 +35,8 @@ import {
   Pencil,
   FileText,
   Play,
+  RefreshCw,
+
 
 } from "lucide-react";
 import { format } from "date-fns";
@@ -64,6 +66,37 @@ export default function PostDayDialog({ open, onClose, date, generationId, isCli
   const metaAdSelectedCount = posts.filter((p) => p.run_meta_ad).length;
   const dayPosts = date ? posts.filter((p) => p.scheduled_date === date) : [];
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  // Any media change on an approved calendar is flagged like a copy edit.
+  const markEditedIfLocked = (postId: string) => {
+    if (!copyLocked || isClient) return;
+    updatePost.mutate({
+      postId,
+      updates: {
+        edited_after_approval: true,
+        edited_after_approval_at: new Date().toISOString(),
+      } as Partial<SM2Post>,
+    });
+  };
+
+  const handleUpload = async (post: SM2Post, files: File[]) => {
+    await uploadImage.mutateAsync({ post, files });
+    markEditedIfLocked(post.id);
+  };
+
+  const handleRemoveImage = async (post: SM2Post, path: string) => {
+    await removeImage.mutateAsync({ post, path });
+    markEditedIfLocked(post.id);
+  };
+
+  // Replace = drop the old asset first, then upload the new one so it takes
+  // the freed slot (and becomes the cover when the old one was the cover).
+  const handleReplaceImage = async (post: SM2Post, path: string, file: File) => {
+    await removeImage.mutateAsync({ post, path });
+    await uploadImage.mutateAsync({ post, files: [file] });
+    markEditedIfLocked(post.id);
+  };
+
 
   if (!date) return null;
   const label = format(new Date(date + "T00:00:00"), "EEEE, MMMM d, yyyy");
@@ -108,8 +141,10 @@ export default function PostDayDialog({ open, onClose, date, generationId, isCli
                   url: getImageUrl(p),
                   thumbUrl: isVideoPath(p) ? getImageUrl(thumbPathFor(p)) : getImageUrl(p),
                 }))}
-                onUpload={(files) => uploadImage.mutate({ post, files })}
-                onRemoveImage={(path) => removeImage.mutate({ post, path })}
+                onUpload={(files) => { void handleUpload(post, files); }}
+                onRemoveImage={(path) => { void handleRemoveImage(post, path); }}
+                onReplaceImage={(path, file) => { void handleReplaceImage(post, path, file); }}
+
                 onSaveFeedback={(feedback) => saveFeedback.mutate({ postId: post.id, feedback })}
                 onUpdatePost={(updates) => updatePost.mutate({ postId: post.id, updates })}
                 onToggleMetaAd={(value) => toggleMetaAd.mutate({ postId: post.id, value })}
@@ -214,6 +249,7 @@ function PostCard({
   imageUrls,
   onUpload,
   onRemoveImage,
+  onReplaceImage,
   onSaveFeedback,
   onUpdatePost,
   onToggleMetaAd,
@@ -231,6 +267,7 @@ function PostCard({
   imageUrls: { path: string; url: string; thumbUrl: string }[];
   onUpload: (files: File[]) => void;
   onRemoveImage: (path: string) => void;
+  onReplaceImage: (path: string, file: File) => void;
   onSaveFeedback: (feedback: string) => void;
   onUpdatePost: (updates: Partial<SM2Post>) => void;
   onToggleMetaAd: (value: boolean) => void;
@@ -242,6 +279,8 @@ function PostCard({
   updatingPost: boolean;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const replaceRef = useRef<HTMLInputElement>(null);
+  const [replacePath, setReplacePath] = useState<string | null>(null);
   const [feedback, setFeedback] = useState(post.client_feedback || "");
   const [dragOver, setDragOver] = useState(false);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
@@ -341,6 +380,18 @@ function PostCard({
                   <Eye className="h-3 w-3" />
                   View
                 </button>
+                {!isClient && !uploadDisabled && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setReplacePath(imageUrls[0].path); replaceRef.current?.click(); }}
+                    disabled={uploading}
+                    className="absolute bottom-1.5 left-1.5 h-7 px-2 rounded-xl bg-background/90 backdrop-blur border text-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] font-medium"
+                    title="Replace this image or video"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                    Replace
+                  </button>
+                )}
                 {!isClient && (
                   <button
                     type="button"
@@ -378,6 +429,17 @@ function PostCard({
                       >
                         <Eye className="h-3.5 w-3.5 text-foreground" />
                       </button>
+                      {!isClient && !uploadDisabled && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setReplacePath(img.path); replaceRef.current?.click(); }}
+                          disabled={uploading}
+                          className="absolute bottom-0.5 right-0.5 h-5 w-5 rounded bg-background/90 border text-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                          title="Replace"
+                        >
+                          <RefreshCw className="h-2.5 w-2.5" />
+                        </button>
+                      )}
                       {!isClient && (
                         <button
                           type="button"
@@ -411,6 +473,19 @@ function PostCard({
               )}
             </>
           )}
+
+          <input
+            ref={replaceRef}
+            type="file"
+            accept="image/*,video/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f && replacePath) onReplaceImage(replacePath, f);
+              setReplacePath(null);
+              e.target.value = "";
+            }}
+          />
 
           <input
             ref={fileRef}
