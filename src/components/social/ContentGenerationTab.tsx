@@ -82,8 +82,8 @@ export default function ContentGenerationTab({ clinicId }: Props) {
   const [stopTargetId, setStopTargetId] = useState<string | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
-  const monthOptions = useMemo(() => buildMonthOptions(), []);
-  const [targetMonth, setTargetMonth] = useState<string>(monthOptions[1]?.value || monthOptions[0].value);
+  // Shared with the Preferences tab so signals saved for a month always line up here.
+  const { targetMonth, setTargetMonth, monthOptions } = useSM2TargetMonth(clinicId);
   const [viewingGenerationId, setViewingGenerationId] = useState<string | null>(null);
 
   const { signals, upsertSignals } = useMonthlySignals(clinicId, targetMonth);
