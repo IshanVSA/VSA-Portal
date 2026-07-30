@@ -122,22 +122,36 @@ export function useMonthlySignals(clinicId: string | undefined, monthYear?: stri
         .maybeSingle();
 
       if (existing) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("clinic_monthly_signals")
           .update(updates as any)
           .eq("clinic_id", clinicId)
-          .eq("month_year", currentMonth);
+          .eq("month_year", currentMonth)
+          .select("id");
         if (error) throw error;
+        // RLS can silently match zero rows — surface that instead of a false success.
+        if (!data || data.length === 0) {
+          throw new Error(
+            "You don't have permission to update signals for this clinic. Ask an admin to add you to the clinic's team."
+          );
+        }
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("clinic_monthly_signals")
           .insert({
             clinic_id: clinicId,
             month_year: currentMonth,
             ...updates,
-          } as any);
+          } as any)
+          .select("id");
         if (error) throw error;
+        if (!data || data.length === 0) {
+          throw new Error(
+            "You don't have permission to save signals for this clinic. Ask an admin to add you to the clinic's team."
+          );
+        }
       }
+
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["monthly-signals", clinicId, currentMonth] });
