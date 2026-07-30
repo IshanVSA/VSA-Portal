@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useMonthlySignals } from "@/hooks/useMonthlySignals";
+import { useSM2TargetMonth } from "@/hooks/useSM2TargetMonth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,18 +60,8 @@ function TagInput({ label, tags, onChange, placeholder }: { label: string; tags:
 }
 
 export default function MonthlySignalsForm({ clinicId }: Props) {
-  // Signals can be saved for any upcoming month (default: next calendar month).
-  const monthOptions = (() => {
-    const d = new Date();
-    return Array.from({ length: 12 }, (_, i) => {
-      const n = new Date(d.getFullYear(), d.getMonth() + i, 1);
-      return {
-        value: `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`,
-        label: n.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
-      };
-    });
-  })();
-  const [selectedMonth, setSelectedMonth] = useState<string>(monthOptions[1]?.value || monthOptions[0].value);
+  // Signals can be saved for any upcoming month (shared with the Pre-Generation dialog).
+  const { targetMonth: selectedMonth, setTargetMonth: setSelectedMonth, monthOptions } = useSM2TargetMonth(clinicId);
   const { signals, isLoading, upsertSignals, currentMonth } = useMonthlySignals(clinicId, selectedMonth);
   const [saving, setSaving] = useState(false);
 

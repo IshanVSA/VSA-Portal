@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useSM2Generation, STAGE_LABELS, nextStageLabel } from "@/hooks/useSM2Generation";
 import { formatDistanceToNow } from "date-fns";
 import { useMonthlySignals } from "@/hooks/useMonthlySignals";
+import { useSM2TargetMonth } from "@/hooks/useSM2TargetMonth";
 import { useBrandDNA } from "@/hooks/useBrandDNA";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,16 +56,8 @@ const DEFAULT_SETTINGS: ContentSettings = {
   end_of_life_content: "not_requested",
 };
 
-function buildMonthOptions(): { value: string; label: string }[] {
-  const out: { value: string; label: string }[] = [];
-  const now = new Date();
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    out.push({ value, label: format(d, "MMMM yyyy") });
-  }
-  return out;
-}
+
+
 
 const ACTIVE_GEN_STATUSES = ["queued", "processing", "retrying"];
 
@@ -81,8 +74,8 @@ export default function ContentGenerationTab({ clinicId }: Props) {
   const [stopTargetId, setStopTargetId] = useState<string | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
-  const monthOptions = useMemo(() => buildMonthOptions(), []);
-  const [targetMonth, setTargetMonth] = useState<string>(monthOptions[1]?.value || monthOptions[0].value);
+  // Shared with the Preferences tab so signals saved for a month always line up here.
+  const { targetMonth, setTargetMonth, monthOptions } = useSM2TargetMonth(clinicId);
   const [viewingGenerationId, setViewingGenerationId] = useState<string | null>(null);
 
   const { signals, upsertSignals } = useMonthlySignals(clinicId, targetMonth);
