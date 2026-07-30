@@ -86,7 +86,8 @@ export function useMonthlySignals(clinicId: string | undefined, monthYear?: stri
       return data as MonthlySignals | null;
     },
     enabled: !!clinicId,
-    staleTime: 60_000,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   const upsertSignals = useMutation({

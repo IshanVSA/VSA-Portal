@@ -56,16 +56,8 @@ const DEFAULT_SETTINGS: ContentSettings = {
   end_of_life_content: "not_requested",
 };
 
-function buildMonthOptions(): { value: string; label: string }[] {
-  const out: { value: string; label: string }[] = [];
-  const now = new Date();
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    out.push({ value, label: format(d, "MMMM yyyy") });
-  }
-  return out;
-}
+
+
 
 const ACTIVE_GEN_STATUSES = ["queued", "processing", "retrying"];
 
