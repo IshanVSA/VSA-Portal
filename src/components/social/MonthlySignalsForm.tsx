@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useMonthlySignals } from "@/hooks/useMonthlySignals";
+import { useSM2TargetMonth } from "@/hooks/useSM2TargetMonth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
