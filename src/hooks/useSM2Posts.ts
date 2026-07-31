@@ -7,7 +7,7 @@ import { generateVideoThumbnail, thumbPathFor } from "@/lib/video-thumbnail";
 export const SM2_MAX_IMAGES_PER_POST = 10;
 
 // Keep in sync with the Supabase Storage upload limit for `department-files`.
-export const SM2_MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50MB
+export const SM2_MAX_UPLOAD_BYTES = 100 * 1024 * 1024; // 100MB
 
 export interface SM2Post {
   id: string;
