@@ -215,7 +215,12 @@ export function useSM2Posts(generationId: string | undefined) {
         toast.success(`${uploaded} image${uploaded === 1 ? "" : "s"} uploaded`);
       }
     },
-    onError: (e: Error) => toast.error("Upload failed", { description: e.message }),
+    onError: (e: Error) => {
+      const msg = /maximum allowed size|payload too large|413/i.test(e.message)
+        ? `File exceeds the ${Math.round(SM2_MAX_UPLOAD_BYTES / 1024 / 1024)}MB storage upload limit. Please compress the video and try again.`
+        : e.message;
+      toast.error("Upload failed", { description: msg });
+    },
   });
 
   // Remove a single image by path. Promotes the next gallery image to cover when needed.
