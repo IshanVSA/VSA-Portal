@@ -116,14 +116,14 @@ export function useSM2Posts(generationId: string | undefined) {
       const toUpload = incoming.slice(0, remaining);
       const skipped = incoming.length - toUpload.length;
 
-      // Hard size cap — Supabase Storage default is 50MB unless the bucket is
-      // raised. Reject early with a clear message instead of letting the
-      // upload silently stall halfway through a huge iPhone video.
-      const MAX_BYTES = 200 * 1024 * 1024; // 200MB
+      // Hard size cap — must stay at or below the Storage bucket / project
+      // upload limit, otherwise the server rejects the file mid-upload.
+      const MAX_BYTES = SM2_MAX_UPLOAD_BYTES;
       const tooBig = toUpload.find((f) => f.size > MAX_BYTES);
       if (tooBig) {
-        throw new Error(`"${tooBig.name}" is ${(tooBig.size / 1024 / 1024).toFixed(0)}MB. Please compress to under 200MB before uploading.`);
+        throw new Error(`"${tooBig.name}" is ${(tooBig.size / 1024 / 1024).toFixed(0)}MB. The upload limit is ${Math.round(MAX_BYTES / 1024 / 1024)}MB — please compress or trim the video before uploading.`);
       }
+
 
       // Per-file network timeout so a dead connection rejects instead of
       // hanging the mutation forever (which looked like "stuck uploading").
