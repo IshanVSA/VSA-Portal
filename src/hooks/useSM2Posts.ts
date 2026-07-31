@@ -6,6 +6,9 @@ import { generateVideoThumbnail, thumbPathFor } from "@/lib/video-thumbnail";
 
 export const SM2_MAX_IMAGES_PER_POST = 10;
 
+// Keep in sync with the Supabase Storage upload limit for `department-files`.
+export const SM2_MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50MB
+
 export interface SM2Post {
   id: string;
   generation_id: string;
@@ -116,14 +119,14 @@ export function useSM2Posts(generationId: string | undefined) {
       const toUpload = incoming.slice(0, remaining);
       const skipped = incoming.length - toUpload.length;
 
-      // Hard size cap — Supabase Storage default is 50MB unless the bucket is
-      // raised. Reject early with a clear message instead of letting the
-      // upload silently stall halfway through a huge iPhone video.
-      const MAX_BYTES = 200 * 1024 * 1024; // 200MB
+      // Hard size cap — must stay at or below the Storage bucket / project
+      // upload limit, otherwise the server rejects the file mid-upload.
+      const MAX_BYTES = SM2_MAX_UPLOAD_BYTES;
       const tooBig = toUpload.find((f) => f.size > MAX_BYTES);
       if (tooBig) {
-        throw new Error(`"${tooBig.name}" is ${(tooBig.size / 1024 / 1024).toFixed(0)}MB. Please compress to under 200MB before uploading.`);
+        throw new Error(`"${tooBig.name}" is ${(tooBig.size / 1024 / 1024).toFixed(0)}MB. The upload limit is ${Math.round(MAX_BYTES / 1024 / 1024)}MB — please compress or trim the video before uploading.`);
       }
+
 
       // Per-file network timeout so a dead connection rejects instead of
       // hanging the mutation forever (which looked like "stuck uploading").
@@ -212,7 +215,12 @@ export function useSM2Posts(generationId: string | undefined) {
         toast.success(`${uploaded} image${uploaded === 1 ? "" : "s"} uploaded`);
       }
     },
-    onError: (e: Error) => toast.error("Upload failed", { description: e.message }),
+    onError: (e: Error) => {
+      const msg = /maximum allowed size|payload too large|413/i.test(e.message)
+        ? `File exceeds the ${Math.round(SM2_MAX_UPLOAD_BYTES / 1024 / 1024)}MB storage upload limit. Please compress the video and try again.`
+        : e.message;
+      toast.error("Upload failed", { description: msg });
+    },
   });
 
   // Remove a single image by path. Promotes the next gallery image to cover when needed.
