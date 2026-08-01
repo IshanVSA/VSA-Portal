@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import { ClinicLogoUploader } from "@/components/clinic-detail/ClinicLogoUploader";
 import { DepartmentTeamPicker } from "@/components/clinic-detail/DepartmentTeamPicker";
 import { detectComplianceBody, getEffectiveComplianceBody, COMPLIANCE_BODY_OPTIONS } from "@/lib/compliance-body";
-import { DisconnectAllGoogleAdsButton } from "@/components/clinics/DisconnectAllGoogleAdsButton";
+
 import { ClientAccountsTab } from "@/components/clinics/ClientAccountsTab";
 
 interface Clinic {
@@ -655,7 +655,6 @@ export default function Clinics() {
             </div>
             {role === "admin" && (
               <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                <DisconnectAllGoogleAdsButton />
                 <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetAddForm(); }}>
                   <DialogTrigger asChild>
                     <Button className="rounded-lg shadow-sm w-full sm:w-auto"><Plus className="h-4 w-4 mr-2" /> Add Clinic</Button>
