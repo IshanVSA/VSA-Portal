@@ -3945,6 +3945,7 @@ export type Database = {
         Args: { _clinic_id: string; _user_id: string }
         Returns: boolean
       }
+      can_read_department_file: { Args: { _name: string }; Returns: boolean }
       client_set_content_approval: {
         Args: { _notes?: string; _status: string; _ticket_id: string }
         Returns: undefined
