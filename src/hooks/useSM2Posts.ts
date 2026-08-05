@@ -298,6 +298,32 @@ export function useSM2Posts(generationId: string | undefined) {
     onError: (e: Error) => toast.error("Failed to update post", { description: e.message }),
   });
 
+  // "Mark as posted" — staff track what has actually gone live, independent of
+  // the scheduled date (clients often shift publishing days).
+  const togglePosted = useMutation({
+    mutationFn: async ({ postId, value }: { postId: string; value: boolean }) => {
+      const { data: userData } = await supabase.auth.getUser();
+      const { data, error } = await supabase
+        .from("sm2_posts")
+        .update({
+          is_posted: value,
+          posted_at: value ? new Date().toISOString() : null,
+          posted_by: value ? userData.user?.id ?? null : null,
+        } as any)
+        .eq("id", postId)
+        .select("id");
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("You do not have permission to update this post.");
+      }
+    },
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey });
+      toast.success(vars.value ? "Marked as posted" : "Marked as not posted");
+    },
+    onError: (e: Error) => toast.error("Failed to update posted status", { description: e.message }),
+  });
+
   const toggleMetaAd = useMutation({
     mutationFn: async ({ postId, value }: { postId: string; value: boolean }) => {
       const { error } = await supabase
