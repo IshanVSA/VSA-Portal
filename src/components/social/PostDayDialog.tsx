@@ -255,6 +255,8 @@ function PostCard({
   onSaveFeedback,
   onUpdatePost,
   onToggleMetaAd,
+  onTogglePosted,
+  togglingPosted,
   onRequestDelete,
   metaAdSelectedCount,
   togglingMetaAd,
