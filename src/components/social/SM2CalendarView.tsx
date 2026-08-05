@@ -76,7 +76,7 @@ export default function SM2CalendarView({
   sendPending,
   sentToClientAt,
 }: Props) {
-  const { posts, total, withImages, imagesComplete, getImageUrl, isLoading, updatePost } = useSM2Posts(generationId);
+  const { posts, total, withImages, imagesComplete, postedCount, getImageUrl, isLoading, updatePost } = useSM2Posts(generationId);
   const [openDate, setOpenDate] = useState<string | null>(null);
   const [confirmSendOpen, setConfirmSendOpen] = useState(false);
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -168,6 +168,21 @@ export default function SM2CalendarView({
           <div className="flex items-center gap-3 flex-wrap">
             <h3 className="text-lg font-semibold">{monthLabel}</h3>
             {statusPill}
+            {total > 0 && (
+              <Badge
+                variant="outline"
+                className={cn(
+                  "gap-1",
+                  postedCount === total
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                    : "text-muted-foreground"
+                )}
+                title="Posts marked as published on social media"
+              >
+                <CheckCircle className="h-3 w-3" />
+                Posted {postedCount}/{total}
+              </Badge>
+            )}
             {sentToClientAt && isAwaitingClient && (
               <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
                 <Send className="h-3 w-3" />
@@ -338,10 +353,13 @@ export default function SM2CalendarView({
                             <span className="w-4 h-4 rounded-sm border border-dashed flex items-center justify-center text-[8px] opacity-60">·</span>
                           )}
                           {platformIcon(p.platform)}
+                          {p.is_posted && (
+                            <CheckCircle className="h-2.5 w-2.5 text-emerald-500 shrink-0" />
+                          )}
                           {p.edited_after_approval && (
                             <Pencil className="h-2.5 w-2.5 text-orange-500 shrink-0" />
                           )}
-                          <span className="truncate flex-1 min-w-0">{p.topic || p.theme || p.post_type || "Post"}</span>
+                          <span className={cn("truncate flex-1 min-w-0", p.is_posted && "line-through opacity-70")}>{p.topic || p.theme || p.post_type || "Post"}</span>
                         </div>
                       );
                     })}
