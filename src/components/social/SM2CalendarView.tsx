@@ -168,6 +168,21 @@ export default function SM2CalendarView({
           <div className="flex items-center gap-3 flex-wrap">
             <h3 className="text-lg font-semibold">{monthLabel}</h3>
             {statusPill}
+            {total > 0 && (
+              <Badge
+                variant="outline"
+                className={cn(
+                  "gap-1",
+                  postedCount === total
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                    : "text-muted-foreground"
+                )}
+                title="Posts marked as published on social media"
+              >
+                <CheckCircle className="h-3 w-3" />
+                Posted {postedCount}/{total}
+              </Badge>
+            )}
             {sentToClientAt && isAwaitingClient && (
               <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
                 <Send className="h-3 w-3" />
