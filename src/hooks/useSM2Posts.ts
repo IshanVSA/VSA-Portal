@@ -39,6 +39,9 @@ export interface SM2Post {
   script: string | null;
   edited_after_approval?: boolean | null;
   edited_after_approval_at?: string | null;
+  is_posted?: boolean | null;
+  posted_at?: string | null;
+  posted_by?: string | null;
   created_at: string;
   updated_at: string;
 }
