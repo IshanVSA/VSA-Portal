@@ -148,6 +148,8 @@ export default function PostDayDialog({ open, onClose, date, generationId, isCli
                 onSaveFeedback={(feedback) => saveFeedback.mutate({ postId: post.id, feedback })}
                 onUpdatePost={(updates) => updatePost.mutate({ postId: post.id, updates })}
                 onToggleMetaAd={(value) => toggleMetaAd.mutate({ postId: post.id, value })}
+                onTogglePosted={(value) => togglePosted.mutate({ postId: post.id, value })}
+                togglingPosted={togglePosted.isPending}
                 onRequestDelete={() => setConfirmDeleteId(post.id)}
                 metaAdSelectedCount={metaAdSelectedCount}
                 togglingMetaAd={toggleMetaAd.isPending}
