@@ -446,6 +446,7 @@ export function useSM2Posts(generationId: string | undefined) {
   const total = posts?.length || 0;
   const withImages = posts?.filter((p) => postHasImage(p)).length || 0;
   const imagesComplete = total > 0 && withImages === total;
+  const postedCount = posts?.filter((p) => p.is_posted).length || 0;
 
   return {
     posts: posts || [],
@@ -455,11 +456,13 @@ export function useSM2Posts(generationId: string | undefined) {
     saveFeedback,
     updatePost,
     toggleMetaAd,
+    togglePosted,
     addPost,
     deletePost,
     getImageUrl,
     total,
     withImages,
     imagesComplete,
+    postedCount,
   };
 }
