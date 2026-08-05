@@ -535,6 +535,36 @@ function PostCard({
                 </Badge>
               );
             })()}
+            {post.is_posted && (
+              <Badge
+                className="text-[10px] gap-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30"
+                title={
+                  post.posted_at
+                    ? `Marked as posted on ${format(new Date(post.posted_at), "MMM d, yyyy 'at' h:mm a")}`
+                    : "Marked as posted"
+                }
+              >
+                <CheckCircle2 className="h-3 w-3" />
+                Posted
+              </Badge>
+            )}
+            {!isClient && (
+              <Button
+                size="sm"
+                variant={post.is_posted ? "ghost" : "outline"}
+                disabled={togglingPosted}
+                onClick={() => onTogglePosted(!post.is_posted)}
+                className={cn(
+                  "h-7 px-2 gap-1 text-[11px]",
+                  !post.is_posted &&
+                    "border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-700"
+                )}
+                title={post.is_posted ? "Undo — mark this post as not yet published" : "Mark this post as published on social media"}
+              >
+                {post.is_posted ? <Undo2 className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
+                {post.is_posted ? "Undo posted" : "Mark as posted"}
+              </Button>
+            )}
             {!isClient && !copyLocked && (
               <>
                 <Button
