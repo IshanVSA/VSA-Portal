@@ -47,7 +47,7 @@ import { cn } from "@/lib/utils";
 import { isVideoUrl, thumbPathFor, isVideoPath } from "@/lib/video-thumbnail";
 import { MediaCover } from "./MediaCover";
 import { computePostConfidence, confidenceBadgeClass } from "@/lib/sm2-confidence";
-import { ShieldCheck, AlertTriangle as AlertTriangleIcon } from "lucide-react";
+import { ShieldCheck, AlertTriangle as AlertTriangleIcon, CheckCircle2, Undo2 } from "lucide-react";
 
 interface Props {
   open: boolean;
