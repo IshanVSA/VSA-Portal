@@ -275,6 +275,8 @@ function PostCard({
   onSaveFeedback: (feedback: string) => void;
   onUpdatePost: (updates: Partial<SM2Post>) => void;
   onToggleMetaAd: (value: boolean) => void;
+  onTogglePosted: (value: boolean) => void;
+  togglingPosted: boolean;
   onRequestDelete: () => void;
   metaAdSelectedCount: number;
   togglingMetaAd: boolean;
