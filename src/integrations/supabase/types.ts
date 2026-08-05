@@ -3350,10 +3350,13 @@ export type Database = {
           image_paths: string[]
           image_uploaded_at: string | null
           image_uploaded_by: string | null
+          is_posted: boolean
           platform: string
           position: number
           post_number: number | null
           post_type: string | null
+          posted_at: string | null
+          posted_by: string | null
           run_meta_ad: boolean
           scheduled_date: string
           script: string | null
@@ -3383,10 +3386,13 @@ export type Database = {
           image_paths?: string[]
           image_uploaded_at?: string | null
           image_uploaded_by?: string | null
+          is_posted?: boolean
           platform: string
           position?: number
           post_number?: number | null
           post_type?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
           run_meta_ad?: boolean
           scheduled_date: string
           script?: string | null
@@ -3416,10 +3422,13 @@ export type Database = {
           image_paths?: string[]
           image_uploaded_at?: string | null
           image_uploaded_by?: string | null
+          is_posted?: boolean
           platform?: string
           position?: number
           post_number?: number | null
           post_type?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
           run_meta_ad?: boolean
           scheduled_date?: string
           script?: string | null
