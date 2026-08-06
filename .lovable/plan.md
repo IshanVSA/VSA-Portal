@@ -1,38 +1,55 @@
-# Unified Report — Match Pasted HTML Template Exactly
+# Performance Pass — 5 Bottlenecks
 
-The pasted file is a fully-designed HTML report (Inter font, dark navy masthead, gradient section icons, SVG line/bar charts, color-accented tables, "AI Performance Analysis" cards, A4 page breaks). Our current PDF is built with jsPDF primitives, which cannot reproduce this layout faithfully. The correct fix is to generate the report as HTML and export it to PDF via the browser's print pipeline.
+A scan of the app against the five items in the screenshot. Two are already handled well; three need real work.
 
-## What changes
+## 1. Fetching data one row at a time (N+1)
 
-1. **New renderer** `src/lib/unified-report-html.ts`
-   - Pure functions that build the exact HTML string from the same data `UnifiedReportTab` already fetches (GA4 totals, top pages, hourly, geography; SEO clicks/impr/CTR/pos, brand vs non-brand, devices, countries, top queries/pages; Google Ads KPIs, daily trend, top campaigns; Social FB/IG activity + engagement).
-   - Sections in this order, each on its own A4 page (`<div class="pagebreak">`):
-     1. Masthead (title, clinic, period pill)
-     2. Website Analytics — KPI grid, Daily Page Views line chart (SVG), Top Pages table, Pages/Session bar list, Visitor Geography table, Traffic by Hour bar chart (SVG), AI card
-     3. SEO Performance — KPI grid, Brand vs Non-Brand share, Device table, Top Countries table, Top Queries/Pages tables, AI card
-     4. Google Ads — KPI grid, Daily Clicks + Daily Spend line charts, Top Campaigns by Spend bar chart, Campaign table, AI card
-     5. Social Media — Facebook + Instagram KPI mini-grids, activity/engagement bar charts, AI card
-   - Uses the exact CSS classes / colors / SVG structure from the pasted file (masthead gradient, `.kpi`, `.pill-pos/neg/flat`, `.card`, `.tbl` with `acc-orange/teal/blue/purple`, `.barlist`, `.ai-card`, `.pagebreak`, `@page{size:A4}`).
-   - SVG chart helpers: `lineChart(points, color)`, `barChart(values, labels, gradientId, colors)`, `shareBar(brand, nonBrand)`.
+Confirmed cases:
+- `NotificationBell.tsx` — `getClinicName()` runs one `clinics` query per notification (memo-cached, but cold loads still fire N sequential requests). Fix: collect all clinic IDs from the fetched notifications and resolve them in a single `.in("id", ids)` call.
+- `Employees.tsx` — team assignment save loops `toRemove` / `toAdd` with one insert/delete per clinic. Fix: one bulk `insert` and one `delete ... .in("clinic_id", toRemove)`.
+- `AdminReview.tsx` — post materialization inserts posts one at a time inside a `for` loop. Fix: build the array and do a single bulk insert.
 
-2. **New print flow** in `src/components/department/UnifiedReportTab.tsx`
-   - Replace the jsPDF pipeline: open a hidden iframe, write the generated HTML, call `iframe.contentWindow.print()`. The user chooses "Save as PDF" from the browser dialog, producing an A4 file that matches the template pixel-for-pixel.
-   - Keep the existing "Generate Report" button, loading state, date range, and AI-analysis calls (`generate-report-analysis`) unchanged.
-   - Retain the compare/YoY toggles that already feed the KPI pills.
+Other `.in()`-based fetches (Clinics, ClinicDetail, SubAccounts) are already batched and stay as-is.
 
-3. **Delete / retire**
-   - `src/lib/pdf-charts.ts` and the jsPDF chart calls in `UnifiedReportTab.tsx` are no longer used by this report (kept only if other pages import them — will remove if unused).
-   - `src/lib/pdf-theme.ts` helpers used only by the unified report will be removed; anything shared with per-department PDFs stays.
+## 2. Missing database indexes
+
+Hot tables were checked. `clinic_gsc_daily` (977k rows), `website_pageviews` (305k), `clinic_ga4_traffic_daily`, `sm2_posts`, `content_posts`, `department_tickets` all already have the clinic+date composite indexes the app filters on. Gaps found:
+
+- `ticket_audit_log` — no index on `ticket_id` / `actor_id`, both used by the timeline and audit queries.
+- `department_ticket_assignments` — queried by `assigned_to` and `(ticket_id, department)`; verify and add what's missing.
+- `analytics` — only `clinic_id`; add `(clinic_id, created_at DESC)` if the app filters by date.
+
+Each candidate gets `EXPLAIN (ANALYZE, BUFFERS)` before and after so we only add indexes that actually change the plan.
+
+## 3. Loading every row at once
+
+`website_pageviews` already goes through the paginated `fetchAllPageviews` helper. Remaining unbounded reads to cap:
+
+- `Clinics.tsx` — `select("*")` on the full clinics table; narrow to the columns the list renders.
+- `ticket_audit_log` / notification feeds — add explicit `.limit()` where a feed is rendered without one.
+- Audit the 31 `select("*")` call sites and replace with explicit column lists on the large tables.
+
+No user-visible pagination UI is added; this is about not over-fetching.
+
+## 4. Large uncompressed images
+
+`src/assets` ships `vedant-photo.png` (90KB), `avi-photo.jpeg` (73KB), `vsa-logo.jpg` (24KB), `user-placeholder.png` (18KB). Add `vite-imagetools` and import WebP variants of the photos, keeping the originals as fallback. Also add `loading="lazy"` + explicit `width`/`height` to the `<img>` tags that don't have them (8 of 28 currently do).
+
+## 5. Whole app loads as one bundle
+
+Routes are already code-split with `React.lazy` in `App.tsx`. The remaining weight is in large always-imported components:
+
+- `BrandDNATab` (1621 lines), `PostDayDialog` (1106), `DepartmentChat` (1016), `NotificationBell` (1002), `ContentGenerationTab` (981), `unified-report-html` + `html2pdf.js`.
+- Lazy-load the heaviest dialogs/tabs behind `React.lazy` + `Suspense`, and dynamic-`import()` `html2pdf.js` only when the report button is clicked.
+- Add `rollup-plugin-visualizer` output once to confirm the initial chunk lands under ~200KB gzipped.
 
 ## Technical notes
 
-- Font: template embeds Inter via base64. To keep the bundle small, load Inter via a `<link>` to Google Fonts inside the generated HTML (print output is visually identical); fall back to `system-ui`.
-- Charts are inline SVG (no chart library) so they render perfectly in the print dialog with no canvas rasterization.
-- All numbers/labels come from the same hooks currently used (`useGa4Compare`, `useSearchConsole`, `useGoogleAdsKPIs`, social analytics query, top-pages query). No new data fetches.
-- AI text: reuse existing `generate-report-analysis` edge function; render its paragraphs inside the color-tinted `.ai-card` per section.
-- Output is "Save as PDF" from the browser rather than a direct `.pdf` download. This is the only way to reproduce the pasted design faithfully without a server-side headless-Chrome step.
+- Index changes go through a Supabase migration (plain `CREATE INDEX`, not `CONCURRENTLY`).
+- No behavior or UI changes — same data, same screens, fewer/faster requests.
+- Verification: typecheck, a build to compare chunk sizes, and `EXPLAIN` output for each new index.
 
 ## Out of scope
 
-- No changes to data sources, edge functions, or per-department analytics tabs.
-- No changes to other PDF exports (per-department reports keep their current jsPDF renderers).
+- No schema/RLS changes beyond indexes.
+- No redesign of any screen.
