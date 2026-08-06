@@ -150,11 +150,11 @@ export default function Employees() {
     // Update clinic assignments
     const toAdd = editForm.clinicIds.filter(id => !currentClinicIds.includes(id));
     const toRemove = currentClinicIds.filter(id => !editForm.clinicIds.includes(id));
-    for (const clinicId of toRemove) {
-      await (supabase.from("clinic_team_members" as any).delete().eq("user_id", userId).eq("clinic_id", clinicId) as any);
+    if (toRemove.length > 0) {
+      await (supabase.from("clinic_team_members" as any).delete().eq("user_id", userId).in("clinic_id", toRemove) as any);
     }
-    for (const clinicId of toAdd) {
-      await (supabase.from("clinic_team_members" as any).insert({ user_id: userId, clinic_id: clinicId } as any) as any);
+    if (toAdd.length > 0) {
+      await (supabase.from("clinic_team_members" as any).insert(toAdd.map((clinic_id) => ({ user_id: userId, clinic_id })) as any) as any);
     }
 
     setSavingEdit(false);
