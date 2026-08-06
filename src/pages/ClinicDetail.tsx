@@ -400,7 +400,7 @@ export default function ClinicDetail() {
 
   const fetchAnalytics = async () => {
     if (!id) return;
-    const { data } = await supabase.from("analytics").select("*").eq("clinic_id", id).order("recorded_at", { ascending: true });
+    const { data } = await supabase.from("analytics").select("*").eq("clinic_id", id).order("recorded_at", { ascending: true }).limit(500);
     if (!data) return;
     const insta = data.filter(r => r.platform === "instagram").map(r => {
       const m = (r as any).metrics_json || {};
