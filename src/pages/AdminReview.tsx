@@ -140,15 +140,14 @@ export default function AdminReview() {
       }
 
       // Create posts in content_posts
-      for (const post of posts) {
+      const postRows = posts.map((post: any) => {
         let scheduledDate = post.suggested_date || null;
         if (scheduledDate && monthStart && monthEnd) {
           if (scheduledDate < monthStart || scheduledDate > monthEnd) {
             scheduledDate = null;
           }
         }
-
-        const { data: insertedPost } = await supabase.from("content_posts").insert({
+        return {
           clinic_id: clinicId,
           title: post.hook || post.theme || "Untitled Post",
           caption: post.caption || post.main_copy || null,
@@ -160,20 +159,30 @@ export default function AdminReview() {
           tags: [post.goal_type, post.funnel_stage, post.service_highlighted].filter(Boolean),
           compliance_note: post.compliance_note || null,
           content: post.main_copy || null,
-        }).select("id").single();
+        };
+      });
 
-        if (insertedPost) {
-          await supabase.from("post_workflow").insert({
-            post_id: insertedPost.id,
-            stage: "final_approved",
-          });
+      if (postRows.length > 0) {
+        const { data: insertedPosts } = await supabase
+          .from("content_posts")
+          .insert(postRows)
+          .select("id");
 
-          await supabase.from("post_activity_log").insert({
-            post_id: insertedPost.id,
-            action: "final_approved",
-            actor_id: user?.id || null,
-            metadata: { request_id: requestId, version_id: selectedVersion.id },
-          });
+        const ids = (insertedPosts || []).map((p: any) => p.id);
+        if (ids.length > 0) {
+          await Promise.all([
+            supabase.from("post_workflow").insert(
+              ids.map((post_id: string) => ({ post_id, stage: "final_approved" })),
+            ),
+            supabase.from("post_activity_log").insert(
+              ids.map((post_id: string) => ({
+                post_id,
+                action: "final_approved",
+                actor_id: user?.id || null,
+                metadata: { request_id: requestId, version_id: selectedVersion.id },
+              })),
+            ),
+          ]);
         }
       }
 
