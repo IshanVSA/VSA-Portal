@@ -64,7 +64,8 @@ export function useDepartmentTasks(department: DepartmentType, clinicId: string 
         .select("*")
         .eq("department", department)
         .eq("clinic_id", clinicId)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(500);
       if (error) throw error;
       const rows = (data ?? []) as unknown as DepartmentTask[];
       const ids = Array.from(new Set(rows.flatMap(r => [r.assigned_to, r.created_by]).filter(Boolean))) as string[];

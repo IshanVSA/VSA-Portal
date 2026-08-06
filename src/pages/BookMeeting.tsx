@@ -1,7 +1,7 @@
 import { CalendarCheck, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import vedantPhoto from "@/assets/vedant-photo.png";
-import aviPhoto from "@/assets/avi-photo.jpeg";
+import vedantPhoto from "@/assets/vedant-photo.png?format=webp&quality=80&w=160";
+import aviPhoto from "@/assets/avi-photo.jpeg?format=webp&quality=80&w=160";
 
 const people = [
   {
@@ -54,7 +54,7 @@ export default function BookMeeting() {
             {/* Avatar */}
             {person.photo ? (
               <div className="h-20 w-20 rounded-full overflow-hidden mb-4 shadow-lg ring-2 ring-primary/20">
-                <img src={person.photo} alt={person.name} className="h-full w-full object-cover object-top" />
+                <img src={person.photo} alt={person.name} width={80} height={80} loading="lazy" decoding="async" className="h-full w-full object-cover object-top" />
               </div>
             ) : (
               <div

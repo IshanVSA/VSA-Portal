@@ -18,7 +18,8 @@ export function useGBPPosts(clinicId: string | null) {
         .eq("clinic_id", clinicId!)
         .order("year", { ascending: false })
         .order("month", { ascending: false })
-        .order("week_number");
+        .order("week_number")
+        .limit(500);
       if (error) throw error;
       return (data ?? []) as unknown as GBPPostHistory[];
     },

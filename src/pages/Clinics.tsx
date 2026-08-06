@@ -204,7 +204,12 @@ export default function Clinics() {
 
   const fetchClinics = async () => {
     // RLS handles role-based filtering (admin sees all, concierge sees assigned + team, client sees owned)
-    const { data } = await supabase.from("clinics").select("*").order("clinic_name", { ascending: true });
+    const { data } = await supabase
+      .from("clinics")
+      .select(
+        "id, clinic_name, status, assigned_concierge_id, owner_user_id, phone, address, website, logo_url, compliance_body_override, website_enabled, seo_enabled, google_ads_enabled, ai_seo_enabled, social_media_enabled",
+      )
+      .order("clinic_name", { ascending: true });
     setClinics(data || []);
     setLoading(false);
   };

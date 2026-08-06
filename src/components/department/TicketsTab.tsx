@@ -150,7 +150,8 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
          .from("department_tickets" as any)
          .select("*")
          .or(orClauses.join(","))
-         .order("created_at", { ascending: false });
+         .order("created_at", { ascending: false })
+         .limit(500);
 
        if (clinicId) {
          query = query.eq("clinic_id", clinicId);
