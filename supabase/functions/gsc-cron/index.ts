@@ -57,29 +57,48 @@ Deno.serve(async (req) => {
     const list = creds || [];
     console.log(`GSC cron: syncing ${list.length} clinics`);
 
-    const results: any[] = [];
-    for (const c of list) {
-      try {
-        const res = await fetch(`${SUPABASE_URL}/functions/v1/sync-gsc-data`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-cron-secret": CRON_SECRET,
-            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-          },
-          body: JSON.stringify({ clinic_id: c.clinic_id }),
-        });
-        const j = await res.json().catch(() => ({}));
-        results.push({ clinic_id: c.clinic_id, status: res.ok ? "ok" : "error", detail: j });
-      } catch (e: any) {
-        results.push({ clinic_id: c.clinic_id, status: "error", detail: String(e?.message || e) });
-      }
+    // Run in the background with limited concurrency so the HTTP request
+    // does not hit the 150s idle timeout with many connected clinics.
+    const runAll = async () => {
+      const CONCURRENCY = 2;
+      const queue = [...list];
+      const workers = Array.from({ length: Math.min(CONCURRENCY, queue.length) }, async () => {
+        while (queue.length) {
+          const c = queue.shift();
+          if (!c) break;
+          try {
+            const res = await fetch(`${SUPABASE_URL}/functions/v1/sync-gsc-data`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "x-cron-secret": CRON_SECRET,
+                Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              },
+              body: JSON.stringify({ clinic_id: c.clinic_id }),
+            });
+            if (!res.ok) console.error(`GSC sync failed for ${c.clinic_id}: ${res.status}`);
+            await res.text().catch(() => "");
+          } catch (e: any) {
+            console.error(`GSC sync error for ${c.clinic_id}:`, String(e?.message || e));
+          }
+        }
+      });
+      await Promise.all(workers);
+      console.log("GSC cron complete");
+    };
+
+    // @ts-ignore EdgeRuntime is available in Supabase edge functions
+    if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
+      // @ts-ignore
+      EdgeRuntime.waitUntil(runAll());
+    } else {
+      await runAll();
     }
 
-    console.log("GSC cron complete:", JSON.stringify(results));
-    return new Response(JSON.stringify({ processed: list.length, results }), {
+    return new Response(JSON.stringify({ started: list.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
   } catch (err) {
     console.error("gsc-cron unexpected error:", err);
     return new Response(JSON.stringify({ error: "Internal server error" }), {

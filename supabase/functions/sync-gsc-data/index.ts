@@ -179,14 +179,27 @@ export async function syncClinicGSC(clinicId: string, initial = false): Promise<
   }
 
   if (rows.length > 0) {
-    const { error: delErr } = await supabase
-      .from("clinic_gsc_daily").delete()
-      .eq("clinic_id", clinicId).gte("date", fromDate);
-    if (delErr) console.warn("GSC delete window failed:", delErr);
+    // Dedupe on the unique key before writing (GSC can return the same bucket twice).
+    const seen = new Map<string, typeof rows[number]>();
+    for (const r of rows) seen.set(`${r.date}|${r.bucket_type}|${r.bucket_value}`, r);
+    const unique = Array.from(seen.values());
 
-    for (let i = 0; i < rows.length; i += 500) {
-      const chunk = rows.slice(i, i + 500);
-      const { error: insErr } = await supabase.from("clinic_gsc_daily").insert(chunk);
+    // Delete the refresh window in date slices to avoid statement timeouts.
+    const dates = Array.from(new Set(unique.map(r => r.date))).sort();
+    for (let i = 0; i < dates.length; i += 30) {
+      const slice = dates.slice(i, i + 30);
+      const { error: delErr } = await supabase
+        .from("clinic_gsc_daily").delete()
+        .eq("clinic_id", clinicId)
+        .gte("date", slice[0]).lte("date", slice[slice.length - 1]);
+      if (delErr) console.warn("GSC delete window failed:", delErr);
+    }
+
+    for (let i = 0; i < unique.length; i += 250) {
+      const chunk = unique.slice(i, i + 250);
+      const { error: insErr } = await supabase
+        .from("clinic_gsc_daily")
+        .upsert(chunk, { onConflict: "clinic_id,date,bucket_type,bucket_value" });
       if (insErr) {
         console.error("GSC insert failed:", insErr);
         await supabase.from("clinic_gsc_credentials").update({
@@ -198,6 +211,7 @@ export async function syncClinicGSC(clinicId: string, initial = false): Promise<
       }
     }
   }
+
 
   await supabase.from("clinic_gsc_credentials").update({
     last_sync_at: new Date().toISOString(),
