@@ -31,9 +31,19 @@ window.addEventListener("unhandledrejection", (e) =>
   tryChunkRecovery(String((e.reason as { message?: string })?.message || e.reason))
 );
 
-// Register service worker for PWA
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
-  });
+// Service worker: only on the real published site. In dev/preview sandboxes a
+// stale SW can serve outdated HTML/chunks and blank the screen, so tear it down.
+if ("serviceWorker" in navigator) {
+  const host = window.location.hostname;
+  const isPreview = host === "localhost" || host.endsWith("lovableproject.com") || host.includes("id-preview--");
+
+  if (isPreview) {
+    navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister())).catch(() => {});
+    if (window.caches) caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))).catch(() => {});
+  } else {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    });
+  }
 }
+
