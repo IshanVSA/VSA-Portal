@@ -129,18 +129,27 @@ export function useSearchConsole(clinicId: string | null, dateRange: DateRange, 
       const prevTo = subDays(dateRange.from, 1);
       const prevFrom = subDays(prevTo, lengthDays - 1);
 
-      // Fetch current + previous rows in one query
-      const { data, error } = await (supabase as any)
-        .from("clinic_gsc_daily")
-        .select("date, bucket_type, bucket_value, impressions, clicks, ctr, position")
-        .eq("clinic_id", clinicId)
-        .gte("date", format(prevFrom, "yyyy-MM-dd"))
-        .lte("date", to)
-        .order("date", { ascending: true })
-        .limit(50000);
+      // Fetch current + previous rows. PostgREST caps a single response at 1000 rows,
+      // so page through the window explicitly instead of relying on .limit().
+      const PAGE = 1000;
+      const all: Row[] = [];
+      for (let offset = 0; offset < 100000; offset += PAGE) {
+        const { data, error } = await (supabase as any)
+          .from("clinic_gsc_daily")
+          .select("date, bucket_type, bucket_value, impressions, clicks, ctr, position")
+          .eq("clinic_id", clinicId)
+          .gte("date", format(prevFrom, "yyyy-MM-dd"))
+          .lte("date", to)
+          .order("date", { ascending: true })
+          .order("bucket_type", { ascending: true })
+          .order("bucket_value", { ascending: true })
+          .range(offset, offset + PAGE - 1);
 
-      if (error) throw error;
-      const all = (data || []) as Row[];
+        if (error) throw error;
+        const batch = (data || []) as Row[];
+        all.push(...batch);
+        if (batch.length < PAGE) break;
+      }
 
       const inCurrent = (r: Row) => r.date >= from && r.date <= to;
       const inPrev = (r: Row) => r.date >= format(prevFrom, "yyyy-MM-dd") && r.date <= format(prevTo, "yyyy-MM-dd");
