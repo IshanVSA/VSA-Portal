@@ -141,3 +141,9 @@ verify_jwt = false
 
 [functions.gsc-bulk-connect]
 verify_jwt = false
+
+[functions.gsc-cron]
+verify_jwt = false
+
+[functions.sync-gsc-data]
+verify_jwt = false
