@@ -354,74 +354,147 @@ async function callMcpTool(base: string, apiKey: string, name: string, params: R
   return direct;
 }
 
-// Search Atlas MCP tools accept the site under several argument names depending
-// on the tool. When a call fails with INTERNAL / validation, retry with
-// alternate shapes derived from whatever the caller sent (target/domain/url).
-function buildParamVariants(params: Record<string, unknown>): Record<string, unknown>[] {
-  const raw = String(
-    params.target ?? params.domain ?? params.hostname ?? params.url ?? params.target_url ?? "",
-  ).trim();
-  if (!raw) return [params];
+/**
+ * Search Atlas MCP list tools return columnar payloads: { columns: [...], rows: [[...]] }.
+ * The UI expects arrays of row objects, so expand them (recursively) before returning.
+ */
+function normalizeColumnar(value: unknown, depth = 0): unknown {
+  if (depth > 6) return value;
+  const parsed = parseJsonMaybe(value);
+  if (Array.isArray(parsed)) return parsed.map((v) => normalizeColumnar(v, depth + 1));
+  if (!isPlainRecord(parsed)) return parsed;
 
-  const stripped = raw.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
-  const withHttps = `https://${stripped}`;
-  const withWww = `https://www.${stripped}`;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(parsed)) out[k] = normalizeColumnar(v, depth + 1);
 
-  const base: Record<string, unknown> = { ...params };
-  for (const k of ["target", "domain", "hostname", "url", "target_url", "site", "root_domain"]) {
-    delete base[k];
+  const columns = out.columns;
+  const rows = out.rows;
+  if (Array.isArray(columns) && Array.isArray(rows) && columns.every((c) => typeof c === "string")) {
+    const objects = rows.map((row) => {
+      if (Array.isArray(row)) {
+        const o: Record<string, unknown> = {};
+        (columns as string[]).forEach((c, i) => { o[c] = row[i]; });
+        return o;
+      }
+      return row;
+    });
+    out.rows = objects;
+    if (!Array.isArray(out.results)) out.results = objects;
+  }
+  return out;
+}
+
+// ---- Identifier resolution -------------------------------------------------
+// Stored clinic ids are not interchangeable across Search Atlas services:
+//   Site Explorer needs a numeric site_id from se_list_sites
+//   OTTO needs a project UUID or the hostname (never an internal numeric id)
+//   Rank Tracker needs a krt project_id from krt_list_projects
+//   Local SEO heatmaps need a numeric business_id
+// Tabs send tokens ("@site_id", "@otto", "@krt_project_id", "@business_id",
+// "@domain") plus a `domain`; we resolve + cache the real ids here.
+const RESOLVE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+function bareDomain(input: string) {
+  return input.trim().replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0].toLowerCase();
+}
+
+function rowsOf(payload: unknown): any[] {
+  const norm = normalizeColumnar(payload) as any;
+  const candidates = [norm?.rows, norm?.items, norm?.results, norm?.result?.rows, norm?.result?.items];
+  for (const c of candidates) if (Array.isArray(c) && c.length) return c;
+  return [];
+}
+
+async function callTool(apiKey: string, name: string, params: Record<string, unknown>) {
+  for (const base of MCP_BASES) {
+    const r = await callMcpTool(base, apiKey, name, params);
+    if (r.response.ok && !hasMcpError(r.data) && !hasMcpToolError(r.data)) return r;
+    if (r.response.status === 429 || isRateLimitError(r.data)) return r;
+  }
+  return null;
+}
+
+async function resolveIdentifiers(sb: any, apiKey: string, domain: string, needs: Set<string>) {
+  const host = bareDomain(domain);
+  const cacheKey = `__resolve__::${host}`;
+  const cached = sb ? await readCache(sb, cacheKey) : null;
+  const ids: Record<string, unknown> = (cached && !cached.expired ? (cached.payload as any) : {}) ?? {};
+  let changed = false;
+
+  if (needs.has("site_id") && ids.site_id == null) {
+    const r = await callTool(apiKey, "se_list_sites", { search: host, page_size: 10 });
+    const rows = rowsOf(getMcpToolPayload(r?.data));
+    // Prefer the project with the most keywords for this exact domain.
+    const match = rows
+      .filter((x) => bareDomain(String(x.domain ?? x.url ?? "")) === host)
+      .sort((a, b) => Number(b.keywords ?? 0) - Number(a.keywords ?? 0))[0] ?? rows[0];
+    if (match?.id != null) { ids.site_id = Number(match.id); changed = true; }
   }
 
-  const shapes: Record<string, unknown>[] = [
-    { ...base, target: stripped },
-    { ...base, target: withHttps },
-    { ...base, domain: stripped },
-    { ...base, target: withWww },
-    { ...base, target_url: withHttps },
-    { ...base, url: withHttps },
-    { ...base, hostname: stripped },
-    params,
-  ];
+  if (needs.has("otto") && ids.otto == null) {
+    const r = await callTool(apiKey, "otto_list_projects", { search: host, page_size: 10 });
+    const rows = rowsOf(getMcpToolPayload(r?.data));
+    const match = rows.find((x) => bareDomain(String(x.hostname ?? x.domain ?? x.url ?? "")) === host) ?? rows[0];
+    const uuid = match?.uuid ?? match?.otto_project_uuid ?? match?.id;
+    if (uuid) { ids.otto = String(uuid); changed = true; }
+  }
 
-  const seen = new Set<string>();
-  return shapes.filter((s) => {
-    const k = JSON.stringify(s);
-    if (seen.has(k)) return false;
-    seen.add(k);
-    return true;
-  });
+  if (needs.has("krt_project_id") && ids.krt_project_id == null) {
+    const r = await callTool(apiKey, "krt_list_projects", { search: host, page_size: 100 });
+    const rows = rowsOf(getMcpToolPayload(r?.data));
+    const match = rows.find((x) => bareDomain(String(x.url ?? x.name ?? "")) === host);
+    if (match?.id != null) { ids.krt_project_id = Number(match.id); changed = true; }
+  }
+
+  if (needs.has("business_id") && ids.business_id == null) {
+    const r = await callTool(apiKey, "local_seo_heatmaps_list_businesses", { search: host, page_size: 20, slim: true });
+    const rows = rowsOf(getMcpToolPayload(r?.data));
+    const match = rows.find((x) => bareDomain(String(x.website ?? x.url ?? "")) === host) ?? rows[0];
+    if (match?.id != null) { ids.business_id = Number(match.id); changed = true; }
+  }
+
+  ids.domain = host;
+  if (changed && sb) {
+    await sb.from("search_atlas_cache").upsert({
+      cache_key: cacheKey,
+      tool: "__resolve__",
+      payload: ids,
+      fetched_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + RESOLVE_TTL_MS).toISOString(),
+    }, { onConflict: "cache_key" }).catch?.(() => null);
+  }
+  return ids;
+}
+
+const TOKEN_RE = /^@(site_id|otto|krt_project_id|business_id|domain)$/;
+
+function collectTokens(params: Record<string, unknown>): Set<string> {
+  const needs = new Set<string>();
+  for (const v of Object.values(params)) {
+    if (typeof v === "string") {
+      const m = TOKEN_RE.exec(v);
+      if (m) needs.add(m[1]);
+    }
+  }
+  return needs;
+}
+
+function applyTokens(params: Record<string, unknown>, ids: Record<string, unknown>) {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(params)) {
+    if (typeof v === "string") {
+      const m = TOKEN_RE.exec(v);
+      if (m) { out[k] = ids[m[1]]; continue; }
+    }
+    out[k] = v;
+  }
+  return out;
 }
 
 async function callMcpToolWithVariants(base: string, apiKey: string, name: string, params: Record<string, unknown>) {
-  // Fast path: reuse the winning variant for this (tool, site) from prior calls.
-  const memoKey = `${name}::${siteKey(params)}`;
-  const winner = variantMemo.get(memoKey);
-  if (winner) {
-    const merged = { ...params, ...winner };
-    const fast = await callMcpTool(base, apiKey, name, merged);
-    if (fast.response.ok && !hasMcpError(fast.data) && !hasMcpToolError(fast.data)) return fast;
-    if (fast.response.status === 429 || isRateLimitError(fast.data)) return fast;
-    // Winner stopped working — fall through to variant sweep.
-    variantMemo.delete(memoKey);
-  }
-
-  const variants = buildParamVariants(params).slice(0, 3); // cap to 3 to avoid rate-limit storms
-  let last = await callMcpTool(base, apiKey, name, variants[0]);
-  if (last.response.ok && !hasMcpError(last.data) && !hasMcpToolError(last.data)) {
-    variantMemo.set(memoKey, variants[0]);
-    return last;
-  }
-  if (last.response.status === 429 || isRateLimitError(last.data)) return last;
-  for (let i = 1; i < variants.length; i++) {
-    const attempt = await callMcpTool(base, apiKey, name, variants[i]);
-    if (attempt.response.ok && !hasMcpError(attempt.data) && !hasMcpToolError(attempt.data)) {
-      variantMemo.set(memoKey, variants[i]);
-      return attempt;
-    }
-    if (attempt.response.status === 429 || isRateLimitError(attempt.data)) return attempt;
-    last = attempt;
-  }
-  return last;
+  // Argument shapes are now taken from the live tool schemas, so no sweep:
+  // a single call per request keeps us well inside the 40 req / 60 s limit.
+  return await callMcpTool(base, apiKey, name, params);
 }
 
 Deno.serve(async (req) => {
