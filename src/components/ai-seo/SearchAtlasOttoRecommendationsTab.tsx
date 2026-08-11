@@ -21,30 +21,33 @@ function num(v: unknown, d = 0): number {
 }
 
 export function SearchAtlasOttoRecommendationsTab({ config, clinicId }: Props) {
+  // OTTO accepts a project UUID or the hostname — never the internal numeric id.
+  const domain = config.search_atlas_domain ?? undefined;
   const ottoId = config.search_atlas_otto_uuid;
+  const enabled = !!domain;
   const detailsQ = useSearchAtlasMcpByName<any>(
-    ["otto_details", ottoId ?? ""],
+    ["otto_details", domain ?? ""],
     "otto_get_project_details",
-    { uuid: ottoId },
-    !!ottoId,
+    { project_identifier: "@otto", __domain: domain },
+    enabled,
   );
   const schemasQ = useSearchAtlasMcpByName<any>(
-    ["otto_schemas", ottoId ?? ""],
+    ["otto_schemas", domain ?? ""],
     "otto_list_schemas",
-    { uuid: ottoId },
-    !!ottoId,
+    { project_identifier: "@otto", page_size: 100, __domain: domain },
+    enabled,
   );
   const exportQ = useSearchAtlasMcpByName<any>(
-    ["otto_export", ottoId ?? ""],
-    "otto_export_suggestions",
-    { uuid: ottoId },
-    !!ottoId,
+    ["otto_issues", domain ?? ""],
+    "otto_get_project_issues",
+    { project_identifier: "@otto", __domain: domain },
+    enabled,
   );
   const kgQ = useSearchAtlasMcpByName<any>(
-    ["otto_kg", ottoId ?? ""],
+    ["otto_kg", domain ?? ""],
     "otto_get_knowledge_graph",
-    { uuid: ottoId },
-    !!ottoId,
+    { project_identifier: "@otto", __domain: domain },
+    enabled,
   );
 
   const details = !isSearchAtlasSoftError(detailsQ.data) ? (unwrapSearchAtlasPayload<any>(detailsQ.data) ?? {}) : {};
@@ -54,7 +57,7 @@ export function SearchAtlasOttoRecommendationsTab({ config, clinicId }: Props) {
 
   const recommendations: any[] = useMemo(() => {
     const raw =
-      exported?.suggestions ?? exported?.results ?? exported?.rows ??
+      exported?.panels ?? exported?.issues ?? exported?.results ?? exported?.rows ??
       details?.recommendations ?? details?.suggestions ?? [];
     return Array.isArray(raw) ? raw : [];
   }, [exported, details]);
