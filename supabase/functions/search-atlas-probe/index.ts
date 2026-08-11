@@ -78,6 +78,15 @@ Deno.serve(async (req) => {
     return json(out);
   }
 
+  // 1b) full inputSchema for selected tools
+  if (mode === "schema") {
+    const names: string[] = body.names ?? [];
+    const r = await mcp(MCP_BASES[0], apiKey, { jsonrpc: "2.0", id: 1, method: "tools/list", params: {} });
+    const tools = (r.data as any)?.result?.tools ?? [];
+    const picked = tools.filter((t: any) => names.includes(t.name));
+    return json(picked.map((t: any) => ({ name: t.name, description: t.description, inputSchema: t.inputSchema })));
+  }
+
   // 2) call a specific tool
   if (mode === "call") {
     const name: string = body.name;
