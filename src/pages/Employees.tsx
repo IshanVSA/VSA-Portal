@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { extractEdgeFunctionError, describeError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
-import { Plus, Trash2, Users, Search, X, Pencil, AlertTriangle, Activity } from "lucide-react";
+import { Plus, Trash2, Users, Search, X, Pencil, AlertTriangle, Activity, Loader2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -164,16 +164,30 @@ export default function Employees() {
   };
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deletingIds, setDeletingIds] = useState<string[]>([]);
 
   const confirmDelete = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || deleting) return;
+    const target = deleteTarget;
+    setDeleting(true);
+    setDeletingIds((ids) => [...ids, target.id]);
+    const toastId = toast.loading(`Removing "${target.name}"...`);
     const { data, error } = await supabase.functions.invoke("delete-user", {
-      body: { user_id: deleteTarget.id },
+      body: { user_id: target.id },
     });
-    if (error || data?.error) { toast.error(await extractEdgeFunctionError(error, data, "Failed to delete user")); setDeleteTarget(null); return; }
-    toast.success(`"${deleteTarget.name}" removed`);
+    if (error || data?.error) {
+      toast.error(await extractEdgeFunctionError(error, data, "Failed to delete user"), { id: toastId });
+      setDeletingIds((ids) => ids.filter((id) => id !== target.id));
+      setDeleting(false);
+      setDeleteTarget(null);
+      return;
+    }
+    toast.success(`"${target.name}" removed`, { id: toastId });
     setDeleteTarget(null);
     await fetchData();
+    setDeletingIds((ids) => ids.filter((id) => id !== target.id));
+    setDeleting(false);
   };
 
   return (
@@ -317,7 +331,7 @@ export default function Employees() {
                 const userRole = getRole(p.id);
                 const assignedClinics = getAssignedClinics(p.id);
                 return (
-                  <div key={p.id} className="p-4 space-y-3">
+                  <div key={p.id} className={`p-4 space-y-3 transition-opacity ${deletingIds.includes(p.id) ? "opacity-50 pointer-events-none" : ""}`}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold text-sm text-foreground truncate">{p.full_name || "—"}</p>
@@ -327,8 +341,8 @@ export default function Employees() {
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEditDialog(p)} title="Edit member">
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive" onClick={() => setDeleteTarget({ id: p.id, name: p.full_name || "User" })}>
-                          <Trash2 className="h-3.5 w-3.5" />
+                        <Button variant="ghost" size="sm" disabled={deletingIds.includes(p.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive" onClick={() => setDeleteTarget({ id: p.id, name: p.full_name || "User" })}>
+                          {deletingIds.includes(p.id) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                         </Button>
                       </div>
                     </div>
@@ -377,7 +391,7 @@ export default function Employees() {
                   const userRole = getRole(p.id);
                   const assignedClinics = getAssignedClinics(p.id);
                   return (
-                    <TableRow key={p.id}>
+                    <TableRow key={p.id} className={deletingIds.includes(p.id) ? "opacity-50 pointer-events-none" : ""}>
                       <TableCell className="font-medium">{p.full_name || "—"}</TableCell>
                       <TableCell className="text-muted-foreground">{p.email || "—"}</TableCell>
                       <TableCell>
@@ -403,8 +417,8 @@ export default function Employees() {
                         <Button variant="ghost" size="sm" className="h-8" onClick={() => openEditDialog(p)} title="Edit member">
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => setDeleteTarget({ id: p.id, name: p.full_name || "User" })}>
-                          <Trash2 className="h-3.5 w-3.5" />
+                        <Button variant="ghost" size="sm" disabled={deletingIds.includes(p.id)} className="h-8 text-destructive hover:text-destructive" onClick={() => setDeleteTarget({ id: p.id, name: p.full_name || "User" })}>
+                          {deletingIds.includes(p.id) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -570,15 +584,21 @@ export default function Employees() {
         </Dialog>
       </div>
 
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open && !deleting) setDeleteTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete team member?</AlertDialogTitle>
             <AlertDialogDescription>Remove "{deleteTarget?.name}"? This action cannot be undone.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); confirmDelete(); }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? (<><Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />Deleting...</>) : "Delete"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
