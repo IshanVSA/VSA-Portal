@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { MapPin, ChevronDown, Lightbulb, Search, Download, MoreVertical, X } from "lucide-react";
-import { useSearchAtlasMcp, unwrapSearchAtlasPayload, isSearchAtlasSoftError, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
+import { useSearchAtlasMcpByName, unwrapSearchAtlasPayload, isSearchAtlasSoftError, type SearchAtlasClinicConfig } from "@/hooks/useSearchAtlas";
 import { SearchAtlasEmptyState } from "./SearchAtlasEmptyState";
 import { OpenInSearchAtlas } from "./OpenInSearchAtlas";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,7 +27,7 @@ function scorePillColor(score: number) {
 }
 
 export function SearchAtlasHeatmapTab({ config, clinicId }: Props) {
-  const rtId = config.search_atlas_rank_tracker_id;
+  const domain = config.search_atlas_domain ?? undefined;
   const [clinic, setClinic] = useState<{ clinic_name: string; address: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState("");
@@ -41,15 +41,22 @@ export function SearchAtlasHeatmapTab({ config, clinicId }: Props) {
     })();
   }, [clinicId]);
 
-  // Fetch grids (heatmaps) for this project
-  const gridsQ = useSearchAtlasMcp<any>(["grids", rtId ?? ""], "data", "list_grids", { project_id: rtId }, !!rtId);
+  // Local SEO heatmaps are keyed by a business_id resolved from the clinic domain.
+  const gridsQ = useSearchAtlasMcpByName<any>(
+    ["heatmap-business", domain ?? ""],
+    "local_seo_heatmaps_get_details",
+    { view: "business", business_id: "@business_id", page_size: 100, __domain: domain },
+    !!domain,
+  );
 
-  if (!rtId) {
-    return <SearchAtlasEmptyState clinicId={clinicId} message="Add a Rank Tracker project ID to view the local heatmap." />;
+  if (!domain) {
+    return <SearchAtlasEmptyState clinicId={clinicId} message="Add the clinic domain in Search Atlas setup to view the local heatmap." />;
   }
 
   const gridsPayload: any = !isSearchAtlasSoftError(gridsQ.data) ? (unwrapSearchAtlasPayload<any>(gridsQ.data) ?? {}) : {};
-  const gridList: any[] = Array.isArray(gridsPayload?.results) ? gridsPayload.results
+  const gridList: any[] = Array.isArray(gridsPayload?.rows) ? gridsPayload.rows
+    : Array.isArray(gridsPayload?.heatmaps) ? gridsPayload.heatmaps
+    : Array.isArray(gridsPayload?.results) ? gridsPayload.results
     : Array.isArray(gridsPayload?.grids) ? gridsPayload.grids
     : Array.isArray(gridsPayload?.data) ? gridsPayload.data
     : Array.isArray(gridsPayload) ? gridsPayload : [];
