@@ -10,7 +10,10 @@ if (theme === "dark") {
   document.documentElement.classList.remove("dark");
 }
 
-createRoot(document.getElementById("root")!).render(<App />);
+const root = document.getElementById("root");
+if (root) {
+  createRoot(root).render(<App />);
+}
 
 // Recover from stale chunk loads after a deploy: do exactly one auto-reload,
 // then surface the error to the ErrorBoundary if reloading didn't help.
@@ -31,19 +34,17 @@ window.addEventListener("unhandledrejection", (e) =>
   tryChunkRecovery(String((e.reason as { message?: string })?.message || e.reason))
 );
 
-// Service worker: only on the real published site. In dev/preview sandboxes a
-// stale SW can serve outdated HTML/chunks and blank the screen, so tear it down.
+// Service workers are intentionally disabled. A previously cached app shell can
+// reference deleted Vite chunks after a deployment and produce a blank screen.
 if ("serviceWorker" in navigator) {
-  const host = window.location.hostname;
-  const isPreview = host === "localhost" || host.endsWith("lovableproject.com") || host.includes("id-preview--");
+  navigator.serviceWorker.getRegistrations()
+    .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
+    .catch(() => {});
+}
 
-  if (isPreview) {
-    navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister())).catch(() => {});
-    if (window.caches) caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))).catch(() => {});
-  } else {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
-    });
-  }
+if ("caches" in window) {
+  caches.keys()
+    .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+    .catch(() => {});
 }
 
