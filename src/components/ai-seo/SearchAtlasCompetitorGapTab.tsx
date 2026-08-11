@@ -26,20 +26,24 @@ export function SearchAtlasCompetitorGapTab({ config, clinicId }: Props) {
   const [competitor, setCompetitor] = useState("");
   const [runToken, setRunToken] = useState(0);
 
-  // First kick off an analysis to seed results (some SA plans require this
-  // before `se_get_keyword_gap_results` returns rows), then fetch results.
+  // Run the gap analysis first, then read its rows with the returned analysis_id.
   const analyzeQ = useSearchAtlasMcpByName<any>(
     ["se_keyword_gap_analyze", domain ?? "", competitor, runToken],
     "se_keyword_gap_analyze",
-    { target: domain, domain, competitor, competitors: [competitor] },
+    { primary_website: domain, competitor_websites: [competitor], scope: "root_domain" },
     !!domain && !!competitor && runToken > 0,
   );
 
+  const analysisId = useMemo(() => {
+    const payload: any = !isSearchAtlasSoftError(analyzeQ.data) ? (unwrapSearchAtlasPayload<any>(analyzeQ.data) ?? {}) : {};
+    return payload?.analysis_id ?? payload?.id ?? payload?.result?.analysis_id ?? null;
+  }, [analyzeQ.data]);
+
   const gapQ = useSearchAtlasMcpByName<any>(
-    ["se_keyword_gap", domain ?? "", competitor, runToken],
+    ["se_keyword_gap", String(analysisId ?? ""), runToken],
     "se_get_keyword_gap_results",
-    { target: domain, domain, competitor, competitors: [competitor], limit: 500 },
-    !!domain && !!competitor && runToken > 0 && !analyzeQ.isFetching,
+    { mode: "get", analysis_id: analysisId, contexts: ["gap", "common"], page_size: 100, order_by: "-search_volume" },
+    !!analysisId && runToken > 0,
   );
 
   const results = !isSearchAtlasSoftError(gapQ.data) ? (unwrapSearchAtlasPayload<any>(gapQ.data) ?? {}) : {};

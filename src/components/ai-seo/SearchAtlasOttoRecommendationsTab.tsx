@@ -21,30 +21,33 @@ function num(v: unknown, d = 0): number {
 }
 
 export function SearchAtlasOttoRecommendationsTab({ config, clinicId }: Props) {
+  // OTTO accepts a project UUID or the hostname — never the internal numeric id.
+  const domain = config.search_atlas_domain ?? undefined;
   const ottoId = config.search_atlas_otto_uuid;
+  const enabled = !!domain;
   const detailsQ = useSearchAtlasMcpByName<any>(
-    ["otto_details", ottoId ?? ""],
+    ["otto_details", domain ?? ""],
     "otto_get_project_details",
-    { uuid: ottoId },
-    !!ottoId,
+    { project_identifier: "@otto", __domain: domain },
+    enabled,
   );
   const schemasQ = useSearchAtlasMcpByName<any>(
-    ["otto_schemas", ottoId ?? ""],
+    ["otto_schemas", domain ?? ""],
     "otto_list_schemas",
-    { uuid: ottoId },
-    !!ottoId,
+    { project_identifier: "@otto", page_size: 100, __domain: domain },
+    enabled,
   );
   const exportQ = useSearchAtlasMcpByName<any>(
-    ["otto_export", ottoId ?? ""],
-    "otto_export_suggestions",
-    { uuid: ottoId },
-    !!ottoId,
+    ["otto_issues", domain ?? ""],
+    "otto_get_project_issues",
+    { project_identifier: "@otto", __domain: domain },
+    enabled,
   );
   const kgQ = useSearchAtlasMcpByName<any>(
-    ["otto_kg", ottoId ?? ""],
+    ["otto_kg", domain ?? ""],
     "otto_get_knowledge_graph",
-    { uuid: ottoId },
-    !!ottoId,
+    { project_identifier: "@otto", __domain: domain },
+    enabled,
   );
 
   const details = !isSearchAtlasSoftError(detailsQ.data) ? (unwrapSearchAtlasPayload<any>(detailsQ.data) ?? {}) : {};
@@ -54,7 +57,7 @@ export function SearchAtlasOttoRecommendationsTab({ config, clinicId }: Props) {
 
   const recommendations: any[] = useMemo(() => {
     const raw =
-      exported?.suggestions ?? exported?.results ?? exported?.rows ??
+      exported?.panels ?? exported?.issues ?? exported?.results ?? exported?.rows ??
       details?.recommendations ?? details?.suggestions ?? [];
     return Array.isArray(raw) ? raw : [];
   }, [exported, details]);
@@ -64,11 +67,11 @@ export function SearchAtlasOttoRecommendationsTab({ config, clinicId }: Props) {
     return Array.isArray(raw) ? raw : [];
   }, [schemas]);
 
-  if (!ottoId) return <SearchAtlasEmptyState clinicId={clinicId} message="Add an OTTO project UUID to load recommendations." />;
+  if (!domain) return <SearchAtlasEmptyState clinicId={clinicId} message="Add the clinic domain in Search Atlas setup to load OTTO recommendations." />;
   if (detailsQ.isLoading) return <Skeleton className="h-96" />;
 
   const health = num(details?.health_score ?? details?.score);
-  const domain = String(details?.domain ?? details?.hostname ?? config.search_atlas_domain ?? "—");
+  const displayDomain = String(details?.domain ?? details?.hostname ?? domain ?? "—");
 
   return (
     <div className="space-y-5">
@@ -76,7 +79,7 @@ export function SearchAtlasOttoRecommendationsTab({ config, clinicId }: Props) {
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span>OTTO</span>
           <span className="opacity-50">/</span>
-          <span className="text-foreground">{domain}</span>
+          <span className="text-foreground">{displayDomain}</span>
           <span className="opacity-50">/</span>
           <span>Recommendations</span>
         </div>

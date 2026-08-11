@@ -147,3 +147,4 @@ verify_jwt = false
 
 [functions.sync-gsc-data]
 verify_jwt = false
+

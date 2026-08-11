@@ -94,33 +94,33 @@ export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
   const domain = config.search_atlas_domain ?? undefined;
   const q = useSearchAtlasCustomerProjects(!!rtId || !!domain);
 
-  // Detail endpoints — paginated. `se_get_organic_keywords` returns per-keyword
-  // rows; `krt_get_keywords` returns full tracked-keyword list.
+  // Site Explorer organic data. site_id is resolved server-side from the domain;
+  // krt_* only exists for clinics that have a rank-tracker project.
   const kwQ = useSearchAtlasMcpPaginated<any>(
-    ["se-org-kw", rtId ?? domain ?? ""],
-    "se_get_organic_keywords",
-    { project_id: rtId, target: domain, domain },
-    { maxPages: 10, limit: 100, pageParam: "page", limitParam: "limit", arrayKeys: ["keywords", "organic_keywords", "results", "rows"] },
-    !!(rtId || domain),
+    ["se-org-kw", domain ?? ""],
+    "se_get_organic",
+    { site_id: "@site_id", view: "keywords", detail: true, __domain: domain },
+    { maxPages: 10, limit: 100, pageParam: "page", limitParam: "page_size", arrayKeys: ["rows", "results", "keywords"] },
+    !!domain,
   );
   const krtQ = useSearchAtlasMcpPaginated<any>(
-    ["krt-keywords", rtId ?? ""],
-    "krt_get_keywords",
-    { project_id: rtId, domain },
-    { maxPages: 10, limit: 100, pageParam: "page", limitParam: "limit", arrayKeys: ["keywords", "rankings", "results", "rows"] },
-    !!rtId,
+    ["krt-keywords", domain ?? ""],
+    "krt_get_rankings",
+    { project_id: "@krt_project_id", view: "current", detail: true, __domain: domain },
+    { maxPages: 5, limit: 100, pageParam: "page", limitParam: "page_size", arrayKeys: ["rows", "results", "keywords"] },
+    !!domain,
   );
   const posQ = useSearchAtlasMcpByName<any>(
-    ["se-pos-chg", rtId ?? domain ?? ""],
+    ["se-pos-chg", domain ?? ""],
     "se_get_organic",
-    { project_id: rtId, target: domain, domain, limit: 1000, include_history: true },
-    !!(rtId || domain),
+    { site_id: "@site_id", view: "position_changes", page_size: 100, detail: true, __domain: domain },
+    !!domain,
   );
   const pagesQ = useSearchAtlasMcpByName<any>(
-    ["se-pages", rtId ?? domain ?? ""],
+    ["se-pages", domain ?? ""],
     "se_get_indexed_pages",
-    { project_id: rtId, target: domain, domain, limit: 100 },
-    !!(rtId || domain),
+    { site_id: "@site_id", page_size: 100, detail: true, __domain: domain },
+    !!domain,
   );
 
   const [chartMode, setChartMode] = useState<typeof CHART_MODES[number]["key"]>("position");

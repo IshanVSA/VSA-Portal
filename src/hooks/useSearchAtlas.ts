@@ -12,6 +12,8 @@ export interface SearchAtlasRequest {
   /** Flat MCP tool name, e.g. "se_get_links". Preferred over tool+op. */
   name?: string;
   params?: Record<string, unknown>;
+  /** Clinic domain used server-side to resolve "@site_id" / "@otto" / "@krt_project_id" / "@business_id" tokens. */
+  domain?: string;
   paginate?: {
     maxPages: number;
     pageParam?: string;
@@ -187,8 +189,12 @@ export function useSearchAtlasCustomerProjects(enabled = true) {
 }
 
 export async function callSearchAtlas<T = unknown>(req: SearchAtlasRequest): Promise<T> {
+  // Tabs may pass the clinic domain inline via `__domain` on params.
+  const { __domain, ...cleanParams } = (req.params ?? {}) as Record<string, unknown>;
+  const domain = req.domain ?? (typeof __domain === "string" ? __domain : undefined);
   const { data, error } = await supabase.functions.invoke("search-atlas-proxy", {
     body: {
+      domain,
       path: req.path,
       method: req.method ?? "GET",
       query: req.query,
@@ -196,7 +202,7 @@ export async function callSearchAtlas<T = unknown>(req: SearchAtlasRequest): Pro
       tool: req.tool,
       op: req.op,
       name: req.name,
-      params: req.params,
+      params: req.params ? cleanParams : undefined,
       paginate: req.paginate,
     },
   });

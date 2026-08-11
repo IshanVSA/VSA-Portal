@@ -80,37 +80,45 @@ export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
     ?? stringOr(projectRecord?.domain)
     ?? stringOr(projectRecord?.hostname);
 
-  // Paginated detail endpoints — sequential to stay under 40 req/60s ceiling.
+  // Site Explorer link profile. site_id is resolved server-side from the clinic
+  // domain (stored ids are not Site Explorer ids), rows come back columnar.
   const refDomainsQ = useSearchAtlasMcpPaginated<any>(
-    ["se_get_referring_domains", domain ?? ""],
-    "se_get_referring_domains",
-    { target: domain, domain, project_id: pid },
-    { maxPages: 3, limit: 100, pageParam: "page", limitParam: "limit", arrayKeys: ["referring_domains", "domains", "results", "rows"] },
+    ["se_links_refdomains", domain ?? ""],
+    "se_get_links",
+    { site_id: "@site_id", view: "referring_domains", detail: true, __domain: domain },
+    { maxPages: 3, limit: 100, pageParam: "page", limitParam: "page_size", arrayKeys: ["rows", "results"] },
     !!domain,
   );
   // Only fetch backlinks after referring domains resolves (success OR error) to avoid a burst.
   const backlinksEnabled = !!domain && !refDomainsQ.isLoading && refDomainsQ.fetchStatus !== "fetching";
   const backlinksQ = useSearchAtlasMcpPaginated<any>(
-    ["se_get_backlinks", domain ?? ""],
-    "se_get_backlinks",
-    { target: domain, domain, project_id: pid },
-    { maxPages: 2, limit: 100, pageParam: "page", limitParam: "limit", arrayKeys: ["backlinks", "links", "results", "rows"] },
+    ["se_links_backlinks", domain ?? ""],
+    "se_get_links",
+    { site_id: "@site_id", view: "backlinks", detail: true, __domain: domain },
+    { maxPages: 2, limit: 100, pageParam: "page", limitParam: "page_size", arrayKeys: ["rows", "results"] },
     backlinksEnabled,
   );
+  const detailsQ = useSearchAtlasMcpByName<any>(
+    ["se_details", domain ?? ""],
+    "se_get_details",
+    { site_id: "@site_id", __domain: domain },
+    !!domain,
+  );
+  const seDetails = useMemo(() => asRecord(unwrapSearchAtlasPayload(detailsQ.data)) ?? {}, [detailsQ.data]);
   const referringRows: any[] = useMemo(() => {
-    const rows = findSearchAtlasArray<any>(refDomainsQ.data, ["referring_domains", "domains", "results", "rows"]);
+    const rows = findSearchAtlasArray<any>(refDomainsQ.data, ["rows", "results", "referring_domains", "domains"]);
     return rows.filter((row) => typeof row === "object" && row !== null);
   }, [refDomainsQ.data]);
   const backlinkRows: any[] = useMemo(() => {
-    const rows = findSearchAtlasArray<any>(backlinksQ.data, ["backlinks", "links", "results", "rows"]);
+    const rows = findSearchAtlasArray<any>(backlinksQ.data, ["rows", "results", "backlinks", "links"]);
     return rows.filter((row) => typeof row === "object" && row !== null);
   }, [backlinksQ.data]);
 
-  const totalBacklinks = numberOr(se.backlinks);
-  const referringDomains = numberOr(se.refdomains ?? se.referring_domains);
-  const authority = numberOr(se.authority ?? se.domain_authority);
-  const domainPower = numberOr(se.domain_power);
-  const rating = numberOr(se.rating ?? se.domain_rating);
+  const totalBacklinks = numberOr(seDetails.backlinks_count ?? seDetails.backlinks ?? se.backlinks);
+  const referringDomains = numberOr(seDetails.referring_domains ?? seDetails.refdomains ?? se.refdomains ?? se.referring_domains);
+  const authority = numberOr(seDetails.domain_authority ?? se.authority ?? se.domain_authority);
+  const domainPower = numberOr(seDetails.domain_power ?? se.domain_power);
+  const rating = numberOr(seDetails.domain_rating ?? se.rating ?? se.domain_rating);
 
   // Only trend the Search Atlas API exposes for this account is organic traffic/keywords.
   const keywordTrend = useMemo<TrendPoint[]>(() => {

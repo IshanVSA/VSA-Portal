@@ -32,20 +32,21 @@ const PLATFORM_COLORS = [
 export function SearchAtlasLLMTab({ config, clinicId }: Props) {
   const pid = config.search_atlas_llm_project_id;
   const domain = config.search_atlas_domain ?? undefined;
-  const llmvParams = { project_id: pid, domain };
+  const llmvParams = { domain };
   const overviewQ = useSearchAtlasCustomerProjects(!!pid || !!domain);
+  const enabled = !!domain;
 
-  // Real LLM visibility metrics via MCP
-  const brandQ = useSearchAtlasMcpByName<any>(["llmv-overview", pid ?? "", domain ?? ""], "llmv_get_overview", llmvParams, !!pid && !!domain);
-  const reportQ = useSearchAtlasMcpByName<any>(["llmv-report", pid ?? "", domain ?? ""], "llmv_get_visibility_report", llmvParams, !!pid && !!domain);
-  const trendQ = useSearchAtlasMcpByName<any>(["llmv-trend", pid ?? "", domain ?? ""], "llmv_get_sentiment_trend", llmvParams, !!pid && !!domain);
-  const sovQ = useSearchAtlasMcpByName<any>(["llmv-sov", pid ?? "", domain ?? ""], "llmv_get_competitor_data", llmvParams, !!pid && !!domain);
-  const sentQ = useSearchAtlasMcpByName<any>(["llmv-sent", pid ?? "", domain ?? ""], "llmv_get_sentiment_trend", llmvParams, !!pid && !!domain);
-  const citQ = useSearchAtlasMcpByName<any>(["llmv-cit", pid ?? "", domain ?? ""], "llmv_get_citations_overview", llmvParams, !!pid && !!domain);
-  const citUrlsQ = useSearchAtlasMcpByName<any>(["llmv-cit-urls", pid ?? "", domain ?? ""], "llmv_get_citations_urls", { ...llmvParams, limit: 25 }, !!pid && !!domain);
-  // Per-query and per-prompt detail lists
-  const queriesQ = useSearchAtlasMcpByName<any>(["llmv-queries", pid ?? "", domain ?? ""], "llmv_list_queries", { ...llmvParams, limit: 100 }, !!pid && !!domain);
-  const promptsQ = useSearchAtlasMcpByName<any>(["llmv-prompts", pid ?? "", domain ?? ""], "llmv_list_prompt_analyses", { ...llmvParams, limit: 100 }, !!pid && !!domain);
+  // LLM Visibility tools are domain-based (no project id needed).
+  const brandQ = useSearchAtlasMcpByName<any>(["llmv-overview", domain ?? ""], "llmv_get_overview", { ...llmvParams, view: "brand" }, enabled);
+  const reportQ = useSearchAtlasMcpByName<any>(["llmv-report", domain ?? ""], "llmv_get_overview", { ...llmvParams, views: ["topics", "queries"], page_size: 100 }, enabled);
+  const trendQ = useSearchAtlasMcpByName<any>(["llmv-trend", domain ?? ""], "llmv_get_overview", { ...llmvParams, view: "trend" }, enabled);
+  const sovQ = useSearchAtlasMcpByName<any>(["llmv-sov", domain ?? ""], "llmv_get_competitor_data", { ...llmvParams, view: "share_of_voice", page_size: 50 }, enabled);
+  const sentQ = useSearchAtlasMcpByName<any>(["llmv-sent", domain ?? ""], "llmv_get_sentiment_trend", llmvParams, enabled);
+  const citQ = useSearchAtlasMcpByName<any>(["llmv-cit", domain ?? ""], "llmv_get_citations_overview", { ...llmvParams, page_size: 50 }, enabled);
+  const citUrlsQ = useSearchAtlasMcpByName<any>(["llmv-cit-urls", domain ?? ""], "llmv_get_citations_urls", { ...llmvParams, page_size: 50 }, enabled);
+  // Per-query and per-topic detail lists
+  const queriesQ = useSearchAtlasMcpByName<any>(["llmv-queries", domain ?? ""], "llmv_get_overview", { ...llmvParams, view: "queries", page_size: 100 }, enabled);
+  const promptsQ = useSearchAtlasMcpByName<any>(["llmv-prompts", domain ?? ""], "llmv_get_overview", { ...llmvParams, view: "sentiment", page_size: 100 }, enabled);
 
   const project = findSearchAtlasProject(overviewQ.data, config);
   const listing = project?.data?.llmv ?? project ?? {};
