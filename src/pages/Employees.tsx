@@ -391,7 +391,7 @@ export default function Employees() {
                   const userRole = getRole(p.id);
                   const assignedClinics = getAssignedClinics(p.id);
                   return (
-                    <TableRow key={p.id}>
+                    <TableRow key={p.id} className={deletingIds.includes(p.id) ? "opacity-50 pointer-events-none" : ""}>
                       <TableCell className="font-medium">{p.full_name || "—"}</TableCell>
                       <TableCell className="text-muted-foreground">{p.email || "—"}</TableCell>
                       <TableCell>
