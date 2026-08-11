@@ -83,9 +83,12 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization") ?? "";
     const token = authHeader.replace("Bearer ", "");
     const cronSecret = Deno.env.get("CRON_SECRET") ?? "";
+    const bulkSecret = Deno.env.get("SA_BULK_SECRET") ?? "";
+    const headerSecret = req.headers.get("x-cron-secret") ?? "";
     const isService =
       token === SERVICE_KEY ||
-      (cronSecret && (token === cronSecret || req.headers.get("x-cron-secret") === cronSecret));
+      (cronSecret && (token === cronSecret || headerSecret === cronSecret)) ||
+      (bulkSecret && (token === bulkSecret || headerSecret === bulkSecret));
 
     const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
