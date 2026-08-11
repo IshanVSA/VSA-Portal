@@ -84,7 +84,7 @@ export function SearchAtlasHeatmapTab({ config, clinicId }: Props) {
             Research reveals that appearing in Google Maps is the #1 best return on your SEO investment.
           </p>
         </div>
-        <OpenInSearchAtlas section="local-heatmap" projectId={rtId} />
+        <OpenInSearchAtlas section="local-heatmap" projectId={config.search_atlas_rank_tracker_id} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-4">
