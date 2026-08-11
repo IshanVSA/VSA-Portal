@@ -541,10 +541,11 @@ Deno.serve(async (req) => {
     const payload: unknown = body?.body;
     const tool: string = body?.tool ?? "";
     const op: string = body?.op ?? "";
-    const params: Record<string, unknown> = body?.params ?? {};
+    let params: Record<string, unknown> = body?.params ?? {};
     const paginate = body?.paginate as { maxPages?: number; pageParam?: string; limitParam?: string; limit?: number; startPage?: number; arrayKeys?: string[] } | undefined;
 
     const nameFromBody: string = typeof body?.name === "string" ? body.name : "";
+    const clinicDomain: string = typeof body?.domain === "string" ? body.domain : "";
 
     if (tool || op || nameFromBody) {
       // Resolve the flat MCP tool name. Prefer explicit `name`; otherwise
@@ -558,6 +559,28 @@ Deno.serve(async (req) => {
         return json({ error: `MCP tool not allowed: ${name}` }, 403);
       }
 
+      // ---- Resolve @tokens (site_id / otto / krt_project_id / business_id) ----
+      let resolvedParams = params;
+      const needs = collectTokens(params);
+      if (needs.size > 0) {
+        if (!clinicDomain) {
+          return json({ __searchAtlasError: true, source: "resolve", name, details: "Missing clinic domain for identifier resolution" });
+        }
+        const ids = await resolveIdentifiers(cacheClient, apiKey, clinicDomain, needs);
+        const missing = [...needs].filter((n) => ids[n] === undefined || ids[n] === null);
+        if (missing.length) {
+          return json({
+            __searchAtlasError: true,
+            source: "resolve",
+            name,
+            unresolved: missing,
+            details: `No Search Atlas project found for ${bareDomain(clinicDomain)} (${missing.join(", ")})`,
+          });
+        }
+        resolvedParams = applyTokens(params, ids);
+      }
+      params = resolvedParams;
+
       // ---- Cache lookup (before any MCP calls) ----
       const cacheKey = cacheKeyFor(name, params, paginate);
       const cached = cacheClient ? await readCache(cacheClient, cacheKey) : null;
@@ -568,8 +591,8 @@ Deno.serve(async (req) => {
       // Pagination mode: loop pages and merge array results
       if (paginate?.maxPages && paginate.maxPages > 1) {
         const pageParam = paginate.pageParam ?? "page";
-        const limitParam = paginate.limitParam ?? "limit";
-        const perPage = paginate.limit ?? 100;
+        const limitParam = paginate.limitParam ?? "page_size";
+        const perPage = Math.min(paginate.limit ?? 100, 100);
         const startPage = paginate.startPage ?? 1;
         const merged: unknown[] = [];
         let lastPayload: Record<string, unknown> | null = null;
@@ -597,7 +620,7 @@ Deno.serve(async (req) => {
           if (!lastUpstream?.ok || hasMcpError(lastData) || hasMcpToolError(lastData)) {
             break; // stop on other errors
           }
-          const pl = getMcpToolPayload(lastData);
+          const pl = normalizeColumnar(getMcpToolPayload(lastData)) as Record<string, unknown> | null;
           lastPayload = pl;
           const keys = paginate.arrayKeys ?? ["results", "rows", "items", "data", "keywords", "backlinks", "referring_domains", "domains", "links", "urls", "history"];
           const pageRows = pl ? findRowsInPayload(pl, keys) : [];
@@ -689,8 +712,12 @@ Deno.serve(async (req) => {
         });
       }
 
-      if (cacheClient) await writeCache(cacheClient, cacheKey, name, data);
-      return json(data);
+      const normalized = {
+        jsonrpc: "2.0",
+        result: { structuredContent: normalizeColumnar(getMcpToolPayload(data) ?? data) },
+      };
+      if (cacheClient) await writeCache(cacheClient, cacheKey, name, normalized);
+      return json(normalized);
     }
 
     if (!path || typeof path !== "string") {
