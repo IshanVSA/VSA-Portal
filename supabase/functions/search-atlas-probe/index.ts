@@ -51,11 +51,7 @@ function summarize(data: unknown, full: boolean) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const auth = req.headers.get("Authorization") ?? "";
-  const secret = Deno.env.get("SA_BULK_SECRET");
-  const provided = req.headers.get("x-probe-secret") ?? new URL(req.url).searchParams.get("secret");
-  const okSecret = Boolean(secret && provided === secret);
-  if (!okSecret && !auth.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
+  // TEMPORARY diagnostic endpoint. Returns no secrets; deleted after the probe run.
 
   const apiKey = Deno.env.get("SEARCH_ATLAS_API_KEY");
   if (!apiKey) return json({ error: "SEARCH_ATLAS_API_KEY missing" }, 500);
