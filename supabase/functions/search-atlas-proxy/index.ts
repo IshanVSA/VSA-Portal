@@ -455,13 +455,15 @@ async function resolveIdentifiers(sb: any, apiKey: string, domain: string, needs
 
   ids.domain = host;
   if (changed && sb) {
-    await sb.from("search_atlas_cache").upsert({
-      cache_key: cacheKey,
-      tool: "__resolve__",
-      payload: ids,
-      fetched_at: new Date().toISOString(),
-      expires_at: new Date(Date.now() + RESOLVE_TTL_MS).toISOString(),
-    }, { onConflict: "cache_key" }).catch?.(() => null);
+    try {
+      await sb.from("search_atlas_cache").upsert({
+        cache_key: cacheKey,
+        tool: "__resolve__",
+        payload: ids,
+        fetched_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + RESOLVE_TTL_MS).toISOString(),
+      }, { onConflict: "cache_key" });
+    } catch { /* best-effort */ }
   }
   return ids;
 }
