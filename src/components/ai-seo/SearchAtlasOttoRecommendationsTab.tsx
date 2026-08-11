@@ -67,11 +67,11 @@ export function SearchAtlasOttoRecommendationsTab({ config, clinicId }: Props) {
     return Array.isArray(raw) ? raw : [];
   }, [schemas]);
 
-  if (!ottoId) return <SearchAtlasEmptyState clinicId={clinicId} message="Add an OTTO project UUID to load recommendations." />;
+  if (!domain) return <SearchAtlasEmptyState clinicId={clinicId} message="Add the clinic domain in Search Atlas setup to load OTTO recommendations." />;
   if (detailsQ.isLoading) return <Skeleton className="h-96" />;
 
   const health = num(details?.health_score ?? details?.score);
-  const domain = String(details?.domain ?? details?.hostname ?? config.search_atlas_domain ?? "—");
+  const displayDomain = String(details?.domain ?? details?.hostname ?? domain ?? "—");
 
   return (
     <div className="space-y-5">
@@ -79,7 +79,7 @@ export function SearchAtlasOttoRecommendationsTab({ config, clinicId }: Props) {
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span>OTTO</span>
           <span className="opacity-50">/</span>
-          <span className="text-foreground">{domain}</span>
+          <span className="text-foreground">{displayDomain}</span>
           <span className="opacity-50">/</span>
           <span>Recommendations</span>
         </div>
