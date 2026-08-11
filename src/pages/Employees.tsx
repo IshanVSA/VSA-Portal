@@ -164,16 +164,30 @@ export default function Employees() {
   };
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deletingIds, setDeletingIds] = useState<string[]>([]);
 
   const confirmDelete = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || deleting) return;
+    const target = deleteTarget;
+    setDeleting(true);
+    setDeletingIds((ids) => [...ids, target.id]);
+    const toastId = toast.loading(`Removing "${target.name}"...`);
     const { data, error } = await supabase.functions.invoke("delete-user", {
-      body: { user_id: deleteTarget.id },
+      body: { user_id: target.id },
     });
-    if (error || data?.error) { toast.error(await extractEdgeFunctionError(error, data, "Failed to delete user")); setDeleteTarget(null); return; }
-    toast.success(`"${deleteTarget.name}" removed`);
+    if (error || data?.error) {
+      toast.error(await extractEdgeFunctionError(error, data, "Failed to delete user"), { id: toastId });
+      setDeletingIds((ids) => ids.filter((id) => id !== target.id));
+      setDeleting(false);
+      setDeleteTarget(null);
+      return;
+    }
+    toast.success(`"${target.name}" removed`, { id: toastId });
     setDeleteTarget(null);
     await fetchData();
+    setDeletingIds((ids) => ids.filter((id) => id !== target.id));
+    setDeleting(false);
   };
 
   return (
