@@ -602,8 +602,6 @@ export default function Employees() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
