@@ -417,8 +417,8 @@ export default function Employees() {
                         <Button variant="ghost" size="sm" className="h-8" onClick={() => openEditDialog(p)} title="Edit member">
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => setDeleteTarget({ id: p.id, name: p.full_name || "User" })}>
-                          <Trash2 className="h-3.5 w-3.5" />
+                        <Button variant="ghost" size="sm" disabled={deletingIds.includes(p.id)} className="h-8 text-destructive hover:text-destructive" onClick={() => setDeleteTarget({ id: p.id, name: p.full_name || "User" })}>
+                          {deletingIds.includes(p.id) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                         </Button>
                       </TableCell>
                     </TableRow>
