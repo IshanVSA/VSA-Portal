@@ -48,12 +48,10 @@ export function ga4TrafficQuery(clinicId: string | null, dateRange: DateRange) {
       if (!clinicId) return ZERO;
 
       // Are we connected?
-      const { data: cred } = await supabase
-        .from("clinic_ga4_credentials")
-        .select("ga4_property_id")
-        .eq("clinic_id", clinicId)
+      const { data: conn } = await (supabase as any)
+        .rpc("get_clinic_analytics_connection", { _clinic_id: clinicId })
         .maybeSingle();
-      const isConnected = !!cred?.ga4_property_id;
+      const isConnected = !!conn?.ga4_property_id;
       if (!isConnected) return { ...ZERO };
 
       const from = format(dateRange.from, "yyyy-MM-dd");

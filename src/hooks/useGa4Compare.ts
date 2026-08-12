@@ -61,12 +61,10 @@ export function useGa4Compare(clinicId: string | null, dateRange: DateRange, mod
     queryFn: async () => {
       if (!clinicId) return { isConnected: false, current: ZERO, previous: ZERO, compareMode: mode };
 
-      const { data: cred } = await supabase
-        .from("clinic_ga4_credentials")
-        .select("ga4_property_id")
-        .eq("clinic_id", clinicId)
+      const { data: conn } = await (supabase as any)
+        .rpc("get_clinic_analytics_connection", { _clinic_id: clinicId })
         .maybeSingle();
-      if (!cred?.ga4_property_id) {
+      if (!conn?.ga4_property_id) {
         return { isConnected: false, current: ZERO, previous: ZERO, compareMode: mode };
       }
 

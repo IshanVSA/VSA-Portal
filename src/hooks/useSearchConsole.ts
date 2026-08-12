@@ -103,7 +103,7 @@ export function searchConsoleQuery(clinicId: string | null, dateRange: DateRange
       // brand splitting happens in Postgres (get_gsc_dashboard) so the browser
       // receives ~60 rows instead of paging through tens of thousands.
       const [credRes, rpcRes] = await Promise.all([
-        (supabase as any).from("clinic_gsc_credentials").select("site_url").eq("clinic_id", clinicId).maybeSingle(),
+        (supabase as any).rpc("get_clinic_analytics_connection", { _clinic_id: clinicId }).maybeSingle(),
         (supabase as any).rpc("get_gsc_dashboard", {
           _clinic_id: clinicId,
           _from: from,
