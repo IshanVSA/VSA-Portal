@@ -1,4 +1,9 @@
-// Daily cron: sync Google Search Console data for every clinic with a connection.
+// Chunked worker: syncs the stalest Search Console-connected clinics on each tick.
+//
+// Why chunked: Supabase rate-limits function-to-function invocations per request
+// trace (~30 sub-invocations), so fanning out to 50+ clinics in one run silently
+// dropped the tail of the list. Running every 15 minutes with a small batch keeps
+// every clinic refreshed well inside 24h and never trips the limit.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -11,6 +16,9 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const CRON_SECRET = Deno.env.get("CRON_SECRET") || "";
 const KNOWN_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1eW9zc2dxdWl5dW9xYmVlbnJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjMwODksImV4cCI6MjA4NjgzOTA4OX0.EGwUbBiZSLKFyZEKUDPIF9xm41t1QRjOcQ6_v4lxgs0";
+
+const DEFAULT_BATCH = 6;
+const STALE_AFTER_HOURS = 20;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -48,77 +56,62 @@ Deno.serve(async (req) => {
       }
     }
 
-    const { data: creds } = await supabase
+    let body: any = {};
+    try { body = await req.json(); } catch { /* no body */ }
+    const batchSize = Math.min(Number(body?.batch_size) || DEFAULT_BATCH, 15);
+    const force = body?.force === true;
+
+    const cutoff = new Date(Date.now() - STALE_AFTER_HOURS * 3600_000).toISOString();
+
+    let query = supabase
       .from("clinic_gsc_credentials")
-      .select("clinic_id")
+      .select("clinic_id,last_sync_at")
       .not("site_url", "is", null)
-      .not("refresh_token_enc", "is", null);
+      .not("refresh_token_enc", "is", null)
+      .order("last_sync_at", { ascending: true, nullsFirst: true })
+      .limit(batchSize);
 
-    const list = creds || [];
-    console.log(`GSC cron: syncing ${list.length} clinics`);
+    if (!force) query = query.or(`last_sync_at.is.null,last_sync_at.lt.${cutoff}`);
 
-    // Run in the background with limited concurrency so the HTTP request
-    // does not hit the 150s idle timeout with many connected clinics.
-    const ids = list.map((c: any) => c.clinic_id as string);
+    const { data: creds, error } = await query;
+    if (error) throw new Error(error.message);
 
-    const syncOne = async (clinicId: string) => {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/sync-gsc-data`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-cron-secret": CRON_SECRET,
-          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        },
-        body: JSON.stringify({ clinic_id: clinicId }),
+    const list = (creds || []).map((c: any) => c.clinic_id as string);
+    console.log(`GSC cron: batch of ${list.length} stale clinics`);
+
+    if (!list.length) {
+      return new Response(JSON.stringify({ processed: 0, message: "all clinics fresh" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-      const body = await res.text().catch(() => "");
-      if (!res.ok) throw new Error(`${res.status}: ${body.slice(0, 200)}`);
-    };
-
-    const runPass = async (queueIds: string[], label: string) => {
-      const failed: string[] = [];
-      const CONCURRENCY = 2;
-      const queue = [...queueIds];
-      const workers = Array.from({ length: Math.min(CONCURRENCY, queue.length) }, async () => {
-        while (queue.length) {
-          const clinicId = queue.shift();
-          if (!clinicId) break;
-          try {
-            await syncOne(clinicId);
-          } catch (e: any) {
-            failed.push(clinicId);
-            console.error(`GSC ${label} sync failed for ${clinicId}:`, String(e?.message || e));
-          }
-        }
-      });
-      await Promise.all(workers);
-      return failed;
-    };
-
-    const runAll = async () => {
-      const failed = await runPass(ids, "pass1");
-      if (failed.length) {
-        console.log(`GSC cron: retrying ${failed.length} failed clinics`);
-        await new Promise((r) => setTimeout(r, 5000));
-        const stillFailed = await runPass(failed, "retry");
-        console.log(`GSC cron complete. Unrecoverable: ${stillFailed.length}`, stillFailed.join(", "));
-      } else {
-        console.log("GSC cron complete: all clinics synced");
-      }
-    };
-
-    // @ts-ignore EdgeRuntime is available in Supabase edge functions
-    if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
-      // @ts-ignore
-      EdgeRuntime.waitUntil(runAll());
-    } else {
-      await runAll();
     }
 
-    return new Response(JSON.stringify({ started: list.length }), {
+    const results: any[] = [];
+    for (const clinicId of list) {
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/sync-gsc-data`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-cron-secret": CRON_SECRET,
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          },
+          body: JSON.stringify({ clinic_id: clinicId }),
+        });
+        const text = await res.text().catch(() => "");
+        if (!res.ok) console.error(`GSC sync failed for ${clinicId}: ${res.status} ${text.slice(0, 200)}`);
+        results.push({ clinic_id: clinicId, status: res.ok ? "ok" : "error" });
+      } catch (e: any) {
+        console.error(`GSC sync error for ${clinicId}:`, String(e?.message || e));
+        results.push({ clinic_id: clinicId, status: "error" });
+      }
+    }
+
+    const failures = results.filter((r) => r.status === "error").length;
+    console.log(`GSC cron batch complete: ${results.length - failures} ok, ${failures} failed`);
+
+    return new Response(JSON.stringify({ processed: results.length, failures, results }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-
   } catch (err) {
     console.error("gsc-cron unexpected error:", err);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
