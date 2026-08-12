@@ -340,25 +340,43 @@ export function NotificationBell() {
       // For staff scoped to specific departments, also surface tickets that
       // were fanned out to one of their departments (e.g. Website ticket with
       // "Promote on Social Media: Yes" → social_media).
-      let fanOutTicketIds = new Set<string>();
+      const fanOutDeptMap = new Map<string, Set<string>>();
       if (staffScoped && deptSet.size > 0 && (ticketData || []).length > 0) {
         const ticketIds = (ticketData || []).map((t: any) => t.id);
         const { data: faRows } = await supabase
           .from("department_ticket_assignments")
-          .select("ticket_id")
+          .select("ticket_id, department")
           .in("ticket_id", ticketIds)
           .in("department", Array.from(deptSet));
-        fanOutTicketIds = new Set((faRows || []).map((r: any) => r.ticket_id));
+        for (const r of (faRows || []) as any[]) {
+          const set = fanOutDeptMap.get(r.ticket_id) ?? new Set<string>();
+          set.add(r.department);
+          fanOutDeptMap.set(r.ticket_id, set);
+        }
       }
 
       const ticketVisible = (t: any) => {
         if (!staffScoped) return true;
         if (t.department && deptSet.has(t.department as DepartmentType)) return true;
-        return fanOutTicketIds.has(t.id);
+        return fanOutDeptMap.has(t.id);
+      };
+
+      // Resolve the department this viewer should actually see for a ticket:
+      // their own department assignment wins over the ticket's home department
+      // (which may be stale after a reassignment / fan-out).
+      const resolveDept = (t: any): string | null => {
+        if (!staffScoped) return t.department ?? null;
+        if (t.department && deptSet.has(t.department as DepartmentType)) return t.department;
+        const assigned = fanOutDeptMap.get(t.id);
+        if (assigned) {
+          for (const d of departments ?? []) if (assigned.has(d)) return d;
+        }
+        return t.department ?? null;
       };
 
       const ticketNotifs: Notification[] = (ticketData || []).flatMap((t: any): Notification[] => {
         if (!ticketVisible(t)) return [];
+        const vDept = resolveDept(t);
         // Clients: only surface meaningful status changes (work done on their tickets),
         // not raw "ticket created" events.
         if (isClient) {
