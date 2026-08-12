@@ -588,16 +588,21 @@ export function NotificationBell() {
     const rtStaffScoped = !isAllAccess && departments !== null;
     const rtDeptSet = new Set<DepartmentType>(departments ?? []);
     const rtSocialAllowed = !rtStaffScoped || rtDeptSet.has("social_media");
-    const isTicketVisibleForStaff = async (t: any): Promise<boolean> => {
-      if (!rtStaffScoped) return true;
-      if (t.department && rtDeptSet.has(t.department as DepartmentType)) return true;
+    // Returns the department the viewer should see for a ticket, or null when
+    // the ticket isn't visible to them at all.
+    const resolveTicketDeptForStaff = async (t: any): Promise<string | null | undefined> => {
+      if (!rtStaffScoped) return t.department;
+      if (t.department && rtDeptSet.has(t.department as DepartmentType)) return t.department;
       const { data } = await supabase
         .from("department_ticket_assignments")
-        .select("ticket_id")
+        .select("ticket_id, department")
         .eq("ticket_id", t.id)
         .in("department", Array.from(rtDeptSet))
-        .limit(1);
-      return (data || []).length > 0;
+        .limit(5);
+      const assigned = new Set((data || []).map((r: any) => r.department));
+      if (assigned.size === 0) return null;
+      for (const d of departments ?? []) if (assigned.has(d)) return d;
+      return t.department;
     };
 
     const channel = supabase
