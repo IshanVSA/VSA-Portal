@@ -340,25 +340,43 @@ export function NotificationBell() {
       // For staff scoped to specific departments, also surface tickets that
       // were fanned out to one of their departments (e.g. Website ticket with
       // "Promote on Social Media: Yes" → social_media).
-      let fanOutTicketIds = new Set<string>();
+      const fanOutDeptMap = new Map<string, Set<string>>();
       if (staffScoped && deptSet.size > 0 && (ticketData || []).length > 0) {
         const ticketIds = (ticketData || []).map((t: any) => t.id);
         const { data: faRows } = await supabase
           .from("department_ticket_assignments")
-          .select("ticket_id")
+          .select("ticket_id, department")
           .in("ticket_id", ticketIds)
           .in("department", Array.from(deptSet));
-        fanOutTicketIds = new Set((faRows || []).map((r: any) => r.ticket_id));
+        for (const r of (faRows || []) as any[]) {
+          const set = fanOutDeptMap.get(r.ticket_id) ?? new Set<string>();
+          set.add(r.department);
+          fanOutDeptMap.set(r.ticket_id, set);
+        }
       }
 
       const ticketVisible = (t: any) => {
         if (!staffScoped) return true;
         if (t.department && deptSet.has(t.department as DepartmentType)) return true;
-        return fanOutTicketIds.has(t.id);
+        return fanOutDeptMap.has(t.id);
+      };
+
+      // Resolve the department this viewer should actually see for a ticket:
+      // their own department assignment wins over the ticket's home department
+      // (which may be stale after a reassignment / fan-out).
+      const resolveDept = (t: any): string | null => {
+        if (!staffScoped) return t.department ?? null;
+        if (t.department && deptSet.has(t.department as DepartmentType)) return t.department;
+        const assigned = fanOutDeptMap.get(t.id);
+        if (assigned) {
+          for (const d of departments ?? []) if (assigned.has(d)) return d;
+        }
+        return t.department ?? null;
       };
 
       const ticketNotifs: Notification[] = (ticketData || []).flatMap((t: any): Notification[] => {
         if (!ticketVisible(t)) return [];
+        const vDept = resolveDept(t);
         // Clients: only surface meaningful status changes (work done on their tickets),
         // not raw "ticket created" events.
         if (isClient) {
@@ -368,10 +386,10 @@ export function NotificationBell() {
             id: `ticket-status-${t.id}-${t.status}`,
             type: "status_changed" as const,
             title: label,
-            message: `[${departmentLabel(t.department, isAllAccess ? null : departments)}] ${t.title}`,
+            message: `[${departmentLabel(vDept, isAllAccess ? null : departments)}] ${t.title}`,
             read: false,
             created_at: t.updated_at || t.created_at,
-            link: buildTicketLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments, t.created_at),
+            link: buildTicketLink(vDept, t.clinic_id, t.id, isAllAccess ? null : departments, t.created_at),
             clinicId: t.clinic_id ?? null,
           }];
         }
@@ -379,10 +397,10 @@ export function NotificationBell() {
           id: `ticket-${t.id}`,
           type: "ticket_created" as const,
           title: "New Ticket",
-          message: `[${departmentLabel(t.department, isAllAccess ? null : departments)}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
+          message: `[${departmentLabel(vDept, isAllAccess ? null : departments)}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
           read: false,
           created_at: t.created_at,
-          link: buildTicketLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments, t.created_at),
+          link: buildTicketLink(vDept, t.clinic_id, t.id, isAllAccess ? null : departments, t.created_at),
           clinicId: t.clinic_id ?? null,
         }];
       });
@@ -570,16 +588,21 @@ export function NotificationBell() {
     const rtStaffScoped = !isAllAccess && departments !== null;
     const rtDeptSet = new Set<DepartmentType>(departments ?? []);
     const rtSocialAllowed = !rtStaffScoped || rtDeptSet.has("social_media");
-    const isTicketVisibleForStaff = async (t: any): Promise<boolean> => {
-      if (!rtStaffScoped) return true;
-      if (t.department && rtDeptSet.has(t.department as DepartmentType)) return true;
+    // Returns the department the viewer should see for a ticket, or null when
+    // the ticket isn't visible to them at all.
+    const resolveTicketDeptForStaff = async (t: any): Promise<string | null | undefined> => {
+      if (!rtStaffScoped) return t.department;
+      if (t.department && rtDeptSet.has(t.department as DepartmentType)) return t.department;
       const { data } = await supabase
         .from("department_ticket_assignments")
-        .select("ticket_id")
+        .select("ticket_id, department")
         .eq("ticket_id", t.id)
         .in("department", Array.from(rtDeptSet))
-        .limit(1);
-      return (data || []).length > 0;
+        .limit(5);
+      const assigned = new Set((data || []).map((r: any) => r.department));
+      if (assigned.size === 0) return null;
+      for (const d of departments ?? []) if (assigned.has(d)) return d;
+      return t.department;
     };
 
     const channel = supabase
@@ -610,13 +633,14 @@ export function NotificationBell() {
         // Clients should not see "ticket created" — they already know they made it.
         if (role === "client") return;
         const t = payload.new as any;
-        if (!(await isTicketVisibleForStaff(t))) return;
+        const vDept = await resolveTicketDeptForStaff(t);
+        if (vDept === null) return;
         await enrichAndPush({
           id: `ticket-${t.id}`, type: "ticket_created",
           title: "New Ticket",
-          message: `[${departmentLabel(t.department, isAllAccess ? null : departments)}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
+          message: `[${departmentLabel(vDept, isAllAccess ? null : departments)}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
           read: false, created_at: t.created_at,
-          link: buildTicketLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments, t.created_at),
+          link: buildTicketLink(vDept, t.clinic_id, t.id, isAllAccess ? null : departments, t.created_at),
           clinicId: t.clinic_id ?? null,
         });
       })
@@ -626,7 +650,8 @@ export function NotificationBell() {
         // Only notify when the status actually changed — other field edits
         // (description, assignee, etc.) shouldn't resurrect the bell.
         if (!oldT || oldT.status === t.status) return;
-        if (role !== "client" && !(await isTicketVisibleForStaff(t))) return;
+        const vDept = role === "client" ? t.department : await resolveTicketDeptForStaff(t);
+        if (role !== "client" && vDept === null) return;
         const isClient = role === "client";
         // Clients only get notified about meaningful resolution / progress updates.
         const clientLabel = TICKET_STATUS_LABELS_FOR_CLIENT[t.status];
@@ -638,9 +663,9 @@ export function NotificationBell() {
           id: `ticket-status-${t.id}-${t.status}`,
           type: "status_changed",
           title,
-          message: `[${departmentLabel(t.department, isAllAccess ? null : departments)}] ${t.title}`,
+          message: `[${departmentLabel(vDept, isAllAccess ? null : departments)}] ${t.title}`,
           read: false, created_at: t.updated_at || new Date().toISOString(),
-          link: buildTicketLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments, t.created_at),
+          link: buildTicketLink(vDept, t.clinic_id, t.id, isAllAccess ? null : departments, t.created_at),
           clinicId: t.clinic_id ?? null,
         });
       })
