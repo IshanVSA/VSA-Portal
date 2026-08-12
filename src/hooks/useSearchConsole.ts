@@ -72,30 +72,6 @@ const EMPTY: GSCData = {
   countries: [],
 };
 
-interface Row {
-  date: string;
-  bucket_type: string;
-  bucket_value: string;
-  impressions: number;
-  clicks: number;
-  ctr: number;
-  position: number;
-}
-
-function aggregateTotals(rows: Row[]): GSCTotals {
-  let impressions = 0, clicks = 0, weightedPos = 0;
-  for (const r of rows) {
-    impressions += r.impressions;
-    clicks += r.clicks;
-    weightedPos += (r.position || 0) * (r.impressions || 0);
-  }
-  return {
-    impressions,
-    clicks,
-    ctr: impressions > 0 ? clicks / impressions : 0,
-    avgPosition: impressions > 0 ? weightedPos / impressions : 0,
-  };
-}
 
 function tokensFromClinicName(name: string): string[] {
   if (!name) return [];
