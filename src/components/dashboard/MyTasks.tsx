@@ -46,6 +46,7 @@ interface MyTaskRow {
   clinic_id: string | null;
   due_date: string | null;
   created_at: string;
+  pooled?: boolean;
 }
 
 export default function MyTasks() {
@@ -55,17 +56,43 @@ export default function MyTasks() {
   const { data: tasks = [], refetch } = useQuery({
     queryKey: ["my-assigned-tasks", user?.id],
     enabled: !!user,
+    refetchOnWindowFocus: true,
     queryFn: async (): Promise<MyTaskRow[]> => {
+      const cols = "id, title, department, status, priority, clinic_id, due_date, created_at";
+
+      // 1) Tasks explicitly assigned to me
       const { data, error } = await (supabase
         .from("department_tasks" as never)
-        .select("id, title, department, status, priority, clinic_id, due_date, created_at")
+        .select(cols)
         .eq("assigned_to", user!.id)
         .in("status", ["todo", "in_progress"] as never)
         .order("created_at", { ascending: false }) as any);
       if (error) throw error;
-      return (data || []) as MyTaskRow[];
+      const mine = ((data || []) as MyTaskRow[]);
+
+      // 2) Broadcast pool — tasks I'm a candidate for that nobody has claimed yet
+      const { data: candRows } = await (supabase
+        .from("department_task_candidates" as never)
+        .select("task_id")
+        .eq("user_id", user!.id) as any);
+      const candIds = Array.from(new Set(((candRows || []) as { task_id: string }[]).map(c => c.task_id)));
+      let pooled: MyTaskRow[] = [];
+      if (candIds.length > 0) {
+        const { data: pooledRows } = await (supabase
+          .from("department_tasks" as never)
+          .select(cols)
+          .in("id", candIds)
+          .is("assigned_to", null)
+          .in("status", ["todo", "in_progress"] as never)
+          .order("created_at", { ascending: false }) as any);
+        pooled = ((pooledRows || []) as MyTaskRow[]).map(t => ({ ...t, pooled: true }));
+      }
+
+      const seen = new Set(mine.map(t => t.id));
+      return [...mine, ...pooled.filter(t => !seen.has(t.id))];
     },
   });
+
 
   const goToTask = (t: MyTaskRow) => {
     const base = deptRoute[t.department] || "/";
