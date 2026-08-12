@@ -3955,6 +3955,14 @@ export type Database = {
         Returns: boolean
       }
       can_read_department_file: { Args: { _name: string }; Returns: boolean }
+      can_staff_view_ticket: {
+        Args: {
+          _department: Database["public"]["Enums"]["department_type"]
+          _ticket_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       client_set_content_approval: {
         Args: { _notes?: string; _status: string; _ticket_id: string }
         Returns: undefined
@@ -4018,6 +4026,10 @@ export type Database = {
         Returns: Json
       }
       get_partner_clinic_ids: { Args: { _user_id: string }; Returns: string[] }
+      get_staff_departments: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["department_type"][]
+      }
       get_sub_account_clinic_ids: {
         Args: { _user_id: string }
         Returns: string[]
