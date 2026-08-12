@@ -106,11 +106,10 @@ function tokensFromClinicName(name: string): string[] {
     .filter(s => s.length >= 4);
 }
 
-export function useSearchConsole(clinicId: string | null, dateRange: DateRange, clinicName?: string) {
-  return useQuery<GSCData>({
+export function searchConsoleQuery(clinicId: string | null, dateRange: DateRange, clinicName?: string) {
+  return {
     queryKey: ["gsc", clinicId, format(dateRange.from, "yyyy-MM-dd"), format(dateRange.to, "yyyy-MM-dd"), clinicName || ""],
-    enabled: !!clinicId,
-    queryFn: async () => {
+    queryFn: async (): Promise<GSCData> => {
       if (!clinicId) return EMPTY;
 
       const { data: cred } = await (supabase as any)
@@ -280,5 +279,9 @@ export function useSearchConsole(clinicId: string | null, dateRange: DateRange, 
         countries,
       };
     },
-  });
+  };
+}
+
+export function useSearchConsole(clinicId: string | null, dateRange: DateRange, clinicName?: string) {
+  return useQuery<GSCData>({ ...searchConsoleQuery(clinicId, dateRange, clinicName), enabled: !!clinicId });
 }

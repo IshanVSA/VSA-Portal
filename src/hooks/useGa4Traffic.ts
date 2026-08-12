@@ -41,11 +41,10 @@ const ZERO: GA4TrafficData = {
   channelNames: [],
 };
 
-export function useGa4Traffic(clinicId: string | null, dateRange: DateRange) {
-  return useQuery<GA4TrafficData>({
+export function ga4TrafficQuery(clinicId: string | null, dateRange: DateRange) {
+  return {
     queryKey: ["ga4-traffic", clinicId, format(dateRange.from, "yyyy-MM-dd"), format(dateRange.to, "yyyy-MM-dd")],
-    enabled: !!clinicId,
-    queryFn: async () => {
+    queryFn: async (): Promise<GA4TrafficData> => {
       if (!clinicId) return ZERO;
 
       // Are we connected?
@@ -128,5 +127,9 @@ export function useGa4Traffic(clinicId: string | null, dateRange: DateRange) {
 
       return { isConnected: true, totals, channels, daily, channelNames };
     },
-  });
+  };
+}
+
+export function useGa4Traffic(clinicId: string | null, dateRange: DateRange) {
+  return useQuery<GA4TrafficData>({ ...ga4TrafficQuery(clinicId, dateRange), enabled: !!clinicId });
 }
