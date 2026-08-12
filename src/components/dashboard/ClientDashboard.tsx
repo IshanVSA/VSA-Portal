@@ -549,15 +549,20 @@ export default function ClientDashboard() {
                       <li key={p.id}>
                         <button
                           onClick={() => navigate(`/social?clinic=${selectedClinicId}&tab=my-posts`)}
-                          className={cn(
-                            "w-full text-left pl-3 py-2 border-l-2 hover:bg-accent/40 rounded-r-md transition-colors",
-                            PLATFORM_BORDER[platformColor(p.platform)]
-                          )}
+                          className="w-full text-left flex items-start gap-2.5 px-2.5 py-2 rounded-lg hover:bg-accent/40 transition-colors"
                         >
-                          <p className="text-sm font-medium text-foreground truncate">{p.title}</p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {format(parseISO(p.scheduled_date), "MMM d")} · {platformLabel(p.platform)}
-                          </p>
+                          <span
+                            className={cn(
+                              "mt-[7px] h-1.5 w-1.5 rounded-full shrink-0",
+                              PLATFORM_DOT_BG[platformColor(p.platform)]
+                            )}
+                          />
+                          <span className="min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{p.title}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {format(parseISO(p.scheduled_date), "MMM d")} · {platformLabel(p.platform)}
+                            </p>
+                          </span>
                         </button>
                       </li>
                     ))}
