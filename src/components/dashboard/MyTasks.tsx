@@ -154,6 +154,10 @@ export default function MyTasks() {
                         <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5", sc.className)}>{sc.label}</Badge>
                         <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5", pc.className)}>{pc.label}</Badge>
                         <Badge variant="secondary" className="text-[10px] px-2 py-0.5">{deptLabels[t.department] || t.department}</Badge>
+                        {t.pooled && (
+                          <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-violet-500/10 text-violet-600 border-violet-500/20">Available to claim</Badge>
+                        )}
+
                         {t.due_date && (
                           <span className={cn("inline-flex items-center gap-1 text-[10px]", overdue ? "text-destructive" : "text-muted-foreground")}>
                             <CalendarDays className="h-3 w-3" />
