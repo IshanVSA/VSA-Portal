@@ -494,6 +494,8 @@ export function NotificationBell() {
           (senderProfiles || []).forEach((p: any) => senderNameMap.set(p.id, p.full_name || "Someone"));
         }
         (chatRows || []).forEach((c: any) => {
+          // Department-scoped staff only get chat notifications for their own departments.
+          if (staffScoped && !(c.department && deptSet.has(c.department as DepartmentType))) return;
           const sender = senderNameMap.get(c.user_id) || "Someone";
           const preview = (c.message || "").length > 120 ? c.message.slice(0, 120) + "…" : c.message;
           const deptLabel = String(c.department || "").replace(/_/g, " ");
