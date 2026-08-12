@@ -633,7 +633,8 @@ export function NotificationBell() {
         // Clients should not see "ticket created" — they already know they made it.
         if (role === "client") return;
         const t = payload.new as any;
-        if (!(await isTicketVisibleForStaff(t))) return;
+        const vDept = await resolveTicketDeptForStaff(t);
+        if (vDept === null) return;
         await enrichAndPush({
           id: `ticket-${t.id}`, type: "ticket_created",
           title: "New Ticket",
@@ -649,7 +650,8 @@ export function NotificationBell() {
         // Only notify when the status actually changed — other field edits
         // (description, assignee, etc.) shouldn't resurrect the bell.
         if (!oldT || oldT.status === t.status) return;
-        if (role !== "client" && !(await isTicketVisibleForStaff(t))) return;
+        const vDept = role === "client" ? t.department : await resolveTicketDeptForStaff(t);
+        if (role !== "client" && vDept === null) return;
         const isClient = role === "client";
         // Clients only get notified about meaningful resolution / progress updates.
         const clientLabel = TICKET_STATUS_LABELS_FOR_CLIENT[t.status];
@@ -676,7 +678,7 @@ export function NotificationBell() {
           id: `task-${t.id}`,
           type: isMine ? "task_assigned" : "task_created",
           title: isMine ? "Task assigned to you" : "New Task",
-          message: `[${departmentLabel(vDept, isAllAccess ? null : departments)}] ${t.title}${t.priority && t.priority !== "low" ? ` (${t.priority})` : ""}`,
+          message: `[${departmentLabel(t.department, isAllAccess ? null : departments)}] ${t.title}${t.priority && t.priority !== "low" ? ` (${t.priority})` : ""}`,
           read: false,
           created_at: t.created_at,
           link: buildTaskLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments),
