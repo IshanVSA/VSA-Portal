@@ -4006,6 +4006,17 @@ export type Database = {
           runs_24h: number
         }[]
       }
+      get_gsc_dashboard: {
+        Args: {
+          _brand_tokens?: string[]
+          _clinic_id: string
+          _from: string
+          _prev_from: string
+          _prev_to: string
+          _to: string
+        }
+        Returns: Json
+      }
       get_partner_clinic_ids: { Args: { _user_id: string }; Returns: string[] }
       get_sub_account_clinic_ids: {
         Args: { _user_id: string }
