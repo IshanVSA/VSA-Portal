@@ -744,6 +744,7 @@ export function NotificationBell() {
         const c = payload.new as any;
         if (!c || c.user_id === user.id) return;
         if (role === "client") return;
+        if (rtStaffScoped && !(c.department && rtDeptSet.has(c.department as DepartmentType))) return;
         // RLS on department_chats ensures this INSERT is only delivered to
         // users who can see the channel (admins + dept team members of clinic).
         const { data: sender } = await supabase
