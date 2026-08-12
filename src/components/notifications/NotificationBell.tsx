@@ -87,7 +87,40 @@ const DEPARTMENT_ROUTE: Record<string, string> = {
   ai_seo: "/ai-seo",
 };
 
+const DEPARTMENT_LABEL: Record<string, string> = {
+  website: "Website",
+  seo: "SEO",
+  google_ads: "Google Ads",
+  social_media: "Social Media",
+  ai_seo: "AI SEO",
+};
+
+/**
+ * Resolves the department a *viewer* should see for a ticket/task. When a
+ * department-scoped staff member views an item whose home department isn't
+ * theirs (cross-posted or reassigned), show their own department context.
+ */
+function viewerDepartment(
+  department: string | null | undefined,
+  allowedDepartments?: DepartmentType[] | null,
+): string {
+  const dept = department || "";
+  if (allowedDepartments && allowedDepartments.length > 0 && !allowedDepartments.includes(dept as DepartmentType)) {
+    return allowedDepartments[0];
+  }
+  return dept;
+}
+
+function departmentLabel(
+  department: string | null | undefined,
+  allowedDepartments?: DepartmentType[] | null,
+): string {
+  const dept = viewerDepartment(department, allowedDepartments);
+  return DEPARTMENT_LABEL[dept] || String(dept || "").replace(/_/g, " ");
+}
+
 function buildTicketLink(
+
   department: string | null | undefined,
   clinicId: string | null | undefined,
   ticketId: string,
@@ -335,7 +368,7 @@ export function NotificationBell() {
             id: `ticket-status-${t.id}-${t.status}`,
             type: "status_changed" as const,
             title: label,
-            message: `[${t.department}] ${t.title}`,
+            message: `[${departmentLabel(t.department, isAllAccess ? null : departments)}] ${t.title}`,
             read: false,
             created_at: t.updated_at || t.created_at,
             link: buildTicketLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments, t.created_at),
@@ -346,7 +379,7 @@ export function NotificationBell() {
           id: `ticket-${t.id}`,
           type: "ticket_created" as const,
           title: "New Ticket",
-          message: `[${t.department}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
+          message: `[${departmentLabel(t.department, isAllAccess ? null : departments)}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
           read: false,
           created_at: t.created_at,
           link: buildTicketLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments, t.created_at),
@@ -486,7 +519,7 @@ export function NotificationBell() {
               id: `task-${t.id}`,
               type: isMine ? "task_assigned" : "task_created",
               title: isMine ? "Task assigned to you" : "New Task",
-              message: `[${String(t.department || "").replace(/_/g, " ")}] ${t.title}${t.priority && t.priority !== "low" ? ` (${t.priority})` : ""}`,
+              message: `[${departmentLabel(t.department, isAllAccess ? null : departments)}] ${t.title}${t.priority && t.priority !== "low" ? ` (${t.priority})` : ""}`,
               read: false,
               created_at: t.created_at,
               link: buildTaskLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments),
@@ -581,7 +614,7 @@ export function NotificationBell() {
         await enrichAndPush({
           id: `ticket-${t.id}`, type: "ticket_created",
           title: "New Ticket",
-          message: `[${t.department}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
+          message: `[${departmentLabel(t.department, isAllAccess ? null : departments)}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
           read: false, created_at: t.created_at,
           link: buildTicketLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments, t.created_at),
           clinicId: t.clinic_id ?? null,
@@ -605,7 +638,7 @@ export function NotificationBell() {
           id: `ticket-status-${t.id}-${t.status}`,
           type: "status_changed",
           title,
-          message: `[${t.department}] ${t.title}`,
+          message: `[${departmentLabel(t.department, isAllAccess ? null : departments)}] ${t.title}`,
           read: false, created_at: t.updated_at || new Date().toISOString(),
           link: buildTicketLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments, t.created_at),
           clinicId: t.clinic_id ?? null,
@@ -620,7 +653,7 @@ export function NotificationBell() {
           id: `task-${t.id}`,
           type: isMine ? "task_assigned" : "task_created",
           title: isMine ? "Task assigned to you" : "New Task",
-          message: `[${String(t.department || "").replace(/_/g, " ")}] ${t.title}${t.priority && t.priority !== "low" ? ` (${t.priority})` : ""}`,
+          message: `[${departmentLabel(t.department, isAllAccess ? null : departments)}] ${t.title}${t.priority && t.priority !== "low" ? ` (${t.priority})` : ""}`,
           read: false,
           created_at: t.created_at,
           link: buildTaskLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments),

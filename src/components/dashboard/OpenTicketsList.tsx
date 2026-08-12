@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { useUserDepartments, type DepartmentType } from "@/hooks/useUserDepartments";
 
 interface OpenTicketsListProps {
   open: boolean;
@@ -43,6 +45,7 @@ interface OpenTicketAssignmentRow {
   ticket_id: string;
   department: string;
   status: string;
+  assigned_to: string | null;
 }
 
 interface OpenTicketBaseRow {
@@ -86,6 +89,8 @@ export default function OpenTicketsList({ open, onOpenChange, initialDepartment 
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [deptFilter, setDeptFilter] = useState<string | null>(initialDepartment);
+  const { user } = useAuth();
+  const { departments, isAllAccess } = useUserDepartments();
 
   useEffect(() => {
     if (open) setDeptFilter(initialDepartment);
@@ -99,7 +104,7 @@ export default function OpenTicketsList({ open, onOpenChange, initialDepartment 
       const [aRes, tRes, cRes] = await Promise.all([
         (supabase
           .from("department_ticket_assignments" as never)
-          .select("id, ticket_id, department, status")
+          .select("id, ticket_id, department, status, assigned_to")
           .in("status", ["open", "in_progress", "emergency"] as never)),
         supabase
           .from("department_tickets")
@@ -111,7 +116,16 @@ export default function OpenTicketsList({ open, onOpenChange, initialDepartment 
       ((cRes.data || []) as { id: string; clinic_name: string }[]).forEach((c) => cMap.set(c.id, c.clinic_name));
       const ticketMap = new Map<string, OpenTicketBaseRow>();
       ((tRes.data || []) as OpenTicketBaseRow[]).forEach((t) => ticketMap.set(t.id, t));
+      // Access control: department-scoped staff only see assignments in their
+      // own department(s) or ones assigned to them personally.
+      const scoped = !isAllAccess && departments !== null;
+      const deptSet = new Set<DepartmentType>(departments ?? []);
       const rows = ((aRes.data || []) as OpenTicketAssignmentRow[])
+        .filter((a) => {
+          if (!scoped) return true;
+          if (a.assigned_to && a.assigned_to === user?.id) return true;
+          return deptSet.has(a.department as DepartmentType);
+        })
         .map((a) => {
           const t = ticketMap.get(a.ticket_id);
           if (!t) return null;
@@ -142,7 +156,7 @@ export default function OpenTicketsList({ open, onOpenChange, initialDepartment 
       cancelled = true;
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [user?.id, isAllAccess, departments?.join(",")]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
