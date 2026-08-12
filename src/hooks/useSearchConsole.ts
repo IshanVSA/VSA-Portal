@@ -114,7 +114,7 @@ export function searchConsoleQuery(clinicId: string | null, dateRange: DateRange
         }),
       ]);
 
-      const siteUrl = credRes?.data?.site_url ?? null;
+      const siteUrl = credRes?.data?.gsc_site_url ?? null;
       if (!siteUrl) return { ...EMPTY };
       if (rpcRes?.error) throw rpcRes.error;
 
