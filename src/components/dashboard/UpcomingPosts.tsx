@@ -79,15 +79,12 @@ export default function UpcomingPosts({ filter }: { filter?: DashboardFilter } =
     <div className="space-y-1.5">
       <div className="px-4 flex items-end justify-between">
         <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/80">Upcoming Posts</h3>
-        <Link to="/content-calendar" className="text-[12px] text-primary hover:opacity-70 inline-flex items-center gap-1">
-          Calendar <ArrowRight className="h-3 w-3" />
-        </Link>
       </div>
       <div className="rounded-2xl bg-card border border-border/40 overflow-hidden shadow-sm">
         {posts.length === 0 ? (
           <div className="py-10 text-center space-y-3">
             <p className="text-sm text-muted-foreground">No upcoming posts scheduled.</p>
-            <Link to="/content-calendar">
+            <Link to="/social?tab=calendar">
               <Button size="sm" variant="outline" className="text-xs rounded-xl">Schedule a Post</Button>
             </Link>
           </div>
@@ -96,24 +93,28 @@ export default function UpcomingPosts({ filter }: { filter?: DashboardFilter } =
             {posts.map((post) => {
               const pcfg = platformConfig(post.platform);
               const PIcon = pcfg.icon;
+              const href = `/social?tab=calendar${post.clinic_id ? `&clinic=${post.clinic_id}` : ""}&post=${post.id}`;
               return (
-                <li key={post.id} className={cn(
-                  "flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-accent/40 transition-colors border-l-2",
-                  pcfg.color
-                )}>
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <PIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{post.title}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{post.clinic_name}</p>
+                <li key={post.id} className={cn("border-l-2", pcfg.color)}>
+                  <Link
+                    to={href}
+                    className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-accent/40 transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <PIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{post.title}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">{post.clinic_name}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[11px] text-muted-foreground hidden sm:inline tabular-nums">
-                      {format(parseISO(post.scheduled_date), "MMM d")}
-                    </span>
-                    <Badge variant={statusVariant(post.status)} className="rounded-full text-[10px]">{post.status}</Badge>
-                  </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[11px] text-muted-foreground hidden sm:inline tabular-nums">
+                        {format(parseISO(post.scheduled_date), "MMM d")}
+                      </span>
+                      <Badge variant={statusVariant(post.status)} className="rounded-full text-[10px]">{post.status}</Badge>
+                      <ArrowRight className="h-3 w-3 text-muted-foreground/60" />
+                    </div>
+                  </Link>
                 </li>
               );
             })}
