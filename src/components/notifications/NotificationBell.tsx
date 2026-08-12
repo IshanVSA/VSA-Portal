@@ -537,7 +537,7 @@ export function NotificationBell() {
               id: `task-${t.id}`,
               type: isMine ? "task_assigned" : "task_created",
               title: isMine ? "Task assigned to you" : "New Task",
-              message: `[${departmentLabel(vDept, isAllAccess ? null : departments)}] ${t.title}${t.priority && t.priority !== "low" ? ` (${t.priority})` : ""}`,
+              message: `[${departmentLabel(t.department, isAllAccess ? null : departments)}] ${t.title}${t.priority && t.priority !== "low" ? ` (${t.priority})` : ""}`,
               read: false,
               created_at: t.created_at,
               link: buildTaskLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments),
