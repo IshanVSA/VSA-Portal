@@ -92,12 +92,10 @@ export function SeoTrafficTab({ clinicId }: Props) {
 
   useEffect(() => {
     if (!clinicId) { setLastSyncAt(null); return; }
-    supabase
-      .from("clinic_ga4_credentials")
-      .select("last_sync_at")
-      .eq("clinic_id", clinicId)
+    (supabase as any)
+      .rpc("get_clinic_analytics_connection", { _clinic_id: clinicId })
       .maybeSingle()
-      .then(({ data }) => setLastSyncAt(data?.last_sync_at ?? null));
+      .then(({ data }: any) => setLastSyncAt(data?.ga4_last_sync_at ?? null));
   }, [clinicId, syncing]);
 
   const handleManualSync = async () => {

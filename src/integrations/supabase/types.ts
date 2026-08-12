@@ -3990,6 +3990,15 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_clinic_analytics_connection: {
+        Args: { _clinic_id: string }
+        Returns: {
+          ga4_last_sync_at: string
+          ga4_property_id: string
+          gsc_last_sync_at: string
+          gsc_site_url: string
+        }[]
+      }
       get_clinic_department_team: {
         Args: { _clinic_id: string; _team_roles: string[] }
         Returns: {
