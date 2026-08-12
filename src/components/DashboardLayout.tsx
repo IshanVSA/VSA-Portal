@@ -23,6 +23,8 @@ import { ChatAssistant } from "@/components/chat/ChatAssistant";
 import { ClinicSelector } from "@/components/department/ClinicSelector";
 import { ClinicClock } from "@/components/ClinicClock";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
+import { useQueryClient } from "@tanstack/react-query";
+import { prefetchSeoData } from "@/lib/seo-prefetch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { WavyBackground } from "@/components/ui/wavy";
@@ -119,6 +121,7 @@ const pageTitles: Record<string, string> = {
 };
 
 export function DashboardLayout({ children }: { children?: React.ReactNode }) {
+  const queryClient = useQueryClient();
   const { clinics: navClinics, selectedClinicId: navSelectedClinicId, setSelectedClinicId: navSetSelectedClinicId, loading: navClinicsLoading } = useClinicSelector();
   const { role, isSubAccount } = useUserRole();
   const { user, signOut } = useAuth();
@@ -424,6 +427,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
                       key={item.path}
                       to={activeClinicId && clinicSelectorPages.includes(item.path) ? `${item.path}?clinic=${activeClinicId}` : item.path}
                       onClick={() => setSidebarOpen(false)}
+                      onMouseEnter={() => { if (item.path === "/seo") prefetchSeoData(queryClient, activeClinicId); }}
                       title={collapsed ? item.label : undefined}
                       className={cn(
                         "flex items-center rounded-lg font-medium transition-colors duration-200 group relative",
@@ -583,6 +587,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
                       setClientSelectedId(id);
                       setSearchParams(prev => { const next = new URLSearchParams(prev); next.set("clinic", id); return next; }, { replace: true });
                     } : navSetSelectedClinicId}
+                    onPrefetch={(id) => { if (location.pathname.startsWith("/seo")) prefetchSeoData(queryClient, id); }}
                     loading={role === "client" ? clientClinics.length === 0 : navClinicsLoading}
                   />
                 </div>
