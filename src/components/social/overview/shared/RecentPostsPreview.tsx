@@ -70,7 +70,7 @@ export function RecentPostsPreview({ clinicId }: RecentPostsPreviewProps) {
               <button
                 key={p.id}
                 onClick={() => setPreviewing(p)}
-                className="w-full flex items-center gap-3 p-2.5 rounded-xl border border-border/50 bg-card hover:border-primary/30 hover:bg-muted/30 transition-all text-left group"
+                className="w-full flex items-center gap-3 p-2.5 rounded-xl border border-border/50 bg-card hover:border-primary/30 hover:bg-muted/30 transition-[color,background-color,border-color,box-shadow,transform,opacity] text-left group"
               >
                 <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                   <FileText className="h-4 w-4 text-primary" />

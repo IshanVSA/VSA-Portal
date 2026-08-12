@@ -29,7 +29,7 @@ export function PipelineFunnel({ stages, onStageClick }: PipelineFunnelProps) {
             type="button"
             onClick={() => onStageClick?.(s.key)}
             className={cn(
-              "group relative flex flex-col gap-2 p-3 rounded-xl border border-border/60 bg-card text-left transition-all",
+              "group relative flex flex-col gap-2 p-3 rounded-xl border border-border/60 bg-card text-left transition-[color,background-color,border-color,box-shadow,transform,opacity]",
               onStageClick && "hover:border-primary/40 hover:bg-muted/30 hover:shadow-sm",
             )}
           >
@@ -48,7 +48,7 @@ export function PipelineFunnel({ stages, onStageClick }: PipelineFunnelProps) {
             </div>
             <div className="h-1.5 w-full rounded-full bg-muted/40 overflow-hidden">
               <div
-                className={cn("h-full rounded-full transition-all duration-500", s.color)}
+                className={cn("h-full rounded-full transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-500", s.color)}
                 style={{ width: `${widthPct}%` }}
               />
             </div>

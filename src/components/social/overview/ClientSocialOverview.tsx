@@ -203,7 +203,7 @@ export function ClientSocialOverview({ clinicId }: ClientSocialOverviewProps) {
       {/* KPI Tiles */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <button onClick={() => goTab("content-review")} className="text-left">
-          <Card className="hover-lift transition-all hover:border-primary/40 h-full">
+          <Card className="hover-lift transition-[color,background-color,border-color,box-shadow,transform,opacity] hover:border-primary/40 h-full">
             <CardContent className="p-5">
               <div className="flex items-start justify-between mb-4">
                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -237,7 +237,7 @@ export function ClientSocialOverview({ clinicId }: ClientSocialOverviewProps) {
               {postsLiveThisMonth}<span className="text-base text-muted-foreground font-medium">/{MONTH_CAP}</span>
             </p>
             <div className="h-1.5 rounded-full bg-muted/40 overflow-hidden mt-3">
-              <div className="h-full bg-emerald-500 rounded-full transition-all duration-700" style={{ width: `${monthPct}%` }} />
+              <div className="h-full bg-emerald-500 rounded-full transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-700" style={{ width: `${monthPct}%` }} />
             </div>
           </CardContent>
         </Card>
@@ -283,7 +283,7 @@ export function ClientSocialOverview({ clinicId }: ClientSocialOverviewProps) {
                       </div>
                       <div className="h-1.5 rounded-full bg-muted/40 overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full transition-all duration-700"
+                          className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-700"
                           style={{ width: `${t.weight}%` }}
                         />
                       </div>
@@ -342,7 +342,7 @@ export function ClientSocialOverview({ clinicId }: ClientSocialOverviewProps) {
               </div>
               <div className="h-2.5 rounded-full bg-muted/40 overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-primary via-primary/80 to-emerald-500 rounded-full transition-all duration-700"
+                  className="h-full bg-gradient-to-r from-primary via-primary/80 to-emerald-500 rounded-full transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-700"
                   style={{ width: `${readyPct}%` }}
                 />
               </div>
@@ -452,7 +452,7 @@ function QuickActionsCard({
               <button
                 key={action.type}
                 onClick={() => action.type === "Bulk Uploads" ? onBulkUpload() : onTicket(action.type)}
-                className="group flex flex-col items-start gap-2 p-3 rounded-lg border border-border/60 bg-card hover:border-primary/40 hover:bg-muted/30 hover:shadow-sm transition-all text-left"
+                className="group flex flex-col items-start gap-2 p-3 rounded-lg border border-border/60 bg-card hover:border-primary/40 hover:bg-muted/30 hover:shadow-sm transition-[color,background-color,border-color,box-shadow,transform,opacity] text-left"
               >
                 <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${action.color}`}>
                   <Icon className="h-4 w-4" />

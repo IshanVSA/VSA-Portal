@@ -65,7 +65,7 @@ function ScoreGauge({ score, label }: { score: number; label: string }) {
             cx="50" cy="50" r="40" fill="none"
             stroke={color} strokeWidth="8" strokeLinecap="round"
             strokeDasharray={circumference} strokeDashoffset={offset}
-            className="transition-all duration-700"
+            className="transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-700"
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">

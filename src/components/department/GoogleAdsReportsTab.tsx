@@ -317,7 +317,7 @@ export function GoogleAdsReportsTab({ clinicId }: Props) {
                             <span className="tabular-nums text-muted-foreground">{pct}%</span>
                           </div>
                           <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                            <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+                            <div className="h-full rounded-full bg-primary transition-[color,background-color,border-color,box-shadow,transform,opacity]" style={{ width: `${pct}%` }} />
                           </div>
                         </div>
                       );

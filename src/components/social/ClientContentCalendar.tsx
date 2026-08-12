@@ -120,7 +120,7 @@ export default function ClientContentCalendar({ clinicId }: Props) {
 
   return (
     <div className="flex h-[calc(100vh-280px)]">
-      <div className={cn("flex-1 overflow-y-auto transition-all duration-200 space-y-4 p-1", selectedPost && "pr-0")}>
+      <div className={cn("flex-1 overflow-y-auto transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-200 space-y-4 p-1", selectedPost && "pr-0")}>
         {/* Toolbar — only month nav + view toggle */}
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">

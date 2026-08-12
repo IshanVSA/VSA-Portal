@@ -106,7 +106,7 @@ function ServiceAccessSelector({
               key={option.key}
               type="button"
               onClick={() => onToggle(option.key)}
-              className={`rounded-xl border p-3 text-left transition-all ${enabled ? "border-primary/40 bg-primary/10" : "border-border bg-background hover:bg-muted/50"}`}
+              className={`rounded-xl border p-3 text-left transition-[color,background-color,border-color,box-shadow,transform,opacity] ${enabled ? "border-primary/40 bg-primary/10" : "border-border bg-background hover:bg-muted/50"}`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div>

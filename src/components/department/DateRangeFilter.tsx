@@ -70,7 +70,7 @@ export function DateRangeFilter({
             variant="outline"
             size="sm"
             className={cn(
-              "h-8 gap-1.5 text-xs font-medium rounded-full pl-3 pr-2.5 transition-all",
+              "h-8 gap-1.5 text-xs font-medium rounded-full pl-3 pr-2.5 transition-[color,background-color,border-color,box-shadow,transform,opacity]",
               "border-primary/40 bg-primary/5 text-foreground hover:bg-primary/10"
             )}
           >

@@ -579,7 +579,7 @@ export function UploadsTab({ department, clinicId }: { department: string; clini
             }}
             onClick={() => brandInputRef.current?.click()}
             className={cn(
-              "border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all",
+              "border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center gap-2 cursor-pointer transition-[color,background-color,border-color,box-shadow,transform,opacity]",
               brandDragging
                 ? "border-violet-400 bg-violet-400/5"
                 : "border-border/60 hover:border-violet-400/40 hover:bg-muted/20"

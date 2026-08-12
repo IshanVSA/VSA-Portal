@@ -158,7 +158,7 @@ export function DepartmentOverview({
                         setTicketDialogOpen(true);
                       }
                     }}
-                    className="group flex flex-col items-start gap-2 p-3 rounded-xl border border-border/40 bg-card/60 hover:border-primary/40 hover:bg-accent/40 transition-all text-left"
+                    className="group flex flex-col items-start gap-2 p-3 rounded-xl border border-border/40 bg-card/60 hover:border-primary/40 hover:bg-accent/40 transition-[color,background-color,border-color,box-shadow,transform,opacity] text-left"
                   >
                     <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center", color)}>
                       <Icon className="h-4 w-4" />
