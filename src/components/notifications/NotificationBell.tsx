@@ -267,6 +267,11 @@ export function NotificationBell() {
 
   useEffect(() => {
     if (!user) return;
+    // Wait until the viewer's department scope is known. Fetching early would
+    // treat a department-scoped staff member as unscoped and surface every
+    // department's notifications.
+    if (departmentsLoading) return;
+    if (!isAllAccess && departments === null) return;
 
     readIdsRef.current = loadReadIds();
     if (readAllKey) {
