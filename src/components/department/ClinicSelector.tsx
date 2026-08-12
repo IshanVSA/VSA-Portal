@@ -11,9 +11,11 @@ interface ClinicSelectorProps {
   selectedClinicId: string;
   onSelect: (id: string) => void;
   loading?: boolean;
+  /** Called when a clinic row is hovered/focused so callers can warm its data. */
+  onPrefetch?: (id: string) => void;
 }
 
-export function ClinicSelector({ clinics, selectedClinicId, onSelect, loading }: ClinicSelectorProps) {
+export function ClinicSelector({ clinics, selectedClinicId, onSelect, loading, onPrefetch }: ClinicSelectorProps) {
   const [open, setOpen] = useState(false);
 
   if (loading) {
@@ -66,6 +68,8 @@ export function ClinicSelector({ clinics, selectedClinicId, onSelect, loading }:
                   <CommandItem
                     key={c.id}
                     value={c.clinic_name}
+                    onMouseEnter={() => onPrefetch?.(c.id)}
+                    onFocus={() => onPrefetch?.(c.id)}
                     onSelect={() => {
                       onSelect(c.id);
                       setOpen(false);
