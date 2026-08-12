@@ -87,7 +87,40 @@ const DEPARTMENT_ROUTE: Record<string, string> = {
   ai_seo: "/ai-seo",
 };
 
+const DEPARTMENT_LABEL: Record<string, string> = {
+  website: "Website",
+  seo: "SEO",
+  google_ads: "Google Ads",
+  social_media: "Social Media",
+  ai_seo: "AI SEO",
+};
+
+/**
+ * Resolves the department a *viewer* should see for a ticket/task. When a
+ * department-scoped staff member views an item whose home department isn't
+ * theirs (cross-posted or reassigned), show their own department context.
+ */
+function viewerDepartment(
+  department: string | null | undefined,
+  allowedDepartments?: DepartmentType[] | null,
+): string {
+  const dept = department || "";
+  if (allowedDepartments && allowedDepartments.length > 0 && !allowedDepartments.includes(dept as DepartmentType)) {
+    return allowedDepartments[0];
+  }
+  return dept;
+}
+
+function departmentLabel(
+  department: string | null | undefined,
+  allowedDepartments?: DepartmentType[] | null,
+): string {
+  const dept = viewerDepartment(department, allowedDepartments);
+  return DEPARTMENT_LABEL[dept] || String(dept || "").replace(/_/g, " ");
+}
+
 function buildTicketLink(
+
   department: string | null | undefined,
   clinicId: string | null | undefined,
   ticketId: string,
