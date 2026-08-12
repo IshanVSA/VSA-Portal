@@ -224,7 +224,7 @@ function messageMentionsUser(message: string, names: string[]): boolean {
 export function NotificationBell() {
   const { user } = useAuth();
   const { role } = useUserRole();
-  const { departments, isAllAccess } = useUserDepartments();
+  const { departments, isAllAccess, isLoading: departmentsLoading } = useUserDepartments();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
