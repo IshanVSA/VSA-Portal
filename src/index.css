@@ -224,7 +224,7 @@
 
 
   .page-enter {
-    animation: page-fade-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: page-fade-in 0.3s var(--ease-out);
   }
 
   .hover-lift {
@@ -299,7 +299,7 @@
     border-radius: 50%;
     pointer-events: none;
     z-index: 0;
-    animation: dept-orb-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+    animation: dept-orb-in 0.8s var(--ease-out) 0.1s both;
   }
 
   /* Watermark label */
@@ -389,7 +389,7 @@
 
   /* Stagger children animation */
   .stagger-children > * {
-    animation: stagger-fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: stagger-fade-in 0.4s var(--ease-out) both;
   }
   .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
   .stagger-children > *:nth-child(2) { animation-delay: 50ms; }

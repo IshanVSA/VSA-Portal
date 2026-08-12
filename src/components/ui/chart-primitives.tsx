@@ -78,6 +78,6 @@ export function gradientDef(id: string, color: string, topOpacity = 0.32, bottom
 /** Recharts animation defaults: slightly longer + spring-ish easing. */
 export const chartAnimationProps = {
   isAnimationActive: true,
-  animationDuration: 900,
+  animationDuration: 400,
   animationEasing: "ease-out" as const,
 };

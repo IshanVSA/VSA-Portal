@@ -808,11 +808,10 @@ export default function AdminDashboard() {
                   </div>
                   <div className="h-1.5 overflow-hidden rounded-full bg-muted/60">
                     <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${pct}%` }}
-                      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-                      className={cn("h-full rounded-full", c.bar)}
-                      style={{ minWidth: stage.count > 0 ? "6px" : "0" }}
+                      initial={{ transform: "scaleX(0)" }}
+                      animate={{ transform: `scaleX(${Math.max(stage.count > 0 ? 2 : 0, pct) / 100})` }}
+                      transition={{ duration: 0.28, ease: [0.23, 1, 0.32, 1] }}
+                      className={cn("h-full w-full origin-left rounded-full", c.bar)}
                     />
                   </div>
                 </button>

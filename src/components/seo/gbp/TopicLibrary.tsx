@@ -172,7 +172,7 @@ export function TopicLibrary() {
             <AnimatePresence>
               {isExpanded && (
                 <CollapsibleContent forceMount>
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }}>
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}>
                     <Card className="mt-1 border-border/40">
                       <CardContent className="p-0">
                         {monthTopics.length > 0 ? (
