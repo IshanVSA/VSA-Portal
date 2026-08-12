@@ -137,9 +137,11 @@ function buildSM2Link(clinicId: string | null | undefined, role: string | null, 
     return `/review${params.toString() ? `?${params.toString()}` : ""}`;
   }
   if (role === "client") {
-    params.set("tab", "my-posts");
+    params.set("tab", "content");
+    params.set("sub", "my-posts");
   } else {
-    params.set("tab", "overview");
+    params.set("tab", "content");
+    params.set("sub", "generation");
   }
   return `/social?${params.toString()}`;
 }
@@ -147,15 +149,19 @@ function buildSM2Link(clinicId: string | null | undefined, role: string | null, 
 function buildPostLink(clinicId: string | null | undefined, postId: string, role: string | null): string {
   const params = new URLSearchParams();
   if (clinicId) params.set("clinic", clinicId);
-  params.set("tab", role === "client" ? "my-posts" : "overview");
+  params.set("tab", "content");
+  params.set("sub", role === "client" ? "my-posts" : "generation");
   params.set("post", postId);
   return `/social?${params.toString()}`;
 }
 
+
 function buildSM2PostLink(clinicId: string | null | undefined, scheduledDate: string | null): string {
   const params = new URLSearchParams();
   if (clinicId) params.set("clinic", clinicId);
-  params.set("tab", "generation");
+  params.set("tab", "content");
+  params.set("sub", "generation");
+
   if (scheduledDate) params.set("sm2date", scheduledDate);
   return `/social?${params.toString()}`;
 }

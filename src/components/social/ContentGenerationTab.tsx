@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useSM2Generation, STAGE_LABELS, nextStageLabel } from "@/hooks/useSM2Generation";
 import { formatDistanceToNow } from "date-fns";
 import { useMonthlySignals } from "@/hooks/useMonthlySignals";
@@ -88,6 +89,14 @@ export default function ContentGenerationTab({ clinicId }: Props) {
   const [topPerformers, setTopPerformers] = useState<PerformanceData[]>([]);
   const [contentSettings, setContentSettings] = useState<ContentSettings>(DEFAULT_SETTINGS);
   const calendarRef = useRef<HTMLDivElement | null>(null);
+
+  // Deep links from notifications / dashboard open the content calendar directly.
+  const [deepLinkParams] = useSearchParams();
+  const hasDeepLinkedPost = !!(deepLinkParams.get("post") || deepLinkParams.get("sm2date"));
+  const [innerTab, setInnerTab] = useState(hasDeepLinkedPost ? "calendar" : "pipeline");
+  useEffect(() => {
+    if (hasDeepLinkedPost) setInnerTab("calendar");
+  }, [hasDeepLinkedPost]);
 
   // One generation per month — prioritize the one furthest along the client workflow
   // (approved > sent for review > copy approved > ...) over merely newest.
@@ -225,7 +234,7 @@ export default function ContentGenerationTab({ clinicId }: Props) {
   ];
 
   return (
-    <Tabs defaultValue="pipeline" className="space-y-4">
+    <Tabs value={innerTab} onValueChange={setInnerTab} className="space-y-4">
       <TabsList className="bg-muted/50 h-9">
         <TabsTrigger value="pipeline" className="gap-1.5 text-xs">
           <Sparkles className="h-3.5 w-3.5" /> Content Generation

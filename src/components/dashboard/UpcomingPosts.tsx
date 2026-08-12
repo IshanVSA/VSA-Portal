@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface UpcomingPost {
   id: string;
@@ -38,6 +39,8 @@ const statusVariant = (status: string): "default" | "secondary" | "destructive" 
 export default function UpcomingPosts({ filter }: { filter?: DashboardFilter } = {}) {
   const [allPosts, setAllPosts] = useState<UpcomingPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const { role } = useUserRole();
+  const contentSub = role === "client" ? "my-posts" : "generation";
 
   useEffect(() => {
     const fetch = async () => {
@@ -84,7 +87,7 @@ export default function UpcomingPosts({ filter }: { filter?: DashboardFilter } =
         {posts.length === 0 ? (
           <div className="py-10 text-center space-y-3">
             <p className="text-sm text-muted-foreground">No upcoming posts scheduled.</p>
-            <Link to="/social?tab=calendar">
+            <Link to={`/social?tab=content&sub=${contentSub}`}>
               <Button size="sm" variant="outline" className="text-xs rounded-xl">Schedule a Post</Button>
             </Link>
           </div>
@@ -93,7 +96,7 @@ export default function UpcomingPosts({ filter }: { filter?: DashboardFilter } =
             {posts.map((post) => {
               const pcfg = platformConfig(post.platform);
               const PIcon = pcfg.icon;
-              const href = `/social?tab=calendar${post.clinic_id ? `&clinic=${post.clinic_id}` : ""}&post=${post.id}`;
+              const href = `/social?tab=content&sub=${contentSub}${post.clinic_id ? `&clinic=${post.clinic_id}` : ""}&post=${post.id}`;
               return (
                 <li key={post.id} className={cn("border-l-2", pcfg.color)}>
                   <Link
