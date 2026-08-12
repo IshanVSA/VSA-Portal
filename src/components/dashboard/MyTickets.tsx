@@ -53,6 +53,7 @@ export default function MyTickets({ filter }: { filter?: DashboardFilter } = {})
 
   const { data: rawTickets = [], refetch } = useQuery({
     queryKey: ["my-assigned-tickets", user?.id],
+    refetchOnWindowFocus: true,
     enabled: !!user,
     queryFn: async () => {
       // 1) Per-department assignments where I'm explicitly assigned
