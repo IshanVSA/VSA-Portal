@@ -30,11 +30,11 @@ const people = [
 
 export default function BookMeeting() {
   return (
-    <div className="dot-grid min-h-[80vh] flex flex-col items-center px-4 py-10">
+    <div className="min-h-[80vh] flex flex-col items-center px-4 py-10">
       {/* Hero */}
       <div className="text-center max-w-xl mx-auto mb-10 animate-fade-in">
-        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-3">
-          Book a <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">Meeting</span>
+        <h1 className="text-3xl md:text-4xl font-semibold tracking-[-0.03em] text-foreground mb-3">
+          Book a meeting
         </h1>
         <p className="text-muted-foreground text-base md:text-lg leading-relaxed">
           Schedule a one-on-one session with our team to discuss your clinic's goals, campaigns, or any questions you have.
