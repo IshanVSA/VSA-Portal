@@ -651,7 +651,7 @@ export default function ClientDashboard() {
                         onClick={() => navigate(`${meta.route}?clinic=${selectedClinicId}&tab=tickets`)}
                         className="w-full flex items-center gap-3 py-2.5 text-left hover:bg-accent/40 -mx-2 px-2 rounded-md transition-colors"
                       >
-                        <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", meta.bg)}>
+                        <div className={cn("h-8 w-8 rounded-xl ring-1 ring-inset ring-border/40 flex items-center justify-center shrink-0", meta.bg)}>
                           <Icon className={cn("h-4 w-4", meta.color)} />
                         </div>
                         <div className="min-w-0 flex-1">

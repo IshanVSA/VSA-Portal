@@ -244,7 +244,7 @@ function HeroStat({ label, value, caption, icon: Icon, tone, href, index, active
       <div className="relative">
         <div className="flex items-start justify-between gap-3">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
-          <div className={cn("flex h-7 w-7 items-center justify-center rounded-lg", t.chip)}>
+          <div className={cn("flex h-7 w-7 items-center justify-center rounded-[9px] ring-1 ring-inset ring-border/40", t.chip)}>
             <Icon className="h-3.5 w-3.5" />
           </div>
         </div>
@@ -904,7 +904,7 @@ export default function AdminDashboard() {
                     className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-xl ring-1 ring-inset ring-border/40 bg-primary/10 text-primary">
                         <Building2 className="h-4 w-4" />
                       </div>
                       <span className="truncate text-sm font-medium text-foreground">{row.clinicName}</span>

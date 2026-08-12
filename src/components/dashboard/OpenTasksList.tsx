@@ -146,7 +146,7 @@ export default function OpenTasksList({ open, onOpenChange }: OpenTasksListProps
         <DialogHeader className="border-b border-border/50 px-5 py-4 space-y-0">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-primary">
+              <div className="flex h-7 w-7 items-center justify-center rounded-[9px] ring-1 ring-inset ring-border/40 bg-primary/15 text-primary">
                 <ClipboardList className="h-3.5 w-3.5" />
               </div>
               <div className="text-left">
