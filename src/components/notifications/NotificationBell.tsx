@@ -386,10 +386,10 @@ export function NotificationBell() {
             id: `ticket-status-${t.id}-${t.status}`,
             type: "status_changed" as const,
             title: label,
-            message: `[${departmentLabel(t.department, isAllAccess ? null : departments)}] ${t.title}`,
+            message: `[${departmentLabel(vDept, isAllAccess ? null : departments)}] ${t.title}`,
             read: false,
             created_at: t.updated_at || t.created_at,
-            link: buildTicketLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments, t.created_at),
+            link: buildTicketLink(vDept, t.clinic_id, t.id, isAllAccess ? null : departments, t.created_at),
             clinicId: t.clinic_id ?? null,
           }];
         }
@@ -397,10 +397,10 @@ export function NotificationBell() {
           id: `ticket-${t.id}`,
           type: "ticket_created" as const,
           title: "New Ticket",
-          message: `[${departmentLabel(t.department, isAllAccess ? null : departments)}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
+          message: `[${departmentLabel(vDept, isAllAccess ? null : departments)}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
           read: false,
           created_at: t.created_at,
-          link: buildTicketLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments, t.created_at),
+          link: buildTicketLink(vDept, t.clinic_id, t.id, isAllAccess ? null : departments, t.created_at),
           clinicId: t.clinic_id ?? null,
         }];
       });
@@ -537,7 +537,7 @@ export function NotificationBell() {
               id: `task-${t.id}`,
               type: isMine ? "task_assigned" : "task_created",
               title: isMine ? "Task assigned to you" : "New Task",
-              message: `[${departmentLabel(t.department, isAllAccess ? null : departments)}] ${t.title}${t.priority && t.priority !== "low" ? ` (${t.priority})` : ""}`,
+              message: `[${departmentLabel(vDept, isAllAccess ? null : departments)}] ${t.title}${t.priority && t.priority !== "low" ? ` (${t.priority})` : ""}`,
               read: false,
               created_at: t.created_at,
               link: buildTaskLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments),
@@ -632,9 +632,9 @@ export function NotificationBell() {
         await enrichAndPush({
           id: `ticket-${t.id}`, type: "ticket_created",
           title: "New Ticket",
-          message: `[${departmentLabel(t.department, isAllAccess ? null : departments)}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
+          message: `[${departmentLabel(vDept, isAllAccess ? null : departments)}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
           read: false, created_at: t.created_at,
-          link: buildTicketLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments, t.created_at),
+          link: buildTicketLink(vDept, t.clinic_id, t.id, isAllAccess ? null : departments, t.created_at),
           clinicId: t.clinic_id ?? null,
         });
       })
@@ -656,9 +656,9 @@ export function NotificationBell() {
           id: `ticket-status-${t.id}-${t.status}`,
           type: "status_changed",
           title,
-          message: `[${departmentLabel(t.department, isAllAccess ? null : departments)}] ${t.title}`,
+          message: `[${departmentLabel(vDept, isAllAccess ? null : departments)}] ${t.title}`,
           read: false, created_at: t.updated_at || new Date().toISOString(),
-          link: buildTicketLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments, t.created_at),
+          link: buildTicketLink(vDept, t.clinic_id, t.id, isAllAccess ? null : departments, t.created_at),
           clinicId: t.clinic_id ?? null,
         });
       })
@@ -671,7 +671,7 @@ export function NotificationBell() {
           id: `task-${t.id}`,
           type: isMine ? "task_assigned" : "task_created",
           title: isMine ? "Task assigned to you" : "New Task",
-          message: `[${departmentLabel(t.department, isAllAccess ? null : departments)}] ${t.title}${t.priority && t.priority !== "low" ? ` (${t.priority})` : ""}`,
+          message: `[${departmentLabel(vDept, isAllAccess ? null : departments)}] ${t.title}${t.priority && t.priority !== "low" ? ` (${t.priority})` : ""}`,
           read: false,
           created_at: t.created_at,
           link: buildTaskLink(t.department, t.clinic_id, t.id, isAllAccess ? null : departments),
