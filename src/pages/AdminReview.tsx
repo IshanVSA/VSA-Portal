@@ -332,8 +332,8 @@ function ReviewCard({
     <Collapsible open={isOpen} onOpenChange={onToggle}>
       <Card
         className={cn(
-          "animate-fade-in overflow-hidden transition-all duration-300 border-l-4",
-          isPending ? "border-l-warning" : "border-l-success"
+          "animate-fade-in overflow-hidden transition-all duration-300",
+          isPending ? "ring-1 ring-inset ring-warning/30" : "ring-1 ring-inset ring-success/25"
         )}
         style={{ animationDelay: `${index * 60}ms`, animationFillMode: "both" }}
       >
