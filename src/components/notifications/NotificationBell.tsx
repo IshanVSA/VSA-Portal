@@ -224,7 +224,7 @@ function messageMentionsUser(message: string, names: string[]): boolean {
 export function NotificationBell() {
   const { user } = useAuth();
   const { role } = useUserRole();
-  const { departments, isAllAccess } = useUserDepartments();
+  const { departments, isAllAccess, isLoading: departmentsLoading } = useUserDepartments();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -267,6 +267,11 @@ export function NotificationBell() {
 
   useEffect(() => {
     if (!user) return;
+    // Wait until the viewer's department scope is known. Fetching early would
+    // treat a department-scoped staff member as unscoped and surface every
+    // department's notifications.
+    if (departmentsLoading) return;
+    if (!isAllAccess && departments === null) return;
 
     readIdsRef.current = loadReadIds();
     if (readAllKey) {
@@ -489,6 +494,8 @@ export function NotificationBell() {
           (senderProfiles || []).forEach((p: any) => senderNameMap.set(p.id, p.full_name || "Someone"));
         }
         (chatRows || []).forEach((c: any) => {
+          // Department-scoped staff only get chat notifications for their own departments.
+          if (staffScoped && !(c.department && deptSet.has(c.department as DepartmentType))) return;
           const sender = senderNameMap.get(c.user_id) || "Someone";
           const preview = (c.message || "").length > 120 ? c.message.slice(0, 120) + "…" : c.message;
           const deptLabel = String(c.department || "").replace(/_/g, " ");
@@ -737,6 +744,7 @@ export function NotificationBell() {
         const c = payload.new as any;
         if (!c || c.user_id === user.id) return;
         if (role === "client") return;
+        if (rtStaffScoped && !(c.department && rtDeptSet.has(c.department as DepartmentType))) return;
         // RLS on department_chats ensures this INSERT is only delivered to
         // users who can see the channel (admins + dept team members of clinic).
         const { data: sender } = await supabase
@@ -772,7 +780,7 @@ export function NotificationBell() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [user, role, isAllAccess, departments?.join(",")]);
+  }, [user, role, isAllAccess, departmentsLoading, departments?.join(",")]);
 
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
