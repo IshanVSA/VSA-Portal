@@ -26,6 +26,7 @@ import { useMyOpenTaskCount } from "@/hooks/useDepartmentTasks";
 import { usePendingCounts } from "@/hooks/usePendingCounts";
 import { useBrandDNA } from "@/hooks/useBrandDNA";
 import { BrandDNAForm } from "@/components/social/BrandDNAForm";
+import { IconTile } from "@/components/ui/icon-tile";
 
 const PromotionModule = lazy(() => import("@/components/social/PromotionModule"));
 const AnalyticsContent = lazy(() => import("@/components/social/SocialAnalyticsTab"));
@@ -206,9 +207,7 @@ export default function SocialMedia() {
         {/* Compact page header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/60">
           <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-[hsl(var(--dept-social))]/10 flex items-center justify-center">
-              <Share2 className="h-4 w-4 text-[hsl(var(--dept-social))]" />
-            </div>
+            <IconTile icon={Share2} tone="bg-[hsl(var(--dept-social))]/10" iconClassName="text-[hsl(var(--dept-social))]" />
             <div>
               <h1 className="text-lg font-bold text-foreground tracking-tight">Social Media</h1>
               {selectedClinicName && <p className="text-xs text-muted-foreground -mt-0.5">{selectedClinicName}</p>}

@@ -51,7 +51,7 @@ export default function TeamActivityCard() {
     <section className="rounded-2xl border border-border/60 bg-card">
       <header className="flex items-center justify-between border-b border-border/50 px-5 py-4">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-primary">
+          <div className="flex h-7 w-7 items-center justify-center rounded-[9px] ring-1 ring-inset ring-border/40 bg-primary/15 text-primary">
             <Users className="h-3.5 w-3.5" />
           </div>
           <div>

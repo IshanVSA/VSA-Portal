@@ -22,6 +22,7 @@ import { DepartmentChat } from "@/components/department/DepartmentChat";
 import { useDepartmentChatUnread } from "@/hooks/useDepartmentChatUnread";
 import { TasksTab } from "@/components/department/tasks/TasksTab";
 import { useMyOpenTaskCount } from "@/hooks/useDepartmentTasks";
+import { IconTile } from "@/components/ui/icon-tile";
 
 const baseTabs = [
   { value: "overview", label: "Overview", icon: LayoutGrid },
@@ -102,9 +103,7 @@ export default function WebsiteDepartment() {
       <div className="space-y-4 dept-tint-website min-h-full -m-3 p-3 sm:-m-4 sm:p-4 lg:-m-8 lg:p-8" data-dept="Website">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/60">
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-[hsl(var(--dept-website))]/10 flex items-center justify-center">
-              <Globe className="h-4 w-4 text-[hsl(var(--dept-website))]" />
-            </div>
+            <IconTile icon={Globe} tone="bg-[hsl(var(--dept-website))]/10" iconClassName="text-[hsl(var(--dept-website))]" />
             <div>
               <h1 className="text-lg font-bold text-foreground tracking-tight">Website</h1>
               {selectedClinicName && <p className="text-xs text-muted-foreground -mt-0.5">{selectedClinicName}</p>}

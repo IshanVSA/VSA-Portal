@@ -23,6 +23,7 @@ import { DepartmentChat } from "@/components/department/DepartmentChat";
 import { useDepartmentChatUnread } from "@/hooks/useDepartmentChatUnread";
 import { TasksTab } from "@/components/department/tasks/TasksTab";
 import { useMyOpenTaskCount } from "@/hooks/useDepartmentTasks";
+import { IconTile } from "@/components/ui/icon-tile";
 
 const baseTabs = [
   { value: "overview", label: "Overview", icon: LayoutGrid },
@@ -103,9 +104,7 @@ export default function GoogleAdsDepartment() {
         {/* Compact page header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/60">
           <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-[hsl(var(--dept-ads))]/10 flex items-center justify-center">
-              <Megaphone className="h-4 w-4 text-[hsl(var(--dept-ads))]" />
-            </div>
+            <IconTile icon={Megaphone} tone="bg-[hsl(var(--dept-ads))]/10" iconClassName="text-[hsl(var(--dept-ads))]" />
             <div>
               <h1 className="text-lg font-bold text-foreground tracking-tight">Google Ads</h1>
               {selectedClinicName && <p className="text-xs text-muted-foreground -mt-0.5">{selectedClinicName}</p>}

@@ -27,12 +27,12 @@ interface PostChipProps {
   compact?: boolean;
 }
 
-const statusBorder: Record<string, string> = {
-  scheduled: "border-l-blue-500",
-  posted: "border-l-green-500",
-  failed: "border-l-red-500",
-  flagged: "border-l-yellow-500",
-  draft: "border-l-muted-foreground",
+const statusRing: Record<string, string> = {
+  scheduled: "ring-info/35",
+  posted: "ring-success/40",
+  failed: "ring-destructive/40",
+  flagged: "ring-warning/45",
+  draft: "ring-border",
 };
 
 const statusBadge: Record<string, string> = {
@@ -70,8 +70,8 @@ export function PostChip({ post, onClick, compact = false }: PostChipProps) {
         onDragStart={handleDragStart}
         onClick={() => onClick(post)}
         className={cn(
-          "p-1.5 rounded-xl text-xs border-l-2 bg-background/80 cursor-pointer hover:bg-accent/40 transition-all shadow-[0_1px_2px_hsl(var(--foreground)/0.04)] space-y-1",
-          statusBorder[post.status] || "border-l-muted",
+          "p-1.5 rounded-xl text-xs bg-background/80 cursor-pointer hover:bg-accent/40 transition-all shadow-[0_1px_2px_hsl(var(--foreground)/0.04)] space-y-1 ring-1 ring-inset",
+          statusRing[post.status] || "ring-border",
           !isDraggable && "cursor-default opacity-75"
         )}
         title={post.title}
@@ -102,8 +102,8 @@ export function PostChip({ post, onClick, compact = false }: PostChipProps) {
       onDragStart={handleDragStart}
       onClick={() => onClick(post)}
       className={cn(
-        "rounded-lg border border-border border-l-2 bg-card cursor-pointer hover:bg-accent/50 transition-colors overflow-hidden",
-        statusBorder[post.status] || "border-l-muted",
+        "rounded-xl bg-card cursor-pointer hover:bg-accent/50 transition-colors overflow-hidden ring-1 ring-inset",
+        statusRing[post.status] || "ring-border",
         !isDraggable && "cursor-default"
       )}
     >

@@ -193,6 +193,17 @@
     background: hsl(var(--primary) / 0.15);
     color: hsl(var(--foreground));
   }
+
+  /* Caret + numerals belong to the design system, not the browser */
+  input, textarea, [contenteditable] {
+    caret-color: hsl(var(--primary));
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring) / 0.65);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
 }
 
 @layer utilities {
@@ -207,18 +218,10 @@
     box-shadow: var(--shadow-md);
   }
 
-  .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-[hsl(280,65%,60%)];
-  }
-
   .input-glow:focus-within {
     box-shadow: 0 0 0 3px hsl(var(--primary) / 0.08), 0 0 12px -2px hsl(var(--primary) / 0.1);
   }
 
-  .dot-grid {
-    background-image: radial-gradient(circle, hsl(var(--border) / 0.6) 1px, transparent 1px);
-    background-size: 24px 24px;
-  }
 
   .page-enter {
     animation: page-fade-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
