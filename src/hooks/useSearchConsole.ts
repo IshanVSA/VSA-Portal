@@ -72,30 +72,6 @@ const EMPTY: GSCData = {
   countries: [],
 };
 
-interface Row {
-  date: string;
-  bucket_type: string;
-  bucket_value: string;
-  impressions: number;
-  clicks: number;
-  ctr: number;
-  position: number;
-}
-
-function aggregateTotals(rows: Row[]): GSCTotals {
-  let impressions = 0, clicks = 0, weightedPos = 0;
-  for (const r of rows) {
-    impressions += r.impressions;
-    clicks += r.clicks;
-    weightedPos += (r.position || 0) * (r.impressions || 0);
-  }
-  return {
-    impressions,
-    clicks,
-    ctr: impressions > 0 ? clicks / impressions : 0,
-    avgPosition: impressions > 0 ? weightedPos / impressions : 0,
-  };
-}
 
 function tokensFromClinicName(name: string): string[] {
   if (!name) return [];
@@ -106,19 +82,14 @@ function tokensFromClinicName(name: string): string[] {
     .filter(s => s.length >= 4);
 }
 
+type NumRow = Record<string, any>;
+const num = (v: unknown) => (typeof v === "number" ? v : Number(v) || 0);
+
 export function searchConsoleQuery(clinicId: string | null, dateRange: DateRange, clinicName?: string) {
   return {
     queryKey: ["gsc", clinicId, format(dateRange.from, "yyyy-MM-dd"), format(dateRange.to, "yyyy-MM-dd"), clinicName || ""],
     queryFn: async (): Promise<GSCData> => {
       if (!clinicId) return EMPTY;
-
-      const { data: cred } = await (supabase as any)
-        .from("clinic_gsc_credentials")
-        .select("site_url")
-        .eq("clinic_id", clinicId)
-        .maybeSingle();
-      const siteUrl = cred?.site_url ?? null;
-      if (!siteUrl) return { ...EMPTY };
 
       const from = format(dateRange.from, "yyyy-MM-dd");
       const to = format(dateRange.to, "yyyy-MM-dd");
@@ -128,157 +99,50 @@ export function searchConsoleQuery(clinicId: string | null, dateRange: DateRange
       const prevTo = subDays(dateRange.from, 1);
       const prevFrom = subDays(prevTo, lengthDays - 1);
 
-      // Fetch current + previous rows. PostgREST caps a single response at 1000 rows,
-      // so page through the window explicitly — in parallel batches, otherwise a
-      // high-volume clinic takes several seconds of sequential round trips.
-      const PAGE = 1000;
-      const CONCURRENCY = 8;
-      const MAX_ROWS = 100000;
-      const fromDate = format(prevFrom, "yyyy-MM-dd");
+      // Credentials check + aggregation run in parallel. All bucketing, ranking and
+      // brand splitting happens in Postgres (get_gsc_dashboard) so the browser
+      // receives ~60 rows instead of paging through tens of thousands.
+      const [credRes, rpcRes] = await Promise.all([
+        (supabase as any).from("clinic_gsc_credentials").select("site_url").eq("clinic_id", clinicId).maybeSingle(),
+        (supabase as any).rpc("get_gsc_dashboard", {
+          _clinic_id: clinicId,
+          _from: from,
+          _to: to,
+          _prev_from: format(prevFrom, "yyyy-MM-dd"),
+          _prev_to: format(prevTo, "yyyy-MM-dd"),
+          _brand_tokens: tokensFromClinicName(clinicName || ""),
+        }),
+      ]);
 
-      const fetchPage = async (offset: number): Promise<Row[]> => {
-        const { data, error } = await (supabase as any)
-          .from("clinic_gsc_daily")
-          .select("date, bucket_type, bucket_value, impressions, clicks, ctr, position")
-          .eq("clinic_id", clinicId)
-          .gte("date", fromDate)
-          .lte("date", to)
-          .order("date", { ascending: true })
-          .order("bucket_type", { ascending: true })
-          .order("bucket_value", { ascending: true })
-          .range(offset, offset + PAGE - 1);
-        if (error) throw error;
-        return (data || []) as Row[];
-      };
+      const siteUrl = credRes?.data?.site_url ?? null;
+      if (!siteUrl) return { ...EMPTY };
+      if (rpcRes?.error) throw rpcRes.error;
 
-      const all: Row[] = [];
-      let done = false;
-      for (let base = 0; base < MAX_ROWS && !done; base += PAGE * CONCURRENCY) {
-        const offsets: number[] = [];
-        for (let i = 0; i < CONCURRENCY && base + i * PAGE < MAX_ROWS; i++) offsets.push(base + i * PAGE);
-        const batches = await Promise.all(offsets.map(fetchPage));
-        for (const batch of batches) {
-          all.push(...batch);
-          if (batch.length < PAGE) done = true;
-        }
-      }
-
-      const inCurrent = (r: Row) => r.date >= from && r.date <= to;
-      const inPrev = (r: Row) => r.date >= format(prevFrom, "yyyy-MM-dd") && r.date <= format(prevTo, "yyyy-MM-dd");
-
-      const totalsCurrent = all.filter(r => r.bucket_type === "total" && inCurrent(r));
-      const totalsPrev = all.filter(r => r.bucket_type === "total" && inPrev(r));
-
-      const totals = aggregateTotals(totalsCurrent);
-      const prevTotals = aggregateTotals(totalsPrev);
-
-      // Daily trend (current window only)
-      const dailyMap = new Map<string, { clicks: number; impressions: number }>();
-      for (const r of totalsCurrent) {
-        dailyMap.set(r.date, { clicks: r.clicks, impressions: r.impressions });
-      }
-      const daily: GSCDailyPoint[] = Array.from(dailyMap.entries())
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([date, v]) => ({ date, clicks: v.clicks, impressions: v.impressions }));
-
-      // Queries — aggregate over current window
-      const queryMap = new Map<string, { clicks: number; impressions: number; posWeighted: number }>();
-      for (const r of all) {
-        if (r.bucket_type !== "query" || !inCurrent(r)) continue;
-        const key = r.bucket_value;
-        const cur = queryMap.get(key) || { clicks: 0, impressions: 0, posWeighted: 0 };
-        cur.clicks += r.clicks;
-        cur.impressions += r.impressions;
-        cur.posWeighted += (r.position || 0) * (r.impressions || 0);
-        queryMap.set(key, cur);
-      }
-      const queries: GSCQueryRow[] = Array.from(queryMap.entries()).map(([query, v]) => ({
-        query,
-        clicks: v.clicks,
-        impressions: v.impressions,
-        ctr: v.impressions > 0 ? v.clicks / v.impressions : 0,
-        position: v.impressions > 0 ? v.posWeighted / v.impressions : 0,
-      }));
-
-      // Positive-only: position <= 50 (exclusion list #4 hides errors/negative surfaces).
-      const positiveQueries = queries.filter(q => q.position > 0 && q.position <= 50);
-      const topQueries = [...positiveQueries].sort((a, b) => b.clicks - a.clicks || b.impressions - a.impressions).slice(0, 20);
-      const opportunityQueries = [...positiveQueries].filter(q => q.position >= 11 && q.position <= 20)
-        .sort((a, b) => b.impressions - a.impressions).slice(0, 10);
-
-      // Brand vs non-brand
-      const tokens = tokensFromClinicName(clinicName || "");
-      let brand = 0, nonBrand = 0;
-      for (const q of positiveQueries) {
-        const lower = q.query.toLowerCase();
-        const isBrand = tokens.length > 0 && tokens.some(t => lower.includes(t));
-        if (isBrand) brand += q.clicks;
-        else nonBrand += q.clicks;
-      }
-
-      // Pages
-      const pageMap = new Map<string, { clicks: number; impressions: number; posWeighted: number }>();
-      for (const r of all) {
-        if (r.bucket_type !== "page" || !inCurrent(r)) continue;
-        const key = r.bucket_value;
-        const cur = pageMap.get(key) || { clicks: 0, impressions: 0, posWeighted: 0 };
-        cur.clicks += r.clicks;
-        cur.impressions += r.impressions;
-        cur.posWeighted += (r.position || 0) * (r.impressions || 0);
-        pageMap.set(key, cur);
-      }
-      const topPages: GSCPageRow[] = Array.from(pageMap.entries())
-        .map(([page, v]) => ({
-          page,
-          clicks: v.clicks,
-          impressions: v.impressions,
-          ctr: v.impressions > 0 ? v.clicks / v.impressions : 0,
-          position: v.impressions > 0 ? v.posWeighted / v.impressions : 0,
-        }))
-        .sort((a, b) => b.clicks - a.clicks || b.impressions - a.impressions)
-        .slice(0, 15);
-
-      // Devices
-      const deviceMap = new Map<string, { clicks: number; impressions: number }>();
-      for (const r of all) {
-        if (r.bucket_type !== "device" || !inCurrent(r)) continue;
-        const cur = deviceMap.get(r.bucket_value) || { clicks: 0, impressions: 0 };
-        cur.clicks += r.clicks;
-        cur.impressions += r.impressions;
-        deviceMap.set(r.bucket_value, cur);
-      }
-      const devices: GSCDeviceRow[] = Array.from(deviceMap.entries())
-        .map(([device, v]) => ({ device, ...v }))
-        .sort((a, b) => b.impressions - a.impressions);
-
-      // Countries
-      const countryMap = new Map<string, { clicks: number; impressions: number }>();
-      for (const r of all) {
-        if (r.bucket_type !== "country" || !inCurrent(r)) continue;
-        const cur = countryMap.get(r.bucket_value) || { clicks: 0, impressions: 0 };
-        cur.clicks += r.clicks;
-        cur.impressions += r.impressions;
-        countryMap.set(r.bucket_value, cur);
-      }
-      const countries: GSCCountryRow[] = Array.from(countryMap.entries())
-        .map(([country, v]) => ({ country: country.toUpperCase(), ...v }))
-        .sort((a, b) => b.clicks - a.clicks || b.impressions - a.impressions)
-        .slice(0, 15);
+      const d = (rpcRes?.data || {}) as NumRow;
+      const totalsOf = (t: NumRow | undefined): GSCTotals => ({
+        impressions: num(t?.impressions),
+        clicks: num(t?.clicks),
+        ctr: num(t?.ctr),
+        avgPosition: num(t?.avgPosition),
+      });
+      const queryRows = (rows: NumRow[] | undefined): GSCQueryRow[] =>
+        (rows || []).map(r => ({ query: r.query, clicks: num(r.clicks), impressions: num(r.impressions), ctr: num(r.ctr), position: num(r.position) }));
 
       return {
         isConnected: true,
         siteUrl,
-        totals,
-        prevTotals,
-        daily,
-        topQueries,
-        topPages,
-        opportunityQueries,
-        brandVsNonBrand: { brand, nonBrand },
-        devices,
-        countries,
+        totals: totalsOf(d.totals),
+        prevTotals: totalsOf(d.prevTotals),
+        daily: (d.daily || []).map((r: NumRow) => ({ date: r.date, clicks: num(r.clicks), impressions: num(r.impressions) })),
+        topQueries: queryRows(d.topQueries),
+        opportunityQueries: queryRows(d.opportunityQueries),
+        topPages: (d.topPages || []).map((r: NumRow) => ({ page: r.page, clicks: num(r.clicks), impressions: num(r.impressions), ctr: num(r.ctr), position: num(r.position) })),
+        devices: (d.devices || []).map((r: NumRow) => ({ device: r.device, clicks: num(r.clicks), impressions: num(r.impressions) })),
+        countries: (d.countries || []).map((r: NumRow) => ({ country: r.country, clicks: num(r.clicks), impressions: num(r.impressions) })),
+        brandVsNonBrand: { brand: num(d.brandVsNonBrand?.brand), nonBrand: num(d.brandVsNonBrand?.nonBrand) },
       };
     },
+    staleTime: 5 * 60 * 1000,
   };
 }
 

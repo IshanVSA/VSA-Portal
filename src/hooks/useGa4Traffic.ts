@@ -127,6 +127,7 @@ export function ga4TrafficQuery(clinicId: string | null, dateRange: DateRange) {
 
       return { isConnected: true, totals, channels, daily, channelNames };
     },
+    staleTime: 5 * 60 * 1000,
   };
 }
 
