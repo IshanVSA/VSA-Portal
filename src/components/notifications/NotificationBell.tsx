@@ -159,7 +159,9 @@ function buildPostLink(clinicId: string | null | undefined, postId: string, role
 function buildSM2PostLink(clinicId: string | null | undefined, scheduledDate: string | null): string {
   const params = new URLSearchParams();
   if (clinicId) params.set("clinic", clinicId);
-  params.set("tab", "generation");
+  params.set("tab", "content");
+  params.set("sub", "generation");
+
   if (scheduledDate) params.set("sm2date", scheduledDate);
   return `/social?${params.toString()}`;
 }
