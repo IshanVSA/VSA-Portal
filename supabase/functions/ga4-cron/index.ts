@@ -1,4 +1,7 @@
 // Daily cron: sync GA4 traffic for every clinic that has connected GA4.
+// Runs in the background with limited concurrency so a large clinic list can
+// never blow the 150s request timeout (which previously left later clinics
+// permanently un-synced), plus a retry pass for any clinic that failed.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -54,30 +57,64 @@ Deno.serve(async (req) => {
       .not("ga4_property_id", "is", null)
       .not("refresh_token_enc", "is", null);
 
-    const list = creds || [];
+    const list = (creds || []).map((c: any) => c.clinic_id as string);
     console.log(`GA4 cron: syncing ${list.length} clinics`);
 
-    const results: any[] = [];
-    for (const c of list) {
-      try {
-        const res = await fetch(`${SUPABASE_URL}/functions/v1/sync-ga4-traffic`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-cron-secret": CRON_SECRET,
-            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-          },
-          body: JSON.stringify({ clinic_id: c.clinic_id }),
-        });
-        const j = await res.json().catch(() => ({}));
-        results.push({ clinic_id: c.clinic_id, status: res.ok ? "ok" : "error", detail: j });
-      } catch (e: any) {
-        results.push({ clinic_id: c.clinic_id, status: "error", detail: String(e?.message || e) });
+    const syncOne = async (clinicId: string) => {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/sync-ga4-traffic`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-cron-secret": CRON_SECRET,
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+        body: JSON.stringify({ clinic_id: clinicId }),
+      });
+      const body = await res.text().catch(() => "");
+      if (!res.ok) throw new Error(`${res.status}: ${body.slice(0, 200)}`);
+    };
+
+    const runPass = async (ids: string[], label: string) => {
+      const failed: string[] = [];
+      const queue = [...ids];
+      const CONCURRENCY = 3;
+      const workers = Array.from({ length: Math.min(CONCURRENCY, queue.length) }, async () => {
+        while (queue.length) {
+          const clinicId = queue.shift();
+          if (!clinicId) break;
+          try {
+            await syncOne(clinicId);
+          } catch (e: any) {
+            failed.push(clinicId);
+            console.error(`GA4 ${label} sync failed for ${clinicId}:`, String(e?.message || e));
+          }
+        }
+      });
+      await Promise.all(workers);
+      return failed;
+    };
+
+    const runAll = async () => {
+      const failed = await runPass(list, "pass1");
+      if (failed.length) {
+        console.log(`GA4 cron: retrying ${failed.length} failed clinics`);
+        await new Promise((r) => setTimeout(r, 5000));
+        const stillFailed = await runPass(failed, "retry");
+        console.log(`GA4 cron complete. Unrecoverable: ${stillFailed.length}`, stillFailed.join(", "));
+      } else {
+        console.log("GA4 cron complete: all clinics synced");
       }
+    };
+
+    // @ts-ignore EdgeRuntime is available in Supabase edge functions
+    if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
+      // @ts-ignore
+      EdgeRuntime.waitUntil(runAll());
+    } else {
+      await runAll();
     }
 
-    console.log("GA4 cron complete:", JSON.stringify(results));
-    return new Response(JSON.stringify({ processed: list.length, results }), {
+    return new Response(JSON.stringify({ started: list.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
