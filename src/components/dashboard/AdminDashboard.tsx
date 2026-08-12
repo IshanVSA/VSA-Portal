@@ -234,7 +234,7 @@ function HeroStat({ label, value, caption, icon: Icon, tone, href, index, active
       transition={{ duration: 0.45, delay: index * 0.06, ease: [0.16, 1, 0.3, 1] }}
       whileHover={interactive ? { y: -2 } : undefined}
       className={cn(
-        "group relative overflow-hidden rounded-2xl border border-border/60 bg-card p-5 transition-all",
+        "group relative overflow-hidden rounded-2xl border border-border/60 bg-card p-5 transition-[color,background-color,border-color,box-shadow,transform,opacity]",
         t.glow,
         interactive && "cursor-pointer hover:border-border",
         active && cn("ring-2", t.ring)

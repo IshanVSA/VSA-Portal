@@ -298,7 +298,7 @@ export function TicketKanbanView({ tickets, teamMembers, assignableMembers, curr
       <div
         key={col.key}
         className={cn(
-          "flex flex-col min-h-[300px] rounded-xl transition-all duration-200",
+          "flex flex-col min-h-[300px] rounded-xl transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-200",
           isOver && "ring-2 ring-primary/40 bg-primary/5"
         )}
         onDragOver={isClient ? undefined : (e) => handleDragOver(e, col.key)}

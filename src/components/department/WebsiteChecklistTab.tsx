@@ -180,13 +180,13 @@ export function WebsiteChecklistTab({ clinicId }: Props) {
       <TabsList className="h-auto w-fit rounded-full bg-muted p-1.5 shadow-inner">
         <TabsTrigger
           value="delivery"
-          className="rounded-full px-5 py-2 text-sm font-medium text-muted-foreground transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm gap-2"
+          className="rounded-full px-5 py-2 text-sm font-medium text-muted-foreground transition-[color,background-color,border-color,box-shadow,transform,opacity] data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm gap-2"
         >
           <ListChecks className="h-4 w-4 shrink-0" /> Delivery
         </TabsTrigger>
         <TabsTrigger
           value="maintenance"
-          className="rounded-full px-5 py-2 text-sm font-medium text-muted-foreground transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm gap-2"
+          className="rounded-full px-5 py-2 text-sm font-medium text-muted-foreground transition-[color,background-color,border-color,box-shadow,transform,opacity] data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm gap-2"
         >
           <Wrench className="h-4 w-4 shrink-0" /> Maintenance
         </TabsTrigger>

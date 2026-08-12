@@ -392,7 +392,7 @@ export default function ClientDashboard() {
           <button
             key={c.key}
             onClick={c.onClick}
-            className="text-left rounded-2xl bg-card border border-border/60 shadow-sm p-4 hover:shadow-md hover:border-primary/40 transition-all"
+            className="text-left rounded-2xl bg-card border border-border/60 shadow-sm p-4 hover:shadow-md hover:border-primary/40 transition-[color,background-color,border-color,box-shadow,transform,opacity]"
           >
             <div className={cn("h-8 w-8 rounded-xl flex items-center justify-center", c.bg)}>
               <c.icon className={cn("h-4 w-4", c.color)} />

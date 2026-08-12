@@ -180,7 +180,7 @@ export function TaskVoiceRecorder({ disabled, onRecorded }: Props) {
       size="sm"
       onClick={start}
       disabled={disabled}
-      className="gap-2 rounded-full border-dashed hover:border-solid hover:bg-primary/5 hover:text-primary hover:border-primary/40 transition-all group"
+      className="gap-2 rounded-full border-dashed hover:border-solid hover:bg-primary/5 hover:text-primary hover:border-primary/40 transition-[color,background-color,border-color,box-shadow,transform,opacity] group"
     >
       <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
         <Mic className="h-3 w-3" />

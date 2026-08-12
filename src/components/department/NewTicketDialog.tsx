@@ -521,7 +521,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
                     type="button"
                     onClick={() => contentFormRef.current?.generatePreview()}
                     disabled={loading || uploading || contentGenerating}
-                    className="w-full rounded-full py-6 font-semibold shadow-lg shadow-primary/25 hover:shadow-primary/35 hover:-translate-y-0.5 active:translate-y-0 transition-all"
+                    className="w-full rounded-full py-6 font-semibold shadow-lg shadow-primary/25 hover:shadow-primary/35 hover:-translate-y-0.5 active:translate-y-0 transition-[color,background-color,border-color,box-shadow,transform,opacity]"
                   >
                     {contentGenerating ? (
                       <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating preview...</>

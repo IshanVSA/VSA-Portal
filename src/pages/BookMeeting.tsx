@@ -46,7 +46,7 @@ export default function BookMeeting() {
         {people.map((person) => (
           <div
             key={person.email}
-            className={`glass-card rounded-2xl p-6 flex flex-col items-center text-center transition-all duration-300 ${
+            className={`glass-card rounded-2xl p-6 flex flex-col items-center text-center transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-300 ${
               person.inactive ? "opacity-60 grayscale" : "hover-lift"
             }`}
             aria-disabled={person.inactive}

@@ -269,7 +269,7 @@ export function ConciergeSocialOverview({ clinicId }: ConciergeSocialOverviewPro
                     if (action.type === "Bulk Uploads") setBulkUploadsOpen(true);
                     else { setActiveQuickAction(action.type); setTicketDialogOpen(true); }
                   }}
-                  className="group flex flex-col items-start gap-2 p-3 rounded-lg border border-border/60 bg-card hover:border-primary/40 hover:bg-muted/30 hover:shadow-sm transition-all text-left"
+                  className="group flex flex-col items-start gap-2 p-3 rounded-lg border border-border/60 bg-card hover:border-primary/40 hover:bg-muted/30 hover:shadow-sm transition-[color,background-color,border-color,box-shadow,transform,opacity] text-left"
                 >
                   <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${action.color}`}>
                     <Icon className="h-4 w-4" />
@@ -333,7 +333,7 @@ export function ConciergeSocialOverview({ clinicId }: ConciergeSocialOverviewPro
                   <button
                     key={r.id}
                     onClick={() => goTab("generation")}
-                    className="w-full flex items-center justify-between p-2.5 rounded-lg border border-border/50 bg-card hover:border-primary/40 hover:bg-muted/30 transition-all"
+                    className="w-full flex items-center justify-between p-2.5 rounded-lg border border-border/50 bg-card hover:border-primary/40 hover:bg-muted/30 transition-[color,background-color,border-color,box-shadow,transform,opacity]"
                   >
                     <div className="min-w-0 flex-1 text-left">
                       <p className="text-sm font-medium text-foreground truncate">

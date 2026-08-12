@@ -35,7 +35,7 @@ export function DNAScoreRing({ score, size = 96, thickness = 8, label, className
           strokeLinecap="round"
           strokeDasharray={circ}
           strokeDashoffset={offset}
-          className={cn("fill-none transition-all duration-700", tone)}
+          className={cn("fill-none transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-700", tone)}
           stroke="currentColor"
         />
       </svg>

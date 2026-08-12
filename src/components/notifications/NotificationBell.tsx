@@ -794,7 +794,7 @@ export function NotificationBell() {
       <button
         ref={buttonRef}
         className={cn(
-          "relative p-2 rounded-lg transition-all duration-200",
+          "relative p-2 rounded-lg transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-200",
           "hover:bg-muted active:scale-95",
           open && "bg-muted"
         )}
@@ -923,7 +923,7 @@ export function NotificationBell() {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: Math.min(i * 0.02, 0.15) }}
                                 className={cn(
-                                  "group relative flex items-start gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-150",
+                                  "group relative flex items-start gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-150",
                                   "hover:bg-muted/60",
                                   !notif.read && "bg-primary/[0.04]"
                                 )}
