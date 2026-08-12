@@ -79,9 +79,6 @@ export default function UpcomingPosts({ filter }: { filter?: DashboardFilter } =
     <div className="space-y-1.5">
       <div className="px-4 flex items-end justify-between">
         <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/80">Upcoming Posts</h3>
-        <Link to="/content-calendar" className="text-[12px] text-primary hover:opacity-70 inline-flex items-center gap-1">
-          Calendar <ArrowRight className="h-3 w-3" />
-        </Link>
       </div>
       <div className="rounded-2xl bg-card border border-border/40 overflow-hidden shadow-sm">
         {posts.length === 0 ? (
