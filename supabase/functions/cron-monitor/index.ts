@@ -90,6 +90,16 @@ const JOBS: JobDef[] = [
     signal: async () => ({ last_at: await maxOf("gbp_batches", "created_at"), failures_24h: 0, total_24h: 0 }),
   },
   {
+    id: "ga4-daily-sync", label: "GA4 Traffic Daily Sync",
+    schedule: "Daily 07:30 + 19:30 UTC", fn: "ga4-cron", expectedIntervalMinutes: 720,
+    signal: async () => ({ last_at: await maxOf("clinic_ga4_credentials", "last_sync_at"), failures_24h: 0, total_24h: 0 }),
+  },
+  {
+    id: "sync-gsc-daily", label: "Search Console Daily Sync",
+    schedule: "Daily 07:35 + 19:35 UTC", fn: "gsc-cron", expectedIntervalMinutes: 720,
+    signal: async () => ({ last_at: await maxOf("clinic_gsc_credentials", "last_sync_at"), failures_24h: 0, total_24h: 0 }),
+  },
+  {
     id: "auto-approve-posts-hourly", label: "Auto Approve Posts",
     schedule: "Hourly", fn: "auto-approve-posts", expectedIntervalMinutes: 60,
     signal: async () => ({ last_at: null, failures_24h: 0, total_24h: 0 }),
