@@ -6,7 +6,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SearchCode, LayoutGrid, FileText, Upload, Hash, TrendingUp, MessageCircle, BookOpen, ListChecks, BarChart3, Activity, Clock } from "lucide-react";
 import { useGa4Traffic } from "@/hooks/useGa4Traffic";
 import { subDays } from "date-fns";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { prefetchSeoData } from "@/lib/seo-prefetch";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { SeoReportsTab } from "@/components/department/SeoReportsTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
@@ -133,6 +135,13 @@ export default function SeoDepartment() {
   }, []);
   const { data: ga4 } = useGa4Traffic(selectedClinicId, trafficDateRange);
 
+  // Warm GA4 + Search Console as soon as a clinic is active so the Traffic tab
+  // renders instantly instead of loading on first open.
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (selectedClinicId) prefetchSeoData(queryClient, selectedClinicId);
+  }, [selectedClinicId, queryClient]);
+
   const kpis = ga4?.isConnected
     ? [
         { label: "Sessions", value: ga4.totals.sessions.toLocaleString(), icon: BarChart3, gradient: "blue" as const },
@@ -176,7 +185,7 @@ export default function SeoDepartment() {
                 <div className="sticky top-14 z-20 -mx-3 sm:-mx-4 lg:-mx-8 px-3 sm:px-4 lg:px-8 py-2 bg-background/85 backdrop-blur-md border-b border-border/40">
                 <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto flex-nowrap tabs-scroll">
                   {tabs.map(tab => (
-                    <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm relative min-w-[44px] justify-center">
+                    <TabsTrigger key={tab.value} value={tab.value} onMouseEnter={() => { if (tab.value === "traffic" || tab.value === "overview") prefetchSeoData(queryClient, selectedClinicId); }} className="gap-1.5 text-xs data-[state=active]:shadow-sm relative min-w-[44px] justify-center">
                       <tab.icon strokeWidth={1.5} className="h-4 w-4 shrink-0" />
                       <span className="hidden sm:inline">{tab.label}</span>
                       {tab.value === "chat" && unreadCount > 0 && currentTab !== "chat" && (
