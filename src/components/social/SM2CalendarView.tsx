@@ -1,3 +1,4 @@
+import { useSearchParams } from "react-router-dom";
 import { useMemo, useState } from "react";
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
@@ -78,6 +79,7 @@ export default function SM2CalendarView({
 }: Props) {
   const { posts, total, withImages, imagesComplete, postedCount, getImageUrl, isLoading, updatePost } = useSM2Posts(generationId);
   const [openDate, setOpenDate] = useState<string | null>(null);
+  const [deepLinkSearchParams, setDeepLinkSearchParams] = useSearchParams();
   const [confirmSendOpen, setConfirmSendOpen] = useState(false);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
@@ -115,6 +117,16 @@ export default function SM2CalendarView({
     const me = endOfMonth(currentMonth);
     return eachDayOfInterval({ start: startOfWeek(ms), end: endOfWeek(me) });
   }, [currentMonth]);
+
+  // Open the day dialog when a notification deep-links to a specific SM2 post date.
+  useEffect(() => {
+    const sm2date = deepLinkSearchParams.get("sm2date");
+    if (!sm2date || isLoading) return;
+    setOpenDate(sm2date);
+    const next = new URLSearchParams(deepLinkSearchParams);
+    next.delete("sm2date");
+    setDeepLinkSearchParams(next, { replace: true });
+  }, [deepLinkSearchParams, isLoading, setDeepLinkSearchParams]);
 
   const postsByDate = useMemo(() => {
     const map: Record<string, SM2Post[]> = {};
