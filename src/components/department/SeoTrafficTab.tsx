@@ -19,7 +19,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface Props {
   clinicId: string | null;
@@ -74,17 +74,21 @@ export function SeoTrafficTab({ clinicId }: Props) {
   const [dateRange, setDateRange] = useState<DateRange>({ from: subDays(today, 29), to: today });
   const { data, isLoading } = useGa4Traffic(clinicId, dateRange);
   const { data: ga4Cmp } = useGa4Compare(clinicId, dateRange, "prev");
-  const [clinicName, setClinicName] = useState<string>("");
-  const { data: gsc } = useSearchConsole(clinicId, dateRange, clinicName);
+  // Clinic name resolves in parallel with GA4; GSC waits for it so it fires once
+  // with the final query key instead of running twice (empty name, then real name).
+  const { data: clinicName = "", isFetched: nameReady } = useQuery({
+    queryKey: ["clinic-name", clinicId],
+    enabled: !!clinicId,
+    staleTime: 10 * 60 * 1000,
+    queryFn: async () => {
+      const { data } = await (supabase.from("clinics" as any).select("clinic_name").eq("id", clinicId).maybeSingle() as any);
+      return (data?.clinic_name as string) || "";
+    },
+  });
+  const { data: gsc, isLoading: gscLoading } = useSearchConsole(nameReady ? clinicId : null, dateRange, clinicName);
   const queryClient = useQueryClient();
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
-
-  useEffect(() => {
-    if (!clinicId) { setClinicName(""); return; }
-    (supabase.from("clinics" as any).select("clinic_name").eq("id", clinicId).maybeSingle() as any)
-      .then(({ data }: any) => setClinicName(data?.clinic_name || ""));
-  }, [clinicId]);
 
   useEffect(() => {
     if (!clinicId) { setLastSyncAt(null); return; }
@@ -142,7 +146,7 @@ export function SeoTrafficTab({ clinicId }: Props) {
     return <Card><CardContent className="py-12 text-center text-muted-foreground">Select a clinic.</CardContent></Card>;
   }
 
-  if (isLoading) {
+  if (isLoading || gscLoading) {
     return (
       <Card>
         <CardContent className="py-16 flex items-center justify-center gap-2 text-muted-foreground">
