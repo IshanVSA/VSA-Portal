@@ -2,9 +2,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "react-router-dom";
 
 const pageVariants = {
-  initial: { opacity: 0, y: 12 },
-  enter: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number] } },
-  exit: { opacity: 0, y: -8, transition: { duration: 0.15 } },
+  initial: { opacity: 0 },
+  enter: { opacity: 1, transition: { duration: 0.18, ease: [0.23, 1, 0.32, 1] as [number, number, number, number] } },
+  exit: { opacity: 0, transition: { duration: 0.12, ease: [0.23, 1, 0.32, 1] as [number, number, number, number] } },
 };
 
 export function PageTransition({ children }: { children: React.ReactNode }) {
@@ -19,7 +19,7 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
         animate="enter"
         exit="exit"
         className="flex-1"
-        style={{ willChange: "opacity, transform" }}
+        style={{ willChange: "opacity" }}
       >
         {children}
       </motion.div>

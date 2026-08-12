@@ -811,9 +811,9 @@ export function NotificationBell() {
         <AnimatePresence>
           {unreadCount > 0 && (
             <motion.span
-              initial={{ scale: 0, opacity: 0 }}
+              initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0, opacity: 0 }}
+              exit={{ scale: 0.9, opacity: 0 }}
               transition={{ type: "spring", stiffness: 500, damping: 25 }}
               className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] px-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-background"
             >
