@@ -130,25 +130,38 @@ export function useSearchConsole(clinicId: string | null, dateRange: DateRange, 
       const prevFrom = subDays(prevTo, lengthDays - 1);
 
       // Fetch current + previous rows. PostgREST caps a single response at 1000 rows,
-      // so page through the window explicitly instead of relying on .limit().
+      // so page through the window explicitly — in parallel batches, otherwise a
+      // high-volume clinic takes several seconds of sequential round trips.
       const PAGE = 1000;
-      const all: Row[] = [];
-      for (let offset = 0; offset < 100000; offset += PAGE) {
+      const CONCURRENCY = 8;
+      const MAX_ROWS = 100000;
+      const fromDate = format(prevFrom, "yyyy-MM-dd");
+
+      const fetchPage = async (offset: number): Promise<Row[]> => {
         const { data, error } = await (supabase as any)
           .from("clinic_gsc_daily")
           .select("date, bucket_type, bucket_value, impressions, clicks, ctr, position")
           .eq("clinic_id", clinicId)
-          .gte("date", format(prevFrom, "yyyy-MM-dd"))
+          .gte("date", fromDate)
           .lte("date", to)
           .order("date", { ascending: true })
           .order("bucket_type", { ascending: true })
           .order("bucket_value", { ascending: true })
           .range(offset, offset + PAGE - 1);
-
         if (error) throw error;
-        const batch = (data || []) as Row[];
-        all.push(...batch);
-        if (batch.length < PAGE) break;
+        return (data || []) as Row[];
+      };
+
+      const all: Row[] = [];
+      let done = false;
+      for (let base = 0; base < MAX_ROWS && !done; base += PAGE * CONCURRENCY) {
+        const offsets: number[] = [];
+        for (let i = 0; i < CONCURRENCY && base + i * PAGE < MAX_ROWS; i++) offsets.push(base + i * PAGE);
+        const batches = await Promise.all(offsets.map(fetchPage));
+        for (const batch of batches) {
+          all.push(...batch);
+          if (batch.length < PAGE) done = true;
+        }
       }
 
       const inCurrent = (r: Row) => r.date >= from && r.date <= to;
