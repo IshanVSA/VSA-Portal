@@ -149,5 +149,5 @@ verify_jwt = false
 verify_jwt = false
 
 
-[functions.f]
+[functions.media-link]
 verify_jwt = false

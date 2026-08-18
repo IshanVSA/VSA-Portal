@@ -12,7 +12,7 @@ export default function FileRedirect() {
   useEffect(() => {
     if (!token) return;
     const base = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-    if (base) window.location.replace(`${base}/functions/v1/f/${token}`);
+    if (base) window.location.replace(`${base}/functions/v1/media-link/${token}`);
   }, [token]);
 
   return (
