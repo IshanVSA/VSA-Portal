@@ -96,7 +96,13 @@ export default function UpcomingPosts({ filter }: { filter?: DashboardFilter } =
             {posts.map((post) => {
               const pcfg = platformConfig(post.platform);
               const PIcon = pcfg.icon;
-              const href = `/social?tab=content&sub=${contentSub}${post.clinic_id ? `&clinic=${post.clinic_id}` : ""}&post=${post.id}`;
+              // Clients open the content_posts inspector by id; staff land on the SM2
+              // calendar, which deep-links by scheduled date (sm2_posts use different ids).
+              const deepLink =
+                role === "client"
+                  ? `&post=${post.id}`
+                  : `&sm2date=${post.scheduled_date}`;
+              const href = `/social?tab=content&sub=${contentSub}${post.clinic_id ? `&clinic=${post.clinic_id}` : ""}${deepLink}`;
               return (
                 <li key={post.id} className={cn("border-l-2", pcfg.color)}>
                   <Link

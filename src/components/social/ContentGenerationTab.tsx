@@ -158,6 +158,16 @@ export default function ContentGenerationTab({ clinicId }: Props) {
     return sortedGens[0] || null;
   }, [viewingGenerationId, sortedGens, currentGeneration, generations]);
 
+  // A dashboard/notification deep link carries the post's scheduled date — show the
+  // generation for that month so the day dialog has posts to open.
+  const deepLinkDate = deepLinkParams.get("sm2date");
+  useEffect(() => {
+    if (!deepLinkDate) return;
+    const month = deepLinkDate.slice(0, 7);
+    const match = sortedGens.find((g) => g.month_year === month);
+    if (match && match.id !== viewingGenerationId) setViewingGenerationId(match.id);
+  }, [deepLinkDate, sortedGens, viewingGenerationId]);
+
   const selectedIndex = selectedGen ? sortedGens.findIndex((g) => g.id === selectedGen.id) : -1;
 
   const goPrevGen = () => {
