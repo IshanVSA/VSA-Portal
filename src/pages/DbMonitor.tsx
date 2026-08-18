@@ -7,11 +7,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import {
-  Activity, AlertTriangle, Database, Gauge, HardDrive, RefreshCw, Timer, Zap,
+  Activity, AlertTriangle, Database, Gauge, HardDrive, RefreshCw, Timer, TrendingUp, Zap,
 } from "lucide-react";
 import {
-  Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
+  Area, AreaChart, CartesianGrid, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
+import { forecastCapacity, fmtDays, MICRO_LIMITS } from "@/lib/db-capacity";
 
 interface Overview {
   db_size_bytes: number;
