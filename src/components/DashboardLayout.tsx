@@ -118,7 +118,7 @@ const conciergeSections: NavSection[] = [
 const pageTitles: Record<string, string> = {
   "/": "Dashboard", "/book-meeting": "Book a Meeting", "/website": "Website", "/seo": "SEO", "/ai-seo": "AI SEO", "/google-ads": "Google Ads",
   "/social": "Social Media", "/review": "Admin Review", "/clinics": "Clinics",
-  "/employees": "Team Members", "/reports": "Reports", "/settings": "Settings", "/cron-monitor": "Cron Monitor", "/sub-accounts": "Sub Accounts",
+  "/employees": "Team Members", "/reports": "Reports", "/settings": "Settings", "/cron-monitor": "Cron Monitor", "/login-errors": "Login Errors", "/sub-accounts": "Sub Accounts",
 };
 
 export function DashboardLayout({ children }: { children?: React.ReactNode }) {
