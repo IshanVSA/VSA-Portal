@@ -35,6 +35,7 @@ const DataDeletion = lazy(() => import("./pages/DataDeletion"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const BookMeeting = lazy(() => import("./pages/BookMeeting"));
 const CronMonitor = lazy(() => import("./pages/CronMonitor"));
+const AuthErrorLogs = lazy(() => import("./pages/AuthErrorLogs"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
