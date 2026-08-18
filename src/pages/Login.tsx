@@ -9,6 +9,7 @@ import vsaLogo from "@/assets/vsa-logo.jpg";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { logAuthError } from "@/lib/auth-error-log";
 
 /**
  * Map any raw error string (technical or otherwise) into a friendly,
