@@ -2,7 +2,8 @@ import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { generateVideoThumbnail, thumbPathFor } from "@/lib/video-thumbnail";
+import { generateVideoThumbnail, thumbPathFor, coverPathFor } from "@/lib/video-thumbnail";
+import { useShortLinks } from "@/hooks/useShortLinks";
 
 export const SM2_MAX_IMAGES_PER_POST = 10;
 
@@ -439,9 +440,14 @@ export function useSM2Posts(generationId: string | undefined) {
     onError: (e: Error) => toast.error("Failed to delete post", { description: e.message }),
   });
 
-  const getImageUrl = (path: string) => {
-    return supabase.storage.from("department-files").getPublicUrl(path).data.publicUrl;
-  };
+  // Serve media through opaque /f/<token> links instead of raw storage URLs.
+  const mediaPaths = (posts || []).flatMap((p) => {
+    const originals = getPostImagePaths(p);
+    return originals.flatMap((o) => [o, coverPathFor(o), thumbPathFor(o)]);
+  });
+  const { resolve: resolveShortLink } = useShortLinks(mediaPaths);
+
+  const getImageUrl = (path: string) => resolveShortLink(path);
 
   const total = posts?.length || 0;
   const withImages = posts?.filter((p) => postHasImage(p)).length || 0;
