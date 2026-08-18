@@ -124,7 +124,10 @@ function computeHealth(job: JobDef, signal: { last_at: string | null; failures_2
   const interval = job.expectedIntervalMinutes;
   if (ageMin >= interval * 6) return "critical";
   if (ageMin >= interval * 3) return "stale";
-  if (signal.failures_24h > 0) return "stale";
+  // Occasional pg_cron "job startup timeout" retries are normal; only flag a job as
+  // stale when a meaningful share of its runs in the window failed.
+  const failRate = signal.total_24h > 0 ? signal.failures_24h / signal.total_24h : 0;
+  if (failRate > 0.2) return "stale";
   return "healthy";
 }
 
