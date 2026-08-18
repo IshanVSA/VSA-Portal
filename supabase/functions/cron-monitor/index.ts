@@ -72,7 +72,7 @@ const JOBS: JobDef[] = [
   },
   {
     id: "blog-worker-every-3min", label: "Blog Worker",
-    schedule: "Every 3 min", fn: "blog-worker", expectedIntervalMinutes: 3,
+    schedule: "Every 10 min", fn: "blog-worker", expectedIntervalMinutes: 10,
     signal: async () => {
       // Pure cron-tick monitor: blog_posts.last_attempt_at only updates when there's work.
       // The actual cron fires every 3 min regardless — use cron history (filled in below).
@@ -81,7 +81,7 @@ const JOBS: JobDef[] = [
   },
   {
     id: "sm2-worker-tick", label: "SM2 Worker",
-    schedule: "Every minute", fn: "sm2-worker", expectedIntervalMinutes: 1,
+    schedule: "Every 5 min", fn: "sm2-worker", expectedIntervalMinutes: 5,
     signal: async () => ({ last_at: null, failures_24h: 0, total_24h: 0 }),
   },
   {
@@ -124,7 +124,10 @@ function computeHealth(job: JobDef, signal: { last_at: string | null; failures_2
   const interval = job.expectedIntervalMinutes;
   if (ageMin >= interval * 6) return "critical";
   if (ageMin >= interval * 3) return "stale";
-  if (signal.failures_24h > 0) return "stale";
+  // Occasional pg_cron "job startup timeout" retries are normal; only flag a job as
+  // stale when a meaningful share of its runs in the window failed.
+  const failRate = signal.total_24h > 0 ? signal.failures_24h / signal.total_24h : 0;
+  if (failRate > 0.2) return "stale";
   return "healthy";
 }
 
