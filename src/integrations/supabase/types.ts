@@ -4250,6 +4250,7 @@ export type Database = {
         Returns: undefined
       }
       prune_gsc_detail: { Args: { _keep_days?: number }; Returns: number }
+      prune_ops_tables: { Args: never; Returns: number }
       realtime_topic_authorized: { Args: { _topic: string }; Returns: boolean }
       rebuild_geo_clusters: { Args: never; Returns: undefined }
       record_cron_heartbeat: {
