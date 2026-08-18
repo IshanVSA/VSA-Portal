@@ -2021,6 +2021,60 @@ export type Database = {
         }
         Relationships: []
       }
+      db_health_snapshots: {
+        Row: {
+          cache_hit_ratio: number | null
+          captured_at: string
+          committed: number | null
+          connections_active: number | null
+          connections_idle_in_tx: number | null
+          connections_total: number | null
+          db_size_bytes: number | null
+          deadlocks: number | null
+          id: string
+          longest_query_seconds: number | null
+          max_connections: number | null
+          rolled_back: number | null
+          temp_bytes: number | null
+          tup_fetched: number | null
+          tup_returned: number | null
+        }
+        Insert: {
+          cache_hit_ratio?: number | null
+          captured_at?: string
+          committed?: number | null
+          connections_active?: number | null
+          connections_idle_in_tx?: number | null
+          connections_total?: number | null
+          db_size_bytes?: number | null
+          deadlocks?: number | null
+          id?: string
+          longest_query_seconds?: number | null
+          max_connections?: number | null
+          rolled_back?: number | null
+          temp_bytes?: number | null
+          tup_fetched?: number | null
+          tup_returned?: number | null
+        }
+        Update: {
+          cache_hit_ratio?: number | null
+          captured_at?: string
+          committed?: number | null
+          connections_active?: number | null
+          connections_idle_in_tx?: number | null
+          connections_total?: number | null
+          db_size_bytes?: number | null
+          deadlocks?: number | null
+          id?: string
+          longest_query_seconds?: number | null
+          max_connections?: number | null
+          rolled_back?: number | null
+          temp_bytes?: number | null
+          tup_fetched?: number | null
+          tup_returned?: number | null
+        }
+        Relationships: []
+      }
       department_chat_reads: {
         Row: {
           clinic_id: string
@@ -4055,6 +4109,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      capture_db_health_snapshot: { Args: never; Returns: undefined }
       client_set_content_approval: {
         Args: { _notes?: string; _status: string; _ticket_id: string }
         Returns: undefined
@@ -4113,6 +4168,72 @@ export type Database = {
           last_run_at: string
           last_status: string
           runs_24h: number
+        }[]
+      }
+      get_db_active_queries: {
+        Args: never
+        Returns: {
+          application_name: string
+          duration_seconds: number
+          pid: number
+          query: string
+          state: string
+          wait_event: string
+          wait_event_type: string
+        }[]
+      }
+      get_db_health_trend: {
+        Args: { _hours?: number }
+        Returns: {
+          cache_hit_ratio: number | null
+          captured_at: string
+          committed: number | null
+          connections_active: number | null
+          connections_idle_in_tx: number | null
+          connections_total: number | null
+          db_size_bytes: number | null
+          deadlocks: number | null
+          id: string
+          longest_query_seconds: number | null
+          max_connections: number | null
+          rolled_back: number | null
+          temp_bytes: number | null
+          tup_fetched: number | null
+          tup_returned: number | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "db_health_snapshots"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_db_overview: { Args: never; Returns: Json }
+      get_db_slow_queries: {
+        Args: { _limit?: number }
+        Returns: {
+          calls: number
+          max_ms: number
+          mean_ms: number
+          query: string
+          rows_returned: number
+          total_ms: number
+        }[]
+      }
+      get_db_table_stats: {
+        Args: { _limit?: number }
+        Returns: {
+          dead_ratio: number
+          dead_rows: number
+          idx_scans: number
+          index_bytes: number
+          last_autoanalyze: string
+          last_autovacuum: string
+          live_rows: number
+          seq_scans: number
+          table_bytes: number
+          table_name: string
+          total_bytes: number
         }[]
       }
       get_gsc_dashboard: {
