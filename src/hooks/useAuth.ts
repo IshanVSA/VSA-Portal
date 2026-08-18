@@ -286,9 +286,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const recoverSession = useCallback(async () => {
+    const withTimeout = <T,>(p: Promise<T>, ms: number) =>
+      Promise.race([p, new Promise<null>((r) => setTimeout(() => r(null), ms))]);
+
+    try {
+      const got = await withTimeout(supabase.auth.getSession(), 8000);
+      const existing = got?.data?.session ?? null;
+      if (existing) {
+        setSession(existing);
+        setUser(existing.user);
+        setHasStoredToken(true);
+        setLoading(false);
+        return true;
+      }
+
+      const refreshed = await withTimeout(supabase.auth.refreshSession(), 8000);
+      const next = refreshed?.data?.session ?? null;
+      if (next) {
+        setSession(next);
+        setUser(next.user);
+        setHasStoredToken(true);
+        setLoading(false);
+        return true;
+      }
+    } catch {
+      // fall through
+    }
+    return false;
+  }, []);
+
   const value = useMemo(
-    () => ({ user, session, loading, hasStoredToken, signIn, signOut }),
-    [user, session, loading, hasStoredToken, signIn, signOut],
+    () => ({ user, session, loading, hasStoredToken, signIn, signOut, recoverSession }),
+    [user, session, loading, hasStoredToken, signIn, signOut, recoverSession],
   );
 
   return createElement(AuthContext.Provider, { value }, children);
