@@ -10,7 +10,7 @@ import {
   Activity, AlertTriangle, Database, Gauge, HardDrive, RefreshCw, Timer, TrendingUp, Zap,
 } from "lucide-react";
 import {
-  Area, AreaChart, CartesianGrid, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
+  Area, AreaChart, CartesianGrid, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import { forecastCapacity, fmtDays, MICRO_LIMITS } from "@/lib/db-capacity";
 
@@ -311,7 +311,7 @@ export default function DbMonitor() {
                     <Card className="p-4">
                       <div className="text-sm font-medium mb-3">Database size projection (GB, next 60 days)</div>
                       <ResponsiveContainer width="100%" height={220}>
-                        <AreaChart data={capacity.projection}>
+                        <ComposedChart data={capacity.projection}>
                           <CartesianGrid strokeDasharray="3 3" className="opacity-20" />
                           <XAxis dataKey="t" tick={{ fontSize: 10 }} minTickGap={40} />
                           <YAxis tick={{ fontSize: 10 }} width={50} domain={[0, (d: number) => Math.max(d, MICRO_LIMITS.dbSizeGb * 1.1)]} />
@@ -319,7 +319,7 @@ export default function DbMonitor() {
                           <ReferenceLine y={MICRO_LIMITS.dbSizeGb} stroke="#f87171" strokeDasharray="4 4" label={{ value: "micro ceiling", fontSize: 10, fill: "#f87171" }} />
                           <Area type="monotone" dataKey="size" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.15} />
                           <Line type="monotone" dataKey="projected" stroke="#fbbf24" strokeDasharray="5 4" dot={false} />
-                        </AreaChart>
+                        </ComposedChart>
                       </ResponsiveContainer>
                     </Card>
                   )}

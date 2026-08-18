@@ -46,7 +46,7 @@ export interface CapacityForecast {
   breaches: CapacitySignal[];
   recommendation: "stay" | "watch" | "upgrade";
   windowDays: number;
-  projection: { t: string; size: number; projected: number | null }[];
+  projection: { t: string; size: number | null; projected: number | null }[];
 }
 
 /** Least-squares fit of value vs. time (days). */
@@ -170,7 +170,7 @@ export function forecastCapacity(snapshots: CapacitySnapshot[]): CapacityForecas
       const when = new Date(t0 + (lastX + d) * 86_400_000);
       projection.push({
         t: when.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
-        size: 0,
+        size: null,
         projected: Number(Math.max(0, sizeFit.current + sizeFit.slopePerDay * d).toFixed(3)),
       });
     }
