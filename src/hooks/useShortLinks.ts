@@ -13,8 +13,26 @@ const BUCKET = "department-files";
 const cache = new Map<string, string>();
 const inflight = new Map<string, Promise<void>>();
 
-export const shortLinkUrl = (token: string) =>
-  `${window.location.origin}/f/${token}`;
+/**
+ * The opaque `/f/:token` path only resolves where the hosting rewrite exists
+ * (the production domain). In Lovable preview/localhost that path returns the
+ * SPA shell, which breaks <img> tags, so we address the resolver directly there.
+ */
+const hasRewrite = () => {
+  const h = window.location.hostname;
+  return !(
+    h === "localhost" ||
+    h === "127.0.0.1" ||
+    h.endsWith("lovable.app") ||
+    h.endsWith("lovableproject.com")
+  );
+};
+
+export const shortLinkUrl = (token: string) => {
+  if (hasRewrite()) return `${window.location.origin}/f/${token}`;
+  const base = import.meta.env.VITE_SUPABASE_URL as string;
+  return `${base}/functions/v1/media-link/${token}`;
+};
 
 async function mint(paths: string[]) {
   const missing = paths.filter((p) => p && !cache.has(p) && !inflight.has(p));
