@@ -134,7 +134,7 @@ export default function DbMonitor() {
         rpc("get_db_table_stats", { _limit: 25 }),
         rpc("get_db_slow_queries", { _limit: 15 }),
         rpc("get_db_active_queries"),
-        rpc("get_db_health_trend", { _hours: 168 }),
+        rpc("get_db_health_trend", { _hours: 720 }),
       ]);
 
       const firstErr = [ov, tb, sq, aq, tr].find((r) => r.error)?.error;
