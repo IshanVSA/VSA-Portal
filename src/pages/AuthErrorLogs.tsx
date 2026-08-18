@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RefreshCw, ShieldAlert, ChevronDown } from "lucide-react";
+import { RefreshCw, ShieldAlert, ChevronDown, CheckCircle2, XCircle } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface AuthErrorRow {
@@ -14,6 +14,8 @@ interface AuthErrorRow {
   context: string;
   email: string | null;
   user_id: string | null;
+  success: boolean | null;
+  failure_kind: string | null;
   error_code: string | null;
   error_status: number | null;
   error_message: string | null;
@@ -27,6 +29,18 @@ const CONTEXT_LABEL: Record<string, string> = {
   password_reset: "Password reset",
   session_recovery: "Session recovery",
 };
+
+const REASON_LABEL: Record<string, string> = {
+  wrong_credentials: "Wrong email or password",
+  email_not_confirmed: "Email not confirmed",
+  rate_limited: "Rate limited (too many attempts)",
+  network: "Network / timeout issue",
+  server: "Server issue",
+  session_expired: "Expired or invalid session",
+  unknown: "Unknown reason",
+};
+
+type Filter = "all" | "failed" | "success";
 
 function relative(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -42,6 +56,7 @@ export default function AuthErrorLogs() {
   const [rows, setRows] = useState<AuthErrorRow[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -51,7 +66,7 @@ export default function AuthErrorLogs() {
       .select("*")
       .order("created_at", { ascending: false })
       .limit(300);
-    setRows((data as AuthErrorRow[]) ?? []);
+    setRows((data as unknown as AuthErrorRow[]) ?? []);
     setRefreshing(false);
   }, []);
 
@@ -60,27 +75,38 @@ export default function AuthErrorLogs() {
   const filtered = useMemo(() => {
     if (!rows) return null;
     const q = query.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((r) =>
-      [r.email, r.error_message, r.error_code, r.context, r.route]
+    return rows.filter((r) => {
+      if (filter === "failed" && r.success) return false;
+      if (filter === "success" && !r.success) return false;
+      if (!q) return true;
+      return [r.email, r.error_message, r.error_code, r.context, r.route, r.failure_kind]
         .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q))
-    );
-  }, [rows, query]);
+        .some((v) => String(v).toLowerCase().includes(q));
+    });
+  }, [rows, query, filter]);
 
-  const last24h = useMemo(
-    () => (rows ?? []).filter((r) => Date.now() - new Date(r.created_at).getTime() < 86400000).length,
-    [rows]
-  );
+  const stats = useMemo(() => {
+    const recent = (rows ?? []).filter((r) => Date.now() - new Date(r.created_at).getTime() < 86400000);
+    return {
+      total: recent.length,
+      failed: recent.filter((r) => !r.success).length,
+      success: recent.filter((r) => r.success).length,
+    };
+  }, [rows]);
 
   return (
     <div className="container mx-auto py-6 sm:py-8 px-4 sm:px-6 max-w-6xl space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Login Errors</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Login Activity &amp; Errors</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Technical sign-in failures. Visible to admins only — team members and clients only ever see a generic message.
-            {rows && <span className="ml-2">· {last24h} in the last 24h</span>}
+            Every sign-in attempt with its outcome and technical reason. Visible to admins only — team members and clients
+            only ever see a generic message.
+            {rows && (
+              <span className="ml-2">
+                · last 24h: {stats.total} attempts, {stats.success} successful, {stats.failed} failed
+              </span>
+            )}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={load} disabled={refreshing} className="gap-2">
@@ -88,12 +114,27 @@ export default function AuthErrorLogs() {
         </Button>
       </div>
 
-      <Input
-        placeholder="Search by email, error, code or route…"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        className="max-w-md"
-      />
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          placeholder="Search by email, error, code or route…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="max-w-md"
+        />
+        <div className="flex gap-1">
+          {(["all", "failed", "success"] as Filter[]).map((f) => (
+            <Button
+              key={f}
+              size="sm"
+              variant={filter === f ? "default" : "outline"}
+              onClick={() => setFilter(f)}
+              className="capitalize"
+            >
+              {f === "all" ? "All attempts" : f === "failed" ? "Failed" : "Successful"}
+            </Button>
+          ))}
+        </div>
+      </div>
 
       <Card className="glass-card overflow-hidden p-0">
         {!filtered ? (
@@ -103,7 +144,7 @@ export default function AuthErrorLogs() {
         ) : filtered.length === 0 ? (
           <div className="p-10 text-center text-sm text-muted-foreground">
             <ShieldAlert className="h-6 w-6 mx-auto mb-3 opacity-50" />
-            No sign-in errors recorded.
+            No sign-in activity recorded yet.
           </div>
         ) : (
           <div className="divide-y divide-border/60">
@@ -119,10 +160,24 @@ export default function AuthErrorLogs() {
                   className="w-full text-left flex items-start gap-3"
                   onClick={() => setExpanded(expanded === r.id ? null : r.id)}
                 >
+                  {r.success ? (
+                    <CheckCircle2 className="h-4 w-4 mt-1 shrink-0 text-emerald-500" />
+                  ) : (
+                    <XCircle className="h-4 w-4 mt-1 shrink-0 text-red-500" />
+                  )}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant="outline" className="shrink-0">{CONTEXT_LABEL[r.context] ?? r.context}</Badge>
                       <span className="text-sm font-medium truncate">{r.email ?? "unknown email"}</span>
+                      {r.success ? (
+                        <Badge className="shrink-0 bg-emerald-500/15 text-emerald-500 border-emerald-500/30" variant="outline">
+                          Successful
+                        </Badge>
+                      ) : (
+                        <Badge className="shrink-0 bg-red-500/15 text-red-500 border-red-500/30" variant="outline">
+                          Failed
+                        </Badge>
+                      )}
                       {r.error_status ? (
                         <Badge variant="secondary" className="shrink-0">{r.error_status}</Badge>
                       ) : null}
@@ -130,9 +185,18 @@ export default function AuthErrorLogs() {
                         <span className="text-xs text-muted-foreground">{r.error_code}</span>
                       ) : null}
                     </div>
-                    <p className="text-sm text-red-400 mt-1 break-words">
-                      {r.error_message || "No error detail captured"}
-                    </p>
+                    {r.success ? (
+                      <p className="text-sm text-muted-foreground mt-1">Signed in successfully.</p>
+                    ) : (
+                      <>
+                        <p className="text-sm text-red-400 mt-1">
+                          {REASON_LABEL[r.failure_kind ?? "unknown"] ?? r.failure_kind}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5 break-words">
+                          {r.error_message || "No error detail captured"}
+                        </p>
+                      </>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-xs text-muted-foreground whitespace-nowrap">{relative(r.created_at)}</span>
