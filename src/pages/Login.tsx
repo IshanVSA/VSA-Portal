@@ -77,18 +77,25 @@ export default function Login() {
     const { error } = await signIn(email, password);
     if (error) {
       const m = (error.message || "").toLowerCase();
+      const code = (error as unknown as { code?: string; status?: number });
+      // Surface the raw reason so support can diagnose "Try again" reports.
+      console.error("[login] sign-in failed", { status: code?.status, code: code?.code, message: error.message });
+      const detail = [code?.code, code?.status].filter(Boolean).join(" · ");
       if (m.includes("invalid") && (m.includes("credential") || m.includes("login"))) {
         toast.error("The email or password you entered is incorrect. Please try again.");
       } else if (m.includes("email not confirmed")) {
         toast.error("Please confirm your email address before signing in.");
-      } else if (m.includes("rate") || m.includes("too many")) {
-        toast.error("Too many sign-in attempts. Please wait a minute and try again.");
-      } else if (m.includes("network") || m.includes("fetch")) {
+      } else if (m.includes("rate") || m.includes("too many") || code?.status === 429) {
+        toast.error("Too many sign-in attempts. Please wait a few minutes and try again.");
+      } else if (m.includes("network") || m.includes("fetch") || m.includes("timeout") || code?.status === 0) {
         toast.error("We're having trouble connecting. Please check your internet and try again.");
       } else {
-        toast.error("We couldn't sign you in. Please try again.");
+        toast.error("We couldn't sign you in. Please try again.", {
+          description: detail ? `${error.message} (${detail})` : error.message,
+        });
       }
     }
+
     else {
       const from = (location.state as { from?: { pathname: string; search?: string } } | null)?.from;
       const dest = from ? `${from.pathname}${from.search ?? ""}` : "/";
