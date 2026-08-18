@@ -9,6 +9,7 @@ import vsaLogo from "@/assets/vsa-logo.jpg";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { logAuthError } from "@/lib/auth-error-log";
 
 /**
  * Map any raw error string (technical or otherwise) into a friendly,
@@ -78,23 +79,30 @@ export default function Login() {
     if (error) {
       const m = (error.message || "").toLowerCase();
       const code = (error as unknown as { code?: string; status?: number });
-      // Surface the raw reason so support can diagnose "Try again" reports.
-      console.error("[login] sign-in failed", { status: code?.status, code: code?.code, message: error.message });
-      const detail = [code?.code, code?.status].filter(Boolean).join(" · ");
+      let friendly: string;
       if (m.includes("invalid") && (m.includes("credential") || m.includes("login"))) {
-        toast.error("The email or password you entered is incorrect. Please try again.");
+        friendly = "The email or password you entered is incorrect. Please try again.";
       } else if (m.includes("email not confirmed")) {
-        toast.error("Please confirm your email address before signing in.");
+        friendly = "Please confirm your email address before signing in.";
       } else if (m.includes("rate") || m.includes("too many") || code?.status === 429) {
-        toast.error("Too many sign-in attempts. Please wait a few minutes and try again.");
+        friendly = "Too many sign-in attempts. Please wait a few minutes and try again.";
       } else if (m.includes("network") || m.includes("fetch") || m.includes("timeout") || code?.status === 0) {
-        toast.error("We're having trouble connecting. Please check your internet and try again.");
+        friendly = "We're having trouble connecting. Please check your internet and try again.";
       } else {
-        toast.error("We couldn't sign you in. Please try again.", {
-          description: detail ? `${error.message} (${detail})` : error.message,
-        });
+        friendly = "We couldn't sign you in. Please try again later.";
       }
+      // Never surface the technical reason to the user — it is stored for admins only.
+      toast.error(friendly);
+      void logAuthError({
+        context: "login",
+        email,
+        errorMessage: error.message,
+        errorCode: code?.code ?? null,
+        errorStatus: code?.status ?? null,
+        friendlyMessage: friendly,
+      });
     }
+
 
     else {
       const from = (location.state as { from?: { pathname: string; search?: string } } | null)?.from;
@@ -210,6 +218,12 @@ export default function Login() {
                           const raw = await extractEdgeFunctionError(error, data, "");
                           const friendly = toFriendlyResetError(raw);
                           toast.error(friendly);
+                          void logAuthError({
+                            context: "password_reset",
+                            email: resetEmail,
+                            errorMessage: raw,
+                            friendlyMessage: friendly,
+                          });
                         } else {
                           const d = data as any;
                           toast.success("Reset link sent! Please check your email.");

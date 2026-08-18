@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { TermsAcceptanceModal } from "@/components/terms/TermsAcceptanceModal";
 import { StaffAcknowledgmentModal } from "@/components/terms/StaffAcknowledgmentModal";
+import { logAuthError } from "@/lib/auth-error-log";
 import AccessDenied from "@/pages/AccessDenied";
 
 interface Props {
@@ -56,7 +57,14 @@ export function ProtectedRoute({ children, allowedRoles, allowedDepartments }: P
       const ok = await recoverSession();
       if (cancelled) return;
       setRecovering(false);
-      if (!ok && attempt >= 2) setRecoveryFailed(true);
+      if (!ok && attempt >= 2) {
+        setRecoveryFailed(true);
+        void logAuthError({
+          context: "session_recovery",
+          errorMessage: "Session recovery failed after 2 attempts (stored refresh token could not be exchanged)",
+          friendlyMessage: "We couldn't restore your session. Please sign in again.",
+        });
+      }
     })();
     return () => {
       cancelled = true;

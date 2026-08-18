@@ -35,6 +35,7 @@ const DataDeletion = lazy(() => import("./pages/DataDeletion"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const BookMeeting = lazy(() => import("./pages/BookMeeting"));
 const CronMonitor = lazy(() => import("./pages/CronMonitor"));
+const AuthErrorLogs = lazy(() => import("./pages/AuthErrorLogs"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -100,6 +101,7 @@ const App = () => (
                 <Route path="/settings" element={guard(<Settings />, "settings")} />
                 <Route path="/reports" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}>{guard(<Reports />, "reports")}</ProtectedRoute>} />
                 <Route path="/cron-monitor" element={<ProtectedRoute allowedRoles={["admin"]}>{guard(<CronMonitor />, "cron-monitor")}</ProtectedRoute>} />
+                <Route path="/login-errors" element={<ProtectedRoute allowedRoles={["admin"]}>{guard(<AuthErrorLogs />, "login-errors")}</ProtectedRoute>} />
                 <Route path="/sub-accounts" element={<ProtectedRoute allowedRoles={["client", "admin"]}>{guard(<SubAccounts />, "sub-accounts")}</ProtectedRoute>} />
               </Route>
 
