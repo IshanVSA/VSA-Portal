@@ -105,6 +105,7 @@ export default function Login() {
 
 
     else {
+      void logAuthSuccess(email);
       const from = (location.state as { from?: { pathname: string; search?: string } } | null)?.from;
       const dest = from ? `${from.pathname}${from.search ?? ""}` : "/";
       navigate(dest, { replace: true });
