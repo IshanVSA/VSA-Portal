@@ -63,9 +63,11 @@ export type Database = {
           error_code: string | null
           error_message: string | null
           error_status: number | null
+          failure_kind: string | null
           friendly_message: string | null
           id: string
           route: string | null
+          success: boolean
           user_agent: string | null
           user_id: string | null
         }
@@ -76,9 +78,11 @@ export type Database = {
           error_code?: string | null
           error_message?: string | null
           error_status?: number | null
+          failure_kind?: string | null
           friendly_message?: string | null
           id?: string
           route?: string | null
+          success?: boolean
           user_agent?: string | null
           user_id?: string | null
         }
@@ -89,9 +93,11 @@ export type Database = {
           error_code?: string | null
           error_message?: string | null
           error_status?: number | null
+          failure_kind?: string | null
           friendly_message?: string | null
           id?: string
           route?: string | null
+          success?: boolean
           user_agent?: string | null
           user_id?: string | null
         }
