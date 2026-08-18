@@ -217,16 +217,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string) => {
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (data.session) {
-      setSession(data.session);
-      setUser(data.session.user);
-      setHasStoredToken(true);
-      bootstrapped.current = true;
+    try {
+      // Guard against a request that never settles (flaky network / stale SW):
+      // without this the button spins indefinitely.
+      const timeout = new Promise<{ data: { session: null }; error: AuthError }>((resolve) =>
+        setTimeout(
+          () => resolve({
+            data: { session: null },
+            error: { name: "AuthRetryableFetchError", message: "Request timed out. Please check your connection and try again.", status: 0 } as unknown as AuthError,
+          }),
+          20000,
+        ),
+      );
+      const { data, error } = await Promise.race([
+        supabase.auth.signInWithPassword({ email: email.trim(), password }),
+        timeout,
+      ]);
+      if (data.session) {
+        setSession(data.session);
+        setUser(data.session.user);
+        setHasStoredToken(true);
+        bootstrapped.current = true;
+      }
+      return { error };
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-    return { error };
   }, []);
+
 
   const signOut = useCallback(async () => {
     intentionalSignOut.current = true;
