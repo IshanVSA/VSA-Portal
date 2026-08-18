@@ -8,6 +8,10 @@
       "destination": "/google056b7ca75ca5911f.html"
     },
     {
+      "source": "/f/:token",
+      "destination": "https://yuyossgquiyuoqbeenri.supabase.co/functions/v1/f/:token"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
