@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { departmentFilePath, useShortLinks } from "@/hooks/useShortLinks";
 import type { ContentPost } from "./PostChip";
 
 interface PostInspectorProps {
@@ -36,6 +37,18 @@ export function PostInspector({ post, onClose, onSaved, onDeleted }: PostInspect
   const [contentType, setContentType] = useState("IMAGE");
   const [saving, setSaving] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+
+  const media = useMemo(() => {
+    if (!post) return [];
+    const sources = [post.image_url, ...((post.image_urls as string[] | null) || [])].filter(
+      (value): value is string => !!value,
+    );
+    return Array.from(new Set(sources)).map((source) => ({
+      source,
+      path: departmentFilePath(source),
+    }));
+  }, [post]);
+  const { resolve, resolveOpen } = useShortLinks(media.map(({ path }) => path));
 
   const isPosted = post?.status === "posted";
   const isReadOnly = isPosted;
@@ -114,28 +127,33 @@ export function PostInspector({ post, onClose, onSaved, onDeleted }: PostInspect
           </div>
 
           {(() => {
-            const all = [post.image_url, ...((post.image_urls as string[] | null) || [])].filter(
-              (u): u is string => !!u,
-            );
-            const unique = Array.from(new Set(all));
-            if (unique.length === 0) return null;
+            if (media.length === 0) return null;
             return (
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">
-                  {unique.length > 1 ? `Images (${unique.length})` : "Image"}
+                  {media.length > 1 ? `Images (${media.length})` : "Image"}
                 </Label>
-                <div className={cn("grid gap-2", unique.length > 1 ? "grid-cols-2" : "grid-cols-1")}>
-                  {unique.map((url, i) => (
+                <div className={cn("grid gap-2", media.length > 1 ? "grid-cols-2" : "grid-cols-1")}>
+                  {media.map(({ source, path }, i) => {
+                    const previewUrl = resolve(path);
+                    const openUrl = resolveOpen(path);
+                    return (
                     <a
-                      key={url + i}
-                      href={url}
+                      key={source + i}
+                      href={openUrl || undefined}
                       target="_blank"
                       rel="noreferrer"
-                      className="block relative aspect-square w-full overflow-hidden rounded-xl border border-border bg-muted hover:opacity-90 transition-opacity"
+                      aria-disabled={!openUrl}
+                      onClick={(event) => { if (!openUrl) event.preventDefault(); }}
+                      className={cn(
+                        "block relative aspect-square w-full overflow-hidden rounded-xl border border-border bg-muted transition-opacity",
+                        openUrl ? "hover:opacity-90" : "cursor-wait opacity-70",
+                      )}
                     >
-                      <img src={url} alt={`Post image ${i + 1}`} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                      {previewUrl && <img src={previewUrl} alt={`Post image ${i + 1}`} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />}
                     </a>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             );

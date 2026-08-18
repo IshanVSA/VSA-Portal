@@ -37,6 +37,22 @@ export const shortLinkUrl = (token: string) => {
   return `${base}/functions/v1/media-link/${token}`;
 };
 
+const openShortLinkUrl = (token: string) =>
+  `${window.location.origin}/f/${encodeURIComponent(token)}`;
+
+export const departmentFilePath = (value: string) => {
+  const marker = "/storage/v1/object/public/department-files/";
+  const markerIndex = value.indexOf(marker);
+  if (markerIndex < 0) return value;
+
+  const encodedPath = value.slice(markerIndex + marker.length).split(/[?#]/, 1)[0];
+  try {
+    return decodeURIComponent(encodedPath);
+  } catch {
+    return encodedPath;
+  }
+};
+
 async function mint(paths: string[]) {
   const missing = paths.filter((p) => p && !cache.has(p) && !inflight.has(p));
   if (missing.length === 0) return;
@@ -84,7 +100,11 @@ export function useShortLinks(paths: (string | null | undefined)[]) {
       // exclusively exposes the opaque first-party URL.
       return hasRewrite() ? "" : previewMediaUrl(path);
     };
-    return { resolve, ready: !hasRewrite() || clean.every((p) => cache.has(p)) };
+    const resolveOpen = (path: string) => {
+      const token = cache.get(path);
+      return token ? openShortLinkUrl(token) : "";
+    };
+    return { resolve, resolveOpen, ready: !hasRewrite() || clean.every((p) => cache.has(p)) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clean, clean.map((p) => cache.get(p) ?? "").join("|")]);
 }
