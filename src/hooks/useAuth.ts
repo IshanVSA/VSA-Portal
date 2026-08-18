@@ -15,6 +15,11 @@ interface AuthState {
   hasStoredToken: boolean;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
+  /**
+   * Attempts to re-establish the session from storage (getSession, then a
+   * forced refresh). Returns true when a session is active afterwards.
+   */
+  recoverSession: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
