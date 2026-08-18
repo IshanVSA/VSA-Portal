@@ -59,8 +59,8 @@ export default function AuthErrorLogs() {
   const [filter, setFilter] = useState<Filter>("all");
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setRefreshing(true);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setRefreshing(true);
     const { data } = await supabase
       .from("auth_error_logs")
       .select("*")
@@ -70,7 +70,11 @@ export default function AuthErrorLogs() {
     setRefreshing(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    const interval = setInterval(() => load(true), 3_600_000);
+    return () => clearInterval(interval);
+  }, [load]);
 
   const filtered = useMemo(() => {
     if (!rows) return null;
@@ -109,7 +113,7 @@ export default function AuthErrorLogs() {
             )}
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={load} disabled={refreshing} className="gap-2">
+        <Button variant="outline" size="sm" onClick={() => load()} disabled={refreshing} className="gap-2">
           <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} /> Refresh
         </Button>
       </div>
