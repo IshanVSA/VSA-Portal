@@ -3276,6 +3276,42 @@ export type Database = {
           },
         ]
       }
+      short_links: {
+        Row: {
+          bucket: string
+          created_at: string
+          created_by: string | null
+          hits: number
+          id: string
+          last_accessed_at: string | null
+          object_path: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          bucket?: string
+          created_at?: string
+          created_by?: string | null
+          hits?: number
+          id?: string
+          last_accessed_at?: string | null
+          object_path: string
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          bucket?: string
+          created_at?: string
+          created_by?: string | null
+          hits?: number
+          id?: string
+          last_accessed_at?: string | null
+          object_path?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sm2_generations: {
         Row: {
           approval_status: string
@@ -4358,6 +4394,13 @@ export type Database = {
           _department: Database["public"]["Enums"]["department_type"]
         }
         Returns: string[]
+      }
+      mint_short_links: {
+        Args: { _bucket?: string; _paths: string[] }
+        Returns: {
+          object_path: string
+          token: string
+        }[]
       }
       pick_assignee_for_dept: {
         Args: {
