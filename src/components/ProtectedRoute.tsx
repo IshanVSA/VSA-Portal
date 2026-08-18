@@ -22,6 +22,9 @@ export function ProtectedRoute({ children, allowedRoles, allowedDepartments }: P
   const { departments, isAllAccess, isLoading: deptsLoading } = useUserDepartments();
   const { hasAccepted, currentVersion, isLoading: termsLoading } = useTermsAcceptance();
   const [timedOut, setTimedOut] = useState(false);
+  const [recovering, setRecovering] = useState(false);
+  const [recoveryFailed, setRecoveryFailed] = useState(false);
+  const recoveryAttempts = useRef(0);
   const location = useLocation();
 
   const allLoading = loading || isLoading || termsLoading || (allowedDepartments ? deptsLoading : false);
@@ -32,11 +35,43 @@ export function ProtectedRoute({ children, allowedRoles, allowedDepartments }: P
     return () => clearTimeout(timer);
   }, [allLoading]);
 
-  // Stuck-loading recovery screen (covers slow getSession, hung role fetch, etc.)
-  // Also shown when bootstrap finished without a user but storage still has a
-  // token — never silently bounce someone with a valid session to /login.
+  // Bootstrap finished without a user but storage still has a token — the
+  // session is very likely just stale. Silently re-establish it (2 attempts)
+  // instead of dead-ending the user on an error screen.
   const stuckWithToken = !allLoading && !user && hasStoredToken;
-  if ((timedOut && allLoading) || stuckWithToken) {
+
+  useEffect(() => {
+    if (!stuckWithToken || recovering || recoveryFailed) return;
+    if (recoveryAttempts.current >= 2) {
+      setRecoveryFailed(true);
+      return;
+    }
+    recoveryAttempts.current += 1;
+    setRecovering(true);
+    let cancelled = false;
+    const attempt = recoveryAttempts.current;
+    (async () => {
+      // Small backoff on the second try.
+      if (attempt > 1) await new Promise((r) => setTimeout(r, 1200));
+      const ok = await recoverSession();
+      if (cancelled) return;
+      setRecovering(false);
+      if (!ok && attempt >= 2) setRecoveryFailed(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [stuckWithToken, recovering, recoveryFailed, recoverSession]);
+
+  if (recovering) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  if ((timedOut && allLoading) || (stuckWithToken && recoveryFailed)) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="text-center space-y-4 max-w-sm">
