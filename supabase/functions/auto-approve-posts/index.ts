@@ -26,8 +26,14 @@ Deno.serve(async (req) => {
 
     const token = authHeader.replace("Bearer ", "");
     const cronSecret = Deno.env.get("CRON_SECRET");
+    const cronHeader = req.headers.get("x-cron-secret");
 
-    const isCronCall = cronSecret && token === cronSecret;
+    // Trusted callers: pg_cron (CRON_SECRET), cron-monitor manual run (service role key
+    // + x-cron-secret header), or an authenticated admin JWT.
+    const isCronCall =
+      (!!cronSecret && (token === cronSecret || cronHeader === cronSecret)) ||
+      token === serviceRoleKey;
+
 
     if (!isCronCall) {
       const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
