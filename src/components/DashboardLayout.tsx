@@ -92,6 +92,7 @@ const adminSections: NavSection[] = [
   { title: "ADMIN", items: [
     { label: "Reports", icon: FileText, path: "/reports" },
     { label: "Cron Monitor", icon: Activity, path: "/cron-monitor" },
+    { label: "Login Errors", icon: ShieldAlert, path: "/login-errors" },
     { label: "Settings", icon: Settings, path: "/settings" },
   ]},
 ];
