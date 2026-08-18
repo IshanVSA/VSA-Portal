@@ -92,6 +92,7 @@ const adminSections: NavSection[] = [
   { title: "ADMIN", items: [
     { label: "Reports", icon: FileText, path: "/reports" },
     { label: "Cron Monitor", icon: Activity, path: "/cron-monitor" },
+    { label: "DB Monitor", icon: Database, path: "/db-monitor" },
     { label: "Login Activity", icon: ShieldAlert, path: "/login-errors" },
     { label: "Settings", icon: Settings, path: "/settings" },
   ]},
@@ -118,7 +119,7 @@ const conciergeSections: NavSection[] = [
 const pageTitles: Record<string, string> = {
   "/": "Dashboard", "/book-meeting": "Book a Meeting", "/website": "Website", "/seo": "SEO", "/ai-seo": "AI SEO", "/google-ads": "Google Ads",
   "/social": "Social Media", "/review": "Admin Review", "/clinics": "Clinics",
-  "/employees": "Team Members", "/reports": "Reports", "/settings": "Settings", "/cron-monitor": "Cron Monitor", "/login-errors": "Login Activity", "/sub-accounts": "Sub Accounts",
+  "/employees": "Team Members", "/reports": "Reports", "/settings": "Settings", "/cron-monitor": "Cron Monitor", "/db-monitor": "Database Monitor", "/login-errors": "Login Activity", "/sub-accounts": "Sub Accounts",
 };
 
 export function DashboardLayout({ children }: { children?: React.ReactNode }) {
