@@ -7,11 +7,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import {
-  Activity, AlertTriangle, Database, Gauge, HardDrive, RefreshCw, Timer, Zap,
+  Activity, AlertTriangle, Database, Gauge, HardDrive, RefreshCw, Timer, TrendingUp, Zap,
 } from "lucide-react";
 import {
-  Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
+  Area, AreaChart, CartesianGrid, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
+import { forecastCapacity, fmtDays, MICRO_LIMITS } from "@/lib/db-capacity";
 
 interface Overview {
   db_size_bytes: number;
@@ -134,7 +135,7 @@ export default function DbMonitor() {
         rpc("get_db_table_stats", { _limit: 25 }),
         rpc("get_db_slow_queries", { _limit: 15 }),
         rpc("get_db_active_queries"),
-        rpc("get_db_health_trend", { _hours: 168 }),
+        rpc("get_db_health_trend", { _hours: 720 }),
       ]);
 
       const firstErr = [ov, tb, sq, aq, tr].find((r) => r.error)?.error;
@@ -164,12 +165,22 @@ export default function DbMonitor() {
     : 0;
   const cache = overview?.cache_hit_ratio ?? null;
 
-  const chartData = trend.map((s) => ({
-    t: new Date(s.captured_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit" }),
-    size: s.db_size_bytes ? Number((s.db_size_bytes / 1024 / 1024).toFixed(1)) : 0,
-    conns: s.connections_total ?? 0,
-    cache: s.cache_hit_ratio ? Number(s.cache_hit_ratio) : 0,
-  }));
+  const weekCutoff = Date.now() - 7 * 86_400_000;
+  const chartData = trend
+    .filter((s) => +new Date(s.captured_at) >= weekCutoff)
+    .map((s) => ({
+      t: new Date(s.captured_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit" }),
+      size: s.db_size_bytes ? Number((s.db_size_bytes / 1024 / 1024).toFixed(1)) : 0,
+      conns: s.connections_total ?? 0,
+      cache: s.cache_hit_ratio ? Number(s.cache_hit_ratio) : 0,
+    }));
+
+  const capacity = forecastCapacity(trend);
+  const recTone = {
+    stay: { cls: "text-emerald-400", label: "Stay on micro" },
+    watch: { cls: "text-amber-400", label: "Plan the upgrade" },
+    upgrade: { cls: "text-red-400", label: "Upgrade to small now" },
+  }[capacity.recommendation];
 
   return (
     <div className="container mx-auto py-8 px-4 sm:px-6 max-w-6xl space-y-6">
@@ -236,10 +247,86 @@ export default function DbMonitor() {
           <Tabs defaultValue="trend" className="w-full">
             <TabsList className="flex-wrap">
               <TabsTrigger value="trend" className="shrink-0">Trend (7d)</TabsTrigger>
+              <TabsTrigger value="capacity" className="shrink-0">Capacity</TabsTrigger>
               <TabsTrigger value="tables" className="shrink-0">Tables</TabsTrigger>
               <TabsTrigger value="slow" className="shrink-0">Slow queries</TabsTrigger>
               <TabsTrigger value="active" className="shrink-0">Running now</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="capacity" className="mt-4 space-y-4">
+              {trend.length < 3 ? (
+                <Card className="p-6 text-sm text-muted-foreground">
+                  Capacity forecasting needs at least a few hourly snapshots — check back soon.
+                </Card>
+              ) : (
+                <>
+                  <Card className="p-5 glass-card space-y-2">
+                    <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+                      <TrendingUp className="h-3.5 w-3.5" /> Recommendation
+                    </div>
+                    <div className={`text-2xl font-semibold ${recTone.cls}`}>{recTone.label}</div>
+                    <p className="text-sm text-muted-foreground">
+                      {capacity.breaches.length > 0
+                        ? `${capacity.breaches.length} signal${capacity.breaches.length > 1 ? "s are" : " is"} already past the micro-tier ceiling (${capacity.breaches.map((b) => b.label.toLowerCase()).join(", ")}).`
+                        : capacity.daysToUpgrade !== null
+                          ? `At the current growth rate, the first micro-tier ceiling is reached in ${fmtDays(capacity.daysToUpgrade)}${capacity.upgradeDate ? ` (around ${capacity.upgradeDate.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })})` : ""}.`
+                          : "No metric is trending toward a micro-tier ceiling. Growth is flat or negative across all tracked signals."}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Based on {trend.length} hourly snapshots over {capacity.windowDays.toFixed(1)} days. Ceilings: {MICRO_LIMITS.dbSizeGb} GB size, {MICRO_LIMITS.connections} connections, {MICRO_LIMITS.cacheHitRatio}% cache hit, {MICRO_LIMITS.longestQuerySeconds}s longest query.
+                    </p>
+                  </Card>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {capacity.signals.map((s) => (
+                      <Card key={s.key} className="p-4 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-sm font-medium">{s.label}</span>
+                          <Badge
+                            variant="outline"
+                            className={
+                              s.status === "breach" ? "text-red-400 border-red-500/30"
+                                : s.status === "watch" ? "text-amber-400 border-amber-500/30"
+                                  : "text-emerald-400 border-emerald-500/30"
+                            }
+                          >
+                            {s.status === "breach" ? "Over ceiling" : s.status === "watch" ? "Watch" : "Healthy"}
+                          </Badge>
+                        </div>
+                        <div className="text-xl font-semibold tabular-nums">
+                          {s.current.toFixed(s.unit === "GB" ? 2 : 1)}{s.unit} <span className="text-xs font-normal text-muted-foreground">of {s.threshold}{s.unit}</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {s.perDay >= 0 ? "+" : ""}{s.perDay.toFixed(s.unit === "GB" ? 3 : 2)}{s.unit}/day
+                          {s.r2 >= 0.3 ? ` · fit ${(s.r2 * 100).toFixed(0)}%` : " · trend too noisy to project"}
+                        </div>
+                        <div className="text-xs">
+                          Reaches ceiling: <span className="font-medium">{s.status === "breach" ? "Already there" : fmtDays(s.daysToThreshold)}</span>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {capacity.projection.length > 2 && (
+                    <Card className="p-4">
+                      <div className="text-sm font-medium mb-3">Database size projection (GB, next 60 days)</div>
+                      <ResponsiveContainer width="100%" height={220}>
+                        <ComposedChart data={capacity.projection}>
+                          <CartesianGrid strokeDasharray="3 3" className="opacity-20" />
+                          <XAxis dataKey="t" tick={{ fontSize: 10 }} minTickGap={40} />
+                          <YAxis tick={{ fontSize: 10 }} width={50} domain={[0, (d: number) => Math.max(d, MICRO_LIMITS.dbSizeGb * 1.1)]} />
+                          <Tooltip />
+                          <ReferenceLine y={MICRO_LIMITS.dbSizeGb} stroke="#f87171" strokeDasharray="4 4" label={{ value: "micro ceiling", fontSize: 10, fill: "#f87171" }} />
+                          <Area type="monotone" dataKey="size" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.15} />
+                          <Line type="monotone" dataKey="projected" stroke="#fbbf24" strokeDasharray="5 4" dot={false} />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </Card>
+                  )}
+                </>
+              )}
+            </TabsContent>
+
 
             <TabsContent value="trend" className="mt-4 space-y-4">
               {chartData.length < 2 ? (
