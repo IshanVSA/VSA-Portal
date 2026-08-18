@@ -148,3 +148,6 @@ verify_jwt = false
 [functions.sync-gsc-data]
 verify_jwt = false
 
+
+[functions.media-link]
+verify_jwt = false

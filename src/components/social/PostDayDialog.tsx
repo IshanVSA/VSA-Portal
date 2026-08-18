@@ -44,7 +44,7 @@ import { useSM2Posts, type SM2Post, getPostImagePaths, SM2_MAX_IMAGES_PER_POST }
 import { isClientNoteUnseen, markClientNoteSeen } from "@/hooks/useSeenClientNotes";
 import { cn } from "@/lib/utils";
 
-import { isVideoUrl, thumbPathFor, isVideoPath } from "@/lib/video-thumbnail";
+import { thumbPathFor, isVideoPath } from "@/lib/video-thumbnail";
 import { MediaCover } from "./MediaCover";
 import { computePostConfidence, confidenceBadgeClass } from "@/lib/sm2-confidence";
 import { ShieldCheck, AlertTriangle as AlertTriangleIcon, CheckCircle2, Undo2 } from "lucide-react";
@@ -370,7 +370,7 @@ function PostCard({
                   <MediaCover
                     url={imageUrls[0].url}
                     thumbUrl={imageUrls[0].thumbUrl}
-                    isVideo={isVideoUrl(imageUrls[0].url)}
+                    isVideo={isVideoPath(imageUrls[0].path)}
                     alt="Cover"
                     className="cursor-zoom-in"
                     onClick={() => setViewerIndex(0)}
@@ -413,7 +413,7 @@ function PostCard({
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                 {imageUrls.slice(1).map((img, idx) => {
                   const realIdx = idx + 1;
-                  const isVid = isVideoUrl(img.url);
+                  const isVid = isVideoPath(img.path);
                   return (
                     <div key={img.path} className="relative group">
                       <div className="relative w-full aspect-square rounded border overflow-hidden">
@@ -948,7 +948,7 @@ function ImageLightbox({
         </button>
       )}
 
-      {isVideoUrl(current.url) ? (
+      {isVideoPath(current.path) ? (
         <video
           src={current.url}
           className="max-h-[95vh] max-w-[95vw] w-auto h-auto object-contain rounded-xl shadow-2xl bg-black"
