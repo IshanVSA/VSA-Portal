@@ -136,19 +136,35 @@ export async function syncClinicGSC(clinicId: string, initial = false): Promise<
     });
   }
 
-  // 3) Country per day (top-25 per day is plenty for a dashboard)
-  for (const r of await querySA(siteUrl, accessToken, {
-    startDate: fromDate, endDate: toDate,
-    dimensions: ["date", "country"], rowLimit: 25000,
-  })) {
-    const [date, country] = r.keys || []; if (!date || !country) continue;
-    if ((r.impressions || 0) === 0) continue;
-    rows.push({
-      clinic_id: clinicId, date, bucket_type: "country", bucket_value: country,
-      impressions: r.impressions || 0, clicks: r.clicks || 0,
-      ctr: r.ctr || 0, position: r.position || 0,
-    });
+  // 3) Country per day — keep only the top 10 countries per day. The long tail
+  // (1-impression countries) was ~40% of all stored rows and is never shown.
+  {
+    const byDate = new Map<string, { country: string; impressions: number; clicks: number; ctr: number; position: number }[]>();
+    for (const r of await querySA(siteUrl, accessToken, {
+      startDate: fromDate, endDate: toDate,
+      dimensions: ["date", "country"], rowLimit: 25000,
+    })) {
+      const [date, country] = r.keys || []; if (!date || !country) continue;
+      if ((r.impressions || 0) < 2) continue;
+      const list = byDate.get(date) || [];
+      list.push({
+        country,
+        impressions: r.impressions || 0, clicks: r.clicks || 0,
+        ctr: r.ctr || 0, position: r.position || 0,
+      });
+      byDate.set(date, list);
+    }
+    for (const [date, list] of byDate) {
+      list.sort((a, b) => b.impressions - a.impressions);
+      for (const c of list.slice(0, 10)) {
+        rows.push({
+          clinic_id: clinicId, date, bucket_type: "country", bucket_value: c.country,
+          impressions: c.impressions, clicks: c.clicks, ctr: c.ctr, position: c.position,
+        });
+      }
+    }
   }
+
 
   // 4) Top queries per day (limit 5000, biggest cost)
   for (const r of await querySA(siteUrl, accessToken, {

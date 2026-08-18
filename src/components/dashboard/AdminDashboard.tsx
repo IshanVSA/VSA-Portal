@@ -311,7 +311,11 @@ export default function AdminDashboard() {
         supabase.from("clinics").select("id, clinic_name, status, assigned_concierge_id, website_enabled, seo_enabled, google_ads_enabled, social_media_enabled"),
         supabase.from("profiles").select("id, full_name"),
         supabase.from("user_roles").select("user_id, role"),
-        supabase.from("content_posts").select("id, status, scheduled_date, clinic_id"),
+        // Bounded to the last 12 months — the dashboard never renders older posts,
+        // and an unbounded scan of content_posts was one of the heaviest queries.
+        supabase.from("content_posts").select("id, status, scheduled_date, clinic_id")
+          .gte("scheduled_date", new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)),
+
         supabase.from("department_tickets").select("id, priority, clinic_id"),
         supabase.from("sm2_generations").select("id, approval_status, sent_to_client_at, clinic_id, month_year"),
         supabase.rpc("get_client_login_summary" as never),

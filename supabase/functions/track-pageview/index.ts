@@ -20,6 +20,94 @@ function cleanDedup() {
   }
 }
 
+// Single shared service client per isolate (avoids a new pool entry per request)
+let _client: ReturnType<typeof createClient> | null = null;
+function db() {
+  if (!_client) {
+    _client = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false, autoRefreshToken: false } },
+    );
+  }
+  return _client;
+}
+
+// ---------------------------------------------------------------------------
+// Clinic existence cache — avoids a SELECT on public.clinics for every hit.
+// ---------------------------------------------------------------------------
+const CLINIC_CACHE_TTL_MS = 900_000; // 15 minutes
+const clinicCache = new Map<string, { ok: boolean; ts: number }>();
+
+async function clinicExists(clinicId: string): Promise<boolean> {
+  const cached = clinicCache.get(clinicId);
+  if (cached && Date.now() - cached.ts < CLINIC_CACHE_TTL_MS) return cached.ok;
+
+  const { data } = await db().from("clinics").select("id").eq("id", clinicId).maybeSingle();
+  const ok = !!data;
+  clinicCache.set(clinicId, { ok, ts: Date.now() });
+  if (clinicCache.size > 300) {
+    const oldest = clinicCache.keys().next().value;
+    if (oldest) clinicCache.delete(oldest);
+  }
+  return ok;
+}
+
+// ---------------------------------------------------------------------------
+// Write buffer — one multi-row INSERT instead of one INSERT per pageview.
+// ---------------------------------------------------------------------------
+type PageviewRow = {
+  clinic_id: string;
+  path: string;
+  referrer: string | null;
+  session_id: string;
+  country_code: string | null;
+  region: string | null;
+};
+
+const FLUSH_SIZE = 20;
+const FLUSH_INTERVAL_MS = 2000;
+
+let buffer: PageviewRow[] = [];
+let flushTimer: number | undefined;
+
+async function flushBuffer(): Promise<void> {
+  if (flushTimer !== undefined) {
+    clearTimeout(flushTimer);
+    flushTimer = undefined;
+  }
+  if (buffer.length === 0) return;
+
+  const batch = buffer;
+  buffer = [];
+  const { error } = await db().from("website_pageviews").insert(batch);
+  if (error) console.error("Pageview batch insert error:", error.message, `(${batch.length} rows)`);
+}
+
+function keepAlive(p: Promise<unknown>) {
+  const rt = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
+  if (rt?.waitUntil) rt.waitUntil(p);
+}
+
+function enqueue(row: PageviewRow) {
+  buffer.push(row);
+  if (buffer.length >= FLUSH_SIZE) {
+    keepAlive(flushBuffer());
+    return;
+  }
+  if (flushTimer === undefined) {
+    flushTimer = setTimeout(() => {
+      flushTimer = undefined;
+      keepAlive(flushBuffer());
+    }, FLUSH_INTERVAL_MS) as unknown as number;
+  }
+}
+
+// Flush anything still buffered when the isolate is shut down.
+addEventListener("beforeunload", () => {
+  keepAlive(flushBuffer());
+});
+
 // Simple in-memory geo cache to avoid repeated lookups for the same IP
 const geoCache = new Map<string, { country_code: string | null; region: string | null; ts: number }>();
 const GEO_CACHE_TTL_MS = 600_000; // 10 minutes
@@ -79,6 +167,19 @@ const PIXEL_JS = (clinicId: string, endpoint: string) => `
   window.addEventListener("popstate",track);
 })();
 `;
+
+// Keep only the referrer host — never a full URL (may carry PII / query strings).
+function referrerHost(raw: unknown): string | null {
+  if (typeof raw !== "string" || !raw.trim()) return null;
+  let v = raw.trim();
+  try {
+    if (v.includes("://")) v = new URL(v).hostname;
+  } catch {
+    // fall through — treat as a bare host
+  }
+  v = v.split("/")[0].split("?")[0].replace(/^www\./i, "");
+  return v ? v.slice(0, 128) : null;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -149,6 +250,14 @@ Deno.serve(async (req) => {
       }
       recentHits.set(dedupKey, now);
 
+      // Cached clinic validation (no DB round-trip on cache hit)
+      if (!(await clinicExists(clinic_id))) {
+        return new Response(JSON.stringify({ error: "Clinic not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       // Extract visitor IP for geolocation
       const visitorIp = (
         req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
@@ -160,46 +269,17 @@ Deno.serve(async (req) => {
       // Non-blocking geo lookup (with 2s timeout)
       const geo = await lookupGeo(visitorIp);
 
-      const supabase = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-      );
-
-      // Validate clinic exists
-      const { data: clinic } = await supabase
-        .from("clinics")
-        .select("id")
-        .eq("id", clinic_id)
-        .maybeSingle();
-
-      if (!clinic) {
-        return new Response(JSON.stringify({ error: "Clinic not found" }), {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      // Only store referrer domain, never full URL (may contain PII)
-      const cleanReferrer = referrer_domain ? referrer_domain.slice(0, 255) : null;
-
-      const { error } = await supabase.from("website_pageviews").insert({
+      // Buffered write — flushed as one multi-row insert
+      enqueue({
         clinic_id,
         path: cleanPath,
-        referrer: cleanReferrer,
-        session_id: session_id.slice(0, 128),
+        referrer: referrerHost(referrer_domain),
+        session_id: String(session_id).slice(0, 128),
         country_code: geo.country_code,
         region: geo.region,
       });
 
-      if (error) {
-        console.error("Insert error:", error);
-        return new Response(JSON.stringify({ error: "Failed to record" }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      return new Response(JSON.stringify({ ok: true }), {
+      return new Response(JSON.stringify({ ok: true, queued: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     } catch (e) {
