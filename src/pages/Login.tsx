@@ -218,6 +218,12 @@ export default function Login() {
                           const raw = await extractEdgeFunctionError(error, data, "");
                           const friendly = toFriendlyResetError(raw);
                           toast.error(friendly);
+                          void logAuthError({
+                            context: "password_reset",
+                            email: resetEmail,
+                            errorMessage: raw,
+                            friendlyMessage: friendly,
+                          });
                         } else {
                           const d = data as any;
                           toast.success("Reset link sent! Please check your email.");
