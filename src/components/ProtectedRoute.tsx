@@ -26,6 +26,8 @@ export function ProtectedRoute({ children, allowedRoles, allowedDepartments }: P
   const [recovering, setRecovering] = useState(false);
   const [recoveryFailed, setRecoveryFailed] = useState(false);
   const recoveryAttempts = useRef(0);
+  const recoveryInFlight = useRef(false);
+
   const location = useLocation();
 
   const allLoading = loading || isLoading || termsLoading || (allowedDepartments ? deptsLoading : false);
