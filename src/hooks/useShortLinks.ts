@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 const BUCKET = "department-files";
 const cache = new Map<string, string>();
 const inflight = new Map<string, Promise<void>>();
+const failed = new Set<string>();
 
 /**
  * The opaque `/f/:token` path only resolves where the hosting rewrite exists
@@ -54,7 +55,7 @@ export const departmentFilePath = (value: string) => {
 };
 
 async function mint(paths: string[]) {
-  const missing = paths.filter((p) => p && !cache.has(p) && !inflight.has(p));
+  const missing = paths.filter((p) => p && !cache.has(p) && !inflight.has(p) && !failed.has(p));
   if (missing.length === 0) return;
 
   const promise = (async () => {
@@ -64,6 +65,12 @@ async function mint(paths: string[]) {
 
     if (!error && data) {
       for (const row of data) cache.set(row.object_path, row.token);
+      for (const path of missing) {
+        if (!cache.has(path)) failed.add(path);
+      }
+    } else {
+      for (const path of missing) failed.add(path);
+      console.error("Unable to create opaque media links", error);
     }
   })().finally(() => {
     for (const p of missing) inflight.delete(p);
@@ -104,7 +111,11 @@ export function useShortLinks(paths: (string | null | undefined)[]) {
       const token = cache.get(path);
       return token ? openShortLinkUrl(token) : "";
     };
-    return { resolve, resolveOpen, ready: !hasRewrite() || clean.every((p) => cache.has(p)) };
+    return {
+      resolve,
+      resolveOpen,
+      ready: !hasRewrite() || clean.every((p) => cache.has(p) || failed.has(p)),
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clean, clean.map((p) => cache.get(p) ?? "").join("|")]);
 }
