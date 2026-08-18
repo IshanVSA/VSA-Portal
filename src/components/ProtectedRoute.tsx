@@ -26,6 +26,8 @@ export function ProtectedRoute({ children, allowedRoles, allowedDepartments }: P
   const [recovering, setRecovering] = useState(false);
   const [recoveryFailed, setRecoveryFailed] = useState(false);
   const recoveryAttempts = useRef(0);
+  const recoveryInFlight = useRef(false);
+
   const location = useLocation();
 
   const allLoading = loading || isLoading || termsLoading || (allowedDepartments ? deptsLoading : false);
@@ -42,20 +44,25 @@ export function ProtectedRoute({ children, allowedRoles, allowedDepartments }: P
   const stuckWithToken = !allLoading && !user && hasStoredToken;
 
   useEffect(() => {
-    if (!stuckWithToken || recovering || recoveryFailed) return;
+    if (!stuckWithToken || recoveryInFlight.current || recoveryFailed) return;
     if (recoveryAttempts.current >= 2) {
       setRecoveryFailed(true);
       return;
     }
     recoveryAttempts.current += 1;
+    recoveryInFlight.current = true;
     setRecovering(true);
-    let cancelled = false;
     const attempt = recoveryAttempts.current;
     (async () => {
       // Small backoff on the second try.
       if (attempt > 1) await new Promise((r) => setTimeout(r, 1200));
-      const ok = await recoverSession();
-      if (cancelled) return;
+      let ok = false;
+      try {
+        ok = await recoverSession();
+      } catch {
+        ok = false;
+      }
+      recoveryInFlight.current = false;
       setRecovering(false);
       if (!ok && attempt >= 2) {
         setRecoveryFailed(true);
@@ -66,10 +73,8 @@ export function ProtectedRoute({ children, allowedRoles, allowedDepartments }: P
         });
       }
     })();
-    return () => {
-      cancelled = true;
-    };
-  }, [stuckWithToken, recovering, recoveryFailed, recoverSession]);
+  }, [stuckWithToken, recoveryFailed, recoverSession]);
+
 
   if (recovering) {
     return (
