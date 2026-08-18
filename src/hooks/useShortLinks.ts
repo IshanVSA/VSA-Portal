@@ -28,6 +28,9 @@ const hasRewrite = () => {
   );
 };
 
+const previewMediaUrl = (path: string) =>
+  supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+
 export const shortLinkUrl = (token: string) => {
   if (hasRewrite()) return `${window.location.origin}/f/${token}`;
   const base = import.meta.env.VITE_SUPABASE_URL as string;
@@ -73,9 +76,15 @@ export function useShortLinks(paths: (string | null | undefined)[]) {
   return useMemo(() => {
     const resolve = (path: string) => {
       const token = cache.get(path);
-      return token ? shortLinkUrl(token) : "";
+      if (token) return shortLinkUrl(token);
+
+      // Preview hosts do not support the production /f/:token rewrite. Keep
+      // media visible there even if token minting is unavailable or delayed.
+      // This URL is only used as an embedded asset source; production still
+      // exclusively exposes the opaque first-party URL.
+      return hasRewrite() ? "" : previewMediaUrl(path);
     };
-    return { resolve, ready: clean.every((p) => cache.has(p)) };
+    return { resolve, ready: !hasRewrite() || clean.every((p) => cache.has(p)) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clean, clean.map((p) => cache.get(p) ?? "").join("|")]);
 }
