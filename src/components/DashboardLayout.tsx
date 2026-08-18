@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Building2, Users, BarChart3, Settings, LogOut, Menu, X, ChevronRight,
   ShieldCheck, LayoutGrid, UserRound, CalendarCheck,
-  Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone, Globe, Sparkles, Plus, FileText, LineChart, Lock, Activity, UsersRound, ShieldAlert,
+  Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone, Globe, Sparkles, Plus, FileText, LineChart, Lock, Activity, UsersRound, ShieldAlert, Database,
 } from "lucide-react";
 const LayoutDashboard = LayoutGrid;
 const UserCheck = UserRound;
