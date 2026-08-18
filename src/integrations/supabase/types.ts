@@ -3970,6 +3970,50 @@ export type Database = {
           },
         ]
       }
+      website_pageviews_daily: {
+        Row: {
+          clinic_id: string
+          country_code: string | null
+          created_at: string
+          day: string
+          id: string
+          path: string
+          region: string | null
+          sessions: number
+          views: number
+        }
+        Insert: {
+          clinic_id: string
+          country_code?: string | null
+          created_at?: string
+          day: string
+          id?: string
+          path?: string
+          region?: string | null
+          sessions?: number
+          views?: number
+        }
+        Update: {
+          clinic_id?: string
+          country_code?: string | null
+          created_at?: string
+          day?: string
+          id?: string
+          path?: string
+          region?: string | null
+          sessions?: number
+          views?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_pageviews_daily_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       cta_daily: {
@@ -4205,6 +4249,7 @@ export type Database = {
         Args: { _clinic_id: string; _month: number; _province: string }
         Returns: undefined
       }
+      prune_gsc_detail: { Args: { _keep_days?: number }; Returns: number }
       realtime_topic_authorized: { Args: { _topic: string }; Returns: boolean }
       rebuild_geo_clusters: { Args: never; Returns: undefined }
       record_cron_heartbeat: {
@@ -4212,6 +4257,10 @@ export type Database = {
         Returns: undefined
       }
       record_login_activity: { Args: never; Returns: undefined }
+      rollup_website_pageviews: {
+        Args: { _older_than_days?: number }
+        Returns: number
+      }
       slugify_city: { Args: { _city: string }; Returns: string }
       sub_account_hides_financials: {
         Args: { _user_id: string }
