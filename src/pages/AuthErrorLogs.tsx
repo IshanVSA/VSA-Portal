@@ -113,7 +113,7 @@ export default function AuthErrorLogs() {
             )}
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={load} disabled={refreshing} className="gap-2">
+        <Button variant="outline" size="sm" onClick={() => load()} disabled={refreshing} className="gap-2">
           <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} /> Refresh
         </Button>
       </div>
