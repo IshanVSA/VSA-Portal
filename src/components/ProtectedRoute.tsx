@@ -17,7 +17,7 @@ interface Props {
 }
 
 export function ProtectedRoute({ children, allowedRoles, allowedDepartments }: Props) {
-  const { user, loading, hasStoredToken, signOut } = useAuth();
+  const { user, loading, hasStoredToken, signOut, recoverSession } = useAuth();
   const { role, isLoading } = useUserRole();
   const { departments, isAllAccess, isLoading: deptsLoading } = useUserDepartments();
   const { hasAccepted, currentVersion, isLoading: termsLoading } = useTermsAcceptance();
