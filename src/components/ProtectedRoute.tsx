@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { TermsAcceptanceModal } from "@/components/terms/TermsAcceptanceModal";
 import { StaffAcknowledgmentModal } from "@/components/terms/StaffAcknowledgmentModal";
+import { logAuthError } from "@/lib/auth-error-log";
 import AccessDenied from "@/pages/AccessDenied";
 
 interface Props {
