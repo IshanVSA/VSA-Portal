@@ -5,8 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
  * Maps storage object paths to opaque short links (`/f/<token>`), so media that
  * users open in a new tab never exposes the raw Supabase storage URL.
  *
- * Falls back to the public storage URL until a token is available, so images
- * always render.
+ * Never exposes the public storage URL. Media remains unavailable for the
+ * brief moment while its opaque token is being minted.
  */
 
 const BUCKET = "department-files";
@@ -15,9 +15,6 @@ const inflight = new Map<string, Promise<void>>();
 
 export const shortLinkUrl = (token: string) =>
   `${window.location.origin}/f/${token}`;
-
-const publicUrl = (path: string) =>
-  supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 
 async function mint(paths: string[]) {
   const missing = paths.filter((p) => p && !cache.has(p) && !inflight.has(p));
@@ -58,7 +55,7 @@ export function useShortLinks(paths: (string | null | undefined)[]) {
   return useMemo(() => {
     const resolve = (path: string) => {
       const token = cache.get(path);
-      return token ? shortLinkUrl(token) : publicUrl(path);
+      return token ? shortLinkUrl(token) : "";
     };
     return { resolve, ready: clean.every((p) => cache.has(p)) };
     // eslint-disable-next-line react-hooks/exhaustive-deps

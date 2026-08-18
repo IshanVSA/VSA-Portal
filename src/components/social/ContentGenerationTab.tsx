@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { computeBrandDNAScore } from "@/lib/brand-dna-score";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
+import { useShortLinks } from "@/hooks/useShortLinks";
 
 interface Props {
   clinicId: string | undefined;
@@ -810,8 +811,9 @@ function buildPreviewHtml(args: {
   monthLabel: string;
   pipelineData: any;
   posts: any[];
+  resolveMediaUrl: (path: string) => string;
 }): string {
-  const { clinicName, monthLabel, pipelineData, posts } = args;
+  const { clinicName, monthLabel, pipelineData, posts, resolveMediaUrl } = args;
   const pd = pipelineData || {};
   const review = pd.review || {};
   const planPosts: any[] = pd?.plan?.posts || [];
@@ -853,16 +855,16 @@ function buildPreviewHtml(args: {
       const imagePaths: string[] = Array.from(new Set(
         [live.image_path, ...(Array.isArray(live.image_paths) ? live.image_paths : [])].filter(Boolean)
       ));
-      const imageUrls = imagePaths.map((p: string) =>
-        supabase.storage.from("department-files").getPublicUrl(p).data.publicUrl
-      );
-      const mediaGallery = imageUrls.length
-        ? `<div class="media-gallery">${imageUrls
-            .map((u) => {
-              const isVideo = /\.(mp4|mov|webm|m4v)(\?|$)/i.test(u);
+      const mediaItems = imagePaths
+        .map((path: string) => ({ path, url: resolveMediaUrl(path) }))
+        .filter((item) => item.url);
+      const mediaGallery = mediaItems.length
+        ? `<div class="media-gallery">${mediaItems
+            .map(({ path, url }) => {
+              const isVideo = /\.(mp4|mov|webm|m4v)$/i.test(path);
               return isVideo
-                ? `<video src="${escapeHtml(u)}" controls class="media-item"></video>`
-                : `<img src="${escapeHtml(u)}" alt="" class="media-item" loading="lazy"/>`;
+                ? `<video src="${escapeHtml(url)}" controls class="media-item"></video>`
+                : `<img src="${escapeHtml(url)}" alt="" class="media-item" loading="lazy"/>`;
             })
             .join("")}</div>`
         : "";
@@ -925,6 +927,19 @@ ${postCards}
 function HtmlPreviewDialog({ generationId, onClose }: { generationId: string; onClose: () => void }) {
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [previewData, setPreviewData] = useState<{
+    clinicName: string;
+    monthLabel: string;
+    pipelineData: any;
+    posts: any[];
+  } | null>(null);
+  const mediaPaths = useMemo(
+    () => (previewData?.posts || []).flatMap((post) =>
+      [post.image_path, ...(Array.isArray(post.image_paths) ? post.image_paths : [])].filter(Boolean),
+    ),
+    [previewData],
+  );
+  const { resolve: resolveMediaUrl, ready: mediaLinksReady } = useShortLinks(mediaPaths);
 
   useEffect(() => {
     let cancelled = false;
@@ -953,13 +968,12 @@ function HtmlPreviewDialog({ generationId, onClose }: { generationId: string; on
             ? new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" })
             : gen.month_year || "";
 
-        const html = buildPreviewHtml({
+        setPreviewData({
           clinicName: clinic?.clinic_name || "Clinic",
           monthLabel,
           pipelineData: gen.pipeline_data,
           posts: posts || [],
         });
-        if (!cancelled) setHtmlContent(html);
       } catch (err) {
         console.error("Failed to build live preview:", err);
         if (!cancelled)
@@ -973,6 +987,12 @@ function HtmlPreviewDialog({ generationId, onClose }: { generationId: string; on
       cancelled = true;
     };
   }, [generationId]);
+
+  useEffect(() => {
+    if (!previewData || !mediaLinksReady) return;
+    setHtmlContent(buildPreviewHtml({ ...previewData, resolveMediaUrl }));
+    setLoading(false);
+  }, [previewData, mediaLinksReady, resolveMediaUrl]);
 
   return (
     <Dialog open onOpenChange={onClose}>
