@@ -37,6 +37,7 @@ const BookMeeting = lazy(() => import("./pages/BookMeeting"));
 const CronMonitor = lazy(() => import("./pages/CronMonitor"));
 const AuthErrorLogs = lazy(() => import("./pages/AuthErrorLogs"));
 const DbMonitor = lazy(() => import("./pages/DbMonitor"));
+const FileRedirect = lazy(() => import("./pages/FileRedirect"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -84,6 +85,7 @@ const App = () => (
               <Route path="/reset-password" element={guard(<ResetPassword />, "reset-password")} />
               <Route path="/privacy-policy" element={guard(<PrivacyPolicy />, "privacy")} />
               <Route path="/data-deletion" element={guard(<DataDeletion />, "data-deletion")} />
+              <Route path="/f/:token" element={guard(<FileRedirect />, "file-redirect")} />
               <Route path="/terms-of-service" element={guard(<TermsOfService />, "tos")} />
 
               <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>

@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
     // Best-effort access accounting; never blocks the response.
     admin
       .from("short_links")
-      .update({ hits: undefined, last_accessed_at: new Date().toISOString() })
+      .update({ last_accessed_at: new Date().toISOString() })
       .eq("id", link.id)
       .then(() => {}, () => {});
 
