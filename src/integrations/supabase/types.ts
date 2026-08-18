@@ -55,6 +55,48 @@ export type Database = {
           },
         ]
       }
+      auth_error_logs: {
+        Row: {
+          context: string
+          created_at: string
+          email: string | null
+          error_code: string | null
+          error_message: string | null
+          error_status: number | null
+          friendly_message: string | null
+          id: string
+          route: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          context?: string
+          created_at?: string
+          email?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          error_status?: number | null
+          friendly_message?: string | null
+          id?: string
+          route?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          context?: string
+          created_at?: string
+          email?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          error_status?: number | null
+          friendly_message?: string | null
+          id?: string
+          route?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       blog_client_submissions: {
         Row: {
           approved_by: string | null
