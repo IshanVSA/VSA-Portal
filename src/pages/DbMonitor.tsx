@@ -164,12 +164,22 @@ export default function DbMonitor() {
     : 0;
   const cache = overview?.cache_hit_ratio ?? null;
 
-  const chartData = trend.map((s) => ({
-    t: new Date(s.captured_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit" }),
-    size: s.db_size_bytes ? Number((s.db_size_bytes / 1024 / 1024).toFixed(1)) : 0,
-    conns: s.connections_total ?? 0,
-    cache: s.cache_hit_ratio ? Number(s.cache_hit_ratio) : 0,
-  }));
+  const weekCutoff = Date.now() - 7 * 86_400_000;
+  const chartData = trend
+    .filter((s) => +new Date(s.captured_at) >= weekCutoff)
+    .map((s) => ({
+      t: new Date(s.captured_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit" }),
+      size: s.db_size_bytes ? Number((s.db_size_bytes / 1024 / 1024).toFixed(1)) : 0,
+      conns: s.connections_total ?? 0,
+      cache: s.cache_hit_ratio ? Number(s.cache_hit_ratio) : 0,
+    }));
+
+  const capacity = forecastCapacity(trend);
+  const recTone = {
+    stay: { cls: "text-emerald-400", label: "Stay on micro" },
+    watch: { cls: "text-amber-400", label: "Plan the upgrade" },
+    upgrade: { cls: "text-red-400", label: "Upgrade to small now" },
+  }[capacity.recommendation];
 
   return (
     <div className="container mx-auto py-8 px-4 sm:px-6 max-w-6xl space-y-6">
