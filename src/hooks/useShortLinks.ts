@@ -38,8 +38,16 @@ export const shortLinkUrl = (token: string) => {
   return `${base}/functions/v1/media-link/${token}`;
 };
 
-const openShortLinkUrl = (token: string) =>
-  `${window.location.origin}/f/${encodeURIComponent(token)}`;
+const openShortLinkUrl = (token: string) => {
+  const encoded = encodeURIComponent(token);
+  if (hasRewrite()) return `${window.location.origin}/f/${encoded}`;
+
+  // Lovable preview and localhost do not run the Vercel rewrite. Open the
+  // same opaque token through the resolver directly instead of sending the
+  // browser to the SPA shell at /f/:token.
+  const base = import.meta.env.VITE_SUPABASE_URL as string;
+  return `${base}/functions/v1/media-link/${encoded}`;
+};
 
 export const departmentFilePath = (value: string) => {
   const marker = "/storage/v1/object/public/department-files/";
@@ -109,7 +117,10 @@ export function useShortLinks(paths: (string | null | undefined)[]) {
     };
     const resolveOpen = (path: string) => {
       const token = cache.get(path);
-      return token ? openShortLinkUrl(token) : "";
+      // Preview can still open the asset if token creation is temporarily
+      // unavailable. Production never exposes the raw storage URL.
+      if (token) return openShortLinkUrl(token);
+      return hasRewrite() ? "" : previewMediaUrl(path);
     };
     return {
       resolve,

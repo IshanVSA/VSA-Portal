@@ -6,6 +6,7 @@ import { Megaphone, Facebook, Instagram, CalendarDays, ImageOff } from "lucide-r
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { coverPathFor } from "@/lib/video-thumbnail";
+import { useShortLinks } from "@/hooks/useShortLinks";
 
 interface Props {
   clinicId: string | undefined;
@@ -39,10 +40,6 @@ function getCover(post: MetaAdPost): string | null {
   return post.image_path || post.image_paths?.[0] || null;
 }
 
-function getImageUrl(path: string) {
-  return supabase.storage.from("department-files").getPublicUrl(path).data.publicUrl;
-}
-
 export default function MetaAdsTab({ clinicId }: Props) {
   const { data: posts, isLoading } = useQuery({
     queryKey: ["sm2-meta-ad-posts", clinicId],
@@ -61,6 +58,11 @@ export default function MetaAdsTab({ clinicId }: Props) {
     },
     enabled: !!clinicId,
   });
+  const mediaPaths = (posts || [])
+    .map(getCover)
+    .filter((path): path is string => !!path)
+    .map(coverPathFor);
+  const { resolve: getImageUrl } = useShortLinks(mediaPaths);
 
   return (
     <div className="space-y-4 animate-fade-in">
