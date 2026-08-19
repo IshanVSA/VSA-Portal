@@ -90,7 +90,11 @@ async function mint(paths: string[]) {
 
 export function useShortLinks(paths: (string | null | undefined)[]) {
   const clean = useMemo(
-    () => Array.from(new Set(paths.filter((p): p is string => !!p))),
+    () => Array.from(new Set(
+      paths
+        .filter((p): p is string => !!p)
+        .map(departmentFilePath),
+    )),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [paths.filter(Boolean).join("|")],
   );
@@ -106,21 +110,23 @@ export function useShortLinks(paths: (string | null | undefined)[]) {
 
   return useMemo(() => {
     const resolve = (path: string) => {
-      const token = cache.get(path);
+      const objectPath = departmentFilePath(path);
+      const token = cache.get(objectPath);
       if (token) return shortLinkUrl(token);
 
       // Preview hosts do not support the production /f/:token rewrite. Keep
       // media visible there even if token minting is unavailable or delayed.
       // This URL is only used as an embedded asset source; production still
       // exclusively exposes the opaque first-party URL.
-      return hasRewrite() ? "" : previewMediaUrl(path);
+      return hasRewrite() ? "" : previewMediaUrl(objectPath);
     };
     const resolveOpen = (path: string) => {
-      const token = cache.get(path);
+      const objectPath = departmentFilePath(path);
+      const token = cache.get(objectPath);
       // Preview can still open the asset if token creation is temporarily
       // unavailable. Production never exposes the raw storage URL.
       if (token) return openShortLinkUrl(token);
-      return hasRewrite() ? "" : previewMediaUrl(path);
+      return hasRewrite() ? "" : previewMediaUrl(objectPath);
     };
     return {
       resolve,
