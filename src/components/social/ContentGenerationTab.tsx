@@ -976,10 +976,10 @@ function HtmlPreviewDialog({ generationId, onClose }: { generationId: string; on
         });
       } catch (err) {
         console.error("Failed to build live preview:", err);
-        if (!cancelled)
+        if (!cancelled) {
           setHtmlContent("<html><body><p>Failed to load content preview.</p></body></html>");
-      } finally {
-        if (!cancelled) setLoading(false);
+          setLoading(false);
+        }
       }
     };
     load();
