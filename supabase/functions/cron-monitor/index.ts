@@ -166,12 +166,36 @@ async function getStatuses() {
 
 
 async function requireAdmin(authHeader: string | null): Promise<boolean> {
-  if (!authHeader) return false;
-  const token = authHeader.replace("Bearer ", "");
-  const { data: { user } } = await supabase.auth.getUser(token);
-  if (!user) return false;
-  const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
-  return !!data;
+  if (!authHeader) {
+    console.warn("cron-monitor: missing Authorization header");
+    return false;
+  }
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+
+  // A service-role key (used by internal callers) is always allowed.
+  if (token === SERVICE_KEY) return true;
+
+  const { data: userData, error: userErr } = await supabase.auth.getUser(token);
+  const user = userData?.user;
+  if (userErr || !user) {
+    console.warn("cron-monitor: token did not resolve to a user", userErr?.message);
+    return false;
+  }
+
+  // Do NOT use maybeSingle here — a user with several roles makes it error out
+  // and silently return null, which produced spurious 403s.
+  const { data: roles, error: roleErr } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", user.id);
+
+  if (roleErr) {
+    console.error("cron-monitor: role lookup failed", roleErr.message);
+    return false;
+  }
+  const isAdmin = (roles ?? []).some((r: { role: string }) => r.role === "admin");
+  if (!isAdmin) console.warn(`cron-monitor: user ${user.id} is not admin (roles: ${(roles ?? []).map((r: any) => r.role).join(",") || "none"})`);
+  return isAdmin;
 }
 
 async function sendAlertEmail(failing: Awaited<ReturnType<typeof getStatuses>>) {
