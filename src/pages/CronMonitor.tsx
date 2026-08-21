@@ -59,14 +59,25 @@ export default function CronMonitor() {
     if (!silent) setLoading(true);
     setRefreshing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("cron-monitor", {
-        body: null, method: "GET",
-      });
+      const call = () =>
+        supabase.functions.invoke("cron-monitor", { body: null, method: "GET" });
+
+      let { data, error } = await call();
+
+      // A stale/expired access token makes the function reject with 403.
+      // Refresh the session once and retry before surfacing an error.
+      if (error) {
+        await supabase.auth.refreshSession();
+        ({ data, error } = await call());
+      }
+
       if (error) throw error;
       setJobs(data.jobs);
       setGeneratedAt(data.generated_at);
     } catch (e) {
-      toast({ title: "Failed to load cron status", description: String(e), variant: "destructive" });
+      if (!silent) {
+        toast({ title: "Failed to load cron status", description: String(e), variant: "destructive" });
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
