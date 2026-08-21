@@ -13,6 +13,8 @@ const BUCKET = "department-files";
 const cache = new Map<string, string>();
 const inflight = new Map<string, Promise<void>>();
 const failed = new Set<string>();
+const MAX_MINT_ATTEMPTS = 2;
+const attempts = new Map<string, number>();
 
 /**
  * The opaque `/f/:token` path only resolves where the hosting rewrite exists
@@ -63,8 +65,12 @@ export const departmentFilePath = (value: string) => {
 };
 
 async function mint(paths: string[]) {
-  const missing = paths.filter((p) => p && !cache.has(p) && !inflight.has(p) && !failed.has(p));
+  const missing = paths.filter(
+    (p) => p && !cache.has(p) && !inflight.has(p) && (attempts.get(p) ?? 0) < MAX_MINT_ATTEMPTS,
+  );
   if (missing.length === 0) return;
+
+  for (const path of missing) attempts.set(path, (attempts.get(path) ?? 0) + 1);
 
   const promise = (async () => {
     const { data, error } = await (supabase as unknown as {
@@ -72,7 +78,10 @@ async function mint(paths: string[]) {
     }).rpc("mint_short_links", { _paths: missing, _bucket: BUCKET });
 
     if (!error && data) {
-      for (const row of data) cache.set(row.object_path, row.token);
+      for (const row of data) {
+        cache.set(row.object_path, row.token);
+        failed.delete(row.object_path);
+      }
       for (const path of missing) {
         if (!cache.has(path)) failed.add(path);
       }
@@ -98,12 +107,14 @@ export function useShortLinks(paths: (string | null | undefined)[]) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [paths.filter(Boolean).join("|")],
   );
-  const [, force] = useState(0);
+  const [revision, setRevision] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     if (clean.some((p) => !cache.has(p))) {
-      void mint(clean).then(() => { if (!cancelled) force((n) => n + 1); });
+      void mint(clean).then(() => {
+        if (!cancelled) setRevision((value) => value + 1);
+      });
     }
     return () => { cancelled = true; };
   }, [clean]);
@@ -134,5 +145,5 @@ export function useShortLinks(paths: (string | null | undefined)[]) {
       ready: !hasRewrite() || clean.every((p) => cache.has(p) || failed.has(p)),
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clean, clean.map((p) => cache.get(p) ?? "").join("|")]);
+  }, [clean, revision]);
 }
