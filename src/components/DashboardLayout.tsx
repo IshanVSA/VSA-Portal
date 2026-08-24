@@ -152,6 +152,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
   const [deptPickerOpen, setDeptPickerOpen] = useState(false);
   const [globalTicketOpen, setGlobalTicketOpen] = useState(false);
   const [globalTicketDept, setGlobalTicketDept] = useState("website");
+  const [openingExternal, setOpeningExternal] = useState<string | null>(null);
 
   useEffect(() => {
     const handler = () => setDeptPickerOpen(true);
