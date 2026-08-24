@@ -48,7 +48,8 @@ const deptDotColors: Record<string, string> = {
 interface NavItem {
   label: string;
   icon: React.ElementType;
-  path: string;
+  path?: string;
+  external?: string;
   badge?: number;
 }
 
