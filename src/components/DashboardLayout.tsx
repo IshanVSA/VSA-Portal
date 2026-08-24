@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Building2, Users, BarChart3, Settings, LogOut, Menu, X, ChevronRight,
   ShieldCheck, LayoutGrid, UserRound, CalendarCheck,
-  Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone, Globe, Sparkles, Plus, FileText, LineChart, Lock, Activity, UsersRound, ShieldAlert, Database, Mail, ExternalLink,
+  Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone, Globe, Sparkles, Plus, FileText, LineChart, Lock, Activity, UsersRound, ShieldAlert, Database, Mail, ExternalLink, Loader2,
 } from "lucide-react";
 const LayoutDashboard = LayoutGrid;
 const UserCheck = UserRound;
@@ -152,6 +152,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
   const [deptPickerOpen, setDeptPickerOpen] = useState(false);
   const [globalTicketOpen, setGlobalTicketOpen] = useState(false);
   const [globalTicketDept, setGlobalTicketDept] = useState("website");
+  const [openingExternal, setOpeningExternal] = useState<string | null>(null);
 
   useEffect(() => {
     const handler = () => setDeptPickerOpen(true);
@@ -460,7 +461,11 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
                           </span>
                         )}
                         {isExternal && (
-                          <ExternalLink className="h-3 w-3 text-white/50" />
+                          openingExternal === item.label ? (
+                            <Loader2 className="h-3 w-3 text-white/70 animate-spin" />
+                          ) : (
+                            <ExternalLink className="h-3 w-3 text-white/50 group-hover:text-white/90 transition-colors duration-200" />
+                          )
                         )}
                       </div>
                     </>
@@ -492,9 +497,13 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
                       href={item.external}
                       target="_blank"
                       rel="noopener noreferrer"
-                      onClick={() => setSidebarOpen(false)}
+                      onClick={() => {
+                        setSidebarOpen(false);
+                        setOpeningExternal(item.label);
+                        setTimeout(() => setOpeningExternal(null), 1200);
+                      }}
                       title={collapsed ? item.label : undefined}
-                      className={linkClass}
+                      className={cn(linkClass, "hover:bg-[hsl(var(--sidebar-accent))]/40")}
                     >
                       {iconContent}
                       {labelContent}
