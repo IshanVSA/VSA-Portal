@@ -243,12 +243,11 @@ const TOOLS_BY_FORM: Record<string, any> = {
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
-
-  const gate = await requireUser(req, corsHeaders);
-  if ("response" in gate) return gate.response;
   }
 
   try {
+    const gate = await requireUser(req, corsHeaders);
+    if ("response" in gate) return gate.response;
 
     const { transcript, formType } = await req.json();
     if (!transcript || !formType) {
