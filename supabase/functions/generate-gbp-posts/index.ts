@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { requireStaff } from "../_shared/auth-guard.ts";
+import { requireUser, callerCanAccessClinic } from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -42,6 +42,10 @@ serve(async (req) => {
 
     if (!clinic_id || !month || !year || (!topics && !fix_mode)) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (!(await callerCanAccessClinic(gate.caller, clinic_id))) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Apply clinic-level compliance body override (admin set in Edit Clinic) — takes precedence over auto-detection
