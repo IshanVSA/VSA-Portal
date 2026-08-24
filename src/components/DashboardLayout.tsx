@@ -95,7 +95,7 @@ const adminSections: NavSection[] = [
     { label: "Cron Monitor", icon: Activity, path: "/cron-monitor" },
     { label: "DB Monitor", icon: Database, path: "/db-monitor" },
     { label: "Login Activity", icon: ShieldAlert, path: "/login-errors" },
-    { label: "Marketing Platform", icon: Mail, external: "https://id-preview--a3718a35-342a-41f3-842d-0d919cfb31a1.lovable.app" },
+    { label: "Marketing Platform", icon: Mail, external: "https://vsa-email-automation.lovable.app" },
     { label: "Settings", icon: Settings, path: "/settings" },
   ]},
 ];
