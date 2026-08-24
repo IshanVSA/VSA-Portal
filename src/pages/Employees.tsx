@@ -326,7 +326,7 @@ export default function Employees() {
         ) : (
           <Card className="overflow-hidden border-border/60">
             {/* Mobile card list */}
-            <div className="md:hidden divide-y divide-border/60">
+            <div className="lg:hidden divide-y divide-border/60">
               {filteredProfiles.map((p) => {
                 const userRole = getRole(p.id);
                 const assignedClinics = getAssignedClinics(p.id);
@@ -374,7 +374,7 @@ export default function Employees() {
             </div>
 
             {/* Desktop table */}
-            <div className="hidden md:block overflow-x-auto">
+            <div className="hidden lg:block overflow-x-auto">
             <Table className="data-table min-w-[760px]">
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
