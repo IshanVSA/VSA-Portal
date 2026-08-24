@@ -11,21 +11,18 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    const authHeader = req.headers.get("Authorization") || "";
+
+    // Staff (admin/concierge) or internal service call only — this endpoint
+    // spends AI credits and writes GBP content for an arbitrary clinic_id.
+    const gate = await requireStaff(req, corsHeaders);
+    if ("response" in gate) return gate.response;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      authHeader ? { global: { headers: { Authorization: authHeader } } } : undefined
     );
-
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
 
     const body = await req.json();
     const {

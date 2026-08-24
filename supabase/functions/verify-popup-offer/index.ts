@@ -14,30 +14,9 @@ serve(async (req) => {
   }
 
   try {
-    // Auth gate
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    {
-      const authClient = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_ANON_KEY")!,
-        { global: { headers: { Authorization: authHeader } } }
-      );
-      const { data: claims, error: claimsErr } = await authClient.auth.getClaims(
-        authHeader.replace("Bearer ", "")
-      );
-      if (claimsErr || !claims?.claims?.sub) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    }
+    // Auth gate: staff (admin/concierge) or internal service call only.
+    const gate = await requireStaff(req, corsHeaders);
+    if ("response" in gate) return gate.response;
 
     const { offerTitle, offerText, termsAndConditions, startDate, endDate, complianceBody: complianceBodyInput, clinic_id } =
       await req.json();
