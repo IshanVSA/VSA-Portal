@@ -289,7 +289,7 @@ export default function ClientDashboard() {
     return (
       <div className="space-y-5">
         <Skeleton className="h-16 w-full" />
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[0,1,2,3].map(i => <Skeleton key={i} className="h-24" />)}
         </div>
         <Skeleton className="h-80 w-full" />

@@ -497,7 +497,7 @@ export function GeneratePosts({ clinicId: navClinicId }: GeneratePostsProps) {
                 {selectedConfig.jurisdiction && <Badge variant="outline" className="text-[10px]">{selectedConfig.jurisdiction}</Badge>}
               </div>
               {topics && (
-                <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div className="mt-2 grid grid-cols-2 lg:grid-cols-4 gap-2">
                   {['week_1_topic', 'week_2_topic', 'week_3_topic', 'week_4_topic'].map((key, i) => (
                     <div key={key} className="text-[11px] bg-background/60 rounded px-2 py-1.5 border border-border/30">
                       <span className="font-medium text-muted-foreground">W{i+1}:</span>{' '}

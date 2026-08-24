@@ -216,7 +216,7 @@ export function SearchAtlasLLMTab({ config, clinicId }: Props) {
           <div className="px-4 py-3 border-b border-border/40">
             <h3 className="text-sm font-bold">Platform Breakdown</h3>
           </div>
-          <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="p-4 grid grid-cols-2 lg:grid-cols-4 gap-3">
             {o.platforms.map((p: any, i: number) => (
               <div key={i} className="rounded-lg border border-border/40 p-3">
                 <p className="text-xs font-medium">{p.name ?? p.platform ?? "—"}</p>

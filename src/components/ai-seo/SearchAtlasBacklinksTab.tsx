@@ -167,7 +167,7 @@ export function SearchAtlasBacklinksTab({ config, clinicId }: Props) {
       </div>
 
       {/* KPI strip — Search Atlas exposes these summary metrics for this account */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-8 pb-4 border-b border-border/40">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-8 pb-4 border-b border-border/40">
         <KpiInline label="BACKLINKS" value={fmtNumber(totalBacklinks)} />
         <KpiInline label="REFERRING DOMAINS" value={fmtNumber(referringDomains)} />
         <KpiInline label="DOMAIN POWER" value={domainPower ? String(domainPower) : "—"} />
