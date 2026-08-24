@@ -27,6 +27,8 @@ interface Overview {
   deadlocks: number;
   xact_commit: number;
   xact_rollback: number;
+  realtime_rollback?: number;
+  app_rollback?: number;
   rollback_ratio: number;
   temp_files: number;
   temp_bytes: number;
@@ -228,9 +230,9 @@ export default function DbMonitor() {
               tone={(overview?.deadlocks ?? 0) > 0 ? "bad" : "good"}
             />
             <Metric
-              icon={Zap} label="Failed transactions"
-              value={fmtNum(overview?.xact_rollback)}
-              sub={`${overview?.rollback_ratio ?? 0}% of all transactions rolled back`}
+              icon={Zap} label="Non-committing transactions"
+              value={fmtNum(overview?.app_rollback ?? overview?.xact_rollback)}
+              sub={`${overview?.rollback_ratio ?? 0}% of app transactions · excludes ${fmtNum(overview?.realtime_rollback)} Realtime heartbeats`}
               tone={(overview?.rollback_ratio ?? 0) > 5 ? "bad" : (overview?.rollback_ratio ?? 0) > 1 ? "warn" : "good"}
             />
             <Metric
