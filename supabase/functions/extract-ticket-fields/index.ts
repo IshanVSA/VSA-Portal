@@ -243,6 +243,9 @@ const TOOLS_BY_FORM: Record<string, any> = {
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+
+  const gate = await requireUser(req, corsHeaders);
+  if ("response" in gate) return gate.response;
   }
 
   try {
