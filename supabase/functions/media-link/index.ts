@@ -40,11 +40,24 @@ Deno.serve(async (req) => {
       return new Response("Not found", { status: 404, headers: corsHeaders });
     }
 
-    const { data: file, error: dlError } = await admin.storage
+    // Resolve a short-lived signed URL and proxy it, forwarding Range headers.
+    // Mobile browsers (iOS Safari especially) require 206 partial responses to
+    // play <video>; a plain full-body 200 stream silently fails to start.
+    const { data: signed, error: signError } = await admin.storage
       .from(link.bucket)
-      .download(link.object_path);
+      .createSignedUrl(link.object_path, 60 * 60);
 
-    if (dlError || !file) {
+    if (signError || !signed?.signedUrl) {
+      return new Response("Not found", { status: 404, headers: corsHeaders });
+    }
+
+    const range = req.headers.get("range");
+    const upstream = await fetch(signed.signedUrl, {
+      method: req.method === "HEAD" ? "HEAD" : "GET",
+      headers: range ? { Range: range } : undefined,
+    });
+
+    if (!upstream.ok && upstream.status !== 206) {
       return new Response("Not found", { status: 404, headers: corsHeaders });
     }
 
@@ -56,19 +69,28 @@ Deno.serve(async (req) => {
       .then(() => {}, () => {});
 
     const ext = link.object_path.split(".").pop()?.toLowerCase() ?? "";
-    const contentType = file.type && file.type !== "application/octet-stream"
-      ? file.type
+    const upstreamType = upstream.headers.get("content-type") ?? "";
+    const contentType = upstreamType && upstreamType !== "application/octet-stream"
+      ? upstreamType
       : (MIME[ext] ?? "application/octet-stream");
 
-    return new Response(file.stream(), {
-      status: 200,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": contentType,
-        "Cache-Control": "public, max-age=3600",
-        "Content-Disposition": `inline; filename="${(link.object_path.split("/").pop() ?? "file").replace(/"/g, "")}"`,
-        "X-Content-Type-Options": "nosniff",
-      },
+    const headers = new Headers({
+      ...corsHeaders,
+      "Content-Type": contentType,
+      "Cache-Control": "public, max-age=3600",
+      "Accept-Ranges": "bytes",
+      "Content-Disposition": `inline; filename="${(link.object_path.split("/").pop() ?? "file").replace(/"/g, "")}"`,
+      "X-Content-Type-Options": "nosniff",
+    });
+
+    for (const h of ["content-length", "content-range", "etag", "last-modified"]) {
+      const v = upstream.headers.get(h);
+      if (v) headers.set(h, v);
+    }
+
+    return new Response(req.method === "HEAD" ? null : upstream.body, {
+      status: upstream.status === 206 ? 206 : 200,
+      headers,
     });
   } catch (_e) {
     return new Response("Not found", { status: 404, headers: corsHeaders });
