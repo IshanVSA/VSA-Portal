@@ -356,7 +356,7 @@ export default function ClientDashboard() {
     },
   });
 
-  const gridCols = kpis.length <= 3 ? "md:grid-cols-3" : kpis.length === 4 ? "md:grid-cols-4" : "md:grid-cols-5";
+  const gridCols = kpis.length <= 3 ? "sm:grid-cols-3" : kpis.length === 4 ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-5";
 
   return (
     <motion.div className="space-y-5" variants={container} initial="hidden" animate="show">
