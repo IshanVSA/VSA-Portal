@@ -366,12 +366,13 @@ function PostCard({
           ) : (
             <>
               <div className="relative group">
-                <div className="relative w-full aspect-square rounded-xl border overflow-hidden">
+                <div className="relative w-full aspect-square rounded-xl border overflow-hidden bg-muted">
                   <MediaCover
                     url={imageUrls[0].url}
                     thumbUrl={imageUrls[0].thumbUrl}
                     isVideo={isVideoPath(imageUrls[0].path)}
                     alt="Cover"
+                    fit="contain"
                     className="cursor-zoom-in"
                     onClick={() => setViewerIndex(0)}
                   />
@@ -904,7 +905,7 @@ function ImageLightbox({
   onPrev,
   onNext,
 }: {
-  images: { path: string; url: string }[];
+  images: { path: string; url: string; thumbUrl?: string }[];
   index: number;
   onClose: () => void;
   onPrev: () => void;
@@ -950,12 +951,15 @@ function ImageLightbox({
 
       {isVideoPath(current.path) ? (
         <video
+          key={current.url}
           src={current.url}
+          poster={current.thumbUrl}
           className="max-h-[95vh] max-w-[95vw] w-auto h-auto object-contain rounded-xl shadow-2xl bg-black"
           onClick={(e) => e.stopPropagation()}
           controls
           autoPlay
           playsInline
+          preload="auto"
         />
       ) : (
         <img

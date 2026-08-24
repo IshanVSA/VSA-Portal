@@ -22,6 +22,13 @@ const MIME: Record<string, string> = {
   pdf: "application/pdf", html: "text/html; charset=utf-8", zip: "application/zip",
 };
 
+// Video playback fires many range requests for the same token. Cache the
+// resolved signed URL per token so only the first request pays for the
+// short_links lookup + signing round trips.
+type Resolved = { id: string; objectPath: string; signedUrl: string; expiresAt: number };
+const resolvedCache = new Map<string, Resolved>();
+const SIGNED_TTL_SECONDS = 60 * 60;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -33,32 +40,54 @@ Deno.serve(async (req) => {
       return new Response("Not found", { status: 404, headers: corsHeaders });
     }
 
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { persistSession: false } },
-    );
+    let resolved = resolvedCache.get(token);
+    if (!resolved || resolved.expiresAt < Date.now() + 60_000) {
+      const admin = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+        { auth: { persistSession: false } },
+      );
 
-    const { data: link, error } = await admin
-      .from("short_links")
-      .select("id, bucket, object_path")
-      .eq("token", token)
-      .maybeSingle();
+      const { data: link, error } = await admin
+        .from("short_links")
+        .select("id, bucket, object_path")
+        .eq("token", token)
+        .maybeSingle();
 
-    if (error || !link) {
-      return new Response("Not found", { status: 404, headers: corsHeaders });
+      if (error || !link) {
+        return new Response("Not found", { status: 404, headers: corsHeaders });
+      }
+
+      // Resolve a short-lived signed URL and proxy it, forwarding Range headers.
+      // Mobile browsers (iOS Safari especially) require 206 partial responses to
+      // play <video>; a plain full-body 200 stream silently fails to start.
+      const { data: signed, error: signError } = await admin.storage
+        .from(link.bucket)
+        .createSignedUrl(link.object_path, SIGNED_TTL_SECONDS);
+
+      if (signError || !signed?.signedUrl) {
+        return new Response("Not found", { status: 404, headers: corsHeaders });
+      }
+
+      resolved = {
+        id: link.id,
+        objectPath: link.object_path,
+        signedUrl: signed.signedUrl,
+        expiresAt: Date.now() + SIGNED_TTL_SECONDS * 1000,
+      };
+      resolvedCache.set(token, resolved);
+
+      // Best-effort access accounting; only on the (rare) cold resolve.
+      admin
+        .from("short_links")
+        .update({ last_accessed_at: new Date().toISOString() })
+        .eq("id", link.id)
+        .then(() => {}, () => {});
     }
 
-    // Resolve a short-lived signed URL and proxy it, forwarding Range headers.
-    // Mobile browsers (iOS Safari especially) require 206 partial responses to
-    // play <video>; a plain full-body 200 stream silently fails to start.
-    const { data: signed, error: signError } = await admin.storage
-      .from(link.bucket)
-      .createSignedUrl(link.object_path, 60 * 60);
+    const link = { id: resolved.id, object_path: resolved.objectPath };
+    const signed = { signedUrl: resolved.signedUrl };
 
-    if (signError || !signed?.signedUrl) {
-      return new Response("Not found", { status: 404, headers: corsHeaders });
-    }
 
     const range = req.headers.get("range");
     const upstream = await fetch(signed.signedUrl, {
@@ -67,15 +96,9 @@ Deno.serve(async (req) => {
     });
 
     if (!upstream.ok && upstream.status !== 206) {
+      resolvedCache.delete(token);
       return new Response("Not found", { status: 404, headers: corsHeaders });
     }
-
-    // Best-effort access accounting; never blocks the response.
-    admin
-      .from("short_links")
-      .update({ last_accessed_at: new Date().toISOString() })
-      .eq("id", link.id)
-      .then(() => {}, () => {});
 
     const ext = link.object_path.split(".").pop()?.toLowerCase() ?? "";
     const upstreamType = upstream.headers.get("content-type") ?? "";
@@ -86,7 +109,7 @@ Deno.serve(async (req) => {
     const headers = new Headers({
       ...corsHeaders,
       "Content-Type": contentType,
-      "Cache-Control": "public, max-age=3600",
+      "Cache-Control": "public, max-age=86400, immutable",
       "Accept-Ranges": "bytes",
       "Content-Disposition": `inline; filename="${(link.object_path.split("/").pop() ?? "file").replace(/"/g, "")}"`,
       "X-Content-Type-Options": "nosniff",
