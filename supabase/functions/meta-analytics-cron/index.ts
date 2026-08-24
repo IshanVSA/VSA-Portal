@@ -16,9 +16,10 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Auth: CRON_SECRET, anon key (from pg_cron), or admin user
+    // Auth: CRON_SECRET (pg_cron), service role, or admin user
     const authHeader = req.headers.get("Authorization") || "";
     const token = authHeader.replace("Bearer ", "");
+    const cronHeader = req.headers.get("x-cron-secret") || "";
     const isCronCall =
       (CRON_SECRET && (token === CRON_SECRET || cronHeader === CRON_SECRET)) ||
       token === SUPABASE_SERVICE_ROLE_KEY;

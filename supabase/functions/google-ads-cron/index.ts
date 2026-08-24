@@ -306,6 +306,7 @@ Deno.serve(async (req) => {
     }
 
     const token = authHeader.replace("Bearer ", "");
+    const cronHeader = req.headers.get("x-cron-secret") || "";
     const cronSecret = Deno.env.get("CRON_SECRET");
 
     const isCronCall = (cronSecret && (token === cronSecret || cronHeader === cronSecret)) ||
