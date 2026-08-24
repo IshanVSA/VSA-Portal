@@ -497,9 +497,13 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
                       href={item.external}
                       target="_blank"
                       rel="noopener noreferrer"
-                      onClick={() => setSidebarOpen(false)}
+                      onClick={() => {
+                        setSidebarOpen(false);
+                        setOpeningExternal(item.label);
+                        setTimeout(() => setOpeningExternal(null), 1200);
+                      }}
                       title={collapsed ? item.label : undefined}
-                      className={linkClass}
+                      className={cn(linkClass, "hover:bg-[hsl(var(--sidebar-accent))]/40")}
                     >
                       {iconContent}
                       {labelContent}
