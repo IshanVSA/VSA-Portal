@@ -1,6 +1,7 @@
 // Materialize approved SM2 generation into content_posts rows for the calendar.
 // Called when a client (or auto-approve) finalizes an sm2_generations row.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { requireUser, callerCanAccessClinic } from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
