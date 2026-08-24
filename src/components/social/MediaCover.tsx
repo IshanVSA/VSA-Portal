@@ -16,6 +16,7 @@ export function MediaCover({
   alt,
   className,
   iconSize = "md",
+  fit = "cover",
   onClick,
 }: {
   url: string;
@@ -24,28 +25,31 @@ export function MediaCover({
   alt?: string;
   className?: string;
   iconSize?: "sm" | "md";
+  /** "contain" shows the full frame (nothing cropped); "cover" fills the box. */
+  fit?: "cover" | "contain";
   onClick?: () => void;
 }) {
   const [thumbFailed, setThumbFailed] = useState(false);
 
   const showVideoFallback = isVideo && thumbFailed;
+  const fitClass = fit === "contain" ? "object-contain" : "object-cover";
 
   return (
-    <div className="relative w-full h-full">
+    <div className={cn("relative w-full h-full", fit === "contain" && "bg-muted")}>
       {showVideoFallback ? (
         <video
           src={`${url}#t=1`}
           preload="metadata"
           muted
           playsInline
-          className={cn("w-full h-full object-cover bg-black", className)}
+          className={cn("w-full h-full bg-black", fitClass, className)}
           onClick={onClick}
         />
       ) : (
         <img
           src={isVideo ? thumbUrl : url}
           alt={alt ?? "Cover"}
-          className={cn("w-full h-full object-cover", isVideo && "bg-black", className)}
+          className={cn("w-full h-full", fitClass, isVideo && "bg-black", className)}
           onClick={onClick}
           onError={() => isVideo && setThumbFailed(true)}
         />
