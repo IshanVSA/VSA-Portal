@@ -366,12 +366,13 @@ function PostCard({
           ) : (
             <>
               <div className="relative group">
-                <div className="relative w-full aspect-square rounded-xl border overflow-hidden">
+                <div className="relative w-full aspect-square rounded-xl border overflow-hidden bg-muted">
                   <MediaCover
                     url={imageUrls[0].url}
                     thumbUrl={imageUrls[0].thumbUrl}
                     isVideo={isVideoPath(imageUrls[0].path)}
                     alt="Cover"
+                    fit="contain"
                     className="cursor-zoom-in"
                     onClick={() => setViewerIndex(0)}
                   />
