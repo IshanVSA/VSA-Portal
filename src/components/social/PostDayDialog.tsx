@@ -905,7 +905,7 @@ function ImageLightbox({
   onPrev,
   onNext,
 }: {
-  images: { path: string; url: string }[];
+  images: { path: string; url: string; thumbUrl?: string }[];
   index: number;
   onClose: () => void;
   onPrev: () => void;
