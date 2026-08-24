@@ -14,8 +14,6 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const CRON_SECRET = Deno.env.get("CRON_SECRET") || "";
-const KNOWN_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1eW9zc2dxdWl5dW9xYmVlbnJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjMwODksImV4cCI6MjA4NjgzOTA4OX0.EGwUbBiZSLKFyZEKUDPIF9xm41t1QRjOcQ6_v4lxgs0";
 
 const DEFAULT_BATCH = 6;
 const STALE_AFTER_HOURS = 20;
@@ -28,7 +26,6 @@ Deno.serve(async (req) => {
     const cronHeader = req.headers.get("x-cron-secret") || "";
     const isCronCall =
       (CRON_SECRET && (token === CRON_SECRET || cronHeader === CRON_SECRET)) ||
-      token === KNOWN_ANON_KEY ||
       token === SUPABASE_SERVICE_ROLE_KEY;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);

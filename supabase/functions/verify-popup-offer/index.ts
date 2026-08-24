@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { requireUser, callerCanAccessClinic } from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,33 +14,19 @@ serve(async (req) => {
   }
 
   try {
-    // Auth gate
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    {
-      const authClient = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_ANON_KEY")!,
-        { global: { headers: { Authorization: authHeader } } }
-      );
-      const { data: claims, error: claimsErr } = await authClient.auth.getClaims(
-        authHeader.replace("Bearer ", "")
-      );
-      if (claimsErr || !claims?.claims?.sub) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    }
+    // Auth gate: any signed-in user, scoped to clinics they can access.
+    const gate = await requireUser(req, corsHeaders);
+    if ("response" in gate) return gate.response;
 
     const { offerTitle, offerText, termsAndConditions, startDate, endDate, complianceBody: complianceBodyInput, clinic_id } =
       await req.json();
+
+    if (clinic_id && !(await callerCanAccessClinic(gate.caller, clinic_id))) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Resolve effective compliance body: prefer clinic-level admin override, fall back to client-supplied value
     let complianceBody = complianceBodyInput;

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { requireUser } from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -245,6 +246,8 @@ serve(async (req) => {
   }
 
   try {
+    const gate = await requireUser(req, corsHeaders);
+    if ("response" in gate) return gate.response;
 
     const { transcript, formType } = await req.json();
     if (!transcript || !formType) {

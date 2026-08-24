@@ -3,6 +3,7 @@
 // hazards → write → schema → independent checker → human gate).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.3/cors";
+import { requireStaff } from "../_shared/auth-guard.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -314,6 +315,9 @@ Run checks: compliance vs rules, em-dash five-form absence, hazard mentions, spe
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
+    const gate = await requireStaff(req, corsHeaders);
+    if ("response" in gate) return gate.response;
+
     const { clinic_id, spoke_id, action, run_id, human_gate } = await req.json();
 
     // Human gate action: approve / request_changes / reject

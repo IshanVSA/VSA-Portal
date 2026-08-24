@@ -4,6 +4,7 @@
 // replaced (admin-created ones are preserved via generated_by='human').
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.3/cors";
+import { requireStaff } from "../_shared/auth-guard.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -37,6 +38,9 @@ async function callClaude(system: string, user: string) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
+    const gate = await requireStaff(req, corsHeaders);
+    if ("response" in gate) return gate.response;
+
     const { clinic_id, force } = await req.json();
     if (!clinic_id) throw new Error("clinic_id required");
 

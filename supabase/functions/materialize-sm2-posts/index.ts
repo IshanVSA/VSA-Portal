@@ -1,6 +1,7 @@
 // Materialize approved SM2 generation into content_posts rows for the calendar.
 // Called when a client (or auto-approve) finalizes an sm2_generations row.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { requireUser, callerCanAccessClinic } from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -37,6 +38,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const gate = await requireUser(req, corsHeaders);
+    if ("response" in gate) return gate.response;
+    const caller = gate.caller;
+
     const { generationId } = await req.json();
     if (!generationId) {
       return new Response(JSON.stringify({ error: "generationId is required" }), {
@@ -70,6 +75,15 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    if (!(await callerCanAccessClinic(caller, gen.clinic_id))) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+
 
     if (!["approved_client", "approved_auto"].includes(gen.approval_status)) {
       return new Response(
