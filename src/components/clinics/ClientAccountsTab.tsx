@@ -426,8 +426,8 @@ export function ClientAccountsTab() {
           </CardContent></Card>
         ) : (
           <>
-            {/* Mobile (<sm): card list */}
-            <div className="grid gap-3 lg:hidden">
+            {/* Mobile + tablet (<lg): card list */}
+            <div className="grid gap-3 sm:grid-cols-2 lg:hidden">
               {profiles
                 .filter((p) => {
                   const a = activityByUser.get(p.id);
@@ -541,7 +541,7 @@ export function ClientAccountsTab() {
                 })}
             </div>
 
-            {/* Tablet/Desktop (>=sm): table with horizontal scroll if needed */}
+            {/* Desktop (>=lg): table with horizontal scroll if needed */}
             <Card className="hidden lg:block overflow-hidden border-border/60">
               <div className="w-full overflow-x-auto">
                 <Table className="data-table min-w-[760px]">
