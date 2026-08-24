@@ -307,10 +307,9 @@ Deno.serve(async (req) => {
 
     const token = authHeader.replace("Bearer ", "");
     const cronSecret = Deno.env.get("CRON_SECRET");
-    // Known anon key for cron job auth (public, safe to compare)
-    const KNOWN_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1eW9zc2dxdWl5dW9xYmVlbnJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjMwODksImV4cCI6MjA4NjgzOTA4OX0.EGwUbBiZSLKFyZEKUDPIF9xm41t1QRjOcQ6_v4lxgs0";
 
-    const isCronCall = (cronSecret && token === cronSecret) || token === KNOWN_ANON_KEY;
+    const isCronCall = (cronSecret && (token === cronSecret || cronHeader === cronSecret)) ||
+      token === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     if (!isCronCall) {
       const supabaseAuth = createClient(SUPABASE_URL, token, {
