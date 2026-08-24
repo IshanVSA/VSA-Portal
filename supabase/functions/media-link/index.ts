@@ -1,7 +1,16 @@
 // Opaque media resolver: /f/<token> streams the underlying storage object so
 // the raw Supabase URL (project ref, bucket, UUID paths) is never exposed.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { corsHeaders as baseCorsHeaders } from "npm:@supabase/supabase-js@2/cors";
+
+// Range must be an allowed request header and the range/length response
+// headers must be exposed, otherwise mobile browsers cannot seek/play video.
+const corsHeaders = {
+  ...baseCorsHeaders,
+  "Access-Control-Allow-Headers": `${(baseCorsHeaders as Record<string, string>)["Access-Control-Allow-Headers"] ?? ""}, range`,
+  "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+  "Access-Control-Expose-Headers": "content-length, content-range, accept-ranges, content-type",
+};
 
 const TOKEN_RE = /^[A-Za-z0-9_-]{8,64}$/;
 
