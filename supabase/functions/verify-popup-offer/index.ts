@@ -14,12 +14,19 @@ serve(async (req) => {
   }
 
   try {
-    // Auth gate: staff (admin/concierge) or internal service call only.
-    const gate = await requireStaff(req, corsHeaders);
+    // Auth gate: any signed-in user, scoped to clinics they can access.
+    const gate = await requireUser(req, corsHeaders);
     if ("response" in gate) return gate.response;
 
     const { offerTitle, offerText, termsAndConditions, startDate, endDate, complianceBody: complianceBodyInput, clinic_id } =
       await req.json();
+
+    if (clinic_id && !(await callerCanAccessClinic(gate.caller, clinic_id))) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Resolve effective compliance body: prefer clinic-level admin override, fall back to client-supplied value
     let complianceBody = complianceBodyInput;

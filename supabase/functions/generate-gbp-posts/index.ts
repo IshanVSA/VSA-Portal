@@ -11,9 +11,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // Staff (admin/concierge) or internal service call only — this endpoint
-    // spends AI credits and writes GBP content for an arbitrary clinic_id.
-    const gate = await requireStaff(req, corsHeaders);
+    // Signed-in caller only; the clinic_id is authorized below so a user
+    // cannot spend AI credits against a clinic they don't have access to.
+    const gate = await requireUser(req, corsHeaders);
     if ("response" in gate) return gate.response;
 
     const supabase = createClient(
