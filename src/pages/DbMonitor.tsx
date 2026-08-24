@@ -27,6 +27,8 @@ interface Overview {
   deadlocks: number;
   xact_commit: number;
   xact_rollback: number;
+  realtime_rollback?: number;
+  app_rollback?: number;
   rollback_ratio: number;
   temp_files: number;
   temp_bytes: number;
