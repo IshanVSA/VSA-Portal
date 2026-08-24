@@ -38,6 +38,9 @@ async function callClaude(system: string, user: string) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
+    const gate = await requireStaff(req, corsHeaders);
+    if ("response" in gate) return gate.response;
+
     const { clinic_id, force } = await req.json();
     if (!clinic_id) throw new Error("clinic_id required");
 

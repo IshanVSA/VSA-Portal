@@ -38,6 +38,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const gate = await requireUser(req, corsHeaders);
+    if ("response" in gate) return gate.response;
+    const caller = gate.caller;
+
     const { generationId } = await req.json();
     if (!generationId) {
       return new Response(JSON.stringify({ error: "generationId is required" }), {
