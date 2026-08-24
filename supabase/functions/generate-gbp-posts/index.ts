@@ -11,8 +11,6 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization") || "";
-
     // Staff (admin/concierge) or internal service call only — this endpoint
     // spends AI credits and writes GBP content for an arbitrary clinic_id.
     const gate = await requireStaff(req, corsHeaders);
@@ -21,7 +19,6 @@ serve(async (req) => {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      authHeader ? { global: { headers: { Authorization: authHeader } } } : undefined
     );
 
     const body = await req.json();
