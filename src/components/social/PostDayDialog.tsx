@@ -951,12 +951,15 @@ function ImageLightbox({
 
       {isVideoPath(current.path) ? (
         <video
+          key={current.url}
           src={current.url}
+          poster={current.thumbUrl}
           className="max-h-[95vh] max-w-[95vw] w-auto h-auto object-contain rounded-xl shadow-2xl bg-black"
           onClick={(e) => e.stopPropagation()}
           controls
           autoPlay
           playsInline
+          preload="auto"
         />
       ) : (
         <img
