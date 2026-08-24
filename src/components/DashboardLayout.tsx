@@ -461,7 +461,11 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
                           </span>
                         )}
                         {isExternal && (
-                          <ExternalLink className="h-3 w-3 text-white/50" />
+                          openingExternal === item.label ? (
+                            <Loader2 className="h-3 w-3 text-white/70 animate-spin" />
+                          ) : (
+                            <ExternalLink className="h-3 w-3 text-white/50 group-hover:text-white/90 transition-colors duration-200" />
+                          )
                         )}
                       </div>
                     </>
