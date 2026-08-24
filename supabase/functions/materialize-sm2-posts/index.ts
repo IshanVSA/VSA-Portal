@@ -76,6 +76,15 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (!(await callerCanAccessClinic(caller, gen.clinic_id))) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+
+
     if (!["approved_client", "approved_auto"].includes(gen.approval_status)) {
       return new Response(
         JSON.stringify({ error: `Generation is not approved (status: ${gen.approval_status})` }),
