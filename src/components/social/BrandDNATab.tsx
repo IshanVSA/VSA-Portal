@@ -869,7 +869,7 @@ function WebsiteExtractionCard({ data, clinicId, canEdit }: { data: Record<strin
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
           {statItems.map((item) => (
             <div key={item.label} className="rounded-xl border border-border/60 bg-background/55 px-3 py-2">
               <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{item.label}</p>

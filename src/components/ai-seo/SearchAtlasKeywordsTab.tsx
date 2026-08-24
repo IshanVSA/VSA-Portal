@@ -203,7 +203,7 @@ export function SearchAtlasKeywordsTab({ config, clinicId }: Props) {
       </div>
 
       {/* Position change summary from get_organic_position_changes */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <PosChangeCard icon={TrendingUp} label="Improved" value={posSummary.improved} color="hsl(142 70% 45%)" />
         <PosChangeCard icon={TrendingDown} label="Declined" value={posSummary.declined} color="hsl(0 75% 55%)" />
         <PosChangeCard icon={PlusIcon} label="New" value={posSummary.new} color="hsl(195 90% 55%)" />

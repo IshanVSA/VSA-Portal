@@ -211,7 +211,7 @@ export function WebsiteHealthTab({ clinicId }: WebsiteHealthTabProps) {
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
             <Card key={i} className="animate-pulse"><CardContent className="p-6 flex justify-center"><div className="w-24 h-24 rounded-full bg-muted" /></CardContent></Card>
           ))}
@@ -229,7 +229,7 @@ export function WebsiteHealthTab({ clinicId }: WebsiteHealthTabProps) {
       ) : (
         <>
           {/* Score Gauges */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               { label: "Performance", score: latest.performance_score },
               { label: "Accessibility", score: latest.accessibility_score },

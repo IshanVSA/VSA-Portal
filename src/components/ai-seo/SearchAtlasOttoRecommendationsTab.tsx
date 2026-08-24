@@ -86,7 +86,7 @@ export function SearchAtlasOttoRecommendationsTab({ config, clinicId }: Props) {
         <OpenInSearchAtlas section="otto" projectId={ottoId} />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pb-4 border-b border-border/40">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 pb-4 border-b border-border/40">
         <Kpi label="RECOMMENDATIONS" value={recommendations.length.toLocaleString()} />
         <Kpi label="SCHEMAS DEPLOYED" value={schemaRows.length.toLocaleString()} />
         <Kpi label="HEALTH SCORE" value={health ? String(health) : "—"} />

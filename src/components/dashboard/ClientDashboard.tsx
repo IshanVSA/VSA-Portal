@@ -289,7 +289,7 @@ export default function ClientDashboard() {
     return (
       <div className="space-y-5">
         <Skeleton className="h-16 w-full" />
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[0,1,2,3].map(i => <Skeleton key={i} className="h-24" />)}
         </div>
         <Skeleton className="h-80 w-full" />
@@ -356,7 +356,7 @@ export default function ClientDashboard() {
     },
   });
 
-  const gridCols = kpis.length <= 3 ? "md:grid-cols-3" : kpis.length === 4 ? "md:grid-cols-4" : "md:grid-cols-5";
+  const gridCols = kpis.length <= 3 ? "sm:grid-cols-3" : kpis.length === 4 ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-5";
 
   return (
     <motion.div className="space-y-5" variants={container} initial="hidden" animate="show">

@@ -426,8 +426,8 @@ export function ClientAccountsTab() {
           </CardContent></Card>
         ) : (
           <>
-            {/* Mobile (<sm): card list */}
-            <div className="grid gap-3 sm:hidden">
+            {/* Mobile + tablet (<lg): card list */}
+            <div className="grid gap-3 sm:grid-cols-2 lg:hidden">
               {profiles
                 .filter((p) => {
                   const a = activityByUser.get(p.id);
@@ -541,14 +541,14 @@ export function ClientAccountsTab() {
                 })}
             </div>
 
-            {/* Tablet/Desktop (>=sm): table with horizontal scroll if needed */}
-            <Card className="hidden sm:block overflow-hidden border-border/60">
+            {/* Desktop (>=lg): table with horizontal scroll if needed */}
+            <Card className="hidden lg:block overflow-hidden border-border/60">
               <div className="w-full overflow-x-auto">
                 <Table className="data-table min-w-[760px]">
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
                       <TableHead>Name</TableHead>
-                      <TableHead className="hidden md:table-cell">Email</TableHead>
+                      <TableHead className="hidden xl:table-cell">Email</TableHead>
                       <TableHead>Clinics</TableHead>
                       <TableHead className="hidden lg:table-cell">Last seen</TableHead>
                       <TableHead className="hidden lg:table-cell">Welcome</TableHead>
@@ -575,10 +575,10 @@ export function ClientAccountsTab() {
                           <TableCell className="font-medium align-top">
                             <div className="space-y-0.5">
                               <div className="truncate max-w-[180px]">{p.full_name || "—"}</div>
-                              <div className="md:hidden text-[11px] text-muted-foreground truncate max-w-[180px]">{p.email || "—"}</div>
+                              <div className="xl:hidden text-[11px] text-muted-foreground truncate max-w-[180px]">{p.email || "—"}</div>
                             </div>
                           </TableCell>
-                          <TableCell className="hidden md:table-cell text-muted-foreground align-top">
+                          <TableCell className="hidden xl:table-cell text-muted-foreground align-top">
                             <span className="truncate max-w-[220px] inline-block align-bottom">{p.email || "—"}</span>
                           </TableCell>
                           <TableCell className="align-top">
