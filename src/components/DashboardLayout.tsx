@@ -423,23 +423,90 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
               )}
               <div className="space-y-0.5">
                 {section.items.map((item) => {
-                  const active = item.path === "/" ? location.pathname === "/" : location.pathname === item.path || location.pathname.startsWith(item.path + "/") || (item.path === "/social" && location.pathname === "/social");
-                  const dotColor = deptDotColors[item.path];
-                  const locked = isDepartmentLocked(item.path);
-                  return (
-                    <Link
-                      key={item.path}
-                      to={activeClinicId && clinicSelectorPages.includes(item.path) ? `${item.path}?clinic=${activeClinicId}` : item.path}
-                      onClick={() => setSidebarOpen(false)}
-                      onMouseEnter={() => { if (item.path === "/seo") prefetchSeoData(queryClient, activeClinicId); }}
-                      title={collapsed ? item.label : undefined}
-                      className={cn(
-                        "flex items-center rounded-lg font-medium transition-colors duration-200 group relative",
-                        collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5 text-[13px]",
-                        active
-                          ? "bg-[hsl(var(--sidebar-primary))]/12 text-white"
-                          : "text-white/80 hover:text-white hover:bg-[hsl(var(--sidebar-accent))]/30"
+                  const itemPath = item.path || "";
+                  const isExternal = !!item.external;
+                  const active = isExternal ? false : itemPath === "/" ? location.pathname === "/" : location.pathname === itemPath || location.pathname.startsWith(itemPath + "/") || (itemPath === "/social" && location.pathname === "/social");
+                  const dotColor = deptDotColors[itemPath];
+                  const locked = !isExternal && isDepartmentLocked(itemPath);
+                  const linkClass = cn(
+                    "flex items-center rounded-lg font-medium transition-colors duration-200 group relative",
+                    collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5 text-[13px]",
+                    active
+                      ? "bg-[hsl(var(--sidebar-primary))]/12 text-white"
+                      : "text-white/80 hover:text-white hover:bg-[hsl(var(--sidebar-accent))]/30"
+                  );
+                  const iconClass = cn(
+                    "h-[19px] w-[19px] transition-colors duration-200",
+                    active ? "text-white" : "text-white/70 group-hover:text-white"
+                  );
+                  const labelContent = !collapsed && (
+                    <>
+                      {dotColor && <div className={cn("h-1.5 w-1.5 rounded-full shrink-0 transition-transform duration-200 group-hover:scale-125", dotColor)} />}
+                      <span className="flex-1 whitespace-nowrap">{item.label}</span>
+                       <div className="ml-auto flex min-w-[72px] items-center justify-end gap-2">
+                         <span
+                           className={cn(
+                             "inline-flex h-5 w-[62px] items-center justify-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-none",
+                             locked ? "opacity-100" : "opacity-0 pointer-events-none"
+                           )}
+                           aria-hidden={!locked}
+                         >
+                             <Lock className="h-3 w-3 shrink-0" />
+                             Locked
+                         </span>
+                        {(item.badge ?? 0) > 0 && (
+                          <span className="bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center">
+                            {item.badge}
+                          </span>
+                        )}
+                        {isExternal && (
+                          <ExternalLink className="h-3 w-3 text-white/50" />
+                        )}
+                      </div>
+                    </>
+                  );
+                  const iconContent = (
+                    <div className="relative shrink-0">
+                      <item.icon strokeWidth={1.5} className={iconClass} />
+                      {collapsed && (
+                        <span
+                          className={cn(
+                            "absolute -bottom-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-muted text-muted-foreground ring-2 ring-[hsl(var(--sidebar-background))] transition-none",
+                            locked ? "opacity-100" : "opacity-0"
+                          )}
+                          aria-hidden={!locked}
+                        >
+                          <Lock className="h-2.5 w-2.5" />
+                        </span>
                       )}
+                      {collapsed && (item.badge ?? 0) > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground text-[8px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center">
+                          {item.badge}
+                        </span>
+                      )}
+                    </div>
+                  );
+                  return isExternal ? (
+                    <a
+                      key={item.external}
+                      href={item.external}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setSidebarOpen(false)}
+                      title={collapsed ? item.label : undefined}
+                      className={linkClass}
+                    >
+                      {iconContent}
+                      {labelContent}
+                    </a>
+                  ) : (
+                    <Link
+                      key={itemPath}
+                      to={activeClinicId && clinicSelectorPages.includes(itemPath) ? `${itemPath}?clinic=${activeClinicId}` : itemPath}
+                      onClick={() => setSidebarOpen(false)}
+                      onMouseEnter={() => { if (itemPath === "/seo") prefetchSeoData(queryClient, activeClinicId); }}
+                      title={collapsed ? item.label : undefined}
+                      className={linkClass}
                     >
                       {/* Active indicator bar */}
                       {active && (
@@ -449,51 +516,8 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
                           transition={{ type: "spring", stiffness: 500, damping: 35 }}
                         />
                       )}
-                      <div className="relative shrink-0">
-                        <item.icon strokeWidth={1.5} className={cn(
-                          "h-[19px] w-[19px] transition-colors duration-200",
-                          active ? "text-white" : "text-white/70 group-hover:text-white"
-                        )} />
-                        {collapsed && (
-                          <span
-                            className={cn(
-                              "absolute -bottom-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-muted text-muted-foreground ring-2 ring-[hsl(var(--sidebar-background))] transition-none",
-                              locked ? "opacity-100" : "opacity-0"
-                            )}
-                            aria-hidden={!locked}
-                          >
-                            <Lock className="h-2.5 w-2.5" />
-                          </span>
-                        )}
-                        {collapsed && (item.badge ?? 0) > 0 && (
-                          <span className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground text-[8px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center">
-                            {item.badge}
-                          </span>
-                        )}
-                      </div>
-                      {!collapsed && (
-                        <>
-                          {dotColor && <div className={cn("h-1.5 w-1.5 rounded-full shrink-0 transition-transform duration-200 group-hover:scale-125", dotColor)} />}
-                          <span className="flex-1 whitespace-nowrap">{item.label}</span>
-                           <div className="ml-auto flex min-w-[72px] items-center justify-end gap-2">
-                             <span
-                               className={cn(
-                                 "inline-flex h-5 w-[62px] items-center justify-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-none",
-                                 locked ? "opacity-100" : "opacity-0 pointer-events-none"
-                               )}
-                               aria-hidden={!locked}
-                             >
-                                 <Lock className="h-3 w-3 shrink-0" />
-                                 Locked
-                             </span>
-                            {(item.badge ?? 0) > 0 && (
-                              <span className="bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center">
-                                {item.badge}
-                              </span>
-                            )}
-                          </div>
-                        </>
-                      )}
+                      {iconContent}
+                      {labelContent}
                     </Link>
                   );
                 })}
