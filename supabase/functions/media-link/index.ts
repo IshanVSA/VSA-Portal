@@ -96,15 +96,9 @@ Deno.serve(async (req) => {
     });
 
     if (!upstream.ok && upstream.status !== 206) {
+      resolvedCache.delete(token);
       return new Response("Not found", { status: 404, headers: corsHeaders });
     }
-
-    // Best-effort access accounting; never blocks the response.
-    admin
-      .from("short_links")
-      .update({ last_accessed_at: new Date().toISOString() })
-      .eq("id", link.id)
-      .then(() => {}, () => {});
 
     const ext = link.object_path.split(".").pop()?.toLowerCase() ?? "";
     const upstreamType = upstream.headers.get("content-type") ?? "";
@@ -115,7 +109,7 @@ Deno.serve(async (req) => {
     const headers = new Headers({
       ...corsHeaders,
       "Content-Type": contentType,
-      "Cache-Control": "public, max-age=3600",
+      "Cache-Control": "public, max-age=86400, immutable",
       "Accept-Ranges": "bytes",
       "Content-Disposition": `inline; filename="${(link.object_path.split("/").pop() ?? "file").replace(/"/g, "")}"`,
       "X-Content-Type-Options": "nosniff",
