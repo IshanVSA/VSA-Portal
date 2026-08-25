@@ -37,7 +37,7 @@ import { ContentPipelineHUD } from "./ContentPipelineHUD";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 import { cn } from "@/lib/utils";
-import { StatusMetric, DeptChip, DeptSummaryCard, type MetricTone } from "./StatusMetric";
+import { StatusMetric, DeptSummaryCard, type MetricTone } from "./StatusMetric";
 
 interface Clinic {
   id: string;
