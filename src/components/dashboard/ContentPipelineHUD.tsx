@@ -67,7 +67,7 @@ export function ContentPipelineHUD({
       : "Nominal";
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-border/60 bg-card/50 p-5 backdrop-blur-sm">
+    <div className="relative overflow-hidden rounded-xl border border-border/50 bg-muted/20 p-5">
       {/* Decorative corner markers */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute top-0 left-0 h-3 w-3 border-t border-l border-border/80" />

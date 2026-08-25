@@ -408,13 +408,13 @@ export default function AdminDashboard() {
 
   return (
     <motion.div
-      className="space-y-6"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.25 }}
     >
+      <div className="overflow-hidden rounded-3xl border border-border/60 bg-card/70 shadow-sm backdrop-blur-sm divide-y divide-border/50">
       {/* HERO */}
-      <section className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-card via-card to-muted/30 px-6 py-7 sm:px-8 sm:py-8">
+      <section className="relative overflow-hidden bg-gradient-to-br from-card via-card to-muted/30 px-4 py-7 sm:px-8 sm:py-8">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-32 left-1/3 h-72 w-72 rounded-full bg-[hsl(var(--dept-social))]/10 blur-3xl" />
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
@@ -489,9 +489,11 @@ export default function AdminDashboard() {
             </button>
           </motion.div>
         )}
+      </section>
 
-        {/* Status strip */}
-        <div className="relative mt-6 grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3 lg:grid-cols-5 lg:gap-x-8">
+      {/* Status strip */}
+      <section className="px-4 py-6 sm:px-8">
+        <div className="relative grid grid-cols-2 gap-x-6 gap-y-5 divide-border/50 sm:grid-cols-3 lg:grid-cols-5 lg:gap-x-8">
           <StatusMetric
             label="Active Clinics"
             value={activeClinics}
@@ -540,7 +542,7 @@ export default function AdminDashboard() {
       </section>
 
       {/* Department Health */}
-      <section className="relative">
+      <section className="relative px-4 py-5 sm:px-8">
         <div className="flex flex-wrap items-center gap-2">
           {ticketSummary.length === 0 && taskSummary.length === 0 ? (
             <span className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/80 px-3 py-1.5 text-xs text-muted-foreground">
@@ -591,9 +593,8 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      {/* Pipeline tracker + Trend */}
-      <section className="space-y-4">
-        {/* Pipeline tracker */}
+      {/* Pipeline tracker */}
+      <section className="px-4 py-6 sm:px-8">
         <ContentPipelineHUD
           pipeline={pipeline}
           totalPipeline={totalPipeline}
@@ -602,10 +603,12 @@ export default function AdminDashboard() {
           pipelineMonthOptions={pipelineMonthOptions}
           onStageClick={setPipelineDialogStage}
         />
+      </section>
 
-        {/* Trend */}
-        <div className="rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm">
-          <header className="flex items-center justify-between border-b border-border/50 px-5 py-4">
+      {/* Trend */}
+      <section className="px-4 py-6 sm:px-8">
+        <div>
+          <header className="flex items-center justify-between pb-4">
             <div>
               <h3 className="text-sm font-bold tracking-tight text-foreground">Content Trend</h3>
               <p className="text-[11px] text-muted-foreground">
@@ -628,7 +631,7 @@ export default function AdminDashboard() {
               )}
             </div>
           </header>
-          <div className="px-2 pt-4 pb-2">
+          <div className="-mx-2">
             {trendData.length > 0 ? (
               <ChartFrame>
               <ResponsiveContainer width="100%" height={200}>
@@ -662,6 +665,22 @@ export default function AdminDashboard() {
           </div>
         </div>
       </section>
+
+      {/* Team Activity */}
+      <section className="px-4 py-6 sm:px-8">
+        <TeamActivityCard />
+      </section>
+
+      {/* Unified timeline */}
+      <section className="grid grid-cols-1 divide-y divide-border/50 lg:grid-cols-2 lg:divide-x lg:divide-y-0">
+        <div className="px-4 py-6 sm:px-8">
+          <UpcomingPosts filter={filter} />
+        </div>
+        <div className="px-4 py-6 sm:px-8">
+          <RecentActivity filter={filter} />
+        </div>
+      </section>
+      </div>
 
       <OpenTicketsList open={ticketsOpen} onOpenChange={setTicketsOpen} initialDepartment={ticketsDeptFilter} />
       <OpenTasksList open={tasksOpen} onOpenChange={setTasksOpen} />
@@ -702,14 +721,6 @@ export default function AdminDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* ROW: Team Activity */}
-      <TeamActivityCard />
-
-      {/* Unified timeline */}
-      <section className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <UpcomingPosts filter={filter} />
-        <RecentActivity filter={filter} />
-      </section>
     </motion.div>
   );
 }
