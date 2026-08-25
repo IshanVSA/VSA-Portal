@@ -12,12 +12,15 @@ interface StatusMetricProps {
   caption?: string;
   icon: LucideIcon;
   tone?: MetricTone;
+  /** Optional raw HSL token (e.g. "var(--dept-social)") to override the tone color. */
+  accentVar?: string;
   href?: string;
   onClick?: () => void;
   index?: number;
   active?: boolean;
   className?: string;
 }
+
 
 const toneClasses: Record<MetricTone, { text: string; dot: string; bg: string }> = {
   primary: { text: "text-primary", dot: "bg-primary", bg: "bg-primary/10" },
