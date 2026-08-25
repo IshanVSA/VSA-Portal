@@ -12,12 +12,15 @@ interface StatusMetricProps {
   caption?: string;
   icon: LucideIcon;
   tone?: MetricTone;
+  /** Optional raw HSL token (e.g. "var(--dept-social)") to override the tone color. */
+  accentVar?: string;
   href?: string;
   onClick?: () => void;
   index?: number;
   active?: boolean;
   className?: string;
 }
+
 
 const toneClasses: Record<MetricTone, { text: string; dot: string; bg: string }> = {
   primary: { text: "text-primary", dot: "bg-primary", bg: "bg-primary/10" },
@@ -33,6 +36,7 @@ export function StatusMetric({
   caption,
   icon: Icon,
   tone = "neutral",
+  accentVar,
   href,
   onClick,
   index = 0,
@@ -41,6 +45,11 @@ export function StatusMetric({
 }: StatusMetricProps) {
   const reduce = useReducedMotion();
   const t = toneClasses[tone];
+  const accentStyle = accentVar ? { color: `hsl(${accentVar})` } : undefined;
+  const accentBgStyle = accentVar
+    ? { backgroundColor: `hsl(${accentVar} / 0.12)`, color: `hsl(${accentVar})` }
+    : undefined;
+
   const interactive = !!(onClick || href);
 
   const content = (
@@ -56,15 +65,23 @@ export function StatusMetric({
         className,
       )}
     >
-      <div className={cn("relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset ring-border/40", t.bg, t.text)}>
+      <div
+        className={cn("relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset ring-border/40", !accentVar && t.bg, !accentVar && t.text)}
+        style={accentBgStyle}
+      >
         <Icon className="h-4 w-4" />
-        <span className={cn("absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full ring-2 ring-background", t.dot)} aria-hidden="true" />
+        <span
+          className={cn("absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full ring-2 ring-background", !accentVar && t.dot)}
+          style={accentVar ? { backgroundColor: `hsl(${accentVar})` } : undefined}
+          aria-hidden="true"
+        />
       </div>
         <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
-          <span className={cn("text-3xl font-bold tracking-tight tabular-nums leading-none", t.text)}>
+          <span className={cn("text-3xl font-bold tracking-tight tabular-nums leading-none", !accentVar && t.text)} style={accentStyle}>
             {value}
           </span>
+
         </div>
 
         <p className="mt-0.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
@@ -89,7 +106,25 @@ export function StatusMetric({
   return content;
 }
 
+/**
+ * Tapered hairline divider used between metrics in a status strip.
+ * `from` controls the breakpoint at which the divider becomes visible.
+ */
+export function MetricDivider({ from = "always" }: { from?: "always" | "sm" | "lg" }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "pointer-events-none absolute -left-3 top-2 bottom-2 w-px bg-gradient-to-b from-transparent via-border to-transparent lg:-left-4",
+        from === "sm" && "hidden sm:block",
+        from === "lg" && "hidden lg:block",
+      )}
+    />
+  );
+}
+
 interface DeptChipProps {
+
   department: string;
   icon: LucideIcon | React.ElementType;
   label: string;
