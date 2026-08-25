@@ -633,9 +633,6 @@ export default function AdminDashboard() {
           </div>
         </div>
       </section>
-
-
-
       {/* Pipeline tracker */}
       <section className="px-4 py-6 sm:px-8">
         <ContentPipelineHUD
