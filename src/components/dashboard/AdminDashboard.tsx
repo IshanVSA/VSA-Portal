@@ -629,7 +629,7 @@ export default function AdminDashboard() {
               )}
             </div>
           </header>
-          <div className="px-2 pt-4 pb-2">
+          <div className="-mx-2">
             {trendData.length > 0 ? (
               <ChartFrame>
               <ResponsiveContainer width="100%" height={200}>
@@ -663,6 +663,22 @@ export default function AdminDashboard() {
           </div>
         </div>
       </section>
+
+      {/* Team Activity */}
+      <section className="px-4 py-6 sm:px-8">
+        <TeamActivityCard />
+      </section>
+
+      {/* Unified timeline */}
+      <section className="grid grid-cols-1 divide-y divide-border/50 lg:grid-cols-2 lg:divide-x lg:divide-y-0">
+        <div className="px-4 py-6 sm:px-8">
+          <UpcomingPosts filter={filter} />
+        </div>
+        <div className="px-4 py-6 sm:px-8">
+          <RecentActivity filter={filter} />
+        </div>
+      </section>
+      </div>
 
       <OpenTicketsList open={ticketsOpen} onOpenChange={setTicketsOpen} initialDepartment={ticketsDeptFilter} />
       <OpenTasksList open={tasksOpen} onOpenChange={setTasksOpen} />
