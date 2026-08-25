@@ -156,3 +156,72 @@ export function DeptChip({
     </motion.button>
   );
 }
+
+interface DeptSummaryCardProps {
+  icon: LucideIcon | React.ElementType;
+  label: string;
+  colorVar: string;
+  items: { label: string; value: number }[];
+  total: number;
+  href?: string;
+  onClick?: () => void;
+}
+
+export function DeptSummaryCard({
+  icon: Icon,
+  label,
+  colorVar,
+  items,
+  total,
+  href,
+  onClick,
+}: DeptSummaryCardProps) {
+  const reduce = useReducedMotion();
+  const interactive = !!(onClick || href);
+
+  const content = (
+    <motion.div
+      initial={reduce ? false : { opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={reduce ? { duration: 0 } : { duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={interactive && !reduce ? { y: -1 } : undefined}
+      className={cn(
+        "group relative flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-background/70 p-3 backdrop-blur-sm transition-colors",
+        interactive && "cursor-pointer hover:bg-muted/50"
+      )}
+      style={{ ["--dept-accent"]: `hsl(${colorVar})` } as React.CSSProperties}
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        <span
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1 ring-inset"
+          style={{ backgroundColor: `hsl(${colorVar} / 0.12)`, color: `hsl(${colorVar})`, borderColor: `hsl(${colorVar} / 0.25)` }}
+        >
+          <Icon className="h-4 w-4" />
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-xs font-semibold text-foreground">{label}</p>
+          <p className="text-[10px] text-muted-foreground tabular-nums">
+            {items.map((i, idx) => (
+              <span key={i.label}>
+                {i.label}: {i.value}
+                {idx < items.length - 1 && <span className="mx-1 text-border">·</span>}
+              </span>
+            ))}
+          </p>
+        </div>
+      </div>
+      {total > 0 && (
+        <span
+          className="flex h-6 min-w-[24px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold tabular-nums"
+          style={{ backgroundColor: `hsl(${colorVar} / 0.15)`, color: `hsl(${colorVar})` }}
+        >
+          {total}
+        </span>
+      )}
+    </motion.div>
+  );
+
+  if (onClick) return <button type="button" onClick={onClick} className="block w-full text-left">{content}</button>;
+  if (href) return <Link to={href} className="block">{content}</Link>;
+  return content;
+}
