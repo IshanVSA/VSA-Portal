@@ -55,13 +55,14 @@ export default function UpcomingPosts({ filter }: { filter?: DashboardFilter } =
 
       const mapped: UpcomingPost[] = (data || []).map((p: any) => ({
         id: p.id,
-        title: p.title,
-        platform: p.platform,
-        status: p.status,
+        title: p.title || "Untitled",
+        platform: p.platform || "",
+        status: p.status || "draft",
         scheduled_date: p.scheduled_date,
         clinic_id: p.clinic_id || null,
         clinic_name: p.clinics?.clinic_name || "Unknown",
       }));
+
       setAllPosts(mapped);
       setLoading(false);
     };
