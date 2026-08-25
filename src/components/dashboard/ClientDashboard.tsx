@@ -683,21 +683,23 @@ export default function ClientDashboard() {
       </motion.div>
 
       {/* QUICK ACTIONS — adaptive */}
-      <motion.div variants={item} className="flex flex-wrap gap-2">
+      <motion.section variants={item} className="flex flex-wrap gap-2 px-4 py-5 sm:px-8">
         {enabledDepts.map(dept => {
           const meta = DEPT_META[dept];
           const Icon = meta.icon;
           return (
-            <Button key={dept} variant="outline" className="gap-2" onClick={() => openNewTicket(dept)}>
+            <Button key={dept} variant="outline" className="gap-2 rounded-full" onClick={() => openNewTicket(dept)}>
               <Icon className={cn("h-4 w-4", meta.color)} />
               New {meta.label} ticket
             </Button>
           );
         })}
-        <Button variant="outline" className="gap-2" onClick={() => navigate("/book-meeting")}>
+        <Button variant="outline" className="gap-2 rounded-full" onClick={() => navigate("/book-meeting")}>
           <CalendarClock className="h-4 w-4" /> Book a meeting
         </Button>
-      </motion.div>
+      </motion.section>
+      </div>
+
 
       <NewTicketDialog
         open={ticketDialogOpen}
