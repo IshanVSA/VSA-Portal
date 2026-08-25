@@ -1,17 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import KPICard from "./KPICard";
+import { StatusMetric, MetricDivider } from "./StatusMetric";
 import { Building2, FileText, Megaphone, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import UpcomingPosts from "./UpcomingPosts";
 import RecentActivity from "./RecentActivity";
 import MyTickets from "./MyTickets";
 import MyTasks from "./MyTasks";
+import { cn } from "@/lib/utils";
 
 import { formatDisplayName } from "@/lib/display-name";
 
@@ -51,75 +50,131 @@ export default function ConciergeDashboard() {
     fetchData();
   }, [user]);
 
-  const statusLine = [
-    `${clinics.length} assigned clinic${clinics.length !== 1 ? "s" : ""}`,
-    pendingCount > 0 && `${pendingCount} pending review`,
-  ].filter(Boolean).join(" · ");
-
   return (
-    <div className="space-y-5">
-      {/* Compact Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 pb-4 border-b border-border/60">
-        <div>
-          <h1 className="text-xl font-bold text-foreground tracking-tight">
-            {user?.user_metadata?.full_name ? `${formatDisplayName(user.user_metadata.full_name as string)}'s Dashboard` : "Dashboard"}
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">{statusLine}</p>
-        </div>
-        <Badge variant="secondary" className="rounded-full text-xs w-fit">{clinics.length} assigned</Badge>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <KPICard label="Assigned Clinics" value={clinics.length} icon={Building2} index={0} gradient="blue" />
-        <KPICard label="Total Posts" value={postCount} icon={FileText} index={1} gradient="purple" />
-        <KPICard label="Pending Review" value={pendingCount} icon={Megaphone} index={2} gradient="amber" />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <MyTickets />
-        <MyTasks />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <UpcomingPosts />
-        <RecentActivity />
-      </div>
-
-      <div>
-        <h2 className="section-header mb-3">Your Clinics</h2>
-        {loading ? (
-          <DashboardSkeleton />
-        ) : clinics.length === 0 ? (
-          <Card className="border-border/60">
-            <CardContent className="py-10 text-center">
-              <p className="text-sm text-muted-foreground">No clinics assigned to you yet. Contact your admin.</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {clinics.map((clinic) => (
-              <Card key={clinic.id} className="group border-border/60 hover:shadow-md transition-shadow">
-                <CardContent className="py-4 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-8 w-8 rounded-xl bg-primary/8 flex items-center justify-center shrink-0">
-                      <span className="text-xs font-bold text-primary">{clinic.clinic_name.charAt(0)}</span>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{clinic.clinic_name}</p>
-                      <Badge variant={clinic.status === "active" ? "default" : "secondary"} className="rounded-full text-[10px] mt-0.5">{clinic.status}</Badge>
-                    </div>
-                  </div>
-                  <Link to={`/clinics/${clinic.id}`}>
-                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary">
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            ))}
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.25 }}>
+      <div className="overflow-hidden rounded-3xl border border-border/60 bg-card/70 shadow-sm backdrop-blur-sm divide-y divide-border/50">
+        {/* HERO */}
+        <section className="relative overflow-hidden bg-gradient-to-br from-card via-card to-muted/30 px-4 py-7 sm:px-8 sm:py-8">
+          <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-32 left-1/3 h-72 w-72 rounded-full bg-[hsl(var(--dept-social))]/10 blur-3xl" />
+          <div className="relative space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+              {user?.user_metadata?.full_name
+                ? `Welcome back, ${formatDisplayName(user.user_metadata.full_name as string)}`
+                : "Welcome back"}
+            </h1>
+            <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-success" />
+                {clinics.length} assigned clinic{clinics.length !== 1 ? "s" : ""}
+              </span>
+              {pendingCount > 0 && (
+                <span className="inline-flex items-center gap-1.5 text-warning">
+                  <FileText className="h-3.5 w-3.5" />
+                  {pendingCount} awaiting review
+                </span>
+              )}
+            </p>
           </div>
-        )}
+        </section>
+
+        {/* STATUS STRIP */}
+        <section className="px-4 py-4 sm:px-8">
+          <div className="relative grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3 lg:gap-x-8">
+            <div className="relative">
+              <StatusMetric
+                label="Assigned Clinics"
+                value={clinics.length}
+                caption="active accounts"
+                icon={Building2}
+                tone="primary"
+                index={0}
+              />
+            </div>
+            <div className="relative">
+              <MetricDivider />
+              <StatusMetric
+                label="Total Posts"
+                value={postCount}
+                caption="across your clinics"
+                icon={FileText}
+                tone="neutral"
+                index={1}
+              />
+            </div>
+            <div className="relative">
+              <MetricDivider from="sm" />
+              <StatusMetric
+                label="Pending Review"
+                value={pendingCount}
+                caption={pendingCount > 0 ? "awaiting action" : "all caught up"}
+                icon={Megaphone}
+                tone={pendingCount > 0 ? "warning" : "success"}
+                index={2}
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* WORK QUEUES */}
+        <section className="px-4 py-5 sm:px-8">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <MyTickets />
+            <MyTasks />
+          </div>
+        </section>
+
+        {/* CONTENT & ACTIVITY */}
+        <section className="px-4 py-5 sm:px-8">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <UpcomingPosts />
+            <RecentActivity />
+          </div>
+        </section>
+
+        {/* CLINICS */}
+        <section className="px-4 py-5 sm:px-8">
+          <header className="mb-3 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold tracking-tight text-foreground">Your Clinics</h3>
+              <p className="text-[11px] text-muted-foreground">Accounts assigned to you</p>
+            </div>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold tabular-nums text-foreground">
+              {clinics.length}
+            </span>
+          </header>
+          {loading ? (
+            <DashboardSkeleton />
+          ) : clinics.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              No clinics assigned to you yet. Contact your admin.
+            </p>
+          ) : (
+            <ul className="grid grid-cols-1 gap-x-8 md:grid-cols-2 xl:grid-cols-3">
+              {clinics.map((clinic) => (
+                <li key={clinic.id} className="border-b border-border/40 last:border-0 md:[&:nth-last-child(-n+2)]:border-0">
+                  <Link
+                    to={`/clinics/${clinic.id}`}
+                    className="group -mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-muted/50"
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-xs font-bold text-primary ring-1 ring-inset ring-border/40">
+                      {clinic.clinic_name.charAt(0)}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-foreground">{clinic.clinic_name}</span>
+                      <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <span className={cn("h-1.5 w-1.5 rounded-full", clinic.status === "active" ? "bg-success" : "bg-muted-foreground")} />
+                        {clinic.status}
+                      </span>
+                    </span>
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
-    </div>
+    </motion.div>
   );
 }
