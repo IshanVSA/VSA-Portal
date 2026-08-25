@@ -620,12 +620,12 @@ export default function ClientDashboard() {
                 }}>
                 Open chat
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Book a meeting — always */}
-          <Card className="border-border/60 bg-gradient-to-br from-primary/5 via-card to-card">
-            <CardContent className="p-5 flex items-center gap-3">
+          <div className="py-4 last:pb-0">
+            <div className="flex items-center gap-3 rounded-2xl bg-primary/5 p-4 ring-1 ring-inset ring-border/40">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                 <CalendarClock className="h-5 w-5 text-primary" />
               </div>
@@ -633,12 +633,13 @@ export default function ClientDashboard() {
                 <p className="text-sm font-semibold text-foreground">Book a meeting</p>
                 <p className="text-[11px] text-muted-foreground">Chat with your account manager.</p>
               </div>
-              <Button size="sm" variant="outline" className="text-xs h-8"
+              <Button size="sm" variant="outline" className="text-xs h-8 rounded-full"
                 onClick={() => navigate("/book-meeting")}>Book</Button>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </motion.div>
-      </div>
+      </section>
+
 
       {/* RECENT UPDATES — cross-department activity at-a-glance */}
       <motion.section variants={item} id="recent-updates" className="px-4 py-5 sm:px-8">
