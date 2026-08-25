@@ -64,6 +64,7 @@ interface TicketRow {
   id: string;
   priority: string;
   clinic_id: string | null;
+  title: string;
 }
 
 interface TicketAssignmentRow {
@@ -73,6 +74,7 @@ interface TicketAssignmentRow {
   status: string;
   priority: string;
   clinic_id: string | null;
+  title: string;
 }
 
 interface PostRow {
