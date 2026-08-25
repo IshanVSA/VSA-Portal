@@ -416,18 +416,17 @@ export default function ClientDashboard() {
 
 
       {/* BODY: department snapshots (left) + right column */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+      <section className="grid grid-cols-1 gap-0 px-4 py-5 sm:px-8 lg:grid-cols-5 lg:gap-8">
         {/* LEFT — Department snapshots */}
         <motion.div variants={item} className="lg:col-span-3 space-y-3">
           <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/80 px-1">Your departments</h3>
 
           {enabledDepts.length === 0 && (
-            <Card className="border-border/60">
-              <CardContent className="py-8 text-center">
-                <p className="text-sm text-muted-foreground">No departments enabled yet. Contact your account manager.</p>
-              </CardContent>
-            </Card>
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              No departments enabled yet. Contact your account manager.
+            </p>
           )}
+
 
           {flags.website && (
             <DeptSnapshot
