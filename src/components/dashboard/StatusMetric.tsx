@@ -67,9 +67,10 @@ export function StatusMetric({
           </span>
         </div>
 
-        <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground truncate">
+        <p className="mt-0.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           {label}
         </p>
+
         {caption && (
           <p className="text-[11px] text-muted-foreground/80 truncate">{caption}</p>
         )}
