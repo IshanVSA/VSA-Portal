@@ -33,6 +33,7 @@ import RecentActivity from "./RecentActivity";
 import OpenTicketsList from "./OpenTicketsList";
 import OpenTasksList from "./OpenTasksList";
 import TeamActivityCard from "./TeamActivityCard";
+import { ContentPipelineHUD } from "./ContentPipelineHUD";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 import { cn } from "@/lib/utils";
