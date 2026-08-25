@@ -702,14 +702,6 @@ export default function AdminDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* ROW: Team Activity */}
-      <TeamActivityCard />
-
-      {/* Unified timeline */}
-      <section className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <UpcomingPosts filter={filter} />
-        <RecentActivity filter={filter} />
-      </section>
     </motion.div>
   );
 }
