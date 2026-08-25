@@ -132,11 +132,11 @@ export function ContentPipelineHUD({
                 <span className={cn("text-[10.5px] font-semibold uppercase tracking-[0.08em]", tone.text)}>
                   {stage.label}
                 </span>
-                <span className="mt-1 text-2xl font-bold tabular-nums tracking-tight text-foreground sm:text-3xl">
+                <span className="mt-1 text-3xl font-bold tabular-nums tracking-tight leading-none text-foreground">
                   {stage.count}
                 </span>
 
-                <span className="mt-1 text-[10px] font-medium text-muted-foreground/70">
+                <span className="mt-1 text-[11px] text-muted-foreground/70">
                   {pct.toFixed(1)}% of total
                 </span>
                 <span className="pointer-events-none absolute -top-8 left-0 hidden rounded-md bg-popover px-2 py-1 text-[10px] font-medium text-popover-foreground shadow-md group-hover:block">
