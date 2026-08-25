@@ -65,15 +65,23 @@ export function StatusMetric({
         className,
       )}
     >
-      <div className={cn("relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset ring-border/40", t.bg, t.text)}>
+      <div
+        className={cn("relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset ring-border/40", !accentVar && t.bg, !accentVar && t.text)}
+        style={accentBgStyle}
+      >
         <Icon className="h-4 w-4" />
-        <span className={cn("absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full ring-2 ring-background", t.dot)} aria-hidden="true" />
+        <span
+          className={cn("absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full ring-2 ring-background", !accentVar && t.dot)}
+          style={accentVar ? { backgroundColor: `hsl(${accentVar})` } : undefined}
+          aria-hidden="true"
+        />
       </div>
         <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
-          <span className={cn("text-3xl font-bold tracking-tight tabular-nums leading-none", t.text)}>
+          <span className={cn("text-3xl font-bold tracking-tight tabular-nums leading-none", !accentVar && t.text)} style={accentStyle}>
             {value}
           </span>
+
         </div>
 
         <p className="mt-0.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
