@@ -493,7 +493,18 @@ export default function AdminDashboard() {
 
       {/* Status strip */}
       <section className="px-4 py-6 sm:px-8">
-        <div className="relative grid grid-cols-2 gap-x-6 gap-y-5 divide-border/50 sm:grid-cols-3 lg:grid-cols-5 lg:gap-x-8">
+        <div
+          className={cn(
+            "relative grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3 lg:grid-cols-5 lg:gap-x-8",
+            // tapered hairline dividers between metrics
+            "[&>*]:relative [&>*]:before:pointer-events-none [&>*]:before:absolute [&>*]:before:left-[-12px] [&>*]:before:top-3 [&>*]:before:bottom-3 [&>*]:before:w-px [&>*]:before:bg-gradient-to-b [&>*]:before:from-transparent [&>*]:before:via-border [&>*]:before:to-transparent lg:[&>*]:before:left-[-16px]",
+            // hide divider on the first item of each row per breakpoint
+            "[&>*:nth-child(2n+1)]:before:hidden",
+            "sm:[&>*]:before:block sm:[&>*:nth-child(3n+1)]:before:hidden",
+            "lg:[&>*]:before:block lg:[&>*:nth-child(5n+1)]:before:hidden",
+          )}
+        >
+
           <StatusMetric
             label="Active Clinics"
             value={activeClinics}
