@@ -585,13 +585,14 @@ export default function ClientDashboard() {
                   className="text-xs text-primary inline-flex items-center gap-1 mt-3 hover:opacity-70">
                   View all <ArrowRight className="h-3 w-3" />
                 </Link>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
           {/* VSA team chat — cross-department latest */}
-          <Card className="border-border/60">
-            <CardContent className="p-5">
+          <div className="py-4">
+            <div>
+
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-foreground">VSA team</h3>
                 {unreadCount > 0 && <Badge variant="default" className="text-[10px]">{unreadCount} new</Badge>}
