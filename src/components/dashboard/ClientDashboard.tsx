@@ -29,6 +29,8 @@ import { getQuickActions, SOCIAL_QUICK_ACTIONS } from "@/lib/quick-actions";
 import { useWebsiteKPIs } from "@/hooks/useWebsiteKPIs";
 import { useGoogleAdsKPIs } from "@/hooks/useGoogleAdsKPIs";
 import { useSeoAnalytics } from "@/hooks/useSeoAnalytics";
+import { StatusMetric, MetricDivider, type MetricTone } from "@/components/dashboard/StatusMetric";
+
 
 type DeptKey = "website" | "seo" | "google_ads" | "ai_seo" | "social_media";
 
