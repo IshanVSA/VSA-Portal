@@ -89,7 +89,25 @@ export function StatusMetric({
   return content;
 }
 
+/**
+ * Tapered hairline divider used between metrics in a status strip.
+ * `from` controls the breakpoint at which the divider becomes visible.
+ */
+export function MetricDivider({ from = "always" }: { from?: "always" | "sm" | "lg" }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "pointer-events-none absolute -left-3 top-2 bottom-2 w-px bg-gradient-to-b from-transparent via-border to-transparent lg:-left-4",
+        from === "sm" && "hidden sm:block",
+        from === "lg" && "hidden lg:block",
+      )}
+    />
+  );
+}
+
 interface DeptChipProps {
+
   department: string;
   icon: LucideIcon | React.ElementType;
   label: string;
