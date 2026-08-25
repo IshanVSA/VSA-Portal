@@ -36,6 +36,7 @@ export function StatusMetric({
   caption,
   icon: Icon,
   tone = "neutral",
+  accentVar,
   href,
   onClick,
   index = 0,
@@ -44,6 +45,11 @@ export function StatusMetric({
 }: StatusMetricProps) {
   const reduce = useReducedMotion();
   const t = toneClasses[tone];
+  const accentStyle = accentVar ? { color: `hsl(${accentVar})` } : undefined;
+  const accentBgStyle = accentVar
+    ? { backgroundColor: `hsl(${accentVar} / 0.12)`, color: `hsl(${accentVar})` }
+    : undefined;
+
   const interactive = !!(onClick || href);
 
   const content = (
