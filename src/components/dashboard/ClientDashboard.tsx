@@ -491,12 +491,13 @@ export default function ClientDashboard() {
         </motion.div>
 
         {/* RIGHT column */}
-        <motion.div variants={item} className="lg:col-span-2 space-y-4">
+        <motion.div variants={item} className="lg:col-span-2 mt-5 divide-y divide-border/50 border-t border-border/50 pt-1 lg:mt-0 lg:border-t-0 lg:pt-0">
           {/* Content calendar (social only) */}
           {flags.social_media && (
-            <Card className="border-border/60">
-              <CardContent className="p-5">
+            <div className="py-4 lg:pt-0">
+              <div>
                 <div className="flex items-center justify-between mb-4">
+
                   <h3 className="text-sm font-semibold text-foreground">{format(monthCursor, "MMMM yyyy")}</h3>
                   <div className="flex items-center gap-1">
                     <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setMonthCursor(subMonths(monthCursor, 1))}>
