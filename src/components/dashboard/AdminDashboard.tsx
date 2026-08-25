@@ -493,69 +493,70 @@ export default function AdminDashboard() {
 
       {/* Status strip */}
       <section className="px-4 py-4 sm:px-8">
-        <div
-          className={cn(
-            "relative grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3 lg:grid-cols-5 lg:gap-x-8",
-            "[&>*]:relative",
-            // tapered/pointed hairline dividers between metrics (not full height)
-            "[&>*]:before:pointer-events-none [&>*]:before:absolute [&>*]:before:left-[-12px] [&>*]:before:top-4 [&>*]:before:bottom-4 [&>*]:before:w-px [&>*]:before:bg-gradient-to-b [&>*]:before:from-transparent [&>*]:before:via-border/80 [&>*]:before:to-transparent [&>*]:before:content-['']",
-            "lg:[&>*]:before:left-[-16px]",
-            // hide divider on the first item of each row per breakpoint
-            "[&>*:nth-child(2n+1)]:before:hidden",
-            "sm:[&>*:nth-child(3n+1)]:before:hidden",
-            "lg:[&>*:nth-child(5n+1)]:before:hidden",
-          )}
-        >
-
-          <StatusMetric
-            label="Active Clinics"
-            value={activeClinics}
-            caption={`${clinics.length} total`}
-            icon={Building2}
-            tone="primary"
-            href="/clinics"
-            index={0}
-          />
-          <StatusMetric
-            label="Open Tickets"
-            value={openTickets}
-            caption={urgentTickets > 0 ? `${urgentTickets} urgent · click to view` : "click to view all"}
-            icon={Ticket}
-            tone={urgentTickets > 0 ? "destructive" : "neutral"}
-            onClick={() => { setTicketsDeptFilter(null); setTicketsOpen(true); }}
-            index={1}
-          />
-          <StatusMetric
-            label="Pending Review"
-            value={pendingPosts}
-            caption={pendingPosts > 0 ? "awaiting action" : "all caught up"}
-            icon={FileText}
-            tone={pendingPosts > 0 ? "warning" : "success"}
-            index={2}
-          />
-          <StatusMetric
-            label="Team Members"
-            value={teamCount}
-            caption="active accounts"
-            icon={Users}
-            tone="success"
-            href="/employees"
-            index={3}
-          />
-          <StatusMetric
-            label="Active Clients"
-            value={activeClientCount}
-            caption={totalClientCount > 0 ? `${totalClientCount} total · last 30 days` : "no clients yet"}
-            icon={Activity}
-            tone={activeClientCount > 0 ? "success" : "neutral"}
-            href="/clients"
-            index={4}
-          />
+        <div className="relative grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3 lg:grid-cols-5 lg:gap-x-8">
+          <div className="relative">
+            <StatusMetric
+              label="Active Clinics"
+              value={activeClinics}
+              caption={`${clinics.length} total`}
+              icon={Building2}
+              tone="primary"
+              href="/clinics"
+              index={0}
+            />
+          </div>
+          <div className="relative">
+            <span className="pointer-events-none absolute -left-3 top-2 bottom-2 w-px bg-gradient-to-b from-transparent via-border to-transparent lg:-left-4" aria-hidden="true" />
+            <StatusMetric
+              label="Open Tickets"
+              value={openTickets}
+              caption={urgentTickets > 0 ? `${urgentTickets} urgent · click to view` : "click to view all"}
+              icon={Ticket}
+              tone={urgentTickets > 0 ? "destructive" : "neutral"}
+              onClick={() => { setTicketsDeptFilter(null); setTicketsOpen(true); }}
+              index={1}
+            />
+          </div>
+          <div className="relative">
+            <span className="pointer-events-none absolute -left-3 top-2 bottom-2 hidden w-px bg-gradient-to-b from-transparent via-border to-transparent sm:block lg:-left-4" aria-hidden="true" />
+            <StatusMetric
+              label="Pending Review"
+              value={pendingPosts}
+              caption={pendingPosts > 0 ? "awaiting action" : "all caught up"}
+              icon={FileText}
+              tone={pendingPosts > 0 ? "warning" : "success"}
+              index={2}
+            />
+          </div>
+          <div className="relative">
+            <span className="pointer-events-none absolute -left-4 top-2 bottom-2 hidden w-px bg-gradient-to-b from-transparent via-border to-transparent lg:block" aria-hidden="true" />
+            <StatusMetric
+              label="Team Members"
+              value={teamCount}
+              caption="active accounts"
+              icon={Users}
+              tone="success"
+              href="/employees"
+              index={3}
+            />
+          </div>
+          <div className="relative">
+            <span className="pointer-events-none absolute -left-4 top-2 bottom-2 hidden w-px bg-gradient-to-b from-transparent via-border to-transparent lg:block" aria-hidden="true" />
+            <StatusMetric
+              label="Active Clients"
+              value={activeClientCount}
+              caption={totalClientCount > 0 ? `${totalClientCount} total · last 30 days` : "no clients yet"}
+              icon={Activity}
+              tone={activeClientCount > 0 ? "success" : "neutral"}
+              href="/clients"
+              index={4}
+            />
+          </div>
         </div>
       </section>
 
       {/* Department Health */}
-      <section className="relative px-4 py-5 sm:px-8">
+      {(ticketSummary.length > 0 || taskSummary.length > 0) && <section className="relative px-4 py-5 sm:px-8">
         <div className="flex flex-wrap items-center gap-2">
           {ticketSummary.length === 0 && taskSummary.length === 0 ? null : (
 
@@ -600,7 +601,7 @@ export default function AdminDashboard() {
               );
             })}
         </div>
-      </section>
+      </section>}
 
       {/* Pipeline tracker */}
       <section className="px-4 py-6 sm:px-8">
