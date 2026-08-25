@@ -591,9 +591,8 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      {/* Pipeline tracker + Trend */}
-      <section className="space-y-4">
-        {/* Pipeline tracker */}
+      {/* Pipeline tracker */}
+      <section className="px-4 py-6 sm:px-8">
         <ContentPipelineHUD
           pipeline={pipeline}
           totalPipeline={totalPipeline}
@@ -602,10 +601,12 @@ export default function AdminDashboard() {
           pipelineMonthOptions={pipelineMonthOptions}
           onStageClick={setPipelineDialogStage}
         />
+      </section>
 
-        {/* Trend */}
-        <div className="rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm">
-          <header className="flex items-center justify-between border-b border-border/50 px-5 py-4">
+      {/* Trend */}
+      <section className="px-4 py-6 sm:px-8">
+        <div>
+          <header className="flex items-center justify-between pb-4">
             <div>
               <h3 className="text-sm font-bold tracking-tight text-foreground">Content Trend</h3>
               <p className="text-[11px] text-muted-foreground">
