@@ -177,14 +177,6 @@ const serviceIcons: Array<{ key: keyof Pick<Clinic, "website_enabled" | "seo_ena
   { key: "social_media_enabled", label: "Social", varName: "--dept-social" },
 ];
 
-const pipelineToneClasses: Record<PipelineStage["tone"], { bar: string; dot: string; text: string }> = {
-  muted: { bar: "bg-muted-foreground/40", dot: "bg-muted-foreground/60", text: "text-muted-foreground" },
-  warning: { bar: "bg-warning", dot: "bg-warning", text: "text-warning" },
-  primary: { bar: "bg-primary", dot: "bg-primary", text: "text-primary" },
-  success: { bar: "bg-success", dot: "bg-success", text: "text-success" },
-};
-
-
 export default function AdminDashboard() {
   const { user } = useAuth();
   const [clinics, setClinics] = useState<Clinic[]>([]);
