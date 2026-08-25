@@ -27,7 +27,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { prefetchSeoData } from "@/lib/seo-prefetch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
-import { WavyBackground } from "@/components/ui/wavy";
 
 const departmentServices: Record<string, { label: string; services: string[] }> = {
   website: { label: "Website", services: ["Time Changes", "Pop-up Offers", "Third Party Integrations", "Payment Options", "Add/Remove Team Members", "New Forms", "Paper-to-Digital Conversion", "Price List Updates", "Tech Issues", "Others"] },
@@ -380,13 +379,17 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
       {/* Sidebar */}
       <aside className={cn(
         "fixed inset-y-0 left-0 z-50 flex flex-col transition-[width,transform] duration-300 ease-out lg:h-screen overflow-hidden",
-        "bg-[hsl(var(--sidebar-background))] text-[hsl(var(--sidebar-foreground))]",
+        "bg-zinc-950 text-white",
         sidebarWidth,
         sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
-        <WavyBackground className="absolute inset-0 -z-0 pointer-events-none" />
-        <div className="absolute inset-0 -z-0 pointer-events-none bg-[hsl(var(--sidebar-background))]/88" />
-        <div className="relative z-10 flex flex-col h-full text-white">
+        {/* Cosmic mesh animated background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+          <div className="absolute top-[-10%] left-[-10%] w-[80%] h-[60%] bg-indigo-600/20 blur-[100px] animate-pulse rounded-full" />
+          <div className="absolute bottom-[-20%] right-[-10%] w-[90%] h-[70%] bg-purple-600/20 blur-[120px] animate-pulse rounded-full" style={{ animationDelay: "2s" }} />
+          <div className="absolute top-[30%] left-[20%] w-[40%] h-[40%] bg-blue-500/10 blur-[80px] animate-pulse rounded-full" style={{ animationDelay: "4s" }} />
+        </div>
+        <div className="relative z-10 flex flex-col h-full text-white backdrop-blur-3xl bg-black/40">
         {/* Logo */}
         <div className={cn("flex items-center h-16 border-b border-[hsl(var(--sidebar-border))]", collapsed ? "px-3 justify-center" : "px-5 gap-3")}>
           <div className="relative shrink-0">
@@ -430,11 +433,11 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
                   const dotColor = deptDotColors[itemPath];
                   const locked = !isExternal && isDepartmentLocked(itemPath);
                   const linkClass = cn(
-                    "flex items-center rounded-lg font-medium transition-colors duration-200 group relative",
+                    "flex items-center rounded-2xl font-medium transition-all duration-200 group relative",
                     collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5 text-[13px]",
                     active
-                      ? "bg-[hsl(var(--sidebar-primary))]/12 text-white"
-                      : "text-white/80 hover:text-white hover:bg-[hsl(var(--sidebar-accent))]/30"
+                      ? "bg-white/10 text-white shadow-sm border border-white/5"
+                      : "text-white/80 hover:text-white hover:bg-white/5"
                   );
                   const iconClass = cn(
                     "h-[19px] w-[19px] transition-colors duration-200",
@@ -536,9 +539,9 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
         </nav>
 
         {/* User footer */}
-        <div className={cn("py-3 border-t border-[hsl(var(--sidebar-border))]", collapsed ? "px-2" : "px-3")}>
+        <div className={cn("py-3 border-t border-white/10", collapsed ? "px-2" : "px-3")}>
           {!collapsed && (
-            <div className="flex items-center gap-3 px-3 py-2.5 mb-2 rounded-lg bg-[hsl(var(--sidebar-accent))]/30">
+            <div className="flex items-center gap-3 px-3 py-2.5 mb-2 rounded-2xl bg-white/10 border border-white/5">
               <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center shrink-0 ring-1 ring-white/15 overflow-hidden">
                 <img src={userPlaceholder} alt="User" className="h-5 w-5 object-contain invert opacity-90" />
               </div>
