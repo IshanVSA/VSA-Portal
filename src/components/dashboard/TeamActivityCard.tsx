@@ -45,7 +45,7 @@ export default function TeamActivityCard() {
     return bt - at;
   });
 
-  const onlineCount = rows.filter(r => r.is_online).length;
+  
 
   return (
     <section className="space-y-2">
