@@ -489,9 +489,11 @@ export default function AdminDashboard() {
             </button>
           </motion.div>
         )}
+      </section>
 
-        {/* Status strip */}
-        <div className="relative mt-6 grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3 lg:grid-cols-5 lg:gap-x-8">
+      {/* Status strip */}
+      <section className="px-4 py-6 sm:px-8">
+        <div className="relative grid grid-cols-2 gap-x-6 gap-y-5 divide-border/50 sm:grid-cols-3 lg:grid-cols-5 lg:gap-x-8">
           <StatusMetric
             label="Active Clinics"
             value={activeClinics}
