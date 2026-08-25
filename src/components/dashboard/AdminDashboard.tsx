@@ -603,56 +603,14 @@ export default function AdminDashboard() {
       {/* Pipeline tracker + Trend */}
       <section className="space-y-4">
         {/* Pipeline tracker */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h3 className="text-sm font-bold tracking-tight text-foreground">Content Pipeline</h3>
-            <p className="text-[11px] text-muted-foreground">{totalPipeline} requests total · click a stage to view</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Select value={pipelineMonth} onValueChange={setPipelineMonth}>
-              <SelectTrigger className="h-7 w-[140px] text-[11px]">
-                <SelectValue placeholder="All months" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All months</SelectItem>
-                {pipelineMonthOptions.map((m) => {
-                  const [y, mm] = m.split("-");
-                  const label = new Date(Number(y), Number(mm) - 1, 1).toLocaleString("en-US", { month: "short", year: "numeric" });
-                  return <SelectItem key={m} value={m}>{label}</SelectItem>;
-                })}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="flex h-8 w-full overflow-hidden rounded-full bg-muted/50 ring-1 ring-inset ring-border/40">
-          {pipeline.map((stage) => {
-            const c = pipelineToneClasses[stage.tone];
-            const pct = totalPipeline > 0 ? (stage.count / totalPipeline) * 100 : 0;
-            return (
-              <button
-                key={stage.status}
-                type="button"
-                onClick={() => setPipelineDialogStage(stage)}
-                style={{ width: `${Math.max(pct, stage.count > 0 ? 4 : 0)}%` }}
-                className={cn(
-                  "group relative flex items-center justify-center transition-colors hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
-                  c.bar
-                )}
-                title={`${stage.label}: ${stage.count}`}
-              >
-                {pct >= 12 && (
-                  <span className="text-[10px] font-bold tabular-nums text-white/90 drop-shadow-sm">
-                    {stage.count}
-                  </span>
-                )}
-                <span className="pointer-events-none absolute -top-7 left-1/2 hidden -translate-x-1/2 rounded-md bg-popover px-2 py-1 text-[10px] font-medium text-popover-foreground shadow-md group-hover:block">
-                  {stage.label}: {stage.count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        <ContentPipelineHUD
+          pipeline={pipeline}
+          totalPipeline={totalPipeline}
+          pipelineMonth={pipelineMonth}
+          setPipelineMonth={setPipelineMonth}
+          pipelineMonthOptions={pipelineMonthOptions}
+          onStageClick={setPipelineDialogStage}
+        />
 
         {/* Trend */}
         <div className="rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm">
