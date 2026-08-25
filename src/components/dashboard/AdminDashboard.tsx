@@ -37,6 +37,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { StatusMetric, DeptChip, type MetricTone } from "./StatusMetric";
 
 interface Clinic {
   id: string;
@@ -134,13 +135,14 @@ export interface DashboardFilter {
   statusLabel?: string;
 }
 
-const deptConfig: Record<string, { icon: React.ElementType; label: string; path: string; ring: string; text: string }> = {
+const deptConfig: Record<string, { icon: React.ElementType; label: string; path: string; ring: string; text: string; colorVar: string }> = {
   website: {
     icon: Globe,
     label: "Website",
     path: "/website?tab=tickets",
     ring: "bg-[hsl(var(--dept-website))]/15 text-[hsl(var(--dept-website))]",
     text: "text-[hsl(var(--dept-website))]",
+    colorVar: "var(--dept-website)",
   },
   seo: {
     icon: Search,
@@ -148,6 +150,7 @@ const deptConfig: Record<string, { icon: React.ElementType; label: string; path:
     path: "/seo?tab=tickets",
     ring: "bg-[hsl(var(--dept-seo))]/15 text-[hsl(var(--dept-seo))]",
     text: "text-[hsl(var(--dept-seo))]",
+    colorVar: "var(--dept-seo)",
   },
   google_ads: {
     icon: Megaphone,
@@ -155,6 +158,7 @@ const deptConfig: Record<string, { icon: React.ElementType; label: string; path:
     path: "/google-ads?tab=tickets",
     ring: "bg-[hsl(var(--dept-ads))]/15 text-[hsl(var(--dept-ads))]",
     text: "text-[hsl(var(--dept-ads))]",
+    colorVar: "var(--dept-ads)",
   },
   social_media: {
     icon: Share2,
@@ -162,6 +166,7 @@ const deptConfig: Record<string, { icon: React.ElementType; label: string; path:
     path: "/social?tab=tickets",
     ring: "bg-[hsl(var(--dept-social))]/15 text-[hsl(var(--dept-social))]",
     text: "text-[hsl(var(--dept-social))]",
+    colorVar: "var(--dept-social)",
   },
 };
 
@@ -179,103 +184,6 @@ const pipelineToneClasses: Record<PipelineStage["tone"], { bar: string; dot: str
   success: { bar: "bg-success", dot: "bg-success", text: "text-success" },
 };
 
-interface HeroStatProps {
-  label: string;
-  value: number | string;
-  caption?: string;
-  icon: React.ElementType;
-  tone: "primary" | "warning" | "success" | "destructive" | "neutral";
-  href?: string;
-  index: number;
-  active?: boolean;
-  onClick?: () => void;
-}
-
-const toneStyles: Record<HeroStatProps["tone"], { accent: string; chip: string; glow: string; ring: string }> = {
-  primary: {
-    accent: "from-primary/20 via-primary/5 to-transparent",
-    chip: "bg-primary/15 text-primary",
-    glow: "shadow-[0_0_0_1px_hsl(var(--primary)/0.15)]",
-    ring: "ring-primary/60",
-  },
-  warning: {
-    accent: "from-warning/20 via-warning/5 to-transparent",
-    chip: "bg-warning/15 text-warning",
-    glow: "shadow-[0_0_0_1px_hsl(var(--warning)/0.15)]",
-    ring: "ring-warning/60",
-  },
-  success: {
-    accent: "from-success/20 via-success/5 to-transparent",
-    chip: "bg-success/15 text-success",
-    glow: "shadow-[0_0_0_1px_hsl(var(--success)/0.15)]",
-    ring: "ring-success/60",
-  },
-  destructive: {
-    accent: "from-destructive/20 via-destructive/5 to-transparent",
-    chip: "bg-destructive/15 text-destructive",
-    glow: "shadow-[0_0_0_1px_hsl(var(--destructive)/0.15)]",
-    ring: "ring-destructive/60",
-  },
-  neutral: {
-    accent: "from-muted/40 via-muted/10 to-transparent",
-    chip: "bg-muted text-muted-foreground",
-    glow: "shadow-[0_0_0_1px_hsl(var(--border))]",
-    ring: "ring-foreground/40",
-  },
-};
-
-function HeroStat({ label, value, caption, icon: Icon, tone, href, index, active, onClick }: HeroStatProps) {
-  const t = toneStyles[tone];
-  const interactive = !!(onClick || href);
-  const card = (
-    <motion.div
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay: index * 0.06, ease: [0.16, 1, 0.3, 1] }}
-      whileHover={interactive ? { y: -2 } : undefined}
-      className={cn(
-        "group relative overflow-hidden rounded-2xl border border-border/60 bg-card p-5 transition-[color,background-color,border-color,box-shadow,transform,opacity]",
-        t.glow,
-        interactive && "cursor-pointer hover:border-border",
-        active && cn("ring-2", t.ring)
-      )}
-    >
-      <div className={cn("pointer-events-none absolute inset-0 bg-gradient-to-br opacity-80", t.accent)} />
-      <div className="relative">
-        <div className="flex items-start justify-between gap-3">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
-          <div className={cn("flex h-7 w-7 items-center justify-center rounded-[9px] ring-1 ring-inset ring-border/40", t.chip)}>
-            <Icon className="h-3.5 w-3.5" />
-          </div>
-        </div>
-        <div className="mt-4 flex items-baseline gap-2">
-          <span className="text-4xl font-bold leading-none tracking-tight tabular-nums text-foreground">
-            {value}
-          </span>
-          {interactive && (
-            <ArrowUpRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground" />
-          )}
-        </div>
-        {caption && <p className="mt-2 text-xs text-muted-foreground">{caption}</p>}
-        {active && (
-          <span className="absolute -right-1 -top-1 inline-flex h-4 items-center rounded-full bg-foreground px-1.5 text-[9px] font-bold uppercase tracking-wider text-background">
-            Filter
-          </span>
-        )}
-      </div>
-    </motion.div>
-  );
-
-  if (onClick) {
-    return (
-      <button type="button" onClick={onClick} className="block w-full text-left">
-        {card}
-      </button>
-    );
-  }
-  if (href) return <Link to={href} className="block">{card}</Link>;
-  return card;
-}
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -590,9 +498,9 @@ export default function AdminDashboard() {
           </motion.div>
         )}
 
-        {/* Hero stats grid */}
-        <div className="relative mt-7 grid grid-cols-2 sm:grid-cols-3 gap-3 lg:grid-cols-5">
-          <HeroStat
+        {/* Status strip */}
+        <div className="relative mt-6 flex flex-wrap items-stretch gap-4 sm:gap-6 lg:gap-10">
+          <StatusMetric
             label="Active Clinics"
             value={activeClinics}
             caption={`${clinics.length} total`}
@@ -601,7 +509,7 @@ export default function AdminDashboard() {
             href="/clinics"
             index={0}
           />
-          <HeroStat
+          <StatusMetric
             label="Open Tickets"
             value={openTickets}
             caption={urgentTickets > 0 ? `${urgentTickets} urgent · click to view` : "click to view all"}
@@ -610,7 +518,7 @@ export default function AdminDashboard() {
             onClick={() => { setTicketsDeptFilter(null); setTicketsOpen(true); }}
             index={1}
           />
-          <HeroStat
+          <StatusMetric
             label="Pending Review"
             value={pendingPosts}
             caption={pendingPosts > 0 ? "awaiting action" : "all caught up"}
@@ -618,7 +526,7 @@ export default function AdminDashboard() {
             tone={pendingPosts > 0 ? "warning" : "success"}
             index={2}
           />
-          <HeroStat
+          <StatusMetric
             label="Team Members"
             value={teamCount}
             caption="active accounts"
@@ -627,7 +535,7 @@ export default function AdminDashboard() {
             href="/employees"
             index={3}
           />
-          <HeroStat
+          <StatusMetric
             label="Active Clients"
             value={activeClientCount}
             caption={totalClientCount > 0 ? `${totalClientCount} total · last 30 days` : "no clients yet"}
@@ -639,193 +547,114 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      {/* ROW: Tickets & Tasks */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {/* Tickets by Department */}
-        <section className="rounded-2xl border border-border/60 bg-card">
-          <header className="flex items-center justify-between border-b border-border/50 px-5 py-4">
-            <div>
-              <h3 className="text-sm font-bold tracking-tight text-foreground">Tickets by Department</h3>
-              <p className="text-[11px] text-muted-foreground">Click a row to view open tickets</p>
-            </div>
-            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-              {openTickets} active
+      {/* Department Health */}
+      <section className="relative">
+        <div className="flex flex-wrap items-center gap-2">
+          {ticketSummary.length === 0 && taskSummary.length === 0 ? (
+            <span className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/80 px-3 py-1.5 text-xs text-muted-foreground">
+              <Activity className="h-3.5 w-3.5" />
+              All systems clear
             </span>
-          </header>
-          <div className="p-2">
-            {ticketSummary.length === 0 ? (
-              <div className="py-10 text-center">
-                <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-success/10">
-                  <Activity className="h-4 w-4 text-success" />
-                </div>
-                <p className="text-sm text-muted-foreground">All clear — no open tickets</p>
-              </div>
-            ) : (
-              <ul className="space-y-1">
-                {ticketSummary.map((dept) => {
-                  const cfg = deptConfig[dept.department] || {
-                    icon: Ticket,
-                    label: dept.department,
-                    path: "/",
-                    ring: "bg-muted text-muted-foreground",
-                    text: "text-muted-foreground",
-                  };
-                  const Icon = cfg.icon;
-                  return (
-                    <li key={dept.department}>
-                      <div className="group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-muted/50">
-                        <button
-                          type="button"
-                          onClick={() => { setTicketsDeptFilter(dept.department); setTicketsOpen(true); }}
-                          className="flex min-w-0 flex-1 items-center gap-3 text-left"
-                        >
-                          <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl", cfg.ring)}>
-                            <Icon className="h-4 w-4" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-semibold text-foreground">{cfg.label}</p>
-                            <p className="text-[11px] text-muted-foreground">
-                              {dept.open} open · {dept.in_progress} in progress
-                            </p>
-                          </div>
-                          <span className="rounded-xl bg-muted px-2 py-0.5 text-xs font-bold tabular-nums text-foreground">
-                            {dept.total}
-                          </span>
-                         </button>
-                       </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        </section>
-
-        {/* Tasks by Department */}
-        <section className="rounded-2xl border border-border/60 bg-card">
-          <header className="flex items-center justify-between border-b border-border/50 px-5 py-4">
-            <div>
-              <h3 className="text-sm font-bold tracking-tight text-foreground">Tasks by Department</h3>
-              <p className="text-[11px] text-muted-foreground">Click a row to open department tasks</p>
-            </div>
-            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-              {openTasks} active
-            </span>
-          </header>
-          <div className="p-2">
-            {taskSummary.length === 0 ? (
-              <div className="py-10 text-center">
-                <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-success/10">
-                  <ClipboardList className="h-4 w-4 text-success" />
-                </div>
-                <p className="text-sm text-muted-foreground">No open tasks</p>
-              </div>
-            ) : (
-              <ul className="space-y-1">
-                {taskSummary.map((dept) => {
-                  const cfg = deptConfig[dept.department] || {
-                    icon: ClipboardList,
-                    label: dept.department,
-                    path: "/",
-                    ring: "bg-muted text-muted-foreground",
-                    text: "text-muted-foreground",
-                  };
-                  const Icon = cfg.icon;
-                  return (
-                    <li key={dept.department}>
-                      <button
-                        type="button"
-                        onClick={() => setTasksOpen(true)}
-                        className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
-                      >
-                        <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl", cfg.ring)}>
-                          <Icon className="h-4 w-4" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-foreground">{cfg.label}</p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {dept.todo} to do · {dept.in_progress} in progress
-                          </p>
-                        </div>
-                        <span className="rounded-xl bg-muted px-2 py-0.5 text-xs font-bold tabular-nums text-foreground">
-                          {dept.total}
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        </section>
-      </div>
-
-      {/* ROW: Pipeline & Trend */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-        {/* Pipeline */}
-        <section className="rounded-2xl border border-border/60 bg-card lg:col-span-2">
-          <header className="flex items-center justify-between gap-2 border-b border-border/50 px-5 py-4">
-            <div className="min-w-0">
-              <h3 className="text-sm font-bold tracking-tight text-foreground">Content Pipeline</h3>
-              <p className="text-[11px] text-muted-foreground">Click a stage to filter</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Select value={pipelineMonth} onValueChange={setPipelineMonth}>
-                <SelectTrigger className="h-7 w-[140px] text-[11px]">
-                  <SelectValue placeholder="All months" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All months</SelectItem>
-                  {pipelineMonthOptions.map((m) => {
-                    const [y, mm] = m.split("-");
-                    const label = new Date(Number(y), Number(mm) - 1, 1).toLocaleString("en-US", { month: "short", year: "numeric" });
-                    return <SelectItem key={m} value={m}>{label}</SelectItem>;
-                  })}
-                </SelectContent>
-              </Select>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                {totalPipeline} total
-              </span>
-            </div>
-          </header>
-          <div className="space-y-2 px-3 py-3">
-            {pipeline.map((stage) => {
-              const c = pipelineToneClasses[stage.tone];
-              const pct = (stage.count / maxPipeline) * 100;
-              const isActive = filter.status === stage.status;
+          ) : (
+            ticketSummary.map((dept) => {
+              const cfg = deptConfig[dept.department] || { label: dept.department, icon: Ticket, colorVar: "var(--muted-foreground)" };
+              const taskCounts = taskSummary.find((t) => t.department === dept.department);
               return (
-                <button
-                  key={stage.status}
-                  type="button"
-                  onClick={() => setPipelineDialogStage(stage)}
-                  className={cn(
-                    "block w-full rounded-lg px-2 py-1.5 text-left transition-colors",
-                    isActive ? "bg-primary/10 ring-1 ring-primary/30" : "hover:bg-muted/40"
-                  )}
-                >
-                  <div className="mb-1 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className={cn("h-1.5 w-1.5 rounded-full", c.dot)} />
-                      <span className="text-xs font-medium text-foreground">{stage.label}</span>
-                    </div>
-                    <span className="text-xs font-bold tabular-nums text-foreground">{stage.count}</span>
-                  </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-muted/60">
-                    <motion.div
-                      initial={{ transform: "scaleX(0)" }}
-                      animate={{ transform: `scaleX(${Math.max(stage.count > 0 ? 2 : 0, pct) / 100})` }}
-                      transition={{ duration: 0.28, ease: [0.23, 1, 0.32, 1] }}
-                      className={cn("h-full w-full origin-left rounded-full", c.bar)}
-                    />
-                  </div>
-                </button>
+                <DeptChip
+                  key={dept.department}
+                  department={dept.department}
+                  icon={cfg.icon}
+                  label={cfg.label}
+                  openTickets={dept.open}
+                  inProgressTickets={dept.in_progress}
+                  openTasks={taskCounts?.todo || 0}
+                  inProgressTasks={taskCounts?.in_progress || 0}
+                  colorVar={cfg.colorVar}
+                  onClick={() => { setTicketsDeptFilter(dept.department); setTicketsOpen(true); }}
+                  index={0}
+                />
+              );
+            })
+          )}
+          {taskSummary
+            .filter((t) => !ticketSummary.some((d) => d.department === t.department))
+            .map((dept) => {
+              const cfg = deptConfig[dept.department] || { label: dept.department, icon: ClipboardList, colorVar: "var(--muted-foreground)" };
+              return (
+                <DeptChip
+                  key={dept.department}
+                  department={dept.department}
+                  icon={cfg.icon}
+                  label={cfg.label}
+                  openTickets={0}
+                  inProgressTickets={0}
+                  openTasks={dept.todo}
+                  inProgressTasks={dept.in_progress}
+                  colorVar={cfg.colorVar}
+                  onClick={() => setTasksOpen(true)}
+                  index={0}
+                />
               );
             })}
+        </div>
+      </section>
+
+      {/* Pipeline tracker + Trend */}
+      <section className="space-y-4">
+        {/* Pipeline tracker */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-sm font-bold tracking-tight text-foreground">Content Pipeline</h3>
+            <p className="text-[11px] text-muted-foreground">{totalPipeline} requests total · click a stage to view</p>
           </div>
-        </section>
+          <div className="flex items-center gap-2">
+            <Select value={pipelineMonth} onValueChange={setPipelineMonth}>
+              <SelectTrigger className="h-7 w-[140px] text-[11px]">
+                <SelectValue placeholder="All months" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All months</SelectItem>
+                {pipelineMonthOptions.map((m) => {
+                  const [y, mm] = m.split("-");
+                  const label = new Date(Number(y), Number(mm) - 1, 1).toLocaleString("en-US", { month: "short", year: "numeric" });
+                  return <SelectItem key={m} value={m}>{label}</SelectItem>;
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="flex h-8 w-full overflow-hidden rounded-full bg-muted/50 ring-1 ring-inset ring-border/40">
+          {pipeline.map((stage) => {
+            const c = pipelineToneClasses[stage.tone];
+            const pct = totalPipeline > 0 ? (stage.count / totalPipeline) * 100 : 0;
+            return (
+              <button
+                key={stage.status}
+                type="button"
+                onClick={() => setPipelineDialogStage(stage)}
+                style={{ width: `${Math.max(pct, stage.count > 0 ? 4 : 0)}%` }}
+                className={cn(
+                  "group relative flex items-center justify-center transition-colors hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
+                  c.bar
+                )}
+                title={`${stage.label}: ${stage.count}`}
+              >
+                {pct >= 12 && (
+                  <span className="text-[10px] font-bold tabular-nums text-white/90 drop-shadow-sm">
+                    {stage.count}
+                  </span>
+                )}
+                <span className="pointer-events-none absolute -top-7 left-1/2 hidden -translate-x-1/2 rounded-md bg-popover px-2 py-1 text-[10px] font-medium text-popover-foreground shadow-md group-hover:block">
+                  {stage.label}: {stage.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
         {/* Trend */}
-        <section className="rounded-2xl border border-border/60 bg-card lg:col-span-3">
+        <div className="rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm">
           <header className="flex items-center justify-between border-b border-border/50 px-5 py-4">
             <div>
               <h3 className="text-sm font-bold tracking-tight text-foreground">Content Trend</h3>
@@ -881,8 +710,8 @@ export default function AdminDashboard() {
               <div className="py-12 text-center text-sm text-muted-foreground">No post data yet</div>
             )}
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
 
       <OpenTicketsList open={ticketsOpen} onOpenChange={setTicketsOpen} initialDepartment={ticketsDeptFilter} />
       <OpenTasksList open={tasksOpen} onOpenChange={setTasksOpen} />
@@ -926,11 +755,11 @@ export default function AdminDashboard() {
       {/* ROW: Team Activity */}
       <TeamActivityCard />
 
-      {/* ROW: Posts / Activity */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      {/* Unified timeline */}
+      <section className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         <UpcomingPosts filter={filter} />
         <RecentActivity filter={filter} />
-      </div>
+      </section>
     </motion.div>
   );
 }
