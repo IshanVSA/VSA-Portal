@@ -730,29 +730,28 @@ interface DeptSnapshotProps {
 function DeptSnapshot({ meta, route, onNavigate, stats }: DeptSnapshotProps) {
   const Icon = meta.icon;
   return (
-    <Card className="border-border/60 hover:shadow-md transition-shadow">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center shrink-0", meta.bg)}>
-              <Icon className={cn("h-4 w-4", meta.color)} />
-            </div>
-            <p className="text-sm font-semibold text-foreground">{meta.label}</p>
+    <div className="border-b border-border/40 py-3 last:border-b-0">
+      <div className="flex items-center justify-between mb-2.5">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center shrink-0", meta.bg)}>
+            <Icon className={cn("h-4 w-4", meta.color)} />
           </div>
-          <Button size="sm" variant="ghost" className="h-8 gap-1 text-xs"
-            onClick={() => onNavigate(route)}>
-            Open <ArrowRight className="h-3 w-3" />
-          </Button>
+          <p className="text-sm font-semibold text-foreground">{meta.label}</p>
         </div>
-        <div className={cn("grid gap-2", stats.length === 1 ? "grid-cols-1" : "grid-cols-3")}>
-          {stats.map((s, i) => (
-            <div key={i} className="rounded-lg bg-muted/40 px-3 py-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/80">{s.label}</p>
-              <p className="text-sm font-bold text-foreground tabular-nums mt-0.5 truncate">{s.value}</p>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+        <Button size="sm" variant="ghost" className="h-8 gap-1 text-xs"
+          onClick={() => onNavigate(route)}>
+          Open <ArrowRight className="h-3 w-3" />
+        </Button>
+      </div>
+      <div className={cn("grid gap-x-6 gap-y-2 pl-[46px]", stats.length === 1 ? "grid-cols-1" : "grid-cols-3")}>
+        {stats.map((s, i) => (
+          <div key={i}>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/70">{s.label}</p>
+            <p className="text-sm font-bold text-foreground tabular-nums mt-0.5 truncate">{s.value}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+
   );
 }
