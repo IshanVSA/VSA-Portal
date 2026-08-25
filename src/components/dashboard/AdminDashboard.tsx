@@ -113,6 +113,7 @@ interface TaskRow {
   department: string;
   status: string;
   clinic_id: string | null;
+  title: string;
 }
 
 interface TaskSummary {
