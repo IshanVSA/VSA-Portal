@@ -555,8 +555,8 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      {/* Department Health — Tickets by Department */}
-      {ticketSummary.length > 0 && <section className="px-4 py-5 sm:px-8">
+      {/* Tickets by Department */}
+      <section className="px-4 py-5 sm:px-8">
         <div className="rounded-2xl border border-border/60 bg-background/50 p-4 backdrop-blur-sm sm:p-5">
           <header className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -573,30 +573,30 @@ export default function AdminDashboard() {
             </span>
           </header>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            {ticketSummary.map((dept) => {
-              const cfg = deptConfig[dept.department] || { label: dept.department, icon: Ticket, colorVar: "var(--muted-foreground)", path: "/tickets" };
+            {Object.entries(deptConfig).map(([dept, cfg]) => {
+              const counts = ticketSummary.find((t) => t.department === dept) || { open: 0, in_progress: 0 };
               return (
                 <DeptSummaryCard
-                  key={dept.department}
+                  key={dept}
                   icon={cfg.icon}
                   label={cfg.label}
                   href={cfg.path}
                   colorVar={cfg.colorVar}
                   items={[
-                    { label: "Open", value: dept.open },
-                    { label: "In Progress", value: dept.in_progress },
+                    { label: "Open", value: counts.open },
+                    { label: "In Progress", value: counts.in_progress },
                   ]}
-                  total={dept.open + dept.in_progress}
-                  onClick={() => { setTicketsDeptFilter(dept.department); setTicketsOpen(true); }}
+                  total={counts.open + counts.in_progress}
+                  onClick={() => { setTicketsDeptFilter(dept); setTicketsOpen(true); }}
                 />
               );
             })}
           </div>
         </div>
-      </section>}
+      </section>
 
-      {/* Department Health — Tasks by Department */}
-      {taskSummary.length > 0 && <section className="px-4 py-5 sm:px-8">
+      {/* Tasks by Department */}
+      <section className="px-4 py-5 sm:px-8">
         <div className="rounded-2xl border border-border/60 bg-background/50 p-4 backdrop-blur-sm sm:p-5">
           <header className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -613,26 +613,27 @@ export default function AdminDashboard() {
             </span>
           </header>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            {taskSummary.map((dept) => {
-              const cfg = deptConfig[dept.department] || { label: dept.department, icon: ClipboardList, colorVar: "var(--muted-foreground)" };
+            {Object.entries(deptConfig).map(([dept, cfg]) => {
+              const counts = taskSummary.find((t) => t.department === dept) || { todo: 0, in_progress: 0 };
               return (
                 <DeptSummaryCard
-                  key={dept.department}
+                  key={dept}
                   icon={cfg.icon}
                   label={cfg.label}
                   colorVar={cfg.colorVar}
                   items={[
-                    { label: "Todo", value: dept.todo },
-                    { label: "In Progress", value: dept.in_progress },
+                    { label: "Todo", value: counts.todo },
+                    { label: "In Progress", value: counts.in_progress },
                   ]}
-                  total={dept.todo + dept.in_progress}
+                  total={counts.todo + counts.in_progress}
                   onClick={() => setTasksOpen(true)}
                 />
               );
             })}
           </div>
         </div>
-      </section>}
+      </section>
+
 
 
       {/* Pipeline tracker */}
