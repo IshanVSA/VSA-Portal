@@ -309,11 +309,12 @@ export default function ClientDashboard() {
   }
 
   // ---------- Adaptive KPI strip ----------
-  interface KPI { key: string; label: string; value: string | number; icon: LucideIcon; color: string; bg: string; onClick: () => void; }
+  interface KPI { key: string; label: string; caption?: string; value: string | number; icon: LucideIcon; accentVar?: string; tone?: MetricTone; onClick: () => void; }
   const kpis: KPI[] = [];
   kpis.push({
     key: "tickets", label: "Open tickets", value: openTicketsCount, icon: Ticket,
-    color: "text-primary", bg: "bg-primary/10",
+    tone: openTicketsCount > 0 ? "primary" : "success",
+    caption: openTicketsCount > 0 ? "click to view" : "all clear",
     onClick: () => {
       const el = document.getElementById("recent-updates");
       el?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -322,86 +323,97 @@ export default function ClientDashboard() {
   if (flags.social_media) {
     kpis.push({
       key: "review", label: "To review", value: toReviewCount, icon: Inbox,
-      color: "text-[hsl(var(--dept-social))]", bg: "bg-[hsl(var(--dept-social))]/10",
+      accentVar: "var(--dept-social)", caption: "social posts",
       onClick: () => navigate(`/social?clinic=${selectedClinicId}&tab=my-posts`),
     });
   }
   if (flags.website && !webKpis.loading) {
     kpis.push({
       key: "web", label: "Visitors (7d)", value: fmtInt(webKpis.visitorsLastWeek || 0), icon: Globe,
-      color: "text-[hsl(var(--dept-website))]", bg: "bg-[hsl(var(--dept-website))]/10",
+      accentVar: "var(--dept-website)", caption: "website traffic",
       onClick: () => navigate(`/website?clinic=${selectedClinicId}&tab=analytics`),
     });
   }
   if (flags.seo && latestSeo) {
     kpis.push({
       key: "seo", label: "Top-10 keywords", value: fmtInt((latestSeo as any).keywords_top_10 || 0), icon: SearchIcon,
-      color: "text-[hsl(var(--dept-seo))]", bg: "bg-[hsl(var(--dept-seo))]/10",
+      accentVar: "var(--dept-seo)", caption: "latest report",
       onClick: () => navigate(`/seo?clinic=${selectedClinicId}`),
     });
   }
   if (flags.google_ads && !adsKpis.loading && adsKpis.hasData) {
     kpis.push({
       key: "ads", label: "Ad clicks (30d)", value: fmtInt(adsKpis.clicks), icon: MousePointerClick,
-      color: "text-[hsl(var(--dept-google-ads))]", bg: "bg-[hsl(var(--dept-google-ads))]/10",
+      accentVar: "var(--dept-google-ads)", caption: "google ads",
       onClick: () => navigate(`/google-ads?clinic=${selectedClinicId}`),
     });
   }
   kpis.push({
     key: "msgs", label: "Messages", value: unreadCount, icon: MessageSquare,
-    color: "text-primary", bg: "bg-primary/10",
+    tone: unreadCount > 0 ? "warning" : "neutral",
+    caption: unreadCount > 0 ? "unread" : "no new messages",
     onClick: () => {
       const dept = latestChat?.department || enabledDepts[0] || "social_media";
       navigate(`/${dept === "google_ads" ? "google-ads" : dept === "social_media" ? "social" : dept === "ai_seo" ? "ai-seo" : dept}?clinic=${selectedClinicId}&tab=client-chat`);
     },
   });
 
-  const gridCols = kpis.length <= 3 ? "sm:grid-cols-3" : kpis.length === 4 ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-5";
+  const gridCols = kpis.length <= 3 ? "sm:grid-cols-3" : kpis.length === 4 ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3 lg:grid-cols-5";
 
   return (
-    <motion.div className="space-y-5" variants={container} initial="hidden" animate="show">
-      {/* HEADER */}
-      <motion.div variants={item} className="pb-4 border-b border-border/60">
-        <h1 className="text-xl font-bold text-foreground tracking-tight">{firstName}'s Portal</h1>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          {selectedClinic?.clinic_name || "—"} · {format(new Date(), "EEEE, MMMM d")}
-        </p>
-        {clinics.length > 1 && (
-          <div className="flex flex-wrap gap-1.5 mt-3">
-            {clinics.map(c => (
-              <button
-                key={c.id}
-                onClick={() => setClinic(c.id)}
-                className={cn(
-                  "px-3 py-1 rounded-full text-xs font-medium border transition-colors",
-                  c.id === selectedClinicId
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-card text-muted-foreground border-border/60 hover:text-foreground hover:border-border"
-                )}
-              >
-                {c.clinic_name}
-              </button>
-            ))}
-          </div>
-        )}
-      </motion.div>
-
-      {/* ADAPTIVE KPI STRIP */}
-      <motion.div variants={item} className={cn("grid grid-cols-2 gap-3", gridCols)}>
-        {kpis.map((c) => (
-          <button
-            key={c.key}
-            onClick={c.onClick}
-            className="text-left rounded-2xl bg-card border border-border/60 shadow-sm p-4 hover:shadow-md hover:border-primary/40 transition-[color,background-color,border-color,box-shadow,transform,opacity]"
-          >
-            <div className={cn("h-8 w-8 rounded-xl flex items-center justify-center", c.bg)}>
-              <c.icon className={cn("h-4 w-4", c.color)} />
+    <motion.div variants={container} initial="hidden" animate="show">
+      <div className="overflow-hidden rounded-3xl border border-border/60 bg-card/70 shadow-sm backdrop-blur-sm divide-y divide-border/50">
+      {/* HERO */}
+      <motion.section variants={item} className="relative overflow-hidden bg-gradient-to-br from-card via-card to-muted/30 px-4 py-7 sm:px-8 sm:py-8">
+        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 left-1/3 h-72 w-72 rounded-full bg-[hsl(var(--dept-social))]/10 blur-3xl" />
+        <div className="relative space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">{firstName}'s Portal</h1>
+          <p className="text-sm text-muted-foreground">
+            {selectedClinic?.clinic_name || "—"} · {format(new Date(), "EEEE, MMMM d")}
+          </p>
+          {clinics.length > 1 && (
+            <div className="flex flex-wrap gap-1.5 pt-2">
+              {clinics.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => setClinic(c.id)}
+                  className={cn(
+                    "px-3 py-1 rounded-full text-xs font-medium border transition-colors",
+                    c.id === selectedClinicId
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background/60 text-muted-foreground border-border/60 backdrop-blur hover:text-foreground hover:border-border"
+                  )}
+                >
+                  {c.clinic_name}
+                </button>
+              ))}
             </div>
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mt-3">{c.label}</p>
-            <p className="text-2xl font-bold text-foreground tabular-nums mt-0.5">{c.value}</p>
-          </button>
-        ))}
-      </motion.div>
+          )}
+        </div>
+      </motion.section>
+
+      {/* ADAPTIVE STATUS STRIP */}
+      <motion.section variants={item} className="px-4 py-4 sm:px-8">
+        <div className={cn("relative grid grid-cols-2 gap-x-6 gap-y-4 lg:gap-x-8", gridCols)}>
+          {kpis.map((c, i) => (
+            <div key={c.key} className="relative">
+              {i > 0 && <MetricDivider from={i >= 3 ? "lg" : i >= 1 ? "sm" : "always"} />}
+              <StatusMetric
+                label={c.label}
+                value={c.value}
+                caption={c.caption}
+                icon={c.icon}
+                tone={c.tone}
+                accentVar={c.accentVar}
+                onClick={c.onClick}
+                index={i}
+              />
+            </div>
+          ))}
+        </div>
+      </motion.section>
+
 
       {/* BODY: department snapshots (left) + right column */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
