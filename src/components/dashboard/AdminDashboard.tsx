@@ -352,6 +352,11 @@ export default function AdminDashboard() {
 
   const openTasks = filteredTasks.length;
 
+  const clinicNameById = useMemo(
+    () => new Map(clinics.map((c) => [c.id, c.clinic_name] as const)),
+    [clinics]
+  );
+
   const pipeline: PipelineStage[] = useMemo(() => {
     const sc: Record<string, number> = {};
     filteredRequests.forEach(r => { sc[r.status] = (sc[r.status] || 0) + 1; });
