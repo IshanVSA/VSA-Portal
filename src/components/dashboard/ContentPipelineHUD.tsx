@@ -129,18 +129,13 @@ export function ContentPipelineHUD({
                   tone.border
                 )}
               >
-                <span className={cn("text-[10px] font-bold uppercase tracking-wider", tone.text)}>
+                <span className={cn("text-[10.5px] font-semibold uppercase tracking-[0.08em]", tone.text)}>
                   {stage.label}
                 </span>
-                <span
-                  className={cn(
-                    "mt-1 text-2xl font-bold tabular-nums tracking-tight sm:text-3xl",
-                    "text-foreground",
-                    "font-mono"
-                  )}
-                >
-                  {String(stage.count).padStart(2, "0")}
+                <span className="mt-1 text-2xl font-bold tabular-nums tracking-tight text-foreground sm:text-3xl">
+                  {stage.count}
                 </span>
+
                 <span className="mt-1 text-[10px] font-medium text-muted-foreground/70">
                   {pct.toFixed(1)}% of total
                 </span>
