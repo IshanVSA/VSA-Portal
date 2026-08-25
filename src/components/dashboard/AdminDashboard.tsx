@@ -581,23 +581,61 @@ export default function AdminDashboard() {
               {ticketSummary.reduce((s, d) => s + d.open + d.in_progress, 0)}
             </span>
           </header>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
             {Object.entries(deptConfig).map(([dept, cfg]) => {
-              const counts = ticketSummary.find((t) => t.department === dept) || { open: 0, in_progress: 0 };
+              const items = filteredTickets.filter((t) => t.department === dept);
+              const Icon = cfg.icon;
               return (
-                <DeptSummaryCard
-                  key={dept}
-                  icon={cfg.icon}
-                  label={cfg.label}
-                  href={cfg.path}
-                  colorVar={cfg.colorVar}
-                  items={[
-                    { label: "Open", value: counts.open },
-                    { label: "In Progress", value: counts.in_progress },
-                  ]}
-                  total={counts.open + counts.in_progress}
-                  onClick={() => { setTicketsDeptFilter(dept); setTicketsOpen(true); }}
-                />
+                <div key={dept} className="min-w-0">
+                  <div className="mb-2 flex items-center gap-2 border-b border-border/50 pb-1.5">
+                    <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: `hsl(${cfg.colorVar})` }} />
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-foreground">{cfg.label}</span>
+                    <span className="ml-auto text-[11px] font-bold tabular-nums text-muted-foreground">{items.length}</span>
+                  </div>
+                  {items.length === 0 ? (
+                    <p className="py-1 text-[11px] text-muted-foreground">No tickets in this department</p>
+                  ) : (
+                    <ul className="space-y-1">
+                      {items.slice(0, 6).map((t) => (
+                        <li key={t.id}>
+                          <button
+                            type="button"
+                            onClick={() => { setTicketsDeptFilter(dept); setTicketsOpen(true); }}
+                            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-muted/60"
+                          >
+                            <span className="min-w-0 flex-1 truncate text-xs font-medium text-foreground">{t.title}</span>
+                            <span className="hidden max-w-[40%] shrink-0 truncate text-[10px] text-muted-foreground sm:block">
+                              {t.clinic_id ? clinicNameById.get(t.clinic_id) || "—" : "—"}
+                            </span>
+                            <span
+                              className={cn(
+                                "shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase",
+                                t.status === "in_progress"
+                                  ? "bg-primary/10 text-primary"
+                                  : t.status === "emergency"
+                                    ? "bg-destructive/10 text-destructive"
+                                    : "bg-muted text-muted-foreground"
+                              )}
+                            >
+                              {t.status === "in_progress" ? "In progress" : t.status}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                      {items.length > 6 && (
+                        <li>
+                          <button
+                            type="button"
+                            onClick={() => { setTicketsDeptFilter(dept); setTicketsOpen(true); }}
+                            className="px-2 py-1 text-[11px] font-medium text-primary hover:underline"
+                          >
+                            View all {items.length}
+                          </button>
+                        </li>
+                      )}
+                    </ul>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -621,27 +659,63 @@ export default function AdminDashboard() {
               {taskSummary.reduce((s, d) => s + d.todo + d.in_progress, 0)}
             </span>
           </header>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
             {Object.entries(deptConfig).map(([dept, cfg]) => {
-              const counts = taskSummary.find((t) => t.department === dept) || { todo: 0, in_progress: 0 };
+              const items = filteredTasks.filter((t) => t.department === dept);
+              const Icon = cfg.icon;
               return (
-                <DeptSummaryCard
-                  key={dept}
-                  icon={cfg.icon}
-                  label={cfg.label}
-                  colorVar={cfg.colorVar}
-                  items={[
-                    { label: "Todo", value: counts.todo },
-                    { label: "In Progress", value: counts.in_progress },
-                  ]}
-                  total={counts.todo + counts.in_progress}
-                  onClick={() => setTasksOpen(true)}
-                />
+                <div key={dept} className="min-w-0">
+                  <div className="mb-2 flex items-center gap-2 border-b border-border/50 pb-1.5">
+                    <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: `hsl(${cfg.colorVar})` }} />
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-foreground">{cfg.label}</span>
+                    <span className="ml-auto text-[11px] font-bold tabular-nums text-muted-foreground">{items.length}</span>
+                  </div>
+                  {items.length === 0 ? (
+                    <p className="py-1 text-[11px] text-muted-foreground">No tasks in this department</p>
+                  ) : (
+                    <ul className="space-y-1">
+                      {items.slice(0, 6).map((t) => (
+                        <li key={t.id}>
+                          <button
+                            type="button"
+                            onClick={() => setTasksOpen(true)}
+                            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-muted/60"
+                          >
+                            <span className="min-w-0 flex-1 truncate text-xs font-medium text-foreground">{t.title}</span>
+                            <span className="hidden max-w-[40%] shrink-0 truncate text-[10px] text-muted-foreground sm:block">
+                              {t.clinic_id ? clinicNameById.get(t.clinic_id) || "—" : "—"}
+                            </span>
+                            <span
+                              className={cn(
+                                "shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase",
+                                t.status === "in_progress" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                              )}
+                            >
+                              {t.status === "in_progress" ? "In progress" : "Todo"}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                      {items.length > 6 && (
+                        <li>
+                          <button
+                            type="button"
+                            onClick={() => setTasksOpen(true)}
+                            className="px-2 py-1 text-[11px] font-medium text-primary hover:underline"
+                          >
+                            View all {items.length}
+                          </button>
+                        </li>
+                      )}
+                    </ul>
+                  )}
+                </div>
               );
             })}
           </div>
         </div>
       </section>
+
       {/* Pipeline tracker */}
       <section className="px-4 py-6 sm:px-8">
         <ContentPipelineHUD
