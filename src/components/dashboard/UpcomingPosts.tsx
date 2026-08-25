@@ -116,8 +116,15 @@ export default function UpcomingPosts({ filter }: { filter?: DashboardFilter } =
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-[11px] text-muted-foreground hidden sm:inline tabular-nums">
-                      {format(parseISO(post.scheduled_date), "MMM d")}
+                      {(() => {
+                        try {
+                          return post.scheduled_date ? format(parseISO(post.scheduled_date), "MMM d") : "—";
+                        } catch {
+                          return "—";
+                        }
+                      })()}
                     </span>
+
                     <Badge variant={statusVariant(post.status)} className="rounded-full text-[10px]">{post.status}</Badge>
                     <ArrowRight className="h-3 w-3 text-muted-foreground/60" />
                   </div>
