@@ -36,6 +36,7 @@
         "@supabase/supabase-js": "^2.95.3",
         "@tanstack/react-query": "^5.96.2",
         "@types/dompurify": "^3.2.0",
+        "animated-backgrounds": "^2.0.0",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "cmdk": "^1.1.1",
@@ -562,6 +563,8 @@
     "agent-base": ["agent-base@6.0.2", "", { "dependencies": { "debug": "4" } }, "sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ=="],
 
     "ajv": ["ajv@6.12.6", "", { "dependencies": { "fast-deep-equal": "^3.1.1", "fast-json-stable-stringify": "^2.0.0", "json-schema-traverse": "^0.4.1", "uri-js": "^4.2.2" } }, "sha512-j3fVLgvTo527anyYyJOGTYJbG+vnnQYvE0m5mmkc1TK+nxAppkCLMIL0aZ4dblVCNoGShhm+kzE4ZUykBoMg4g=="],
+
+    "animated-backgrounds": ["animated-backgrounds@2.0.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/animated-backgrounds/-/animated-backgrounds-2.0.0.tgz", {}, "sha512-17Nfey+2FxVw+xcWjqxpaoaHBJRHNYopknEOOJ6b44hf7MZ6rcfJRUNMJ10X/pJnmJ7CBKUH1fYz5bFEGosqkw=="],
 
     "ansi-regex": ["ansi-regex@6.1.0", "", {}, "sha512-7HSX4QQb4CspciLpVFwyRe79O3xsIZDDLER21kERQ71oaPodF8jL725AgJMFAYbooIqolJoRLuM81SpeUkpkvA=="],
 
