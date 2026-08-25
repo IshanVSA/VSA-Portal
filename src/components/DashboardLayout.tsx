@@ -384,10 +384,88 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
         sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
         {/* Cosmic mesh animated background */}
+        <style>{`
+          @keyframes float-wave-1 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(6%, 4%) scale(1.08); }
+            66% { transform: translate(-3%, 7%) scale(0.98); }
+          }
+          @keyframes float-wave-2 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(-5%, -6%) scale(1.05); }
+            66% { transform: translate(4%, -3%) scale(1.02); }
+          }
+          @keyframes float-wave-3 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(8%, -8%) scale(1.12); }
+          }
+          @keyframes twinkle {
+            0%, 100% { opacity: 0.25; transform: scale(0.9); }
+            50% { opacity: 1; transform: scale(1.3); }
+          }
+          @keyframes drift-star {
+            0% { transform: translateY(0) translateX(0); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(120px) translateX(80px); opacity: 0; }
+          }
+          @keyframes shimmer-wave {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+          }
+        `}</style>
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-          <div className="absolute top-[-10%] left-[-10%] w-[80%] h-[60%] bg-indigo-600/20 blur-[100px] animate-pulse rounded-full" />
-          <div className="absolute bottom-[-20%] right-[-10%] w-[90%] h-[70%] bg-purple-600/20 blur-[120px] animate-pulse rounded-full" style={{ animationDelay: "2s" }} />
-          <div className="absolute top-[30%] left-[20%] w-[40%] h-[40%] bg-blue-500/10 blur-[80px] animate-pulse rounded-full" style={{ animationDelay: "4s" }} />
+          {/* Branded aurora blobs with wave motion */}
+          <div className="absolute top-[-12%] left-[-12%] w-[85%] h-[65%] rounded-full blur-[90px] bg-indigo-500/35"
+            style={{ animation: "float-wave-1 12s ease-in-out infinite" }} />
+          <div className="absolute bottom-[-22%] right-[-12%] w-[95%] h-[75%] rounded-full blur-[110px] bg-purple-500/35"
+            style={{ animation: "float-wave-2 14s ease-in-out infinite" }} />
+          <div className="absolute top-[25%] left-[15%] w-[45%] h-[45%] rounded-full blur-[70px] bg-cyan-500/25"
+            style={{ animation: "float-wave-3 16s ease-in-out infinite" }} />
+          <div className="absolute top-[55%] left-[-5%] w-[55%] h-[55%] rounded-full blur-[90px] bg-violet-600/20"
+            style={{ animation: "float-wave-1 18s ease-in-out infinite reverse" }} />
+
+          {/* Starfield */}
+          {Array.from({ length: 32 }).map((_, i) => {
+            const top = Math.floor((i * 37) % 100);
+            const left = Math.floor((i * 17) % 100);
+            const size = i % 3 === 0 ? 2 : 1.5;
+            const delay = (i * 0.18) % 5;
+            const duration = 2 + (i % 3) * 1.5;
+            const color = i % 5 === 0 ? "bg-cyan-200" : i % 7 === 0 ? "bg-indigo-200" : "bg-white";
+            return (
+              <div
+                key={`star-${i}`}
+                className={cn("absolute rounded-full", color)}
+                style={{
+                  top: `${top}%`,
+                  left: `${left}%`,
+                  width: size,
+                  height: size,
+                  boxShadow: `0 0 ${size * 2}px currentColor`,
+                  animation: `twinkle ${duration}s ease-in-out infinite`,
+                  animationDelay: `${delay}s`,
+                }}
+              />
+            );
+          })}
+
+          {/* Shooting stars */}
+          <div className="absolute top-[10%] left-[-10%] h-px w-24 bg-gradient-to-r from-transparent via-white to-transparent rotate-12 opacity-70"
+            style={{ animation: "drift-star 4s linear infinite", animationDelay: "0s" }} />
+          <div className="absolute top-[35%] left-[-10%] h-px w-20 bg-gradient-to-r from-transparent via-cyan-200 to-transparent rotate-12 opacity-60"
+            style={{ animation: "drift-star 5s linear infinite", animationDelay: "2.5s" }} />
+          <div className="absolute top-[60%] left-[-10%] h-px w-28 bg-gradient-to-r from-transparent via-purple-200 to-transparent rotate-12 opacity-60"
+            style={{ animation: "drift-star 6s linear infinite", animationDelay: "5s" }} />
+
+          {/* Soft wave shimmer */}
+          <div className="absolute inset-0 opacity-[0.03]"
+            style={{
+              background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.5) 50%, transparent 100%)",
+              backgroundSize: "50% 100%",
+              animation: "shimmer-wave 18s linear infinite",
+            }}
+          />
         </div>
         <div className="relative z-10 flex flex-col h-full text-white backdrop-blur-3xl bg-black/40">
         {/* Logo */}
