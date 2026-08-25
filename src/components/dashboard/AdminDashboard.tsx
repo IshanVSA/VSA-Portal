@@ -219,10 +219,10 @@ export default function AdminDashboard() {
         supabase.from("content_posts").select("id, status, scheduled_date, clinic_id")
           .gte("scheduled_date", new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)),
 
-        supabase.from("department_tickets").select("id, priority, clinic_id"),
+        supabase.from("department_tickets").select("id, priority, clinic_id, title"),
         supabase.from("sm2_generations").select("id, approval_status, sent_to_client_at, clinic_id, month_year"),
         supabase.rpc("get_client_login_summary" as never),
-        supabase.from("department_tasks" as never).select("id, department, status, clinic_id").in("status", ["todo", "in_progress"] as never),
+        supabase.from("department_tasks" as never).select("id, department, status, clinic_id, title").in("status", ["todo", "in_progress"] as never),
       ]);
 
       setClinics((clinicsRes.data || []) as Clinic[]);
@@ -238,7 +238,7 @@ export default function AdminDashboard() {
           .select("id, ticket_id, department, status")
           .in("status", ["open", "in_progress", "emergency"] as never));
         const ticketMap = new Map(ticketRows.map((t) => [t.id, t]));
-        setTickets(((assignmentRows || []) as Omit<TicketAssignmentRow, "priority" | "clinic_id">[]).flatMap((a) => {
+        setTickets(((assignmentRows || []) as Omit<TicketAssignmentRow, "priority" | "clinic_id" | "title">[]).flatMap((a) => {
           const ticket = ticketMap.get(a.ticket_id);
           if (!ticket) return [];
           return [{
@@ -248,6 +248,7 @@ export default function AdminDashboard() {
             status: a.status,
             priority: ticket.priority,
             clinic_id: ticket.clinic_id,
+            title: ticket.title,
           }];
         }));
       } else {
