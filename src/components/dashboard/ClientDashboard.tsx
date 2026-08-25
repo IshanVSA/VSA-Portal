@@ -544,14 +544,15 @@ export default function ClientDashboard() {
                     );
                   })}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
           {/* Upcoming posts (social) */}
           {flags.social_media && (
-            <Card className="border-border/60">
-              <CardContent className="p-5">
+            <div className="py-4">
+              <div>
+
                 <h3 className="text-sm font-semibold text-foreground mb-3">Upcoming posts</h3>
                 {upcomingPosts.length === 0 ? (
                   <p className="text-xs text-muted-foreground py-4 text-center">No upcoming posts.</p>
