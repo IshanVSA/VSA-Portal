@@ -45,21 +45,14 @@ export default function TeamActivityCard() {
     return bt - at;
   });
 
-  const onlineCount = rows.filter(r => r.is_online).length;
+  
 
   return (
-    <section className="rounded-2xl border border-border/60 bg-card">
-      <header className="flex items-center justify-between border-b border-border/50 px-5 py-4">
+    <section className="space-y-2">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-[9px] ring-1 ring-inset ring-border/40 bg-primary/15 text-primary">
-            <Users className="h-3.5 w-3.5" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold tracking-tight text-foreground">Team Activity</h3>
-            <p className="text-[11px] text-muted-foreground">
-              {onlineCount} online · {rows.length} team member{rows.length === 1 ? "" : "s"}
-            </p>
-          </div>
+          <span className="flex h-2 w-2 shrink-0 rounded-full bg-primary" />
+          <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/80">Team Activity</h3>
         </div>
         <Link
           to="/employees?tab=activity"
@@ -67,18 +60,18 @@ export default function TeamActivityCard() {
         >
           View all <ArrowUpRight className="h-3 w-3" />
         </Link>
-      </header>
-      <div className="max-h-[360px] overflow-y-auto px-2 py-2">
+      </div>
+      <div className="max-h-[360px] overflow-y-auto">
         {loading ? (
           <div className="py-8 text-center text-xs text-muted-foreground">Loading...</div>
         ) : sorted.length === 0 ? (
           <div className="py-8 text-center text-xs text-muted-foreground">No team members.</div>
         ) : (
-          <ul className="space-y-0.5">
+          <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2 lg:grid-cols-3">
             {sorted.map(r => (
               <li
                 key={r.user_id}
-                className="flex items-center gap-3 rounded-lg px-2.5 py-2 transition-colors hover:bg-muted/40"
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-muted/40"
               >
                 <span
                   className={cn(
