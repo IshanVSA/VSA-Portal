@@ -540,7 +540,7 @@ export default function AdminDashboard() {
       </section>
 
       {/* Department Health */}
-      <section className="relative">
+      <section className="relative px-4 py-5 sm:px-8">
         <div className="flex flex-wrap items-center gap-2">
           {ticketSummary.length === 0 && taskSummary.length === 0 ? (
             <span className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/80 px-3 py-1.5 text-xs text-muted-foreground">
