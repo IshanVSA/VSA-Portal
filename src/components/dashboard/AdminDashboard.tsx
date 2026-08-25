@@ -37,7 +37,7 @@ import { ContentPipelineHUD } from "./ContentPipelineHUD";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 import { cn } from "@/lib/utils";
-import { StatusMetric, DeptChip, type MetricTone } from "./StatusMetric";
+import { StatusMetric, DeptSummaryCard, type MetricTone } from "./StatusMetric";
 
 interface Clinic {
   id: string;
@@ -555,54 +555,84 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      {/* Department Health */}
-      {(ticketSummary.length > 0 || taskSummary.length > 0) && <section className="relative px-4 py-5 sm:px-8">
-        <div className="flex flex-wrap items-center gap-2">
-          {ticketSummary.length === 0 && taskSummary.length === 0 ? null : (
-
-            ticketSummary.map((dept) => {
-              const cfg = deptConfig[dept.department] || { label: dept.department, icon: Ticket, colorVar: "var(--muted-foreground)" };
-              const taskCounts = taskSummary.find((t) => t.department === dept.department);
+      {/* Tickets by Department */}
+      <section className="px-4 py-5 sm:px-8">
+        <div className="rounded-2xl border border-border/60 bg-background/50 p-4 backdrop-blur-sm sm:p-5">
+          <header className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-inset ring-border/40">
+                <Ticket className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold tracking-tight text-foreground">Tickets by Department</h3>
+                <p className="text-[11px] text-muted-foreground">Open & in-progress tickets</p>
+              </div>
+            </div>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold tabular-nums text-foreground">
+              {ticketSummary.reduce((s, d) => s + d.open + d.in_progress, 0)}
+            </span>
+          </header>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {Object.entries(deptConfig).map(([dept, cfg]) => {
+              const counts = ticketSummary.find((t) => t.department === dept) || { open: 0, in_progress: 0 };
               return (
-                <DeptChip
-                  key={dept.department}
-                  department={dept.department}
+                <DeptSummaryCard
+                  key={dept}
                   icon={cfg.icon}
                   label={cfg.label}
-                  openTickets={dept.open}
-                  inProgressTickets={dept.in_progress}
-                  openTasks={taskCounts?.todo || 0}
-                  inProgressTasks={taskCounts?.in_progress || 0}
+                  href={cfg.path}
                   colorVar={cfg.colorVar}
-                  onClick={() => { setTicketsDeptFilter(dept.department); setTicketsOpen(true); }}
-                  index={0}
-                />
-              );
-            })
-          )}
-          {taskSummary
-            .filter((t) => !ticketSummary.some((d) => d.department === t.department))
-            .map((dept) => {
-              const cfg = deptConfig[dept.department] || { label: dept.department, icon: ClipboardList, colorVar: "var(--muted-foreground)" };
-              return (
-                <DeptChip
-                  key={dept.department}
-                  department={dept.department}
-                  icon={cfg.icon}
-                  label={cfg.label}
-                  openTickets={0}
-                  inProgressTickets={0}
-                  openTasks={dept.todo}
-                  inProgressTasks={dept.in_progress}
-                  colorVar={cfg.colorVar}
-                  onClick={() => setTasksOpen(true)}
-                  index={0}
+                  items={[
+                    { label: "Open", value: counts.open },
+                    { label: "In Progress", value: counts.in_progress },
+                  ]}
+                  total={counts.open + counts.in_progress}
+                  onClick={() => { setTicketsDeptFilter(dept); setTicketsOpen(true); }}
                 />
               );
             })}
+          </div>
         </div>
-      </section>}
+      </section>
 
+      {/* Tasks by Department */}
+      <section className="px-4 py-5 sm:px-8">
+        <div className="rounded-2xl border border-border/60 bg-background/50 p-4 backdrop-blur-sm sm:p-5">
+          <header className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-success/10 text-success ring-1 ring-inset ring-border/40">
+                <ClipboardList className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold tracking-tight text-foreground">Tasks by Department</h3>
+                <p className="text-[11px] text-muted-foreground">Todo & in-progress tasks</p>
+              </div>
+            </div>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold tabular-nums text-foreground">
+              {taskSummary.reduce((s, d) => s + d.todo + d.in_progress, 0)}
+            </span>
+          </header>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {Object.entries(deptConfig).map(([dept, cfg]) => {
+              const counts = taskSummary.find((t) => t.department === dept) || { todo: 0, in_progress: 0 };
+              return (
+                <DeptSummaryCard
+                  key={dept}
+                  icon={cfg.icon}
+                  label={cfg.label}
+                  colorVar={cfg.colorVar}
+                  items={[
+                    { label: "Todo", value: counts.todo },
+                    { label: "In Progress", value: counts.in_progress },
+                  ]}
+                  total={counts.todo + counts.in_progress}
+                  onClick={() => setTasksOpen(true)}
+                />
+              );
+            })}
+          </div>
+        </div>
+      </section>
       {/* Pipeline tracker */}
       <section className="px-4 py-6 sm:px-8">
         <ContentPipelineHUD

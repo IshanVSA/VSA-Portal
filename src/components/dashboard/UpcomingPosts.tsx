@@ -55,13 +55,14 @@ export default function UpcomingPosts({ filter }: { filter?: DashboardFilter } =
 
       const mapped: UpcomingPost[] = (data || []).map((p: any) => ({
         id: p.id,
-        title: p.title,
-        platform: p.platform,
-        status: p.status,
+        title: p.title || "Untitled",
+        platform: p.platform || "",
+        status: p.status || "draft",
         scheduled_date: p.scheduled_date,
         clinic_id: p.clinic_id || null,
         clinic_name: p.clinics?.clinic_name || "Unknown",
       }));
+
       setAllPosts(mapped);
       setLoading(false);
     };
@@ -115,8 +116,15 @@ export default function UpcomingPosts({ filter }: { filter?: DashboardFilter } =
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-[11px] text-muted-foreground hidden sm:inline tabular-nums">
-                      {format(parseISO(post.scheduled_date), "MMM d")}
+                      {(() => {
+                        try {
+                          return post.scheduled_date ? format(parseISO(post.scheduled_date), "MMM d") : "—";
+                        } catch {
+                          return "—";
+                        }
+                      })()}
                     </span>
+
                     <Badge variant={statusVariant(post.status)} className="rounded-full text-[10px]">{post.status}</Badge>
                     <ArrowRight className="h-3 w-3 text-muted-foreground/60" />
                   </div>
