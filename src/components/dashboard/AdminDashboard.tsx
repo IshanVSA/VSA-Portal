@@ -37,7 +37,6 @@ import { ContentPipelineHUD } from "./ContentPipelineHUD";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 import { cn } from "@/lib/utils";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusMetric, DeptChip, type MetricTone } from "./StatusMetric";
 
 interface Clinic {
