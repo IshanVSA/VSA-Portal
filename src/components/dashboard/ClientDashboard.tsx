@@ -398,7 +398,7 @@ export default function ClientDashboard() {
         <div className={cn("relative grid grid-cols-2 gap-x-6 gap-y-4 lg:gap-x-8", gridCols)}>
           {kpis.map((c, i) => (
             <div key={c.key} className="relative">
-              {i > 0 && <MetricDivider from={i >= 3 ? "lg" : i >= 1 ? "sm" : "always"} />}
+              {i > 0 && <MetricDivider from={i % 2 === 0 ? "sm" : "always"} />}
               <StatusMetric
                 label={c.label}
                 value={c.value}
