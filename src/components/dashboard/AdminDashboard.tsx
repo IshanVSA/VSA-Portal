@@ -499,7 +499,7 @@ export default function AdminDashboard() {
         )}
 
         {/* Status strip */}
-        <div className="relative mt-6 flex flex-wrap items-stretch gap-4 sm:gap-6 lg:gap-10">
+        <div className="relative mt-6 grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3 lg:grid-cols-5 lg:gap-x-8">
           <StatusMetric
             label="Active Clinics"
             value={activeClinics}
