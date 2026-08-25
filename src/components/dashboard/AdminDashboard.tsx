@@ -555,12 +555,8 @@ export default function AdminDashboard() {
       {/* Department Health */}
       <section className="relative px-4 py-5 sm:px-8">
         <div className="flex flex-wrap items-center gap-2">
-          {ticketSummary.length === 0 && taskSummary.length === 0 ? (
-            <span className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/80 px-3 py-1.5 text-xs text-muted-foreground">
-              <Activity className="h-3.5 w-3.5" />
-              All systems clear
-            </span>
-          ) : (
+          {ticketSummary.length === 0 && taskSummary.length === 0 ? null : (
+
             ticketSummary.map((dept) => {
               const cfg = deptConfig[dept.department] || { label: dept.department, icon: Ticket, colorVar: "var(--muted-foreground)" };
               const taskCounts = taskSummary.find((t) => t.department === dept.department);
