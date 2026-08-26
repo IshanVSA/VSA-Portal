@@ -1,7 +1,7 @@
 // Card removed in iOS pass
 import KPICard from "@/components/dashboard/KPICard";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { BarChart3, CheckCircle2, Clock, AlertTriangle, Inbox, Sparkles, LucideIcon } from "lucide-react";
+import { BarChart3, CheckCircle2, Clock, AlertTriangle, Inbox, Sparkles, LucideIcon, Zap } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
