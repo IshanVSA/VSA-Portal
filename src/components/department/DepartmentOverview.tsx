@@ -172,8 +172,7 @@ export function DepartmentOverview({
                     whileHover={{ y: -2, scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     transition={{ duration: 0.2 }}
-                    className="group flex flex-col items-start gap-2 p-3 rounded-xl border border-border/40 bg-card/60 hover:border-primary/40 hover:bg-accent/50 transition-[color,background-color,border-color,box-shadow] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
-                    style={{ focusVisibleRingColor: accentColor }}
+                    className="group flex flex-col items-start gap-2 p-3 rounded-xl border border-border/40 bg-card/60 hover:border-primary/40 hover:bg-accent/50 transition-[color,background-color,border-color,box-shadow] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
                   >
                     <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center", color)}>
                       <Icon className="h-4 w-4" />
