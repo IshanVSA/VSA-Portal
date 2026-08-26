@@ -148,8 +148,8 @@ export function DepartmentOverview({
             <span className="text-[11px] text-muted-foreground/70">Click any tile to create a ticket</span>
           </div>
           <div
-            className="rounded-2xl bg-card border shadow-sm p-4 ring-1 ring-inset"
-            style={{ borderLeftWidth: "4px", borderLeftColor: accentColor, borderColor: "hsl(var(--border) / 0.45)", boxShadow: `0 1px 2px 0 rgb(0 0 0 / 0.05), 0 0 0 1px ${accentColor}20, 0 4px 14px -4px ${accentColor}25`, ringColor: `${accentColor}20` }}
+            className="rounded-2xl bg-card border shadow-sm p-4"
+            style={{ borderLeftWidth: "4px", borderLeftColor: accentColor, borderColor: "hsl(var(--border) / 0.45)", boxShadow: `0 1px 2px 0 rgb(0 0 0 / 0.05), 0 0 0 1px ${accentColor}20, 0 4px 14px -4px ${accentColor}25` }}
           >
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               {services.map((s, idx) => {
