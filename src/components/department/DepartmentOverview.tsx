@@ -1,7 +1,7 @@
 // Card removed in iOS pass
 import KPICard from "@/components/dashboard/KPICard";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { BarChart3, CheckCircle2, Clock, AlertTriangle, Inbox, Sparkles, LucideIcon } from "lucide-react";
+import { BarChart3, CheckCircle2, Clock, AlertTriangle, Inbox, Sparkles, LucideIcon, Zap } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
@@ -134,21 +134,32 @@ export function DepartmentOverview({
 
       {/* Quick Actions */}
       {!hideQuickActions && (
-        <motion.div variants={staggerItem} className="space-y-1.5">
-          <div className="px-4 flex items-end justify-between">
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/80">Quick Actions</h3>
-            <span className="text-[11px] text-muted-foreground/70">Click to create a ticket</span>
+        <motion.div variants={staggerItem} className="space-y-2">
+          <div className="px-1 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="h-6 w-6 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${accentColor}15`, color: accentColor }}>
+                <Zap className="h-3.5 w-3.5" />
+              </div>
+              <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-foreground">Quick Actions</h3>
+              <span className="hidden sm:inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ backgroundColor: `${accentColor}15`, color: accentColor }}>
+                New ticket
+              </span>
+            </div>
+            <span className="text-[11px] text-muted-foreground/70">Click any tile to create a ticket</span>
           </div>
-          <div className="rounded-2xl bg-card border border-border/40 shadow-sm p-4">
+          <div
+            className="rounded-2xl bg-card border shadow-sm p-4"
+            style={{ borderLeftWidth: "4px", borderLeftColor: accentColor, borderColor: "hsl(var(--border) / 0.45)", boxShadow: `0 1px 2px 0 rgb(0 0 0 / 0.05), 0 0 0 1px ${accentColor}20, 0 4px 14px -4px ${accentColor}25` }}
+          >
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-              {services.map(s => {
+              {services.map((s, idx) => {
                 const meta = getQuickActionMeta(department, s);
                 const Icon = meta?.icon ?? Sparkles;
                 const title = meta?.title ?? getTicketTypeLabel(s);
                 const helper = meta?.helper ?? "Create a ticket for this request";
                 const color = meta?.color ?? "text-primary bg-primary/10";
                 return (
-                  <button
+                  <motion.button
                     key={s}
                     onClick={() => {
                       if (s === "Bulk Uploads") {
@@ -158,7 +169,10 @@ export function DepartmentOverview({
                         setTicketDialogOpen(true);
                       }
                     }}
-                    className="group flex flex-col items-start gap-2 p-3 rounded-xl border border-border/40 bg-card/60 hover:border-primary/40 hover:bg-accent/40 transition-[color,background-color,border-color,box-shadow,transform,opacity] text-left"
+                    whileHover={{ y: -2, scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ duration: 0.2 }}
+                    className="group flex flex-col items-start gap-2 p-3 rounded-xl border border-border/40 bg-card/60 hover:border-primary/40 hover:bg-accent/50 transition-[color,background-color,border-color,box-shadow] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
                   >
                     <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center", color)}>
                       <Icon className="h-4 w-4" />
@@ -167,7 +181,7 @@ export function DepartmentOverview({
                       <p className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">{title}</p>
                       <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">{helper}</p>
                     </div>
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>
