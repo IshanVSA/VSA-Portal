@@ -187,6 +187,10 @@ export default function AuthErrorLogs() {
       }
       map[uid] = { kind, name, clinics };
     }
+    // Alias by email so rows without a stored user_id still resolve.
+    emailToUser.forEach((uid, mail) => {
+      if (map[uid]) map[mail] = map[uid];
+    });
     setIdentities(map);
   }, []);
 
