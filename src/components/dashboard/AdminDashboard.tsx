@@ -717,7 +717,7 @@ export default function AdminDashboard() {
                         <li key={t.id}>
                           <button
                             type="button"
-                            onClick={() => setTasksOpen(true)}
+                            onClick={() => { setTasksDeptFilter(dept); setTasksOpen(true); }}
                             className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-muted/60"
                           >
                             <span className="min-w-0 flex-1 truncate text-xs font-medium text-foreground">{t.title}</span>
@@ -739,7 +739,7 @@ export default function AdminDashboard() {
                         <li>
                           <button
                             type="button"
-                            onClick={() => setTasksOpen(true)}
+                            onClick={() => { setTasksDeptFilter(dept); setTasksOpen(true); }}
                             className="px-2 py-1 text-[11px] font-medium text-primary hover:underline"
                           >
                             View all {items.length}
