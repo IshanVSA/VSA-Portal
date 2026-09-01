@@ -270,6 +270,22 @@ export default function AuthErrorLogs() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant="outline" className="shrink-0">{CONTEXT_LABEL[r.context] ?? r.context}</Badge>
                       <span className="text-sm font-medium truncate">{r.email ?? "unknown email"}</span>
+                      {(() => {
+                        const id = r.user_id ? identities[r.user_id] : undefined;
+                        if (!id) return null;
+                        return (
+                          <>
+                            <Badge variant="outline" className={`shrink-0 ${KIND_BADGE_CLASS[id.kind]}`}>
+                              {KIND_LABEL[id.kind]}
+                            </Badge>
+                            {(id.kind === "client" || id.kind === "sub_client") && id.clinics.length > 0 && (
+                              <span className="text-xs text-muted-foreground truncate">
+                                {id.clinics.join(", ")}
+                              </span>
+                            )}
+                          </>
+                        );
+                      })()}
                       {r.success ? (
                         <Badge className="shrink-0 bg-emerald-500/15 text-emerald-500 border-emerald-500/30" variant="outline">
                           Successful
