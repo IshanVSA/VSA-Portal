@@ -96,7 +96,30 @@ export default function AuthErrorLogs() {
   }, []);
 
   const loadIdentities = useCallback(async (rows: AuthErrorRow[]) => {
-    const userIds = [...new Set(rows.map((r) => r.user_id).filter(Boolean))] as string[];
+    // Older rows have no user_id — resolve those accounts by email instead.
+    const emails = [
+      ...new Set(
+        rows
+          .filter((r) => !r.user_id && r.email)
+          .map((r) => (r.email as string).trim().toLowerCase()),
+      ),
+    ];
+    const emailToUser = new Map<string, string>();
+    if (emails.length > 0) {
+      const { data: byEmail } = await supabase
+        .from("profiles")
+        .select("user_id, email")
+        .in("email", emails);
+      (byEmail ?? []).forEach((p) => {
+        if (p.email && p.user_id) emailToUser.set(p.email.trim().toLowerCase(), p.user_id);
+      });
+    }
+    const userIds = [
+      ...new Set([
+        ...(rows.map((r) => r.user_id).filter(Boolean) as string[]),
+        ...emailToUser.values(),
+      ]),
+    ];
     if (userIds.length === 0) {
       setIdentities({});
       return;
