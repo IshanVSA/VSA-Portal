@@ -24,6 +24,28 @@ interface AuthErrorRow {
   route: string | null;
 }
 
+interface IdentityInfo {
+  kind: "admin" | "team" | "client" | "sub_client" | "unknown";
+  name: string | null;
+  clinics: string[];
+}
+
+const KIND_LABEL: Record<IdentityInfo["kind"], string> = {
+  admin: "Admin",
+  team: "Team member",
+  client: "Client",
+  sub_client: "Client sub-account",
+  unknown: "Unknown account",
+};
+
+const KIND_BADGE_CLASS: Record<IdentityInfo["kind"], string> = {
+  admin: "bg-purple-500/15 text-purple-400 border-purple-500/30",
+  team: "bg-sky-500/15 text-sky-400 border-sky-500/30",
+  client: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+  sub_client: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+  unknown: "bg-muted text-muted-foreground border-border",
+};
+
 const CONTEXT_LABEL: Record<string, string> = {
   login: "Sign in",
   password_reset: "Password reset",
