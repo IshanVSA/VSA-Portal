@@ -96,7 +96,7 @@ export async function logAuthSuccess(email: string, userId?: string | null): Pro
     context: "login",
     success: true,
     failure_kind: null,
-    user_id: userId ?? null,
+    user_id: resolved,
     error_code: null,
     error_status: null,
     error_message: null,
