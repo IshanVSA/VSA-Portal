@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 interface OpenTasksListProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialDepartment?: string | null;
 }
 
 interface OpenTaskRow {
@@ -68,11 +69,15 @@ function taskLink(t: OpenTaskRow): string {
   return `${base}?${params.toString()}`;
 }
 
-export default function OpenTasksList({ open, onOpenChange }: OpenTasksListProps) {
+export default function OpenTasksList({ open, onOpenChange, initialDepartment = null }: OpenTasksListProps) {
   const [tasks, setTasks] = useState<OpenTaskRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
-  const [deptFilter, setDeptFilter] = useState<string | null>(null);
+  const [deptFilter, setDeptFilter] = useState<string | null>(initialDepartment);
+
+  useEffect(() => {
+    if (open) setDeptFilter(initialDepartment);
+  }, [open, initialDepartment]);
 
   useEffect(() => {
     if (!open) return;
