@@ -82,12 +82,21 @@ export async function logAuthError(input: LogAuthErrorInput): Promise<void> {
 
 /** Records a successful sign-in so admins can see the full attempt history. */
 export async function logAuthSuccess(email: string, userId?: string | null): Promise<void> {
+  let resolved = userId ?? null;
+  if (!resolved) {
+    try {
+      const { data } = await supabase.auth.getUser();
+      resolved = data?.user?.id ?? null;
+    } catch {
+      resolved = null;
+    }
+  }
   await insertRow({
     ...baseRow(email),
     context: "login",
     success: true,
     failure_kind: null,
-    user_id: userId ?? null,
+    user_id: resolved,
     error_code: null,
     error_status: null,
     error_message: null,

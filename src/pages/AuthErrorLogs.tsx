@@ -96,7 +96,30 @@ export default function AuthErrorLogs() {
   }, []);
 
   const loadIdentities = useCallback(async (rows: AuthErrorRow[]) => {
-    const userIds = [...new Set(rows.map((r) => r.user_id).filter(Boolean))] as string[];
+    // Older rows have no user_id — resolve those accounts by email instead.
+    const emails = [
+      ...new Set(
+        rows
+          .filter((r) => !r.user_id && r.email)
+          .map((r) => (r.email as string).trim().toLowerCase()),
+      ),
+    ];
+    const emailToUser = new Map<string, string>();
+    if (emails.length > 0) {
+      const { data: byEmail } = await supabase
+        .from("profiles")
+        .select("user_id, email")
+        .in("email", emails);
+      (byEmail ?? []).forEach((p) => {
+        if (p.email && p.user_id) emailToUser.set(p.email.trim().toLowerCase(), p.user_id);
+      });
+    }
+    const userIds = [
+      ...new Set([
+        ...(rows.map((r) => r.user_id).filter(Boolean) as string[]),
+        ...emailToUser.values(),
+      ]),
+    ];
     if (userIds.length === 0) {
       setIdentities({});
       return;
@@ -164,8 +187,19 @@ export default function AuthErrorLogs() {
       }
       map[uid] = { kind, name, clinics };
     }
+    // Alias by email so rows without a stored user_id still resolve.
+    emailToUser.forEach((uid, mail) => {
+      if (map[uid]) map[mail] = map[uid];
+    });
     setIdentities(map);
   }, []);
+
+  const identityFor = useCallback(
+    (r: AuthErrorRow): IdentityInfo | undefined =>
+      (r.user_id ? identities[r.user_id] : undefined) ??
+      (r.email ? identities[r.email.trim().toLowerCase()] : undefined),
+    [identities],
+  );
 
   useEffect(() => {
     load();
@@ -271,7 +305,7 @@ export default function AuthErrorLogs() {
                       <Badge variant="outline" className="shrink-0">{CONTEXT_LABEL[r.context] ?? r.context}</Badge>
                       <span className="text-sm font-medium truncate">{r.email ?? "unknown email"}</span>
                       {(() => {
-                        const id = r.user_id ? identities[r.user_id] : undefined;
+                        const id = identityFor(r);
                         if (!id) return null;
                         return (
                           <>
@@ -324,16 +358,18 @@ export default function AuthErrorLogs() {
                 {expanded === r.id && (
                   <div className="mt-3 grid gap-1.5 text-xs text-muted-foreground border-t border-border/60 pt-3">
                     <div><span className="text-foreground/70">Time:</span> {new Date(r.created_at).toLocaleString()}</div>
-                    {r.user_id && identities[r.user_id] && (
-                      <div>
-                        <span className="text-foreground/70">Account:</span>{" "}
-                        {KIND_LABEL[identities[r.user_id].kind]}
-                        {identities[r.user_id].name ? ` · ${identities[r.user_id].name}` : ""}
-                        {identities[r.user_id].clinics.length > 0
-                          ? ` · ${identities[r.user_id].clinics.join(", ")}`
-                          : ""}
-                      </div>
-                    )}
+                    {(() => {
+                      const id = identityFor(r);
+                      if (!id) return null;
+                      return (
+                        <div>
+                          <span className="text-foreground/70">Account:</span>{" "}
+                          {KIND_LABEL[id.kind]}
+                          {id.name ? ` · ${id.name}` : ""}
+                          {id.clinics.length > 0 ? ` · ${id.clinics.join(", ")}` : ""}
+                        </div>
+                      );
+                    })()}
                     {r.friendly_message && <div><span className="text-foreground/70">Shown to user:</span> {r.friendly_message}</div>}
                     {r.route && <div><span className="text-foreground/70">Route:</span> {r.route}</div>}
                     {r.user_id && <div className="break-all"><span className="text-foreground/70">User ID:</span> {r.user_id}</div>}
