@@ -845,7 +845,7 @@ export default function AdminDashboard() {
       </div>
 
       <OpenTicketsList open={ticketsOpen} onOpenChange={setTicketsOpen} initialDepartment={ticketsDeptFilter} />
-      <OpenTasksList open={tasksOpen} onOpenChange={setTasksOpen} />
+      <OpenTasksList open={tasksOpen} onOpenChange={setTasksOpen} initialDepartment={tasksDeptFilter} />
 
       <Dialog open={!!pipelineDialogStage} onOpenChange={(o) => { if (!o) setPipelineDialogStage(null); }}>
         <DialogContent className="max-w-lg">
