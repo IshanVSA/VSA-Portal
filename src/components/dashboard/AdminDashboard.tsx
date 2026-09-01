@@ -578,9 +578,19 @@ export default function AdminDashboard() {
                 <p className="text-[11px] text-muted-foreground">Open & in-progress tickets</p>
               </div>
             </div>
-            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold tabular-nums text-foreground">
-              {ticketSummary.reduce((s, d) => s + d.open + d.in_progress, 0)}
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => { setTicketsDeptFilter(null); setTicketsOpen(true); }}
+                className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/20"
+              >
+                View all tickets
+                <ArrowUpRight className="h-3 w-3" />
+              </button>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold tabular-nums text-foreground">
+                {ticketSummary.reduce((s, d) => s + d.open + d.in_progress, 0)}
+              </span>
+            </div>
           </header>
           <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
             {Object.entries(deptConfig).map(([dept, cfg]) => {
@@ -592,6 +602,15 @@ export default function AdminDashboard() {
                     <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: `hsl(${cfg.colorVar})` }} />
                     <span className="text-[11px] font-semibold uppercase tracking-wide text-foreground">{cfg.label}</span>
                     <span className="ml-auto text-[11px] font-bold tabular-nums text-muted-foreground">{items.length}</span>
+                    <button
+                      type="button"
+                      onClick={() => { setTicketsDeptFilter(dept); setTicketsOpen(true); }}
+                      className="flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium text-primary transition-colors hover:bg-primary/10"
+                      aria-label={`View all ${cfg.label} tickets`}
+                    >
+                      View all
+                      <ArrowUpRight className="h-3 w-3" />
+                    </button>
                   </div>
                   {items.length === 0 ? (
                     <p className="py-1 text-[11px] text-muted-foreground">No tickets in this department</p>
