@@ -298,7 +298,7 @@ export default function AuthErrorLogs() {
                       <Badge variant="outline" className="shrink-0">{CONTEXT_LABEL[r.context] ?? r.context}</Badge>
                       <span className="text-sm font-medium truncate">{r.email ?? "unknown email"}</span>
                       {(() => {
-                        const id = r.user_id ? identities[r.user_id] : undefined;
+                        const id = identityFor(r);
                         if (!id) return null;
                         return (
                           <>
