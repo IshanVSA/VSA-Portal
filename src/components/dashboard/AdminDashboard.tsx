@@ -201,6 +201,7 @@ export default function AdminDashboard() {
   const [ticketsOpen, setTicketsOpen] = useState(false);
   const [ticketsDeptFilter, setTicketsDeptFilter] = useState<string | null>(null);
   const [tasksOpen, setTasksOpen] = useState(false);
+  const [tasksDeptFilter, setTasksDeptFilter] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
