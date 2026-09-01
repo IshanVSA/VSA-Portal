@@ -4154,6 +4154,15 @@ export type Database = {
         Args: { _ticket_id: string }
         Returns: Database["public"]["Enums"]["ticket_status"]
       }
+      create_clinic_onboarding_tasks: {
+        Args: {
+          _clinic_id: string
+          _clinic_name: string
+          _creator: string
+          _department: Database["public"]["Enums"]["department_type"]
+        }
+        Returns: undefined
+      }
       delete_clinic_by_id: { Args: { _clinic_id: string }; Returns: undefined }
       extract_city_from_address: { Args: { _address: string }; Returns: string }
       get_accessible_clinic_ids: {
