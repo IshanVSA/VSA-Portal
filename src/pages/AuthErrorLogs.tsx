@@ -194,6 +194,13 @@ export default function AuthErrorLogs() {
     setIdentities(map);
   }, []);
 
+  const identityFor = useCallback(
+    (r: AuthErrorRow): IdentityInfo | undefined =>
+      (r.user_id ? identities[r.user_id] : undefined) ??
+      (r.email ? identities[r.email.trim().toLowerCase()] : undefined),
+    [identities],
+  );
+
   useEffect(() => {
     load();
     const interval = setInterval(() => load(true), 3_600_000);
