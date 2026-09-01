@@ -24,6 +24,28 @@ interface AuthErrorRow {
   route: string | null;
 }
 
+interface IdentityInfo {
+  kind: "admin" | "team" | "client" | "sub_client" | "unknown";
+  name: string | null;
+  clinics: string[];
+}
+
+const KIND_LABEL: Record<IdentityInfo["kind"], string> = {
+  admin: "Admin",
+  team: "Team member",
+  client: "Client",
+  sub_client: "Client sub-account",
+  unknown: "Unknown account",
+};
+
+const KIND_BADGE_CLASS: Record<IdentityInfo["kind"], string> = {
+  admin: "bg-purple-500/15 text-purple-400 border-purple-500/30",
+  team: "bg-sky-500/15 text-sky-400 border-sky-500/30",
+  client: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+  sub_client: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+  unknown: "bg-muted text-muted-foreground border-border",
+};
+
 const CONTEXT_LABEL: Record<string, string> = {
   login: "Sign in",
   password_reset: "Password reset",
@@ -58,6 +80,7 @@ export default function AuthErrorLogs() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [identities, setIdentities] = useState<Record<string, IdentityInfo>>({});
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setRefreshing(true);
@@ -66,8 +89,82 @@ export default function AuthErrorLogs() {
       .select("*")
       .order("created_at", { ascending: false })
       .limit(300);
-    setRows((data as unknown as AuthErrorRow[]) ?? []);
+    const rows = (data as unknown as AuthErrorRow[]) ?? [];
+    setRows(rows);
+    loadIdentities(rows);
     setRefreshing(false);
+  }, []);
+
+  const loadIdentities = useCallback(async (rows: AuthErrorRow[]) => {
+    const userIds = [...new Set(rows.map((r) => r.user_id).filter(Boolean))] as string[];
+    if (userIds.length === 0) {
+      setIdentities({});
+      return;
+    }
+    const [rolesRes, profilesRes, clinicsRes, subsRes, subClinicsRes] = await Promise.all([
+      supabase.from("user_roles").select("user_id, role").in("user_id", userIds),
+      supabase.from("profiles").select("user_id, full_name").in("user_id", userIds),
+      supabase.from("clinics").select("clinic_name, owner_user_id").in("owner_user_id", userIds),
+      supabase.from("client_sub_accounts").select("parent_user_id, sub_user_id").in("sub_user_id", userIds),
+      supabase.from("sub_account_clinics").select("sub_account_id, clinic_id").in("sub_account_id", userIds),
+    ]);
+    const clinicNames = new Map<string, string>();
+    const clinicIdsNeeded = (subClinicsRes.data ?? []).map((s) => s.clinic_id);
+    if (clinicIdsNeeded.length > 0) {
+      const { data: cs } = await supabase.from("clinics").select("id, clinic_name").in("id", clinicIdsNeeded);
+      (cs ?? []).forEach((c) => clinicNames.set(c.id, c.clinic_name));
+    }
+    // Clinics owned by parent clients, for showing a sub-account's parent clinics.
+    const parentIds = [...new Set((subsRes.data ?? []).map((s) => s.parent_user_id))];
+    const parentClinics = new Map<string, string[]>();
+    if (parentIds.length > 0) {
+      const { data: pcs } = await supabase.from("clinics").select("clinic_name, owner_user_id").in("owner_user_id", parentIds);
+      (pcs ?? []).forEach((c) => {
+        const list = parentClinics.get(c.owner_user_id) ?? [];
+        list.push(c.clinic_name);
+        parentClinics.set(c.owner_user_id, list);
+      });
+    }
+    const roleByUser = new Map((rolesRes.data ?? []).map((r) => [r.user_id, r.role]));
+    const nameByUser = new Map((profilesRes.data ?? []).map((p) => [p.user_id, p.full_name]));
+    const ownedClinics = new Map<string, string[]>();
+    (clinicsRes.data ?? []).forEach((c) => {
+      const list = ownedClinics.get(c.owner_user_id) ?? [];
+      list.push(c.clinic_name);
+      ownedClinics.set(c.owner_user_id, list);
+    });
+    const parentBySub = new Map((subsRes.data ?? []).map((s) => [s.sub_user_id, s.parent_user_id]));
+    const subClinicIdsBySub = new Map<string, string[]>();
+    (subClinicsRes.data ?? []).forEach((s) => {
+      const list = subClinicIdsBySub.get(s.sub_account_id) ?? [];
+      list.push(s.clinic_id);
+      subClinicIdsBySub.set(s.sub_account_id, list);
+    });
+
+    const map: Record<string, IdentityInfo> = {};
+    for (const uid of userIds) {
+      const role = roleByUser.get(uid);
+      const name = nameByUser.get(uid) ?? null;
+      let kind: IdentityInfo["kind"] = "unknown";
+      let clinics: string[] = [];
+      if (role === "admin") kind = "admin";
+      else if (role === "concierge") kind = "team";
+      else if (role === "client") {
+        kind = "client";
+        clinics = ownedClinics.get(uid) ?? [];
+      } else if (role === "sub_client") {
+        kind = "sub_client";
+        const explicit = (subClinicIdsBySub.get(uid) ?? [])
+          .map((id) => clinicNames.get(id))
+          .filter(Boolean) as string[];
+        clinics = explicit.length > 0 ? explicit : (parentClinics.get(parentBySub.get(uid) ?? "") ?? []);
+      } else if (ownedClinics.has(uid)) {
+        kind = "client";
+        clinics = ownedClinics.get(uid) ?? [];
+      }
+      map[uid] = { kind, name, clinics };
+    }
+    setIdentities(map);
   }, []);
 
   useEffect(() => {
@@ -173,6 +270,22 @@ export default function AuthErrorLogs() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant="outline" className="shrink-0">{CONTEXT_LABEL[r.context] ?? r.context}</Badge>
                       <span className="text-sm font-medium truncate">{r.email ?? "unknown email"}</span>
+                      {(() => {
+                        const id = r.user_id ? identities[r.user_id] : undefined;
+                        if (!id) return null;
+                        return (
+                          <>
+                            <Badge variant="outline" className={`shrink-0 ${KIND_BADGE_CLASS[id.kind]}`}>
+                              {KIND_LABEL[id.kind]}
+                            </Badge>
+                            {(id.kind === "client" || id.kind === "sub_client") && id.clinics.length > 0 && (
+                              <span className="text-xs text-muted-foreground truncate">
+                                {id.clinics.join(", ")}
+                              </span>
+                            )}
+                          </>
+                        );
+                      })()}
                       {r.success ? (
                         <Badge className="shrink-0 bg-emerald-500/15 text-emerald-500 border-emerald-500/30" variant="outline">
                           Successful
@@ -211,6 +324,16 @@ export default function AuthErrorLogs() {
                 {expanded === r.id && (
                   <div className="mt-3 grid gap-1.5 text-xs text-muted-foreground border-t border-border/60 pt-3">
                     <div><span className="text-foreground/70">Time:</span> {new Date(r.created_at).toLocaleString()}</div>
+                    {r.user_id && identities[r.user_id] && (
+                      <div>
+                        <span className="text-foreground/70">Account:</span>{" "}
+                        {KIND_LABEL[identities[r.user_id].kind]}
+                        {identities[r.user_id].name ? ` · ${identities[r.user_id].name}` : ""}
+                        {identities[r.user_id].clinics.length > 0
+                          ? ` · ${identities[r.user_id].clinics.join(", ")}`
+                          : ""}
+                      </div>
+                    )}
                     {r.friendly_message && <div><span className="text-foreground/70">Shown to user:</span> {r.friendly_message}</div>}
                     {r.route && <div><span className="text-foreground/70">Route:</span> {r.route}</div>}
                     {r.user_id && <div className="break-all"><span className="text-foreground/70">User ID:</span> {r.user_id}</div>}
