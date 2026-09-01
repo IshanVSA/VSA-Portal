@@ -80,6 +80,7 @@ export default function AuthErrorLogs() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [identities, setIdentities] = useState<Record<string, IdentityInfo>>({});
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setRefreshing(true);
