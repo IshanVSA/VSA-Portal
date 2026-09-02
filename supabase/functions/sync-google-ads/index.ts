@@ -192,6 +192,10 @@ Deno.serve(async (req) => {
     let totalConversions = 0;
     const dailyMap: Record<string, { clicks: number; impressions: number; cost_micros: number; conversions: number }> = {};
     const campaignMap: Record<string, { clicks: number; impressions: number; cost_micros: number; conversions: number }> = {};
+    const campaignMap30: Record<string, { clicks: number; impressions: number; cost_micros: number; conversions: number }> = {};
+    const _cutoff30 = new Date();
+    _cutoff30.setUTCDate(_cutoff30.getUTCDate() - 30);
+    const cutoff30 = fmt(_cutoff30);
 
     for (const batch of batches) {
       const results = batch.results || [];
@@ -219,6 +223,14 @@ Deno.serve(async (req) => {
         campaignMap[campaignName].impressions += impressions;
         campaignMap[campaignName].cost_micros += costMicros;
         campaignMap[campaignName].conversions += conversions;
+
+        if (date >= cutoff30) {
+          if (!campaignMap30[campaignName]) campaignMap30[campaignName] = { clicks: 0, impressions: 0, cost_micros: 0, conversions: 0 };
+          campaignMap30[campaignName].clicks += clicks;
+          campaignMap30[campaignName].impressions += impressions;
+          campaignMap30[campaignName].cost_micros += costMicros;
+          campaignMap30[campaignName].conversions += conversions;
+        }
       }
     }
 
@@ -233,6 +245,14 @@ Deno.serve(async (req) => {
       }));
 
     const campaigns = Object.entries(campaignMap).map(([name, data]) => ({
+      name,
+      clicks: data.clicks,
+      impressions: data.impressions,
+      cost: data.cost_micros / 1_000_000,
+      conversions: data.conversions,
+    }));
+
+    const campaigns30d = Object.entries(campaignMap30).map(([name, data]) => ({
       name,
       clicks: data.clicks,
       impressions: data.impressions,
@@ -359,6 +379,7 @@ Deno.serve(async (req) => {
         conversions: totalConversions,
         daily_trends: dailyTrends,
         campaigns,
+        campaigns_30d: campaigns30d,
         search_terms: searchTerms,
       },
     });

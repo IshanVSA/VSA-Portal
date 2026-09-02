@@ -60,7 +60,9 @@ export function useGoogleAdsKPIs(clinicId: string): GoogleAdsKPIs {
         value: d.clicks,
       }));
 
-      const campaigns = ((m.campaigns || []) as any[])
+      // Prefer the last-30-days campaign rollup; fall back to legacy all-window campaigns
+      const campaignsSource = Array.isArray(m.campaigns_30d) && m.campaigns_30d.length > 0 ? m.campaigns_30d : (m.campaigns || []);
+      const campaigns = (campaignsSource as any[])
         .sort((a: any, b: any) => (b.cost || 0) - (a.cost || 0))
         .slice(0, 5)
         .map((c: any) => {

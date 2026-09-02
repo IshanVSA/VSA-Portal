@@ -69,6 +69,7 @@ export default function GoogleAdsDepartment() {
       <div className="px-4 py-3 border-b border-border/40">
         <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
           <Megaphone className="h-3.5 w-3.5 text-muted-foreground" /> Top Campaigns
+          <span className="ml-auto text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Last 30 days</span>
         </h3>
       </div>
       <CardContent className="p-0">
