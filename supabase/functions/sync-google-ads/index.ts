@@ -252,6 +252,14 @@ Deno.serve(async (req) => {
       conversions: data.conversions,
     }));
 
+    const campaigns30d = Object.entries(campaignMap30).map(([name, data]) => ({
+      name,
+      clicks: data.clicks,
+      impressions: data.impressions,
+      cost: data.cost_micros / 1_000_000,
+      conversions: data.conversions,
+    }));
+
     // ---- Search Terms query ----
     const searchTermsQuery = `
       SELECT search_term_view.search_term,
