@@ -185,6 +185,14 @@ async function syncClinic(
       conversions: data.conversions,
     }));
 
+    const campaigns30d = Object.entries(campaignMap30).map(([name, data]) => ({
+      name,
+      clicks: data.clicks,
+      impressions: data.impressions,
+      cost: data.cost_micros / 1_000_000,
+      conversions: data.conversions,
+    }));
+
     // ---- Search Terms query (90 days) ----
     const searchTermsQuery = `
       SELECT search_term_view.search_term,
@@ -279,6 +287,7 @@ async function syncClinic(
         conversions: totalConversions,
         daily_trends: dailyTrends,
         campaigns,
+        campaigns_30d: campaigns30d,
         search_terms: searchTerms,
       },
     });
