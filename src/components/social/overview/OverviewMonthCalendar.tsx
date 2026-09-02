@@ -87,6 +87,7 @@ export function OverviewMonthCalendar({ clinicId, isClient = false, targetTab }:
             approvalStatus={gen.approval_status}
             isClient={isClient}
             sentToClientAt={gen.sent_to_client_at}
+            readOnly
           />
         )}
       </CardContent>
