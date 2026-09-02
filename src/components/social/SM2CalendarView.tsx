@@ -41,6 +41,8 @@ interface Props {
   onRequestFinalChanges?: () => void;
   sendPending?: boolean;
   sentToClientAt?: string | null;
+  /** Hide all approval/send controls (read-only embeds such as the overview). */
+  readOnly?: boolean;
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -76,6 +78,7 @@ export default function SM2CalendarView({
   onRequestFinalChanges,
   sendPending,
   sentToClientAt,
+  readOnly = false,
 }: Props) {
   const { posts, total, withImages, imagesComplete, postedCount, getImageUrl, isLoading, updatePost } = useSM2Posts(generationId);
   const [openDate, setOpenDate] = useState<string | null>(null);
@@ -203,7 +206,7 @@ export default function SM2CalendarView({
             )}
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            {!isClient && needsReapproval && (
+            {!readOnly && !isClient && needsReapproval && (
               <Button
                 size="sm"
                 onClick={() => setConfirmSendOpen(true)}
@@ -214,7 +217,7 @@ export default function SM2CalendarView({
                 Send edits for approval ({editedAfterApproval.length})
               </Button>
             )}
-            {!isClient && canSend && (
+            {!readOnly && !isClient && canSend && (
               <Button
                 size="sm"
                 onClick={() => setConfirmSendOpen(true)}
@@ -227,7 +230,7 @@ export default function SM2CalendarView({
                   : "Send to client for approval"}
               </Button>
             )}
-            {isClient && isAwaitingClient && (
+            {!readOnly && isClient && isAwaitingClient && (
               <>
                 <Button size="sm" variant="outline" onClick={onRequestFinalChanges ?? onRequestCopyChanges} className="gap-2 flex-1 sm:flex-none">
                   <MessageSquare className="h-3.5 w-3.5" />

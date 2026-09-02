@@ -137,11 +137,11 @@ export function DepartmentOverview({
         <motion.div variants={staggerItem} className="space-y-2">
           <div className="px-1 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${accentColor}15`, color: accentColor }}>
+              <div className="h-6 w-6 rounded-lg flex items-center justify-center" style={{ backgroundColor: `color-mix(in srgb, ${accentColor} 14%, transparent)`, color: accentColor }}>
                 <Zap className="h-3.5 w-3.5" />
               </div>
               <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-foreground">Quick Actions</h3>
-              <span className="hidden sm:inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ backgroundColor: `${accentColor}15`, color: accentColor }}>
+              <span className="hidden sm:inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ backgroundColor: `color-mix(in srgb, ${accentColor} 14%, transparent)`, color: accentColor }}>
                 New ticket
               </span>
             </div>
@@ -149,7 +149,7 @@ export function DepartmentOverview({
           </div>
           <div
             className="rounded-2xl bg-card border shadow-sm p-4"
-            style={{ borderLeftWidth: "4px", borderLeftColor: accentColor, borderColor: "hsl(var(--border) / 0.45)", boxShadow: `0 1px 2px 0 rgb(0 0 0 / 0.05), 0 0 0 1px ${accentColor}20, 0 4px 14px -4px ${accentColor}25` }}
+            style={{ borderLeftWidth: "4px", borderLeftColor: accentColor, borderColor: "hsl(var(--border) / 0.45)", boxShadow: `0 1px 2px 0 rgb(0 0 0 / 0.05), 0 0 0 1px color-mix(in srgb, ${accentColor} 18%, transparent), 0 4px 14px -4px color-mix(in srgb, ${accentColor} 30%, transparent)` }}
           >
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               {services.map((s, idx) => {

@@ -125,7 +125,7 @@ export default function SeoDepartment() {
   const { unreadCount, markAsRead } = useDepartmentChatUnread("seo", selectedClinicId);
   const { unreadCount: clientUnread, markAsRead: markClientRead } = useDepartmentChatUnread("seo", selectedClinicId, "client");
   const myOpenTasks = useMyOpenTaskCount("seo", selectedClinicId);
-  const tabs = isStaff ? [...commonTabs, blogTab, clientChatTab, tasksTabDef, chatTab] : [...commonTabs, blogTab, clientChatTab];
+  const tabs = isStaff ? [...commonTabs, blogTab, clientChatTab, tasksTabDef, chatTab] : [...commonTabs, clientChatTab];
 
   const selectedClinicName = selectedClinic?.clinic_name;
 
