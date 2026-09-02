@@ -379,6 +379,7 @@ Deno.serve(async (req) => {
         conversions: totalConversions,
         daily_trends: dailyTrends,
         campaigns,
+        campaigns_30d: campaigns30d,
         search_terms: searchTerms,
       },
     });
