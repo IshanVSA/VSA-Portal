@@ -418,7 +418,7 @@ function QuickActionsCard({
   onBulkUpload: () => void;
 }) {
   return (
-    <Card className="overflow-hidden animate-fade-in" style={{ animationDelay: "300ms", animationFillMode: "both" }}>
+    <Card className="overflow-hidden animate-fade-in" style={{ animationDelay: "300ms", animationFillMode: "both", backgroundColor: "color-mix(in srgb, hsl(var(--primary)) 8%, hsl(var(--card)))" }}>
       <CardHeader className="border-b border-border/40 bg-muted/20 pb-4 flex-row items-center justify-between">
         <CardTitle className="text-base">Quick Actions</CardTitle>
         <span className="text-[10px] text-muted-foreground uppercase tracking-wide">One click away</span>
