@@ -233,7 +233,7 @@ export function ConciergeSocialOverview({ clinicId }: ConciergeSocialOverviewPro
       </div>
 
       {/* Row 2 — Quick Actions */}
-      <Card className="overflow-hidden animate-fade-in" style={{ animationDelay: "160ms", animationFillMode: "both" }}>
+      <Card className="overflow-hidden animate-fade-in" style={{ animationDelay: "160ms", animationFillMode: "both", backgroundColor: "color-mix(in srgb, hsl(var(--primary)) 8%, hsl(var(--card)))" }}>
         <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
           <CardTitle className="text-base">Quick Actions</CardTitle>
         </CardHeader>
