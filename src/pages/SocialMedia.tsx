@@ -122,7 +122,7 @@ export default function SocialMedia() {
 
     return [
       { value: "overview", label: "Overview", icon: LayoutGrid, subs: [] },
-      { value: "content", label: "Content", icon: Sparkles, subs: contentSubs },
+      { value: "content", label: "Content", icon: FileText, subs: contentSubs },
       { value: "performance", label: "Performance", icon: ChartColumn, subs: performanceSubs },
       { value: "work", label: "Work", icon: Briefcase, subs: workSubs },
       { value: "messages", label: "Messages", icon: MessageCircle, subs: messagesSubs },

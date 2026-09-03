@@ -53,7 +53,7 @@ export default function AiSeoDepartment() {
     <div className="space-y-4 dept-tint-ai-seo min-h-full -m-3 p-3 sm:-m-4 sm:p-4 lg:-m-8 lg:p-8" data-dept="AI SEO">
       <div className="flex flex-col gap-2 pb-3 border-b border-border/60 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5">
-          <IconTile icon={Sparkles} tone="bg-[hsl(var(--dept-ai-seo))]/10" iconClassName="text-[hsl(var(--dept-ai-seo))]" />
+          <IconTile icon={Bot} tone="bg-[hsl(var(--dept-ai-seo))]/10" iconClassName="text-[hsl(var(--dept-ai-seo))]" />
           <div>
             <h1 className="text-lg font-bold text-foreground tracking-tight">AI SEO</h1>
             {selectedClinic?.clinic_name && <p className="text-xs text-muted-foreground -mt-0.5">{selectedClinic.clinic_name}</p>}

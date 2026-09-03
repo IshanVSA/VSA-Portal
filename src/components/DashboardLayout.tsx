@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Building2, Users, BarChart3, Settings, LogOut, Menu, X, ChevronRight,
   ShieldCheck, LayoutGrid, UserRound, CalendarCheck,
-  Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone, Globe, Sparkles, Plus, FileText, LineChart, Lock, Activity, UsersRound, ShieldAlert, Database, Mail, ExternalLink, Loader2,
+  Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone, Globe, Bot, Plus, FileText, LineChart, Lock, Activity, UsersRound, ShieldAlert, Database, Mail, ExternalLink, Loader2,
 } from "lucide-react";
 const LayoutDashboard = LayoutGrid;
 const UserCheck = UserRound;
@@ -81,7 +81,7 @@ const adminSections: NavSection[] = [
   { title: "DEPARTMENTS", items: [
     { label: "Website", icon: Globe, path: "/website" },
     { label: "SEO", icon: SearchCode, path: "/seo" },
-    { label: "AI SEO", icon: Sparkles, path: "/ai-seo" },
+    { label: "AI SEO", icon: Bot, path: "/ai-seo" },
     { label: "Google Ads", icon: Megaphone, path: "/google-ads" },
     { label: "Social Media", icon: Share2, path: "/social" },
   ]},
@@ -106,7 +106,7 @@ const conciergeSections: NavSection[] = [
   { title: "DEPARTMENTS", items: [
     { label: "Website", icon: Globe, path: "/website" },
     { label: "SEO", icon: SearchCode, path: "/seo" },
-    { label: "AI SEO", icon: Sparkles, path: "/ai-seo" },
+    { label: "AI SEO", icon: Bot, path: "/ai-seo" },
     { label: "Google Ads", icon: Megaphone, path: "/google-ads" },
     { label: "Social Media", icon: Share2, path: "/social" },
   ]},
@@ -286,7 +286,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
     { title: "DEPARTMENTS", items: [
       { label: "Website", icon: Globe, path: "/website" },
       { label: "SEO", icon: SearchCode, path: "/seo" },
-      { label: "AI SEO", icon: Sparkles, path: "/ai-seo" },
+      { label: "AI SEO", icon: Bot, path: "/ai-seo" },
       { label: "Google Ads", icon: Megaphone, path: "/google-ads" },
       { label: "Social Media", icon: Share2, path: "/social" },
     ]},
