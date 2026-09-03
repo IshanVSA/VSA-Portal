@@ -614,6 +614,7 @@ Deno.serve(async (req) => {
           saves: igMetrics.saves || 0,
           views: igMetrics.views || 0,
           engagement_rate: engagementRate,
+          daily_trends: igDaily,
           recent_media: igMedia,
           demographics: igDemographics,
           online_followers: onlineFollowers,
