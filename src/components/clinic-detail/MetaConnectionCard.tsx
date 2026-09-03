@@ -199,6 +199,24 @@ export function MetaConnectionCard({
           value={new Date(lastMetaSyncAt).toLocaleString()}
         />
       )}
+      <IOSRow
+        icon={<Megaphone />}
+        tone="orange"
+        label="Ad account"
+        sublabel={hasUserToken ? undefined : "Reconnect Meta to enable Ads insights"}
+        value={
+          <span className="text-xs">
+            {adAccountName || adAccountId || "Not selected"}
+          </span>
+        }
+      />
+      {hasUserToken && (
+        <IOSRow
+          centered
+          label={<span className="text-primary font-medium">{adAccountId ? "Change ad account" : "Select ad account"}</span>}
+          onClick={openPicker}
+        />
+      )}
       {grantedScopes && grantedScopes.length > 0 && (
         <div className="px-4 py-3 space-y-2">
           <div className="flex items-center gap-2 text-[13px] text-foreground/90">
@@ -224,6 +242,48 @@ export function MetaConnectionCard({
           Disconnect
         </Button>
       </div>
+
+      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select Meta ad account</DialogTitle>
+            <DialogDescription>
+              Choose the ad account whose performance should appear in the Social Media analytics.
+            </DialogDescription>
+          </DialogHeader>
+          {loadingAccounts ? (
+            <div className="py-8 flex justify-center">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : accounts.length === 0 ? (
+            <p className="py-6 text-sm text-muted-foreground">
+              No ad accounts are available for this Meta login.
+            </p>
+          ) : (
+            <RadioGroup value={selectedAccount} onValueChange={setSelectedAccount} className="space-y-2 my-2">
+              {accounts.map((a) => (
+                <div key={a.id} className="flex items-center gap-3 rounded-xl border border-border p-3">
+                  <RadioGroupItem value={a.id} id={a.id} />
+                  <Label htmlFor={a.id} className="flex-1 cursor-pointer">
+                    <span className="block text-sm font-medium">{a.name || a.id}</span>
+                    <span className="block text-xs text-muted-foreground font-mono">
+                      {a.id}
+                      {a.currency ? ` · ${a.currency}` : ""}
+                    </span>
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPickerOpen(false)}>Cancel</Button>
+            <Button onClick={saveAccount} disabled={!selectedAccount || savingAccount}>
+              {savingAccount && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </IOSGroup>
   );
 }
