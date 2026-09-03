@@ -142,11 +142,17 @@ export function MetaConnectionCard({
   const handleDisconnect = async () => {
     setDisconnecting(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("You must be signed in");
       const response = await fetch(
         `${supabaseUrl}/functions/v1/meta-oauth?action=disconnect`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${session.access_token}`,
+          },
           body: JSON.stringify({ clinic_id: clinicId }),
         }
       );
