@@ -142,8 +142,18 @@ export function MetaConnectionCard({
   const handleDisconnect = async () => {
     setDisconnecting(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      let { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("You must be signed in");
+
+      const { error: tokenError } = await supabase.auth.getUser(session.access_token);
+      if (tokenError) {
+        const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError || !refreshed.session?.access_token) {
+          throw new Error("Your session expired. Please sign in again.");
+        }
+        session = refreshed.session;
+      }
+
       const response = await fetch(
         `${supabaseUrl}/functions/v1/meta-oauth?action=disconnect`,
         {
@@ -156,8 +166,8 @@ export function MetaConnectionCard({
           body: JSON.stringify({ clinic_id: clinicId }),
         }
       );
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
+      const result = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(result?.error || `Disconnect failed (${response.status})`);
       toast.success("Meta account disconnected");
       onRefresh();
     } catch (e: any) {
