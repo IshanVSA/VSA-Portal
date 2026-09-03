@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Legend } from "recharts";
-import { RefreshCw, Loader2, AlertTriangle, CheckCircle2, ExternalLink, Heart, MessageCircle, Share2, Bookmark, Eye, TrendingUp, Users, Activity, Image as ImageIcon } from "lucide-react";
+import { RefreshCw, Loader2, AlertTriangle, CheckCircle2, ExternalLink, Heart, MessageCircle, Share2, Bookmark, Eye, TrendingUp, Users, Activity, Image as ImageIcon, Megaphone, DollarSign, MousePointerClick, Target, Video, UserPlus, ThumbsUp } from "lucide-react";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -61,6 +61,7 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
   const [syncing, setSyncing] = useState(false);
   const [fb, setFb] = useState<any>(null);
   const [ig, setIg] = useState<any>(null);
+  const [ads, setAds] = useState<any>(null);
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [perms, setPerms] = useState<any>(null);
   const [hasMeta, setHasMeta] = useState(false);
@@ -87,14 +88,16 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
       .from("analytics")
       .select("*")
       .eq("clinic_id", clinicId)
-      .in("platform", ["facebook", "instagram"])
+      .in("platform", ["facebook", "instagram", "meta_ads"])
       .order("recorded_at", { ascending: false })
-      .limit(20);
+      .limit(30);
 
     const fbRow = data?.find((r: any) => r.platform === "facebook");
     const igRow = data?.find((r: any) => r.platform === "instagram");
+    const adsRow = data?.find((r: any) => r.platform === "meta_ads");
     setFb(fbRow?.metrics_json || null);
     setIg(igRow?.metrics_json || null);
+    setAds(adsRow?.metrics_json || null);
 
     // For non-admin with no analytics data, fall back to "not connected" empty state
     if (!canReadCreds && !fbRow && !igRow) setHasMeta(false);
@@ -179,6 +182,7 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="facebook" disabled={!fb}>Facebook</TabsTrigger>
           <TabsTrigger value="instagram" disabled={!ig}>Instagram</TabsTrigger>
+          <TabsTrigger value="ads">Meta Ads</TabsTrigger>
           <TabsTrigger value="audience">Audience</TabsTrigger>
         </TabsList>
 
@@ -187,8 +191,12 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <KPI label="FB Followers" value={fb?.followers || 0} icon={Users} />
             <KPI label="IG Followers" value={ig?.followers || 0} icon={Users} sublabel={ig?.username ? `@${ig.username}` : undefined} />
-            <KPI label="Total Reach (28d)" value={(fb?.reach || 0) + (ig?.reach || 0)} icon={TrendingUp} />
-            <KPI label="Engagement (28d)" value={(fb?.engagement || 0) + (ig?.accounts_engaged || 0)} icon={Activity} />
+            <KPI label="IG Reach (28d)" value={ig?.reach || 0} icon={TrendingUp} />
+            <KPI label="Engagement (28d)" value={(fb?.post_engagements || 0) + (ig?.total_interactions || 0)} icon={Activity} sublabel={`${num(fb?.post_engagements || 0)} FB · ${num(ig?.total_interactions || 0)} IG`} />
+            <KPI label="Ad Spend (30d)" value={ads ? `$${(ads.spend || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "—"} icon={DollarSign} sublabel={ads ? `${num(ads.impressions)} impressions` : "Ads not connected"} />
+            <KPI label="Ad Reach (30d)" value={ads?.reach || 0} icon={Megaphone} sublabel={ads ? `${num(ads.clicks)} clicks` : undefined} />
+            <KPI label="FB Page Views" value={fb?.page_views || 0} icon={Eye} />
+            <KPI label="IG Profile Views" value={ig?.profile_views || 0} icon={Eye} />
           </div>
 
           {fb?.daily_trends?.length > 0 && (
@@ -212,8 +220,8 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
                     <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
                     <Tooltip contentStyle={tooltipStyle} />
                     <Legend wrapperStyle={{ fontSize: 12 }} />
-                    <Area type="monotone" name="Impressions" dataKey="impressions" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#reachGrad)" />
-                    <Area type="monotone" name="Engaged Users" dataKey="engaged_users" stroke="hsl(var(--chart-2))" strokeWidth={2} fill="url(#engGrad)" />
+                    <Area type="monotone" name="Post engagements" dataKey="engagements" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#reachGrad)" />
+                    <Area type="monotone" name="Page views" dataKey="page_views" stroke="hsl(var(--chart-2))" strokeWidth={2} fill="url(#engGrad)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -227,14 +235,66 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
             <>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <KPI label="Page Likes" value={fb.likes} icon={Heart} />
-                <KPI label="Followers" value={fb.followers} icon={Users} />
-                <KPI label="Reach (28d)" value={fb.reach} icon={TrendingUp} sublabel={`${num(fb.reach_unique)} unique`} />
-                <KPI label="Engagement" value={fb.engagement} icon={Activity} sublabel={`${num(fb.post_engagements)} on posts`} />
-                <KPI label="Page Views" value={fb.page_views} icon={Eye} />
-                <KPI label="Video Views" value={fb.video_views} icon={Eye} />
-                <KPI label="New Fans" value={fb.fan_adds} icon={TrendingUp} sublabel={`${num(fb.fan_removes)} unfollows`} />
-                <KPI label="Talking About" value={fb.talking_about} icon={MessageCircle} />
+                <KPI label="Followers" value={fb.followers} icon={Users} sublabel={fb.page_follows ? `${num(fb.page_follows)} total follows` : undefined} />
+                <KPI label="Post Engagements (28d)" value={fb.post_engagements} icon={Activity} />
+                <KPI label="Page Views (28d)" value={fb.page_views} icon={Eye} />
+                <KPI label="New Follows (28d)" value={fb.fan_adds} icon={UserPlus} sublabel={`${num(fb.fan_removes)} unfollows · net ${fb.net_follower_change >= 0 ? "+" : ""}${num(fb.net_follower_change)}`} />
+                <KPI label="Video Views (28d)" value={fb.video_views} icon={Video} sublabel={`${num(fb.video_views_unique)} unique`} />
+                <KPI label="Watch Time" value={`${Math.round((fb.video_view_time_ms || 0) / 60000)}m`} icon={Eye} />
+                <KPI label="Avg. Interactions / Post" value={fb.avg_interactions_per_post ?? 0} icon={ThumbsUp} sublabel={`${fb.posts_analyzed || 0} posts analysed`} />
               </div>
+
+              {fb.post_totals && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <KPI label="Post Likes" value={fb.post_totals.likes} icon={Heart} />
+                  <KPI label="Comments" value={fb.post_totals.comments} icon={MessageCircle} />
+                  <KPI label="Shares" value={fb.post_totals.shares} icon={Share2} />
+                  <KPI label="Post Clicks" value={fb.post_totals.clicks} icon={MousePointerClick} />
+                </div>
+              )}
+
+              {fb.reactions && Object.keys(fb.reactions).length > 0 && (
+                <Card>
+                  <CardHeader><CardTitle className="text-sm">Reactions (28d)</CardTitle></CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={Object.entries(fb.reactions).map(([k, v]) => ({ type: k, count: v as number }))}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                        <XAxis dataKey="type" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
+                        <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
+                        <Tooltip contentStyle={tooltipStyle} />
+                        <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              )}
+
+              {fb.daily_trends?.length > 0 && (
+                <Card>
+                  <CardHeader><CardTitle className="text-sm">Follower Growth · 30 Days</CardTitle></CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <BarChart data={fb.daily_trends}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                        <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} />
+                        <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} />
+                        <Tooltip contentStyle={tooltipStyle} />
+                        <Legend wrapperStyle={{ fontSize: 12 }} />
+                        <Bar dataKey="new_follows" name="New follows" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="unfollows" name="Unfollows" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              )}
+
+              {fb.reach_available === false && (
+                <p className="text-[11px] text-muted-foreground">
+                  Meta retired Page-level reach, impressions and demographics in Graph API v21. Engagement,
+                  follower growth, video and per-post metrics above are the full set Meta still reports.
+                </p>
+              )}
 
               {fb.recent_posts?.length > 0 && (
                 <Card>
@@ -259,8 +319,9 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
                             <span className="flex items-center gap-1"><Heart className="h-3 w-3" />{num(p.likes)}</span>
                             <span className="flex items-center gap-1"><MessageCircle className="h-3 w-3" />{num(p.comments)}</span>
                             <span className="flex items-center gap-1"><Share2 className="h-3 w-3" />{num(p.shares)}</span>
-                            {p.post_impressions !== undefined && <span className="flex items-center gap-1"><Eye className="h-3 w-3" />{num(p.post_impressions)}</span>}
-                            {p.post_engaged_users !== undefined && <span className="flex items-center gap-1"><Activity className="h-3 w-3" />{num(p.post_engaged_users)} engaged</span>}
+                            {p.post_clicks !== undefined && <span className="flex items-center gap-1"><MousePointerClick className="h-3 w-3" />{num(p.post_clicks)} clicks</span>}
+                            {p.post_video_views ? <span className="flex items-center gap-1"><Video className="h-3 w-3" />{num(p.post_video_views)} views</span> : null}
+                            {p.interactions !== undefined && <span className="flex items-center gap-1"><Activity className="h-3 w-3" />{num(p.interactions)} interactions</span>}
                             {p.permalink && <a href={p.permalink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-0.5"><ExternalLink className="h-3 w-3" />View</a>}
                           </div>
                         </div>
