@@ -392,6 +392,10 @@ Deno.serve(async (req) => {
           meta_page_name: null,
           last_meta_sync_at: null,
           meta_granted_scopes: null,
+          meta_user_access_token: null,
+          meta_ad_account_id: null,
+          meta_ad_account_name: null,
+          last_meta_ads_sync_at: null,
         })
         .eq("clinic_id", clinic_id);
 
