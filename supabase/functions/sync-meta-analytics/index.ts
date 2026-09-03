@@ -432,21 +432,50 @@ Deno.serve(async (req) => {
         }
       }
 
-      // IG insights — use the modern, supported metrics
+      // IG insights — 28-day totals, requested per metric so one bad combo
+      // doesn't drop the whole batch.
       const igMetrics: Record<string, number> = {};
+      const igDaily: any[] = [];
       {
-        const metricList = "reach,profile_views,website_clicks,accounts_engaged,total_interactions,likes,comments,shares,saves,views";
-        const { data, error } = await gget(
-          `${GRAPH}/${igId}/insights?metric=${metricList}&metric_type=total_value&period=day&access_token=${tok}`
-        );
-        if (error) { perms.ig_insights = "missing"; console.warn("ig_insights", JSON.stringify(error)); }
-        else {
-          perms.ig_insights = "ok";
-          for (const m of data.data || []) {
+        const until = Math.floor(Date.now() / 1000);
+        const since = until - 27 * 86400;
+        const metricList = [
+          "reach",
+          "profile_views",
+          "website_clicks",
+          "accounts_engaged",
+          "total_interactions",
+          "likes",
+          "comments",
+          "shares",
+          "saves",
+          "views",
+        ];
+        let ok = 0;
+        for (const metric of metricList) {
+          const { data, error } = await gget(
+            `${GRAPH}/${igId}/insights?metric=${metric}&metric_type=total_value&period=day&since=${since}&until=${until}&access_token=${tok}`
+          );
+          const m = data?.data?.[0];
+          if (!error && m) {
+            ok++;
             igMetrics[m.name] = m.total_value?.value ?? m.values?.[0]?.value ?? 0;
+          } else if (error) {
+            console.warn(`ig_insights:${metric}`, JSON.stringify(error));
           }
         }
+        perms.ig_insights = ok > 0 ? "ok" : "missing";
+
+        // Daily reach / views series for trend charts
+        const { data: dayData } = await gget(
+          `${GRAPH}/${igId}/insights?metric=reach&period=day&since=${since}&until=${until}&access_token=${tok}`
+        );
+        const reachVals = dayData?.data?.[0]?.values || [];
+        for (const v of reachVals) {
+          igDaily.push({ date: v.end_time?.slice(0, 10), reach: v.value || 0 });
+        }
       }
+
 
       // IG media (recent posts) with insights
       const igMedia: any[] = [];
