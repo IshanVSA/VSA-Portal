@@ -39,6 +39,7 @@ interface PermissionsStatus {
   ig_demographics: PermStatus;
   ig_online_followers: PermStatus;
   ig_stories: PermStatus;
+  meta_ads: PermStatus;
 }
 
 async function gget(url: string): Promise<{ data: any; error: any }> {
@@ -170,7 +171,7 @@ Deno.serve(async (req) => {
 
     const { data: creds } = await supabase
       .from("clinic_api_credentials")
-      .select("meta_page_access_token, meta_page_id, meta_instagram_business_id")
+      .select("meta_page_access_token, meta_page_id, meta_instagram_business_id, meta_user_access_token, meta_ad_account_id, meta_ad_account_name")
       .eq("clinic_id", clinic_id)
       .maybeSingle();
 
@@ -200,6 +201,7 @@ Deno.serve(async (req) => {
       ig_demographics: "skipped",
       ig_online_followers: "skipped",
       ig_stories: "skipped",
+      meta_ads: "skipped",
     };
 
     // ============================================================
@@ -214,25 +216,43 @@ Deno.serve(async (req) => {
       else { perms.fb_page_info = "ok"; fbPage = data; }
     }
 
-    // 28-day insights
+    // 28-day insights.
+    // NOTE: Meta removed page-level reach/impressions/engaged-users in Graph v21+.
+    // Only the metrics below still resolve; anything reach-like is derived from posts.
     const metricsMap: Record<string, any> = {};
     {
       const fbMetrics = [
-        "page_impressions",
-        "page_impressions_unique",
-        "page_engaged_users",
         "page_post_engagements",
         "page_views_total",
-        "page_fan_adds",
-        "page_fan_removes",
-        "page_actions_post_reactions_total",
         "page_video_views",
-      ].join(",");
+        "page_video_views_unique",
+        "page_video_view_time",
+        "page_actions_post_reactions_total",
+        "page_actions_post_reactions_like_total",
+        "page_total_actions",
+        "page_daily_follows_unique",
+        "page_daily_unfollows_unique",
+      ];
       const { data, error } = await gget(
-        `${GRAPH}/${pageId}/insights?metric=${fbMetrics}&period=days_28&access_token=${tok}`
+        `${GRAPH}/${pageId}/insights?metric=${fbMetrics.join(",")}&period=days_28&access_token=${tok}`
       );
-      if (error) { perms.fb_page_insights = "missing"; console.warn("fb_page_insights", JSON.stringify(error)); }
-      else {
+      if (error) {
+        // Fall back to per-metric requests so one invalid metric doesn't kill the batch
+        let ok = 0;
+        for (const metric of fbMetrics) {
+          const r = await gget(
+            `${GRAPH}/${pageId}/insights?metric=${metric}&period=days_28&access_token=${tok}`
+          );
+          const m = r.data?.data?.[0];
+          if (!r.error && m) {
+            ok++;
+            const latest = m.values?.[m.values.length - 1];
+            if (latest) metricsMap[m.name] = latest.value;
+          }
+        }
+        perms.fb_page_insights = ok > 0 ? "ok" : "missing";
+        if (ok === 0) console.warn("fb_page_insights", JSON.stringify(error));
+      } else {
         perms.fb_page_insights = "ok";
         for (const m of data.data || []) {
           const latest = m.values?.[m.values.length - 1];
@@ -241,56 +261,64 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Daily trends
+    // Total follows (lifetime-style counter)
+    let pageFollows = 0;
+    {
+      const { data } = await gget(
+        `${GRAPH}/${pageId}/insights?metric=page_follows&period=day&access_token=${tok}`
+      );
+      const vals = data?.data?.[0]?.values;
+      if (Array.isArray(vals) && vals.length) pageFollows = vals[vals.length - 1]?.value || 0;
+    }
+
+    // Daily trends (only metrics that still exist at page level)
     const dailyData: any[] = [];
     {
       const thirty = new Date();
       thirty.setDate(thirty.getDate() - 30);
       const since = thirty.toISOString().slice(0, 10);
+      const dayMetrics = [
+        "page_post_engagements",
+        "page_views_total",
+        "page_daily_follows_unique",
+        "page_daily_unfollows_unique",
+        "page_video_views",
+      ];
       const { data, error } = await gget(
-        `${GRAPH}/${pageId}/insights?metric=page_impressions,page_engaged_users,page_views_total&period=day&since=${since}&until=${today}&access_token=${tok}`
+        `${GRAPH}/${pageId}/insights?metric=${dayMetrics.join(",")}&period=day&since=${since}&until=${today}&access_token=${tok}`
       );
       if (error) { perms.fb_daily_trends = "missing"; console.warn("fb_daily_trends", JSON.stringify(error)); }
       else {
         perms.fb_daily_trends = "ok";
-        const imp = data.data?.find((m: any) => m.name === "page_impressions");
-        const eng = data.data?.find((m: any) => m.name === "page_engaged_users");
-        const vws = data.data?.find((m: any) => m.name === "page_views_total");
-        const len = imp?.values?.length || 0;
+        const byName: Record<string, any[]> = {};
+        for (const m of data.data || []) byName[m.name] = m.values || [];
+        const len = Math.max(...dayMetrics.map((n) => byName[n]?.length || 0), 0);
         for (let i = 0; i < len; i++) {
+          const stamp =
+            byName.page_post_engagements?.[i]?.end_time ||
+            byName.page_views_total?.[i]?.end_time ||
+            byName.page_daily_follows_unique?.[i]?.end_time;
           dailyData.push({
-            date: imp?.values[i]?.end_time?.slice(0, 10),
-            impressions: imp?.values[i]?.value || 0,
-            engaged_users: eng?.values?.[i]?.value || 0,
-            page_views: vws?.values?.[i]?.value || 0,
+            date: stamp?.slice(0, 10),
+            engagements: byName.page_post_engagements?.[i]?.value || 0,
+            page_views: byName.page_views_total?.[i]?.value || 0,
+            new_follows: byName.page_daily_follows_unique?.[i]?.value || 0,
+            unfollows: byName.page_daily_unfollows_unique?.[i]?.value || 0,
+            video_views: byName.page_video_views?.[i]?.value || 0,
           });
         }
       }
     }
 
-    // Demographics
+    // Demographics are no longer exposed for Pages in v21+ — keep the shape for the UI.
     const fbDemographics: any = { country: {}, city: {}, gender_age: {} };
-    {
-      const { data, error } = await gget(
-        `${GRAPH}/${pageId}/insights?metric=page_fans_country,page_fans_city,page_fans_gender_age&period=lifetime&access_token=${tok}`
-      );
-      if (error) { perms.fb_demographics = "missing"; console.warn("fb_demographics", JSON.stringify(error)); }
-      else {
-        perms.fb_demographics = "ok";
-        for (const m of data.data || []) {
-          const v = m.values?.[m.values.length - 1]?.value || {};
-          if (m.name === "page_fans_country") fbDemographics.country = v;
-          else if (m.name === "page_fans_city") fbDemographics.city = v;
-          else if (m.name === "page_fans_gender_age") fbDemographics.gender_age = v;
-        }
-      }
-    }
+    perms.fb_demographics = "missing";
 
     // Recent posts
     let recentPosts: any[] = [];
     {
       const { data, error } = await gget(
-        `${GRAPH}/${pageId}/posts?fields=id,message,created_time,full_picture,permalink_url,shares,likes.summary(true),comments.summary(true)&limit=10&access_token=${tok}`
+        `${GRAPH}/${pageId}/posts?fields=id,message,created_time,full_picture,permalink_url,shares,likes.summary(true),comments.summary(true)&limit=25&access_token=${tok}`
       );
       if (error) { perms.fb_posts = "missing"; console.warn("fb_posts", JSON.stringify(error)); }
       else {
@@ -308,23 +336,37 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Per-post insights
+    // Per-post insights (only the metrics Meta still serves)
     if (recentPosts.length > 0) {
       let okCount = 0;
       for (const post of recentPosts) {
         const { data, error } = await gget(
-          `${GRAPH}/${post.id}/insights?metric=post_impressions,post_impressions_unique,post_engaged_users,post_clicks&access_token=${tok}`
+          `${GRAPH}/${post.id}/insights?metric=post_clicks,post_video_views,post_reactions_by_type_total,post_activity_by_action_type&access_token=${tok}`
         );
         if (!error && data?.data) {
           okCount++;
           for (const m of data.data) {
-            const v = m.values?.[0]?.value || 0;
-            post[m.name] = v;
+            post[m.name] = m.values?.[0]?.value ?? 0;
           }
         }
+        post.interactions =
+          (post.likes || 0) + (post.comments || 0) + (post.shares || 0) + (post.post_clicks || 0);
       }
       perms.fb_post_insights = okCount > 0 ? "ok" : "missing";
     }
+
+    const fbPostTotals = recentPosts.reduce(
+      (acc, p) => {
+        acc.likes += p.likes || 0;
+        acc.comments += p.comments || 0;
+        acc.shares += p.shares || 0;
+        acc.clicks += p.post_clicks || 0;
+        return acc;
+      },
+      { likes: 0, comments: 0, shares: 0, clicks: 0 }
+    );
+
+    const fbReactions = metricsMap.page_actions_post_reactions_total || {};
 
     analyticsRows.push({
       clinic_id,
@@ -334,22 +376,39 @@ Deno.serve(async (req) => {
       value: fbPage.fan_count || 0,
       metrics_json: {
         likes: fbPage.fan_count || 0,
-        followers: fbPage.followers_count || 0,
-        reach: metricsMap.page_impressions || 0,
-        reach_unique: metricsMap.page_impressions_unique || 0,
-        engagement: metricsMap.page_engaged_users || 0,
+        followers: fbPage.followers_count || pageFollows || 0,
+        page_follows: pageFollows,
+        // Page-level reach/impressions were removed by Meta in Graph v21+
+        reach: 0,
+        reach_unique: 0,
+        reach_available: false,
+        engagement: metricsMap.page_post_engagements || 0,
         post_engagements: metricsMap.page_post_engagements || 0,
         page_views: metricsMap.page_views_total || 0,
-        fan_adds: metricsMap.page_fan_adds || 0,
-        fan_removes: metricsMap.page_fan_removes || 0,
+        total_actions: metricsMap.page_total_actions || 0,
+        fan_adds: metricsMap.page_daily_follows_unique || 0,
+        fan_removes: metricsMap.page_daily_unfollows_unique || 0,
+        net_follower_change:
+          (metricsMap.page_daily_follows_unique || 0) - (metricsMap.page_daily_unfollows_unique || 0),
         video_views: metricsMap.page_video_views || 0,
-        reactions: metricsMap.page_actions_post_reactions_total || {},
+        video_views_unique: metricsMap.page_video_views_unique || 0,
+        video_view_time_ms: metricsMap.page_video_view_time || 0,
+        reactions: Array.isArray(fbReactions) ? (fbReactions[0] || {}) : fbReactions,
+        post_totals: fbPostTotals,
+        posts_analyzed: recentPosts.length,
+        avg_interactions_per_post: recentPosts.length
+          ? Math.round(
+              ((fbPostTotals.likes + fbPostTotals.comments + fbPostTotals.shares + fbPostTotals.clicks) /
+                recentPosts.length) * 10
+            ) / 10
+          : 0,
         talking_about: fbPage.talking_about_count || 0,
         daily_trends: dailyData,
         recent_posts: recentPosts,
         demographics: fbDemographics,
       },
     });
+
 
     // ============================================================
     // INSTAGRAM
@@ -373,21 +432,50 @@ Deno.serve(async (req) => {
         }
       }
 
-      // IG insights — use the modern, supported metrics
+      // IG insights — 28-day totals, requested per metric so one bad combo
+      // doesn't drop the whole batch.
       const igMetrics: Record<string, number> = {};
+      const igDaily: any[] = [];
       {
-        const metricList = "reach,profile_views,website_clicks,accounts_engaged,total_interactions,likes,comments,shares,saves,views";
-        const { data, error } = await gget(
-          `${GRAPH}/${igId}/insights?metric=${metricList}&metric_type=total_value&period=day&access_token=${tok}`
-        );
-        if (error) { perms.ig_insights = "missing"; console.warn("ig_insights", JSON.stringify(error)); }
-        else {
-          perms.ig_insights = "ok";
-          for (const m of data.data || []) {
+        const until = Math.floor(Date.now() / 1000);
+        const since = until - 27 * 86400;
+        const metricList = [
+          "reach",
+          "profile_views",
+          "website_clicks",
+          "accounts_engaged",
+          "total_interactions",
+          "likes",
+          "comments",
+          "shares",
+          "saves",
+          "views",
+        ];
+        let ok = 0;
+        for (const metric of metricList) {
+          const { data, error } = await gget(
+            `${GRAPH}/${igId}/insights?metric=${metric}&metric_type=total_value&period=day&since=${since}&until=${until}&access_token=${tok}`
+          );
+          const m = data?.data?.[0];
+          if (!error && m) {
+            ok++;
             igMetrics[m.name] = m.total_value?.value ?? m.values?.[0]?.value ?? 0;
+          } else if (error) {
+            console.warn(`ig_insights:${metric}`, JSON.stringify(error));
           }
         }
+        perms.ig_insights = ok > 0 ? "ok" : "missing";
+
+        // Daily reach / views series for trend charts
+        const { data: dayData } = await gget(
+          `${GRAPH}/${igId}/insights?metric=reach&period=day&since=${since}&until=${until}&access_token=${tok}`
+        );
+        const reachVals = dayData?.data?.[0]?.values || [];
+        for (const v of reachVals) {
+          igDaily.push({ date: v.end_time?.slice(0, 10), reach: v.value || 0 });
+        }
       }
+
 
       // IG media (recent posts) with insights
       const igMedia: any[] = [];
@@ -526,12 +614,128 @@ Deno.serve(async (req) => {
           saves: igMetrics.saves || 0,
           views: igMetrics.views || 0,
           engagement_rate: engagementRate,
+          daily_trends: igDaily,
           recent_media: igMedia,
           demographics: igDemographics,
           online_followers: onlineFollowers,
           stories,
         },
       });
+    }
+
+    // ============================================================
+    // META ADS
+    // ============================================================
+    if (creds.meta_user_access_token && creds.meta_ad_account_id) {
+      try {
+        const userTok = await decryptToken(creds.meta_user_access_token);
+        const act = creds.meta_ad_account_id.startsWith("act_")
+          ? creds.meta_ad_account_id
+          : `act_${creds.meta_ad_account_id}`;
+        const baseFields =
+          "spend,impressions,reach,clicks,ctr,cpc,cpm,frequency,actions,cost_per_action_type,inline_link_clicks";
+
+        const summaryRes = await gget(
+          `${GRAPH}/${act}/insights?fields=${baseFields}&date_preset=last_30d&access_token=${userTok}`
+        );
+        if (summaryRes.error) {
+          perms.meta_ads = "missing";
+          console.warn("meta_ads_summary", JSON.stringify(summaryRes.error));
+        } else {
+          perms.meta_ads = "ok";
+          const s = summaryRes.data?.data?.[0] || {};
+
+          const dailyRes = await gget(
+            `${GRAPH}/${act}/insights?fields=spend,impressions,reach,clicks,ctr,cpc&date_preset=last_30d&time_increment=1&limit=100&access_token=${userTok}`
+          );
+          const daily = (dailyRes.data?.data || []).map((d: any) => ({
+            date: d.date_start,
+            spend: Number(d.spend || 0),
+            impressions: Number(d.impressions || 0),
+            reach: Number(d.reach || 0),
+            clicks: Number(d.clicks || 0),
+            ctr: Number(d.ctr || 0),
+            cpc: Number(d.cpc || 0),
+          }));
+
+          const campRes = await gget(
+            `${GRAPH}/${act}/insights?fields=campaign_name,${baseFields}&level=campaign&date_preset=last_30d&limit=50&access_token=${userTok}`
+          );
+          const campaigns = (campRes.data?.data || []).map((c: any) => ({
+            name: c.campaign_name,
+            spend: Number(c.spend || 0),
+            impressions: Number(c.impressions || 0),
+            reach: Number(c.reach || 0),
+            clicks: Number(c.clicks || 0),
+            ctr: Number(c.ctr || 0),
+            cpc: Number(c.cpc || 0),
+            actions: c.actions || [],
+          }));
+
+          const adRes = await gget(
+            `${GRAPH}/${act}/insights?fields=ad_name,campaign_name,${baseFields}&level=ad&date_preset=last_30d&limit=25&access_token=${userTok}`
+          );
+          const ads = (adRes.data?.data || []).map((a: any) => ({
+            name: a.ad_name,
+            campaign: a.campaign_name,
+            spend: Number(a.spend || 0),
+            impressions: Number(a.impressions || 0),
+            reach: Number(a.reach || 0),
+            clicks: Number(a.clicks || 0),
+            ctr: Number(a.ctr || 0),
+            cpc: Number(a.cpc || 0),
+          }));
+
+          const actionsList = Array.isArray(s.actions) ? s.actions : [];
+          const actionValue = (t: string) =>
+            Number(actionsList.find((a: any) => a.action_type === t)?.value || 0);
+          const results =
+            actionValue("lead") +
+            actionValue("onsite_conversion.messaging_conversation_started_7d") +
+            actionValue("offsite_conversion.fb_pixel_lead");
+
+          analyticsRows.push({
+            clinic_id,
+            platform: "meta_ads",
+            metric_type: "monthly_summary",
+            date: today,
+            value: Number(s.spend || 0),
+            metrics_json: {
+              ad_account_id: act,
+              ad_account_name: creds.meta_ad_account_name || null,
+              window: "last_30d",
+              spend: Number(s.spend || 0),
+              impressions: Number(s.impressions || 0),
+              reach: Number(s.reach || 0),
+              clicks: Number(s.clicks || 0),
+              link_clicks: Number(s.inline_link_clicks || 0),
+              ctr: Number(s.ctr || 0),
+              cpc: Number(s.cpc || 0),
+              cpm: Number(s.cpm || 0),
+              frequency: Number(s.frequency || 0),
+              page_engagements: actionValue("page_engagement"),
+              post_engagements: actionValue("post_engagement"),
+              leads: actionValue("lead"),
+              messaging_started: actionValue("onsite_conversion.messaging_conversation_started_7d"),
+              results,
+              cost_per_result: results > 0 ? Number(s.spend || 0) / results : 0,
+              actions: actionsList,
+              cost_per_action_type: s.cost_per_action_type || [],
+              daily,
+              campaigns,
+              ads,
+            },
+          });
+
+          await supabase
+            .from("clinic_api_credentials")
+            .update({ last_meta_ads_sync_at: new Date().toISOString() })
+            .eq("clinic_id", clinic_id);
+        }
+      } catch (adErr: any) {
+        perms.meta_ads = "missing";
+        console.error("meta ads sync error:", adErr?.message || adErr);
+      }
     }
 
     if (analyticsRows.length > 0) {

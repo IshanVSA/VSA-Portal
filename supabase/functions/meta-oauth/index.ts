@@ -36,7 +36,12 @@ const SCOPES = [
   "pages_show_list",
   "pages_read_engagement",
   "business_management",
+  "read_insights",
+  "instagram_basic",
+  "instagram_manage_insights",
+  "ads_read",
 ].join(",");
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -145,6 +150,49 @@ Deno.serve(async (req) => {
       } catch (scopeErr) {
         console.error("Scope inspection error (non-fatal):", scopeErr);
       }
+
+      // Step 2c: Persist the long-lived user token (needed for Meta Ads insights)
+      try {
+        const sbUser = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        const encryptedUserToken = await encryptToken(longTokenData.access_token);
+
+        // Auto-select the ad account when the user only has access to one
+        let adAccountId: string | null = null;
+        let adAccountName: string | null = null;
+        try {
+          const adRes = await fetch(
+            `https://graph.facebook.com/v21.0/me/adaccounts?fields=id,account_id,name,account_status&limit=50&access_token=${longTokenData.access_token}`
+          );
+          const adJson = await adRes.json();
+          const accounts = Array.isArray(adJson?.data) ? adJson.data : [];
+          if (accounts.length === 1) {
+            adAccountId = accounts[0].id;
+            adAccountName = accounts[0].name || null;
+          }
+        } catch (adErr) {
+          console.error("Ad account lookup error (non-fatal):", adErr);
+        }
+
+        const patch: Record<string, unknown> = { meta_user_access_token: encryptedUserToken };
+        if (adAccountId) {
+          patch.meta_ad_account_id = adAccountId;
+          patch.meta_ad_account_name = adAccountName;
+        }
+
+        const { data: existingCred } = await sbUser
+          .from("clinic_api_credentials")
+          .select("id")
+          .eq("clinic_id", clinic_id)
+          .maybeSingle();
+        if (existingCred) {
+          await sbUser.from("clinic_api_credentials").update(patch).eq("clinic_id", clinic_id);
+        } else {
+          await sbUser.from("clinic_api_credentials").insert({ clinic_id, ...patch });
+        }
+      } catch (userTokErr) {
+        console.error("User token persist error (non-fatal):", userTokErr);
+      }
+
 
       // Step 3: Get ALL pages (follow pagination from me/accounts + Business Manager)
       console.log("Fetching pages with long-lived token...");
@@ -344,6 +392,10 @@ Deno.serve(async (req) => {
           meta_page_name: null,
           last_meta_sync_at: null,
           meta_granted_scopes: null,
+          meta_user_access_token: null,
+          meta_ad_account_id: null,
+          meta_ad_account_name: null,
+          last_meta_ads_sync_at: null,
         })
         .eq("clinic_id", clinic_id);
 

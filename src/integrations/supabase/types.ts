@@ -907,12 +907,16 @@ export type Database = {
           id: string
           last_gbp_sync_at: string | null
           last_google_sync_at: string | null
+          last_meta_ads_sync_at: string | null
           last_meta_sync_at: string | null
+          meta_ad_account_id: string | null
+          meta_ad_account_name: string | null
           meta_granted_scopes: string[] | null
           meta_instagram_business_id: string | null
           meta_page_access_token: string | null
           meta_page_id: string | null
           meta_page_name: string | null
+          meta_user_access_token: string | null
         }
         Insert: {
           clinic_id: string
@@ -932,12 +936,16 @@ export type Database = {
           id?: string
           last_gbp_sync_at?: string | null
           last_google_sync_at?: string | null
+          last_meta_ads_sync_at?: string | null
           last_meta_sync_at?: string | null
+          meta_ad_account_id?: string | null
+          meta_ad_account_name?: string | null
           meta_granted_scopes?: string[] | null
           meta_instagram_business_id?: string | null
           meta_page_access_token?: string | null
           meta_page_id?: string | null
           meta_page_name?: string | null
+          meta_user_access_token?: string | null
         }
         Update: {
           clinic_id?: string
@@ -957,12 +965,16 @@ export type Database = {
           id?: string
           last_gbp_sync_at?: string | null
           last_google_sync_at?: string | null
+          last_meta_ads_sync_at?: string | null
           last_meta_sync_at?: string | null
+          meta_ad_account_id?: string | null
+          meta_ad_account_name?: string | null
           meta_granted_scopes?: string[] | null
           meta_instagram_business_id?: string | null
           meta_page_access_token?: string | null
           meta_page_id?: string | null
           meta_page_name?: string | null
+          meta_user_access_token?: string | null
         }
         Relationships: [
           {
