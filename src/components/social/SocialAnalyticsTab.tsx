@@ -442,6 +442,128 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
           )}
         </TabsContent>
 
+        {/* META ADS */}
+        <TabsContent value="ads" className="mt-4 space-y-5">
+          {!ads ? (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                <Megaphone className="h-10 w-10 mx-auto mb-3 opacity-40" />
+                <p className="text-base font-medium text-foreground">No Meta Ads data yet</p>
+                <p className="text-sm mt-1 max-w-md mx-auto">
+                  Reconnect Meta from the clinic connections screen (the new permissions include ads access)
+                  and pick the ad account. Ads performance then syncs with the daily analytics job.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline" className="text-[10px]">Last 30 days</Badge>
+                {ads.ad_account_name && (
+                  <Badge variant="secondary" className="text-[10px]">{ads.ad_account_name}</Badge>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <KPI label="Spend" value={`$${(ads.spend || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`} icon={DollarSign} />
+                <KPI label="Reach" value={ads.reach} icon={Users} sublabel={`Freq. ${(ads.frequency || 0).toFixed(2)}`} />
+                <KPI label="Impressions" value={ads.impressions} icon={Eye} />
+                <KPI label="Clicks" value={ads.clicks} icon={MousePointerClick} sublabel={`${num(ads.link_clicks)} link clicks`} />
+                <KPI label="CTR" value={`${(ads.ctr || 0).toFixed(2)}%`} icon={TrendingUp} />
+                <KPI label="CPC" value={`$${(ads.cpc || 0).toFixed(2)}`} icon={DollarSign} />
+                <KPI label="CPM" value={`$${(ads.cpm || 0).toFixed(2)}`} icon={DollarSign} />
+                <KPI label="Results" value={ads.results || 0} icon={Target} sublabel={ads.results ? `$${(ads.cost_per_result || 0).toFixed(2)} per result` : "Leads & messages"} />
+              </div>
+
+              {ads.daily?.length > 0 && (
+                <Card>
+                  <CardHeader><CardTitle className="text-sm">Daily Spend &amp; Clicks</CardTitle></CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <AreaChart data={ads.daily}>
+                        <defs>
+                          <linearGradient id="spendGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.25}/>
+                            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                          </linearGradient>
+                          <linearGradient id="clickGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.25}/>
+                            <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                        <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} />
+                        <YAxis yAxisId="left" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} />
+                        <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} />
+                        <Tooltip contentStyle={tooltipStyle} />
+                        <Legend wrapperStyle={{ fontSize: 12 }} />
+                        <Area yAxisId="left" type="monotone" name="Spend ($)" dataKey="spend" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#spendGrad)" />
+                        <Area yAxisId="right" type="monotone" name="Clicks" dataKey="clicks" stroke="hsl(var(--chart-2))" strokeWidth={2} fill="url(#clickGrad)" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              )}
+
+              {ads.campaigns?.length > 0 && (
+                <Card>
+                  <CardHeader><CardTitle className="text-sm">Campaigns</CardTitle></CardHeader>
+                  <CardContent className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                          <th className="text-left font-semibold pb-2">Campaign</th>
+                          <th className="text-right font-semibold pb-2">Spend</th>
+                          <th className="text-right font-semibold pb-2">Reach</th>
+                          <th className="text-right font-semibold pb-2">Impr.</th>
+                          <th className="text-right font-semibold pb-2">Clicks</th>
+                          <th className="text-right font-semibold pb-2">CTR</th>
+                          <th className="text-right font-semibold pb-2">CPC</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ads.campaigns.map((c: any) => (
+                          <tr key={c.name} className="border-t border-border/60">
+                            <td className="py-2 pr-3 max-w-[220px] truncate">{c.name}</td>
+                            <td className="py-2 text-right tabular-nums">${(c.spend || 0).toFixed(2)}</td>
+                            <td className="py-2 text-right tabular-nums">{num(c.reach)}</td>
+                            <td className="py-2 text-right tabular-nums">{num(c.impressions)}</td>
+                            <td className="py-2 text-right tabular-nums">{num(c.clicks)}</td>
+                            <td className="py-2 text-right tabular-nums">{(c.ctr || 0).toFixed(2)}%</td>
+                            <td className="py-2 text-right tabular-nums">${(c.cpc || 0).toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </CardContent>
+                </Card>
+              )}
+
+              {ads.ads?.length > 0 && (
+                <Card>
+                  <CardHeader><CardTitle className="text-sm">Top Ads</CardTitle></CardHeader>
+                  <CardContent className="space-y-2">
+                    {[...ads.ads].sort((a: any, b: any) => (b.spend || 0) - (a.spend || 0)).slice(0, 10).map((a: any, i: number) => (
+                      <div key={`${a.name}-${i}`} className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg border border-border/60">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{a.name}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">{a.campaign}</p>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground tabular-nums">
+                          <span>${(a.spend || 0).toFixed(2)}</span>
+                          <span>{num(a.reach)} reach</span>
+                          <span>{num(a.clicks)} clicks</span>
+                          <span>{(a.ctr || 0).toFixed(2)}% CTR</span>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          )}
+        </TabsContent>
+
         {/* AUDIENCE */}
         <TabsContent value="audience" className="mt-4 space-y-5">
           {(fb?.demographics || ig?.demographics) ? (
