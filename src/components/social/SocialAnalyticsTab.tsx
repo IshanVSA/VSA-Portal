@@ -404,10 +404,10 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
 
       <Tabs defaultValue="overview">
         <TabsList className="h-9 bg-muted/50 p-1">
-          <TabsTrigger value="overview" className="gap-1.5 text-xs"><Sparkles className="h-3.5 w-3.5" />Overview</TabsTrigger>
+          <TabsTrigger value="overview" className="gap-1.5 text-xs"><LayoutDashboard className="h-3.5 w-3.5" />Overview</TabsTrigger>
           <TabsTrigger value="facebook" disabled={!fb} className="gap-1.5 text-xs"><Facebook className="h-3.5 w-3.5" />Facebook</TabsTrigger>
           <TabsTrigger value="instagram" disabled={!ig} className="gap-1.5 text-xs"><Instagram className="h-3.5 w-3.5" />Instagram</TabsTrigger>
-          <TabsTrigger value="ads" className="gap-1.5 text-xs"><Megaphone className="h-3.5 w-3.5" />Paid</TabsTrigger>
+          <TabsTrigger value="ads" className="gap-1.5 text-xs"><Megaphone className="h-3.5 w-3.5" />Meta Ads</TabsTrigger>
           <TabsTrigger value="audience" className="gap-1.5 text-xs"><Globe className="h-3.5 w-3.5" />Audience</TabsTrigger>
         </TabsList>
 
