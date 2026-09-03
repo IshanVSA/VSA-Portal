@@ -1,11 +1,21 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, RefreshCw, Loader2, Unlink, Facebook, Hash, Instagram, Clock, KeyRound } from "lucide-react";
+import { CheckCircle2, RefreshCw, Loader2, Unlink, Facebook, Hash, Instagram, Clock, KeyRound, Megaphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
 import { IOSGroup, IOSRow } from "@/components/ui/ios-list";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 interface MetaConnectionCardProps {
   clinicId: string;
@@ -16,6 +26,13 @@ interface MetaConnectionCardProps {
   lastMetaSyncAt: string | null;
   grantedScopes?: string[] | null;
   onRefresh: () => void;
+}
+
+interface AdAccount {
+  id: string;
+  account_id?: string;
+  name?: string;
+  currency?: string;
 }
 
 export function MetaConnectionCard({
@@ -30,10 +47,79 @@ export function MetaConnectionCard({
 }: MetaConnectionCardProps) {
   const [syncing, setSyncing] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [adAccountId, setAdAccountId] = useState<string | null>(null);
+  const [adAccountName, setAdAccountName] = useState<string | null>(null);
+  const [hasUserToken, setHasUserToken] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [accounts, setAccounts] = useState<AdAccount[]>([]);
+  const [loadingAccounts, setLoadingAccounts] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState("");
+  const [savingAccount, setSavingAccount] = useState(false);
+
+  useEffect(() => {
+    if (!hasMetaCreds) return;
+    let active = true;
+    (async () => {
+      const { data } = await supabase
+        .from("clinic_api_credentials")
+        .select("meta_ad_account_id, meta_ad_account_name, meta_user_access_token")
+        .eq("clinic_id", clinicId)
+        .maybeSingle();
+      if (!active) return;
+      setAdAccountId((data as any)?.meta_ad_account_id ?? null);
+      setAdAccountName((data as any)?.meta_ad_account_name ?? null);
+      setHasUserToken(!!(data as any)?.meta_user_access_token);
+    })();
+    return () => { active = false; };
+  }, [clinicId, hasMetaCreds, lastMetaSyncAt]);
+
+  const openPicker = async () => {
+    setPickerOpen(true);
+    setLoadingAccounts(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke("meta-ads-accounts", {
+        body: { clinic_id: clinicId, action: "list" },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (res.error) throw new Error(await extractEdgeFunctionError(res.error, res.data, "Could not load ad accounts"));
+      setAccounts(res.data?.accounts || []);
+      setSelectedAccount(adAccountId || res.data?.accounts?.[0]?.id || "");
+    } catch (e: any) {
+      toast.error(e.message || "Could not load ad accounts");
+      setPickerOpen(false);
+    } finally {
+      setLoadingAccounts(false);
+    }
+  };
+
+  const saveAccount = async () => {
+    const acc = accounts.find((a) => a.id === selectedAccount);
+    if (!acc) return;
+    setSavingAccount(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke("meta-ads-accounts", {
+        body: { clinic_id: clinicId, action: "save", ad_account_id: acc.id, ad_account_name: acc.name },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (res.error) throw new Error(await extractEdgeFunctionError(res.error, res.data, "Save failed"));
+      setAdAccountId(acc.id);
+      setAdAccountName(acc.name || null);
+      setPickerOpen(false);
+      toast.success("Ad account linked. Run a sync to pull Meta Ads metrics.");
+      onRefresh();
+    } catch (e: any) {
+      toast.error(e.message || "Save failed");
+    } finally {
+      setSavingAccount(false);
+    }
+  };
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const origin = encodeURIComponent(window.location.origin);
   const oauthUrl = `${supabaseUrl}/functions/v1/meta-oauth?action=authorize&clinic_id=${clinicId}&origin=${origin}`;
+
 
   const handleSync = async () => {
     setSyncing(true);
