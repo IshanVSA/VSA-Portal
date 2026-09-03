@@ -222,7 +222,7 @@ export default function BrandDNATab({ clinicId }: Props) {
     if (activeLayer === "reviews") {
       return (
         <Button variant="outline" size="sm" onClick={() => mineReviews.mutate()} disabled={mineReviews.isPending} className="gap-2">
-          {mineReviews.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Star className="h-4 w-4" />}
+          {mineReviews.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <MessageSquareQuote className="h-4 w-4" />}
           {mineReviews.isPending ? "Mining..." : reviewMining ? "Re-mine" : "Mine Reviews"}
         </Button>
       );
@@ -398,7 +398,7 @@ export default function BrandDNATab({ clinicId }: Props) {
           {activeLayer === "reviews" && (
             reviewMining
               ? <ReviewMiningCard data={reviewMining} clinicId={clinicId} canEdit={true} />
-              : emptyState(<Star className="h-10 w-10 mx-auto" />, "No review mining yet.", "Click Mine Reviews to analyse Google reviews for themes and voice signals.")
+              : emptyState(<MessageSquareQuote className="h-10 w-10 mx-auto" />, "No review mining yet.", "Click Mine Reviews to analyse Google reviews for themes and voice signals.")
           )}
 
           {activeLayer === "locality" && (
@@ -733,7 +733,7 @@ function SynthesizedProfileCard({ profile, clinicId, canEdit }: { profile: Recor
         {/* Review Themes */}
         {profile.google_review_themes?.length > 0 && (
           <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Star className="h-3 w-3" /> Review Themes</p>
+            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><MessageSquareQuote className="h-3 w-3" /> Review Themes</p>
             <div className="flex flex-wrap gap-1.5">
               {profile.google_review_themes.map((t: string, i: number) => (
                 <Badge key={i} variant="secondary" className="text-xs">{t}</Badge>
@@ -1229,7 +1229,7 @@ function ReviewMiningCard({ data, clinicId, canEdit }: { data: Record<string, an
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2 min-w-0">
-            <Star className="h-4 w-4 text-amber-500 shrink-0" />
+            <MessageSquareQuote className="h-4 w-4 text-amber-500 shrink-0" />
             <span className="truncate">Layer 2 - Review Mining</span>
           </CardTitle>
           <div className="flex flex-wrap items-center gap-2">
