@@ -36,7 +36,12 @@ const SCOPES = [
   "pages_show_list",
   "pages_read_engagement",
   "business_management",
+  "read_insights",
+  "instagram_basic",
+  "instagram_manage_insights",
+  "ads_read",
 ].join(",");
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
