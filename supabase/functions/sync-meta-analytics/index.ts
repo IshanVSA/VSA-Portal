@@ -39,6 +39,7 @@ interface PermissionsStatus {
   ig_demographics: PermStatus;
   ig_online_followers: PermStatus;
   ig_stories: PermStatus;
+  meta_ads: PermStatus;
 }
 
 async function gget(url: string): Promise<{ data: any; error: any }> {
@@ -170,7 +171,7 @@ Deno.serve(async (req) => {
 
     const { data: creds } = await supabase
       .from("clinic_api_credentials")
-      .select("meta_page_access_token, meta_page_id, meta_instagram_business_id")
+      .select("meta_page_access_token, meta_page_id, meta_instagram_business_id, meta_user_access_token, meta_ad_account_id, meta_ad_account_name")
       .eq("clinic_id", clinic_id)
       .maybeSingle();
 
@@ -200,6 +201,7 @@ Deno.serve(async (req) => {
       ig_demographics: "skipped",
       ig_online_followers: "skipped",
       ig_stories: "skipped",
+      meta_ads: "skipped",
     };
 
     // ============================================================
@@ -589,6 +591,121 @@ Deno.serve(async (req) => {
           stories,
         },
       });
+    }
+
+    // ============================================================
+    // META ADS
+    // ============================================================
+    if (creds.meta_user_access_token && creds.meta_ad_account_id) {
+      try {
+        const userTok = await decryptToken(creds.meta_user_access_token);
+        const act = creds.meta_ad_account_id.startsWith("act_")
+          ? creds.meta_ad_account_id
+          : `act_${creds.meta_ad_account_id}`;
+        const baseFields =
+          "spend,impressions,reach,clicks,ctr,cpc,cpm,frequency,actions,cost_per_action_type,inline_link_clicks";
+
+        const summaryRes = await gget(
+          `${GRAPH}/${act}/insights?fields=${baseFields}&date_preset=last_30d&access_token=${userTok}`
+        );
+        if (summaryRes.error) {
+          perms.meta_ads = "missing";
+          console.warn("meta_ads_summary", JSON.stringify(summaryRes.error));
+        } else {
+          perms.meta_ads = "ok";
+          const s = summaryRes.data?.data?.[0] || {};
+
+          const dailyRes = await gget(
+            `${GRAPH}/${act}/insights?fields=spend,impressions,reach,clicks,ctr,cpc&date_preset=last_30d&time_increment=1&limit=100&access_token=${userTok}`
+          );
+          const daily = (dailyRes.data?.data || []).map((d: any) => ({
+            date: d.date_start,
+            spend: Number(d.spend || 0),
+            impressions: Number(d.impressions || 0),
+            reach: Number(d.reach || 0),
+            clicks: Number(d.clicks || 0),
+            ctr: Number(d.ctr || 0),
+            cpc: Number(d.cpc || 0),
+          }));
+
+          const campRes = await gget(
+            `${GRAPH}/${act}/insights?fields=campaign_name,${baseFields}&level=campaign&date_preset=last_30d&limit=50&access_token=${userTok}`
+          );
+          const campaigns = (campRes.data?.data || []).map((c: any) => ({
+            name: c.campaign_name,
+            spend: Number(c.spend || 0),
+            impressions: Number(c.impressions || 0),
+            reach: Number(c.reach || 0),
+            clicks: Number(c.clicks || 0),
+            ctr: Number(c.ctr || 0),
+            cpc: Number(c.cpc || 0),
+            actions: c.actions || [],
+          }));
+
+          const adRes = await gget(
+            `${GRAPH}/${act}/insights?fields=ad_name,campaign_name,${baseFields}&level=ad&date_preset=last_30d&limit=25&access_token=${userTok}`
+          );
+          const ads = (adRes.data?.data || []).map((a: any) => ({
+            name: a.ad_name,
+            campaign: a.campaign_name,
+            spend: Number(a.spend || 0),
+            impressions: Number(a.impressions || 0),
+            reach: Number(a.reach || 0),
+            clicks: Number(a.clicks || 0),
+            ctr: Number(a.ctr || 0),
+            cpc: Number(a.cpc || 0),
+          }));
+
+          const actionsList = Array.isArray(s.actions) ? s.actions : [];
+          const actionValue = (t: string) =>
+            Number(actionsList.find((a: any) => a.action_type === t)?.value || 0);
+          const results =
+            actionValue("lead") +
+            actionValue("onsite_conversion.messaging_conversation_started_7d") +
+            actionValue("offsite_conversion.fb_pixel_lead");
+
+          analyticsRows.push({
+            clinic_id,
+            platform: "meta_ads",
+            metric_type: "monthly_summary",
+            date: today,
+            value: Number(s.spend || 0),
+            metrics_json: {
+              ad_account_id: act,
+              ad_account_name: creds.meta_ad_account_name || null,
+              window: "last_30d",
+              spend: Number(s.spend || 0),
+              impressions: Number(s.impressions || 0),
+              reach: Number(s.reach || 0),
+              clicks: Number(s.clicks || 0),
+              link_clicks: Number(s.inline_link_clicks || 0),
+              ctr: Number(s.ctr || 0),
+              cpc: Number(s.cpc || 0),
+              cpm: Number(s.cpm || 0),
+              frequency: Number(s.frequency || 0),
+              page_engagements: actionValue("page_engagement"),
+              post_engagements: actionValue("post_engagement"),
+              leads: actionValue("lead"),
+              messaging_started: actionValue("onsite_conversion.messaging_conversation_started_7d"),
+              results,
+              cost_per_result: results > 0 ? Number(s.spend || 0) / results : 0,
+              actions: actionsList,
+              cost_per_action_type: s.cost_per_action_type || [],
+              daily,
+              campaigns,
+              ads,
+            },
+          });
+
+          await supabase
+            .from("clinic_api_credentials")
+            .update({ last_meta_ads_sync_at: new Date().toISOString() })
+            .eq("clinic_id", clinic_id);
+        }
+      } catch (adErr: any) {
+        perms.meta_ads = "missing";
+        console.error("meta ads sync error:", adErr?.message || adErr);
+      }
     }
 
     if (analyticsRows.length > 0) {
