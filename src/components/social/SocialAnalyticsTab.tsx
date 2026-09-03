@@ -13,7 +13,7 @@ import {
   RefreshCw, Loader2, AlertTriangle, ExternalLink, Heart, MessageCircle, Share2,
   Bookmark, Eye, TrendingUp, TrendingDown, Users, Activity, Image as ImageIcon,
   Megaphone, DollarSign, MousePointerClick, Target, Video, UserPlus, ThumbsUp,
-  Facebook, Instagram, Gauge, Clock, Globe, Sparkles,
+  Facebook, Instagram, Gauge, Clock, Globe, Sparkles, LayoutDashboard,
 } from "lucide-react";
 import { extractEdgeFunctionError } from "@/lib/edge-function-error";
 import { toast } from "sonner";
