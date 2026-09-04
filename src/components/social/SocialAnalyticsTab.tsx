@@ -1,23 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   BarChart, Bar, Legend, PieChart, Pie, Cell, RadialBarChart, RadialBar,
   ComposedChart, Line, LineChart,
 } from "recharts";
 import {
-  RefreshCw, Loader2, AlertTriangle, ExternalLink, Heart, MessageCircle, Share2,
+  ExternalLink, Heart, MessageCircle, Share2,
   Bookmark, Eye, TrendingUp, TrendingDown, Users, Activity, Image as ImageIcon,
   Megaphone, DollarSign, MousePointerClick, Target, Video, UserPlus, ThumbsUp,
-  Facebook, Instagram, Gauge, Clock, Globe, Sparkles, LayoutDashboard,
+  Facebook, Instagram, Globe, Sparkles, LayoutDashboard,
 } from "lucide-react";
-import { extractEdgeFunctionError } from "@/lib/edge-function-error";
-import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -213,12 +208,9 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
   const isStaff = role === "admin" || role === "concierge";
   const canReadCreds = role === "admin";
   const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
   const [fb, setFb] = useState<any>(null);
   const [ig, setIg] = useState<any>(null);
   const [ads, setAds] = useState<any>(null);
-  const [lastSync, setLastSync] = useState<string | null>(null);
-  const [perms, setPerms] = useState<any>(null);
   const [hasMeta, setHasMeta] = useState(false);
 
   const load = async () => {
@@ -228,11 +220,10 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
     if (canReadCreds) {
       const { data: creds } = await supabase
         .from("clinic_api_credentials")
-        .select("meta_page_id, last_meta_sync_at")
+        .select("meta_page_id")
         .eq("clinic_id", clinicId)
         .maybeSingle();
       setHasMeta(!!creds?.meta_page_id);
-      setLastSync(creds?.last_meta_sync_at || null);
     } else {
       setHasMeta(true);
     }
