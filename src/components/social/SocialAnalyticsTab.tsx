@@ -11,7 +11,7 @@ import {
   ExternalLink, Heart, MessageCircle, Share2,
   Bookmark, Eye, TrendingUp, TrendingDown, Users, Activity, Image as ImageIcon,
   Megaphone, DollarSign, MousePointerClick, Target, Video, UserPlus, ThumbsUp,
-  Facebook, Instagram, Globe, Sparkles, LayoutDashboard,
+  Facebook, Instagram, Gauge, Clock, Globe, Sparkles, LayoutDashboard,
 } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { motion, useReducedMotion } from "framer-motion";
@@ -250,25 +250,6 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
 
   useEffect(() => { load(); }, [clinicId, canReadCreds]);
 
-  const handleSync = async () => {
-    if (!clinicId) return;
-    setSyncing(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await supabase.functions.invoke("sync-meta-analytics", {
-        body: { clinic_id: clinicId },
-        headers: { Authorization: `Bearer ${session?.access_token}` },
-      });
-      if (res.error) throw new Error(await extractEdgeFunctionError(res.error, res.data, "Sync failed"));
-      setPerms(res.data?.permissions_status || null);
-      toast.success("Analytics synced");
-      await load();
-    } catch (e: any) {
-      toast.error(e.message || "Sync failed");
-    } finally {
-      setSyncing(false);
-    }
-  };
 
   /* Derived views */
   const totalAudience = (fb?.followers || 0) + (ig?.followers || 0);
@@ -345,54 +326,8 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
     );
   }
 
-  const missingPerms = perms ? Object.entries(perms).filter(([_, v]) => v === "missing") : [];
-
   return (
     <div className="space-y-4">
-      {/* ── Command bar ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/50 bg-card/50 px-4 py-3 backdrop-blur-sm">
-        <div className="flex items-center gap-3 min-w-0">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl ring-1 ring-inset ring-border/40" style={{ backgroundColor: "hsl(var(--dept-social) / 0.12)", color: "hsl(var(--dept-social))" }}>
-            <Gauge className="h-4 w-4" />
-          </span>
-          <div className="min-w-0">
-            <h2 className="text-sm font-semibold tracking-tight">Social performance</h2>
-            <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10.5px] text-muted-foreground">
-              <span className="inline-flex items-center gap-1"><Clock className="h-2.5 w-2.5" />{lastSync ? `Synced ${formatDistanceToNow(new Date(lastSync), { addSuffix: true })}` : "Not synced yet"}</span>
-              {isStaff && <span className="hidden sm:inline">· Auto-sync daily 07:30 UTC</span>}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10.5px] font-medium", fb ? "border-border/60 text-foreground" : "border-border/40 text-muted-foreground/60")}>
-            <Facebook className="h-3 w-3" />{fb ? num(fb.followers) : "—"}
-          </span>
-          <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10.5px] font-medium", ig ? "border-border/60 text-foreground" : "border-border/40 text-muted-foreground/60")}>
-            <Instagram className="h-3 w-3" />{ig ? num(ig.followers) : "—"}
-          </span>
-          <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10.5px] font-medium", ads ? "border-border/60 text-foreground" : "border-border/40 text-muted-foreground/60")}>
-            <Megaphone className="h-3 w-3" />{ads ? money(ads.spend, 0) : "—"}
-          </span>
-          <Button onClick={handleSync} disabled={syncing} size="sm" variant={isStaff ? "default" : "outline"} className="gap-1.5">
-            {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-            {isStaff ? "Sync" : "Refresh"}
-          </Button>
-        </div>
-      </div>
-
-      {missingPerms.length > 0 && (
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Some metrics are unavailable</AlertTitle>
-          <AlertDescription className="text-xs space-y-2">
-            <p>The connected Page admin must be added as an <strong>App Tester</strong> in your Meta App Dashboard (App Roles → Roles), then reconnect Meta. Missing scopes:</p>
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              {missingPerms.map(([k]) => <Badge key={k} variant="outline" className="text-[10px]">{k}</Badge>)}
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-
       <Tabs defaultValue="overview">
         <TabsList className="h-9 bg-muted/50 p-1">
           <TabsTrigger value="overview" className="gap-1.5 text-xs"><LayoutDashboard className="h-3.5 w-3.5" />Overview</TabsTrigger>
@@ -905,19 +840,6 @@ export default function SocialAnalyticsTab({ clinicId }: Props) {
         </TabsContent>
       </Tabs>
 
-      {perms && (
-        <Panel title="Sync status detail" subtitle="Per-permission health from the last sync" icon={Activity}>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
-            {Object.entries(perms).map(([k, v]: any) => (
-              <div key={k} className="flex items-center gap-2 text-[11px]">
-                <span className={cn("h-1.5 w-1.5 rounded-full", v === "ok" ? "bg-success" : v === "missing" ? "bg-warning" : "bg-muted-foreground/40")} />
-                <span className="truncate text-muted-foreground">{k}</span>
-                <span className="ml-auto font-medium">{v}</span>
-              </div>
-            ))}
-          </div>
-        </Panel>
-      )}
     </div>
   );
 }
