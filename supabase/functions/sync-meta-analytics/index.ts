@@ -310,9 +310,43 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Demographics are no longer exposed for Pages in v21+ — keep the shape for the UI.
-    const fbDemographics: any = { country: {}, city: {}, gender_age: {} };
-    perms.fb_demographics = "missing";
+    // Demographics: still try Meta (some Pages/versions expose them). If Meta no
+    // longer returns them, keep whatever we stored previously instead of wiping it.
+    let fbDemographics: any = { country: {}, city: {}, gender_age: {} };
+    {
+      const { data, error } = await gget(
+        `${GRAPH}/${pageId}/insights?metric=page_fans_country,page_fans_city,page_fans_gender_age&period=lifetime&access_token=${tok}`
+      );
+      const byName: Record<string, any> = {};
+      for (const m of data?.data || []) {
+        const latest = m.values?.[m.values.length - 1];
+        if (latest?.value) byName[m.name] = latest.value;
+      }
+      if (!error && Object.keys(byName).length > 0) {
+        perms.fb_demographics = "ok";
+        fbDemographics = {
+          country: byName.page_fans_country || {},
+          city: byName.page_fans_city || {},
+          gender_age: byName.page_fans_gender_age || {},
+        };
+      } else {
+        // Not available on this Page / API version — preserve prior values.
+        perms.fb_demographics = "skipped";
+        const { data: prev } = await supabase
+          .from("analytics")
+          .select("metrics_json")
+          .eq("clinic_id", clinic_id)
+          .eq("platform", "facebook")
+          .order("date", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const prior = (prev as any)?.metrics_json?.demographics;
+        if (prior && (Object.keys(prior.country || {}).length || Object.keys(prior.gender_age || {}).length)) {
+          fbDemographics = prior;
+        }
+        if (error) console.warn("fb_demographics", JSON.stringify(error));
+      }
+    }
 
     // Recent posts
     let recentPosts: any[] = [];
